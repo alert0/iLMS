@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<service name="Service" targetNamespace="http://localhost/BOI/" scope="application">
+
+    <description>异步接收xml webservice</description>
+    <schema schemaNamespace="http://localhost/BOI/" /> <!-- elementFormDefaultQualified="false" -->
+    <parameter name="ServiceObjectSupplier" locked="false">org.apache.axis2.extensions.spring.receivers.SpringServletContextObjectSupplier</parameter>
+    <parameter name="SpringBeanName">Service</parameter>
+    <messageReceivers>
+       <messageReceiver mep="http://www.w3.org/2004/08/wsdl/in-only" class="org.apache.axis2.rpc.receivers.RPCInOnlyMessageReceiver" />
+       <messageReceiver mep="http://www.w3.org/2004/08/wsdl/in-out" class="org.apache.axis2.rpc.receivers.RPCMessageReceiver" />
+    </messageReceivers>
+    
+    <!-- 排除方法 -->  
+    <excludeOperations>  
+        <operation>setReceiver</operation>  
+        <operation>setReceiveLogService</operation>  
+    </excludeOperations>
+</service>

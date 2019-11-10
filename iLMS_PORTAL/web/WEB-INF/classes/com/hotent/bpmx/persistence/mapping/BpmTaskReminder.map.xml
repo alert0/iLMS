@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.bpmx.persistence.model.BpmTaskReminder">
+	<resultMap id="BpmTaskReminder" type="com.hotent.bpmx.persistence.model.BpmTaskReminder">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="taskId" column="task_id_" jdbcType="VARCHAR"/>
+		<result property="name" column="name_" jdbcType="VARCHAR"/>
+		<result property="relDate" column="rel_date_" jdbcType="TIMESTAMP"/>
+		<result property="dueAction" column="due_action_" jdbcType="VARCHAR"/>
+		<result property="dueScript" column="due_script_" jdbcType="VARCHAR"/>
+		<result property="dueDate" column="due_date_" jdbcType="TIMESTAMP"/>
+		<result property="isSendMsg" column="is_send_msg_" jdbcType="NUMERIC"/>
+		<result property="msgSendDate" column="msg_send_date_" jdbcType="TIMESTAMP"/>
+		<result property="msgInterval" column="msg_interval_" jdbcType="NUMERIC"/>
+		<result property="msgCount" column="msg_count_" jdbcType="NUMERIC"/>
+		<result property="msgType" column="msg_type_" jdbcType="VARCHAR"/>
+		<result property="htmlMsg" column="html_msg_" jdbcType="VARCHAR"/>
+		<result property="plainMsg" column="plain_msg_" jdbcType="VARCHAR"/>
+		<result property="warningset" column="warningSet_" jdbcType="VARCHAR"/>
+		<result property="triggerDate" column="trigger_date_" jdbcType="TIMESTAMP"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.bpmx.persistence.model.BpmTaskReminder">
+		INSERT INTO bpm_task_reminder
+		(id_,task_id_,name_,rel_date_,due_action_,due_script_,due_date_,is_send_msg_,msg_send_date_,msg_interval_,msg_count_,msg_type_,html_msg_,plain_msg_,warningSet_,trigger_date_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{taskId,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR}, #{relDate,jdbcType=TIMESTAMP}, #{dueAction,jdbcType=VARCHAR}, #{dueScript,jdbcType=VARCHAR}, #{dueDate,jdbcType=TIMESTAMP}, #{isSendMsg,jdbcType=NUMERIC}, #{msgSendDate,jdbcType=TIMESTAMP}, #{msgInterval,jdbcType=NUMERIC}, #{msgCount,jdbcType=NUMERIC}, #{msgType,jdbcType=VARCHAR}, #{htmlMsg,jdbcType=VARCHAR}, #{plainMsg,jdbcType=VARCHAR}, #{warningset,jdbcType=VARCHAR}, #{triggerDate,jdbcType=TIMESTAMP})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="BpmTaskReminder">
+		SELECT * FROM bpm_task_reminder 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	
+	<select id="query" parameterType="java.util.Map" resultMap="BpmTaskReminder">
+		SELECT * FROM bpm_task_reminder
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.bpmx.persistence.model.BpmTaskReminder">
+		UPDATE bpm_task_reminder SET
+		task_id_=#{taskId,jdbcType=VARCHAR},
+		name_=#{name,jdbcType=VARCHAR},
+		rel_date_=#{relDate,jdbcType=TIMESTAMP},
+		due_action_=#{dueAction,jdbcType=VARCHAR},
+		due_script_=#{dueScript,jdbcType=VARCHAR},
+		due_date_=#{dueDate,jdbcType=TIMESTAMP},
+		is_send_msg_=#{isSendMsg,jdbcType=NUMERIC},
+		msg_send_date_=#{msgSendDate,jdbcType=TIMESTAMP},
+		msg_interval_=#{msgInterval,jdbcType=NUMERIC},
+		msg_count_=#{msgCount,jdbcType=NUMERIC},
+		msg_type_=#{msgType,jdbcType=VARCHAR},
+		html_msg_=#{htmlMsg,jdbcType=VARCHAR},
+		plain_msg_=#{plainMsg,jdbcType=VARCHAR},
+		warningSet_=#{warningset,jdbcType=VARCHAR},
+		trigger_date_=#{triggerDate,jdbcType=TIMESTAMP}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM bpm_task_reminder 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	
+	<delete id="deleteByTaskId" parameterType="java.lang.String">
+		DELETE FROM bpm_task_reminder
+		WHERE
+		task_id_=#{taskId}
+	</delete>
+	
+	<select id="getTriggerReminders"  parameterType="java.util.Date" resultMap="BpmTaskReminder">
+		SELECT * FROM bpm_task_reminder 
+		WHERE 
+		trigger_date_ &lt;= #{thisDate,jdbcType=TIMESTAMP}
+	</select>
+	
+</mapper>

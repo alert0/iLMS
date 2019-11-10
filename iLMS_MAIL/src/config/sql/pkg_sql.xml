@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="pkg">
+	<typeAlias alias="PkgPartVO" type="com.hanthink.gps.pkg.vo.PkgPartVo" />
+	<typeAlias alias="map" type="java.util.Map" />
+	<typeAlias alias="Integer" type="java.lang.Integer"/>
+	
+	<select id="select_getPkgPartCount" parameterClass="map" resultClass="Integer">
+		SELECT COUNT(*) FROM MM_PKG_PART A WHERE A.FACTORY_CODE = #FACTORY_CODE# AND A.EMAIL_FLAG = #EMAIL_FLAG_NO#
+	</select>
+	
+	<!-- 零件担当提醒后修改邮件发送状态 -->
+	<update id="update_updatePkgPartEmailStatus" parameterClass="map">
+	UPDATE MM_PKG_PART A SET A.EMAIL_FLAG = #EMAIL_FALG_YES# WHERE A.FACTORY_CODE = #FACTORY_CODE# AND A.EMAIL_FLAG = #EMAIL_FLAG_NO#
+	</update>
+	
+	<select id="select_getPkgProposalCount" parameterClass="map" resultClass="Integer">
+		SELECT COUNT(*) FROM MM_PKG_PROPOSAL A 
+		WHERE A.PROPOSAL_STATUS = #PROPOSAL_STATUS_FQ#
+			AND A.REPLY_LIMIT_DATE &lt; SYSDATE 
+			AND A.EMAIL_FLAG = #EMAIL_FLAG_NO#
+	</select>
+	
+	<!-- 包装回复期限提醒后修改邮件发送状态 -->
+	<update id="update_updatePkgProposalEmailStatus" parameterClass="map">
+	UPDATE MM_PKG_PROPOSAL A SET A.EMAIL_FLAG = #EMAIL_FALG_YES# 
+	WHERE A.PROPOSAL_STATUS = #PROPOSAL_STATUS_FQ#
+	AND A.REPLY_LIMIT_DATE &lt; SYSDATE 
+	AND A.EMAIL_FLAG = #EMAIL_FLAG_NO#
+	</update>
+	
+</sqlMap>

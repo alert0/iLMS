@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.pub.model.PubFactoryModel">
+	
+	<!-- 查询工厂 -->
+	<select id="queryFactoryPage" parameterType="com.hanthink.pub.model.PubFactoryModel"
+		resultType="com.hanthink.pub.model.PubFactoryModel">
+		SELECT 
+			   T.ID 		  id,
+			   T.FACTORY_CODE factoryCode, 
+		       T.FACTORY_NAME factoryName
+		  FROM MM_PUB_FACTORY T
+		 WHERE 1=1
+		 <if test="null != factoryCode and ''!= factoryCode">
+		 	AND T.FACTORY_CODE = #{factoryCode} 
+		 </if> 
+		 <if test="null != factoryName and ''!= factoryName">
+		 	AND T.FACTORY_NAME LIKE '%' ||  #{factoryName} || '%' 
+		 </if>
+	</select>
+	
+	<!-- 新增工厂 -->
+	<insert id="insertFactory" parameterType="com.hanthink.pub.model.PubFactoryModel">
+		INSERT INTO MM_PUB_FACTORY
+		  (ID,
+		   FACTORY_CODE,
+		   FACTORY_NAME,
+		   CREATION_TIME,
+		   CREATION_USER,
+		   LAST_MODIFIED_TIME,
+		   LAST_MODIFIED_USER)
+		VALUES
+		  (#{id, jdbcType=VARCHAR},
+		   #{factoryCode, jdbcType=VARCHAR},
+		   #{factoryName, jdbcType=VARCHAR},
+		   sysdate,
+		   #{creationUser, jdbcType=VARCHAR},
+		   sysdate,
+		   #{creationUser, jdbcType=VARCHAR})
+	</insert>
+	
+	<!-- 更新工厂 -->
+	<update id="updateFactory" parameterType="com.hanthink.pub.model.PubFactoryModel">
+		UPDATE MM_PUB_FACTORY
+		   SET 
+		       FACTORY_NAME       = #{factoryName, jdbcType=VARCHAR},
+		       LAST_MODIFIED_TIME = sysdate,
+		       LAST_MODIFIED_USER = #{lastModifiedUser, jdbcType=VARCHAR}
+		 WHERE ID = #{id}
+	</update>
+	
+	<!-- 删除工厂 -->
+	<delete id="deleteFactory" parameterType="com.hanthink.pub.model.PubFactoryModel">
+		DELETE MM_PUB_FACTORY T WHERE T.ID = #{id}
+	</delete>
+	
+	<!-- 查询工厂对应账号 -->
+	<select id="queryFactoryUserList" parameterType="com.hanthink.pub.model.PubFactoryModel"
+		resultType="com.hanthink.pub.model.PubFactoryModel">
+		SELECT T.FACTORY_CODE factoryCode, 
+	       T.USER_ID 	      userId, 
+	       U.ACCOUNT_ 		  account,
+	       F.FACTORY_NAME     factoryName,  
+	       T.CREATION_TIME    creationTime,
+       	   UU.FULLNAME_       creationUser,
+	       U.FULLNAME_        fullName
+	  FROM MM_PUB_FACTORY_USER T
+		  LEFT JOIN MM_PUB_FACTORY F ON F.FACTORY_CODE = T.FACTORY_CODE
+		  LEFT JOIN SYS_USER U ON U.ID_ = T.USER_ID
+		  LEFT JOIN SYS_USER UU ON UU.ID_ = T.CREATION_USER 
+	  WHERE T.FACTORY_CODE = #{factoryCode}
+	</select>
+	
+	<!-- 查询非当前工厂用户账号 -->
+	<select id="queryNotThisFactorySystemUserPage" parameterType="com.hanthink.pub.model.PubFactoryModel"
+		resultType="com.hanthink.pub.model.PubFactoryModel">
+		SELECT 
+		  T.ACCOUNT_    account,
+		  T.FULLNAME_   fullName,
+		  T.ID_         userId
+		FROM SYS_USER T 
+			WHERE NOT EXISTS (SELECT 1 FROM MM_PUB_FACTORY_USER U WHERE U.FACTORY_CODE = #{factoryCode} and U.USER_ID = T.ID_)
+		<if test="null != account and ''!= account">
+		 	AND T.ACCOUNT_ = #{account} 
+		 </if> 
+		 <if test="null != fullName and ''!= fullName">
+		 	AND T.FULLNAME_ LIKE '%' ||  #{fullName} || '%' 
+		 </if>
+	</select>
+	
+	<!-- 工厂新增账号 -->
+	<insert id="addFactoryUser" parameterType="com.hanthink.pub.model.PubFactoryModel">
+		INSERT INTO MM_PUB_FACTORY_USER
+		  (USER_ID, FACTORY_CODE, CREATION_TIME, CREATION_USER)
+		VALUES
+		  (#{userId, jdbcType=VARCHAR}, #{factoryCode, jdbcType=VARCHAR}, 
+		  SYSDATE, #{creationUser, jdbcType=VARCHAR})
+	</insert>
+	
+	<!-- 删除工厂下账号 -->
+	<delete id="deleteFactoryUser" parameterType="com.hanthink.pub.model.PubFactoryModel">
+		DELETE MM_PUB_FACTORY_USER T WHERE T.FACTORY_CODE = #{factoryCode} AND T.USER_ID = #{userId}
+	</delete>
+	
+	<!-- 查询工厂代码是否唯一 -->
+	<select id="queryIsExistsFactoryCode" parameterType="com.hanthink.pub.model.PubFactoryModel"
+		resultType="com.hanthink.pub.model.PubFactoryModel">
+		SELECT 
+		  T.FACTORY_CODE factoryCode,
+		  T.FACTORY_NAME factoryName
+		FROM MM_PUB_FACTORY T WHERE T.FACTORY_CODE = #{factoryCode}	
+	</select>
+	
+</mapper>

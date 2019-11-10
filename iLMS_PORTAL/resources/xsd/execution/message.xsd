@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns="http://www.jee-soft.cn/bpm/plugins/execution/message"
+	xmlns:base="http://www.jee-soft.cn/bpm/plugins/userCalc/base"
+    targetNamespace="http://www.jee-soft.cn/bpm/plugins/execution/message" elementFormDefault="qualified">
+
+    <xs:import id="base" namespace="http://www.jee-soft.cn/bpm/plugins/userCalc/base"  schemaLocation="..\usercalc\base.xsd"/>
+    <xs:element name="message" >
+        <xs:annotation>
+            <xs:documentation>消息节点插件</xs:documentation>
+        </xs:annotation> 
+        <xs:complexType>
+        	<xs:all minOccurs="1" maxOccurs="1">
+        		<xs:element name="plainText" minOccurs="0">
+        			<xs:complexType>
+        				<xs:choice minOccurs="1" maxOccurs="unbounded">
+        					<xs:element  ref="base:userRule" minOccurs="0" maxOccurs="1">
+        						<xs:annotation>
+						            <xs:documentation>消息人员</xs:documentation>
+						        </xs:annotation>
+        					</xs:element>
+        					<xs:element name="content" type="xs:string" minOccurs="0" maxOccurs="1"> 
+        						<xs:annotation>
+						            <xs:documentation>消息内容模版</xs:documentation>
+						        </xs:annotation>
+        					</xs:element>
+        				</xs:choice> 
+        				<xs:attribute name="msgType" type="xs:string" use="required">
+        					<xs:annotation>
+					            <xs:documentation>消息类型 一种模式下允许多个消息类型,可以使用逗号分割,这里一般使用短信</xs:documentation>
+					        </xs:annotation>
+        				</xs:attribute>
+        			</xs:complexType>
+        		</xs:element>
+        		
+        		<xs:element name="html" minOccurs="0">
+        			<xs:complexType>
+        				<xs:choice minOccurs="1" maxOccurs="unbounded">
+        					<xs:element name="subject" type="xs:string">
+        						<xs:annotation>
+						            <xs:documentation>消息标题</xs:documentation>
+						        </xs:annotation>
+        					</xs:element>
+        					<xs:element name="content" type="xs:string" minOccurs="1" maxOccurs="1">
+        						<xs:annotation>
+						            <xs:documentation>消息内容模版</xs:documentation>
+						        </xs:annotation>
+        					</xs:element>
+        					<xs:element  ref="base:userRule" minOccurs="0" maxOccurs="unbounded" >
+        						<xs:annotation>
+						            <xs:documentation>消息人员</xs:documentation>
+						        </xs:annotation>
+        					</xs:element>
+        				</xs:choice>
+        				<xs:attribute name="msgType" type="xs:string" use="required">
+        					<xs:annotation>
+					            <xs:documentation>消息类型 一种模式下允许多个消息类型，可以使用逗号分割</xs:documentation>
+					        </xs:annotation>
+        				</xs:attribute>
+        			</xs:complexType>
+        		</xs:element>
+        	</xs:all>
+        	<xs:attribute name="externalClass" type="xs:string" use="optional">
+        		<xs:annotation>
+        			<xs:documentation>IExternalData接口实现类,输入类的全路径</xs:documentation>
+        		</xs:annotation>
+        	</xs:attribute>
+        </xs:complexType>
+        
+    </xs:element>
+    
+   
+</xs:schema>    

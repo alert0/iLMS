@@ -1,0 +1,13 @@
+l_language='language';
+l_userName='user Name';
+l_password='password';
+l_welcome='welcome';
+l_login='login';
+l_clear='clear';
+l_waitMsg='Please wait...';
+l_select='Please select...';
+l_add='add';
+l_modify='modify';
+l_delete='delete';
+l_userList='User List';
+l_userId='User Id';

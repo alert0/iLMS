@@ -1,0 +1,357 @@
+/* base.css reset */
+*{margin: 0;padding: 0;}
+ul, li, ol { list-style: none; }
+ol, ul{margin: 0;}
+/* base.css reset end */
+
+/*logo的样式*/
+.logo {
+    background: url(../image/logomtk-bf-04.png) no-repeat center;
+    background-position: 20px center;
+    background-size: auto 25%;
+
+    /*width: 250px;*/
+    padding-left: calc(20px + 126px + 0px);
+    color: #fff;
+    line-height: 62px;
+}
+.logo a,.logo a:hover {
+    color: #fff;
+    text-decoration: none;
+    cursor: default;
+}
+.logo h1{
+    font-size: 14px;
+    font-weight: normal;
+    height: 100%;
+    line-height: 62px;
+    margin: 0;
+    padding: 0;
+}
+
+/*导航的图标与文字居中对齐样式*/
+.hearder-menu{
+    margin-left: 0;
+    width: calc(100% - 250px - 150px);
+}
+
+/**layout 布局样式**/
+
+.layout-north{
+    background-image: none;
+    background-color: #f0f2f7;
+}
+.panel{box-shadow: none;-webkit-box-shadow:none;}
+.panel.window{
+    background: none !important;
+    border: 0;
+    padding: 0;
+
+    box-shadow: 0 2px 6px rgba(0,0,0,.6);
+    -webkit-box-shadow: 0 2px 6px rgba(0,0,0,.6);
+    border-radius: 4px;
+}
+.window .window-header{
+    padding: 5px 0;
+    background-color: #1dcceb;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+}
+.window .window-body{border: 0;}
+.window .window-header .panel-icon{left: 5px;}
+.window .window-header .panel-tool{right: 5px;}
+.window .window-body{
+    border-bottom-left-radius: 4px;
+    border-bottom-right-radius: 4px;
+}
+.window .window-header .panel-with-icon{padding-left: 16px;}
+
+/********* 韩天设计的UI样式 ***********/
+.mh-header {
+    width: 100%;
+    height: 80px;
+    background: #1dcceb url("image/logomtk-bf.png") no-repeat center;
+    background-position: 20px center;
+    background-size: auto 50%;
+    color: #fff;
+    padding-left: calc(20px + 126px + 40px)
+}
+
+.mh-header .header__icon {
+    display: inline-block;
+    height: 100%
+}
+
+.mh-header .header__title {
+    display: inline-block;
+    height: 100%;
+    line-height: 80px;
+    font-size: 1rem
+}
+
+.header__menu {
+    height: 100%;
+    float: right;
+    color: #fff;
+}
+
+.header__menu .header__menu--li {
+    width: 70px;
+    height: 100%;
+    line-height: 62px;
+    display: inline-block;
+    text-align: center;
+    position: relative;
+    cursor: pointer;
+    background-repeat: no-repeat;
+    background-position: center
+}
+
+.header__menu .header__menu--li .menu--li__msg {
+    position: absolute;
+    display: inline-block;
+    padding: 10px 6px;
+    line-height: 0;
+    background-color: red;
+    border-radius: 50%;
+    font-style: normal;
+    top: 20%;
+}
+
+.header__menu .menuLiBg--email {
+    background-image: url("icons/index/header_email.png")
+}
+
+.header__menu .menuLiBg--tixing {
+    background-image: url("icons/index/header_tixing.png")
+}
+
+.header__menu .menuLiBg--logout {
+    background-image: url("icons/index/header_logout.png")
+}
+
+.header__menu .menuLiBorder--right {
+    border-right: 1px solid rgba(255,255,255,0.5)
+}
+
+.header__menu .menuLiBg--header {
+    display: inline-block;
+    width: 45px;
+    height: 45px;
+    /*border-radius: 50%;*/
+    position: absolute;
+    transform: translate(-50%, -50%);
+    top: 50%;
+    left: 20%;
+    background: url("../image/user.png") no-repeat center;
+    background-size: cover
+}
+
+.header__menu .menuLi--user {
+    min-width: 100px;
+    position: absolute;
+    transform: translate(-50%, -50%);
+    top: 50%;
+    left: 75%;
+    height: 100%;
+    line-height: 62px;
+    /*background: url("image/icons/index/header_drop.png") no-repeat;
+    background-position: right 55%;
+    padding-right: 20px;*/
+}
+
+.header__menu .menuLi--user .p {
+    height: 14px;
+    line-height: 60px
+}
+
+.header__menu .menuLi--user .menuLi--user--drop {
+    top: 100%;
+    left: 0
+}
+
+.header__menu:after {
+    width: 0;
+    height: 0;
+    display: block;
+    content: '';
+    clear: both
+}
+
+.dropDownMenu {
+    position: absolute;
+    z-index: 1000;
+    background-color: #fff;
+    border-radius: 4px;
+    color: #333;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.6);
+    min-width: 80px
+}
+
+.dropDownMenu>li {
+    width: 100%;
+    height: 24px;
+    line-height: 24px
+}
+
+.dropDownMenu>li:hover {
+    color: #1dcceb
+}
+
+.mh-mainMenu {
+    width: 100%;
+    height: 45px;
+    background-color: #fff;
+    font-size: 1rem;
+    padding-left: 20px
+}
+
+.mh-mainMenu .mh-mainMenu__li {
+    float: left;
+    height: 100%;
+    line-height: 45px;
+    text-align: center;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    /*position: relative*/
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.mh-mainMenu .mh-mainMenu__li.active,.mh-mainMenu .mh-mainMenu__li:hover {
+    border-bottom-color: #1dcceb
+}
+
+.mh-mainMenu .mh-mainMenu__li.active .mh-mainMenu__li--a,.mh-mainMenu .mh-mainMenu__li:hover .mh-mainMenu__li--a {
+    color: #1dcceb
+}
+
+.mh-mainMenu .mh-mainMenu__li:hover .mh-mainMenu__li--drop {
+    display: block
+}
+
+.mh-mainMenu .mh-mainMenu__li:not(:last-child) {
+    margin-right: 30px
+}
+
+.mh-mainMenu .mh-mainMenu__li .mh-mainMenu__li--a {
+    display: inline-block;
+    width: 100%;
+    height: 100%;
+    color: #333;
+    text-decoration: none;
+}
+.mh-mainMenu .mh-mainMenu__li .mh-mainMenu__li--a:hover{text-decoration: none;}
+
+.mh-mainMenu .mh-mainMenu__li .mh-mainMenu__li--drop {
+    display: none;
+    top: 100%;
+    left: -20%
+}
+
+.mh-mainMenu:after {
+    width: 0;
+    height: 0;
+    display: block;
+    content: '';
+    clear: both
+}
+
+.mh-mainTitle {
+    margin: 10px 0 0 0;
+    height: 30px;
+    line-height: 30px;
+    color: #333;
+    font-weight: normal;
+    background: #eee url("image/icons/index/mainTitle_home.png") no-repeat 20px center;
+    padding-left: 40px
+}
+
+.mh-main {
+    width: 100%;
+    height: calc(100% - 80px - 45px - 30px);
+    overflow-x: hidden;
+    overflow-y: scroll
+}
+
+.mh-main .mh-app {
+    width: 100%;
+    padding: 20px
+}
+
+.full-width {
+    width: 100% !important
+}
+
+.color-33 {color: #333}
+.color-66 {color: #666}
+.color-00b1a5 {color: #1dcceb}
+.color-c2c39f {color: #c2c39f}
+.color-b5d9a8 {color: #b5d9a8}
+.color-ebb26a {color: #ebb26a}
+.color-308190 {color: #308190}
+.color-3bb7e3 {color: #3bb7e3}
+
+.bg-00b1a5 {background-color: #1dcceb}
+.bg-3bb7e3 {background-color: #3bb7e3}
+.bg-feba44 {background-color: #feba44}
+.bg-fb6321 {background-color: #fb6321}
+.bg-none {background-color: transparent !important}
+.borBotRF5 {border-bottom: 1px solid #f5f5f5}
+
+.font-1_4 {font-size: 14px;}
+.font-1_3 {font-size: 13px;}
+.font-0_6 {font-size: 0.6rem}
+
+/* easyui reset */
+.tabs-header{background-color: #eee;}
+.tabs-wrap{padding-top: 4px;}
+.tabs{padding-left: 20px;border: 0;}
+.tabs li a.tabs-inner{color: #333;border: 0;border-radius: 0;}
+.tabs li.tabs-selected a.tabs-inner{border-bottom: 0;color: #1dcceb;} /*border-bottom:1px solid #D4D4D4;*/
+.tabs li a.tabs-inner:hover{color: #1dcceb;} /*background:none;*/
+.tabs li a.tabs-close{top: 48%;}
+.tabs-icon{margin-top: -8px !important;}
+
+.mh-mainMenu .l-btn{border-radius: 0;}
+.mh-mainMenu .l-btn-plain,.mh-mainMenu .l-btn-plain:hover{padding: 0;background:none;border:0;}
+.mh-mainMenu .l-btn-text{line-height: 45px;margin: 0;font-size: 14px;}
+.mh-mainMenu .m-btn .l-btn-left .l-btn-text{margin: 0;}
+.mh-mainMenu .m-btn-downarrow{display: none;}
+
+/**
+ * 子菜单样式 $('#personOffice').menu('show') 调试
+ * header: [data-name="mh-header-menu"]
+ * 主菜单: [data-name="mh-menu"]
+ */
+[data-name="mh-header-menu"]{color: #fff;padding: 0;}
+[data-name="mh-header-menu"]:hover, [data-name="mh-header-menu"].m-btn-plain-active{
+    background: none;
+    border: 0;
+    border-radius: 0;
+    color: #fff;
+}
+[data-name="mh-header-menu"] .l-btn-text, [data-name="mh-header-menu"] .l-btn-left .l-btn-text{margin: 0;line-height: 40px;}
+[data-name="mh-header-menu"] .l-btn-left{padding-right: 20px;line-height: 40px;vertical-align: middle;}
+[data-name="mh-header-menu"] .m-btn-downarrow{background-image: url("icons/index/header_drop.png");}
+
+[data-name="mh-menu"], [data-name="mh-menu-item"]{border: 0; border-radius: 4px;}
+[data-name="mh-menu"] .menu-active, [data-name="mh-menu-item"].menu-active{background-color: #f0f2f7;color: #1dcceb;}
+[data-name="mh-menu"] .menu-line, [data-name="mh-menu-item"] .menu-line{display: none;}
+[data-name="mh-menu"] .menu-text, [data-name="mh-menu-item"] .menu-text{padding-left: 8px;}
+[data-name="mh-menu"] + .menu-shadow, [data-name="mh-menu-item"] + .menu-shadow{
+    -moz-box-shadow: 0 4px 4px rgba(0, 0, 0, 0.4);;
+    -webkit-box-shadow: 0 4px 4px rgba(0, 0, 0, 0.4);;
+    box-shadow: 0 4px 4px rgba(0, 0, 0, 0.4);
+}
+[data-name="mh-menu"] .menu-icon, [data-name="mh-menu-item"] .menu-icon{display: none;}
+[data-name="mh-menu-item"] .btn-xs{padding: 0;}
+[data-name="mh-menu-item"].menu-active .btn{color: #1dcceb;}
+/********* 韩天设计的UI样式 end ***********/
+.menu-active {
+  background-color: #1dcceb;
+  border-color: #1dcceb;
+  color: #fff;
+}
+.bg-header{height: calc(100% - 45px);background-color: #1dcceb;}
+

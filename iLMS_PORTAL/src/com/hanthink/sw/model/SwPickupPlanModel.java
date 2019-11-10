@@ -1,0 +1,442 @@
+package com.hanthink.sw.model;
+
+import com.hotent.base.core.model.AbstractModel;
+
+/**
+ * 
+* <p>Title: SwPickupPlanModel</p>  
+* <p>Description: 取货计划model</p> 
+* <p>Company: hanthink</p>
+* @author luoxq  
+* @date 2018年10月19日 上午9:15:59
+ */
+public class SwPickupPlanModel extends AbstractModel<String>{
+
+	private static final long serialVersionUID = -1675771844961352185L;
+	/**id**/
+	private String id;
+	/**物流单号**/
+	private String orderNo;
+	/**订单号**/
+	private String purchaseNo;
+	/** 订单行号 */
+	private String purchaseRowNo;
+	/** 订单类型 */
+	private String orderType;
+	/** 发货状态 */
+	private String deliveryStatus;
+	/** 收货状态 */
+	private String reciveStatus;
+	/** 是否紧急 */
+	private String isUrgent;
+	/** 订购单位 */
+	private String orderUnit;
+	/**确认天数**/
+	private String confirmDays;
+	/**内物流管理员**/
+	private String interLoglsManager;
+	/**订购用途**/
+	private String orderUse;
+	/**计划装配时间**/
+	private String planAssembleTime;
+	/**计划到货时间**/
+	private String planArrTime;
+	/**计划取货时间**/
+	private String planPickupTime;
+	/**取货时间开始（查询条件）**/
+	private String planPickupTimeStart;
+	/**取货时间结束（查询条件）**/
+	private String planPickupTimeEnd;
+	/**当日车次**/
+	private String todayCarBatch;
+	/**反馈状态**/
+	private String feedbackStatus;
+	/**物流模式**/
+	private String logisticsMode;
+	/**区域**/
+	private String area;
+	/**车型**/
+	private String carType;
+	/**路线**/
+	private String routeCode;
+	/**累计车次**/
+	private String totalBatchs;
+	/**合并车次**/
+	private String mergeBatchs;
+	/**出货地编码**/
+	private String supFactory;
+	/**供应商代码**/
+	private String supplierNo;
+	/**供应商名称**/
+	private String supplierName;
+	/**工作日**/
+	private String  workDate;
+	/**工厂**/
+	private String factoryCode;
+	/**订单说明**/
+	private String orderDesc;
+	/**取货区分**/
+	private String pickupType;
+	/**订单到货日期**/
+	private String orderArrDate;
+	/**卸货口**/
+	private String unloadPort;
+	/**下载状态**/
+	private String downloadStatus;
+	/**下载时间**/
+	private String downloadTime;
+	/**创建人**/
+	private String creationUser;
+	/**最后修改用户**/
+	private String lastModifiedUser;
+	/**零件号**/
+	private String partNo;
+	/** 调整状态 */
+	private String adjStatus;
+	/**订购数量**/
+	private String orderQty;
+	/**取消数量**/
+	private String cancelNum;
+	/**已发数量**/
+	private String totalDelivQty;
+	/**收货数量**/
+	private String receiveCount;
+	/**待发货数量**/
+	private String waitQty;
+	/**出货地地址**/
+	private String supFactoryAddr;
+	/**最后修改时间**/
+	private String lastModifiedTime;
+	/**创建时间**/
+	private String creationTime;
+	/**仓库代码**/
+	private String depotNo;
+	/**简号**/
+	private String partShortNo;
+	/**零件名称**/
+	private String partNameCn;
+	/**发布日期**/
+	private String publishDate;
+	/**到货日期**/
+	private String arriveDate;
+	
+	public String getOrderNo() {
+		return orderNo;
+	}
+	public void setOrderNo(String orderNo) {
+		this.orderNo = orderNo;
+	}
+	public String getPurchaseNo() {
+		return purchaseNo;
+	}
+	public void setPurchaseNo(String purchaseNo) {
+		this.purchaseNo = purchaseNo;
+	}
+	public String getConfirmDays() {
+		return confirmDays;
+	}
+	public void setConfirmDays(String confirmDays) {
+		this.confirmDays = confirmDays;
+	}
+	public String getInterLoglsManager() {
+		return interLoglsManager;
+	}
+	public void setInterLoglsManager(String interLoglsManager) {
+		this.interLoglsManager = interLoglsManager;
+	}
+	public String getOrderUse() {
+		return orderUse;
+	}
+	public void setOrderUse(String orderUse) {
+		this.orderUse = orderUse;
+	}
+	public String getPlanAssembleTime() {
+		return planAssembleTime;
+	}
+	public void setPlanAssembleTime(String planAssembleTime) {
+		this.planAssembleTime = planAssembleTime;
+	}
+	public String getPlanArrTime() {
+		return planArrTime;
+	}
+	public void setPlanArrTime(String planArrTime) {
+		this.planArrTime = planArrTime;
+	}
+	public String getPlanPickupTime() {
+		return planPickupTime;
+	}
+	public void setPlanPickupTime(String planPickupTime) {
+		this.planPickupTime = planPickupTime;
+	}
+	public String getTodayCarBatch() {
+		return todayCarBatch;
+	}
+	public void setTodayCarBatch(String todayCarBatch) {
+		this.todayCarBatch = todayCarBatch;
+	}
+	public String getFeedbackStatus() {
+		return feedbackStatus;
+	}
+	public void setFeedbackStatus(String feedbackStatus) {
+		this.feedbackStatus = feedbackStatus;
+	}
+	public String getLogisticsMode() {
+		return logisticsMode;
+	}
+	public void setLogisticsMode(String logisticsMode) {
+		this.logisticsMode = logisticsMode;
+	}
+	public String getArea() {
+		return area;
+	}
+	public void setArea(String area) {
+		this.area = area;
+	}
+	public String getCarType() {
+		return carType;
+	}
+	public void setCarType(String carType) {
+		this.carType = carType;
+	}
+	public String getRouteCode() {
+		return routeCode;
+	}
+	public void setRouteCode(String routeCode) {
+		this.routeCode = routeCode;
+	}
+	public String getTotalBatchs() {
+		return totalBatchs;
+	}
+	public void setTotalBatchs(String totalBatchs) {
+		this.totalBatchs = totalBatchs;
+	}
+	public String getMergeBatchs() {
+		return mergeBatchs;
+	}
+	public void setMergeBatchs(String mergeBatchs) {
+		this.mergeBatchs = mergeBatchs;
+	}
+	public String getSupFactory() {
+		return supFactory;
+	}
+	public void setSupFactory(String supFactory) {
+		this.supFactory = supFactory;
+	}
+	public String getSupplierNo() {
+		return supplierNo;
+	}
+	public void setSupplierNo(String supplierNo) {
+		this.supplierNo = supplierNo;
+	}
+	public String getWorkDate() {
+		return workDate;
+	}
+	public void setWorkDate(String workDate) {
+		this.workDate = workDate;
+	}
+	public String getFactoryCode() {
+		return factoryCode;
+	}
+	public void setFactoryCode(String factoryCode) {
+		this.factoryCode = factoryCode;
+	}
+	public String getOrderDesc() {
+		return orderDesc;
+	}
+	public void setOrderDesc(String orderDesc) {
+		this.orderDesc = orderDesc;
+	}
+	public String getPickupType() {
+		return pickupType;
+	}
+	public void setPickupType(String pickupType) {
+		this.pickupType = pickupType;
+	}
+	public String getOrderArrDate() {
+		return orderArrDate;
+	}
+	public void setOrderArrDate(String orderArrDate) {
+		this.orderArrDate = orderArrDate;
+	}
+	public String getUnloadPort() {
+		return unloadPort;
+	}
+	public void setUnloadPort(String unloadPort) {
+		this.unloadPort = unloadPort;
+	}
+	public String getDownloadStatus() {
+		return downloadStatus;
+	}
+	public void setDownloadStatus(String downloadStatus) {
+		this.downloadStatus = downloadStatus;
+	}
+	public String getDownloadTime() {
+		return downloadTime;
+	}
+	public void setDownloadTime(String downloadTime) {
+		this.downloadTime = downloadTime;
+	}
+	public String getCreationUser() {
+		return creationUser;
+	}
+	public void setCreationUser(String creationUser) {
+		this.creationUser = creationUser;
+	}
+	public String getLastModifiedUser() {
+		return lastModifiedUser;
+	}
+	public void setLastModifiedUser(String lastModifiedUser) {
+		this.lastModifiedUser = lastModifiedUser;
+	}
+	public String getId() {
+		return id;
+	}
+	public void setId(String id) {
+		this.id = id;
+	}
+	public String getSupplierName() {
+		return supplierName;
+	}
+	public void setSupplierName(String supplierName) {
+		this.supplierName = supplierName;
+	}
+	public String getPlanPickupTimeStart() {
+		return planPickupTimeStart;
+	}
+	public void setPlanPickupTimeStart(String planPickupTimeStart) {
+		this.planPickupTimeStart = planPickupTimeStart;
+	}
+	public String getPlanPickupTimeEnd() {
+		return planPickupTimeEnd;
+	}
+	public void setPlanPickupTimeEnd(String planPickupTimeEnd) {
+		this.planPickupTimeEnd = planPickupTimeEnd;
+	}
+	public String getPartNo() {
+		return partNo;
+	}
+	public void setPartNo(String partNo) {
+		this.partNo = partNo;
+	}
+	public String getAdjStatus() {
+		return adjStatus;
+	}
+	public void setAdjStatus(String adjStatus) {
+		this.adjStatus = adjStatus;
+	}
+	public String getPurchaseRowNo() {
+		return purchaseRowNo;
+	}
+	public void setPurchaseRowNo(String purchaseRowNo) {
+		this.purchaseRowNo = purchaseRowNo;
+	}
+	public String getOrderType() {
+		return orderType;
+	}
+	public void setOrderType(String orderType) {
+		this.orderType = orderType;
+	}
+	public String getDeliveryStatus() {
+		return deliveryStatus;
+	}
+	public void setDeliveryStatus(String deliveryStatus) {
+		this.deliveryStatus = deliveryStatus;
+	}
+	public String getReciveStatus() {
+		return reciveStatus;
+	}
+	public void setReciveStatus(String reciveStatus) {
+		this.reciveStatus = reciveStatus;
+	}
+	public String getIsUrgent() {
+		return isUrgent;
+	}
+	public void setIsUrgent(String isUrgent) {
+		this.isUrgent = isUrgent;
+	}
+	public String getOrderUnit() {
+		return orderUnit;
+	}
+	public void setOrderUnit(String orderUnit) {
+		this.orderUnit = orderUnit;
+	}
+	public String getOrderQty() {
+		return orderQty;
+	}
+	public void setOrderQty(String orderQty) {
+		this.orderQty = orderQty;
+	}
+	public String getCancelNum() {
+		return cancelNum;
+	}
+	public void setCancelNum(String cancelNum) {
+		this.cancelNum = cancelNum;
+	}
+	public String getTotalDelivQty() {
+		return totalDelivQty;
+	}
+	public void setTotalDelivQty(String totalDelivQty) {
+		this.totalDelivQty = totalDelivQty;
+	}
+	public String getReceiveCount() {
+		return receiveCount;
+	}
+	public void setReceiveCount(String receiveCount) {
+		this.receiveCount = receiveCount;
+	}
+	public String getWaitQty() {
+		return waitQty;
+	}
+	public void setWaitQty(String waitQty) {
+		this.waitQty = waitQty;
+	}
+	public String getSupFactoryAddr() {
+		return supFactoryAddr;
+	}
+	public void setSupFactoryAddr(String supFactoryAddr) {
+		this.supFactoryAddr = supFactoryAddr;
+	}
+	public String getLastModifiedTime() {
+		return lastModifiedTime;
+	}
+	public void setLastModifiedTime(String lastModifiedTime) {
+		this.lastModifiedTime = lastModifiedTime;
+	}
+	public String getCreationTime() {
+		return creationTime;
+	}
+	public void setCreationTime(String creationTime) {
+		this.creationTime = creationTime;
+	}
+	public String getDepotNo() {
+		return depotNo;
+	}
+	public void setDepotNo(String depotNo) {
+		this.depotNo = depotNo;
+	}
+	public String getPartShortNo() {
+		return partShortNo;
+	}
+	public void setPartShortNo(String partShortNo) {
+		this.partShortNo = partShortNo;
+	}
+	public String getPartNameCn() {
+		return partNameCn;
+	}
+	public void setPartNameCn(String partNameCn) {
+		this.partNameCn = partNameCn;
+	}
+	public String getPublishDate() {
+		return publishDate;
+	}
+	public void setPublishDate(String publishDate) {
+		this.publishDate = publishDate;
+	}
+	public String getArriveDate() {
+		return arriveDate;
+	}
+	public void setArriveDate(String arriveDate) {
+		this.arriveDate = arriveDate;
+	}
+	 
+}

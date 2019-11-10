@@ -1,0 +1,7 @@
+1、First element must contain the local name 
+       解决：调用的wsdl的url不加?wsdl
+2、error on line 1 of document content is not allow in prolog
+       解决：xml的开始有存在未知字节，开发代码删除第一个<前的数据即可      
+3、SAP jar版本不对怎么看。
+    （1）查询select * from MESIF.T_IF_QUERY_LOG T WHERE T.IF_CODE ='xx' order by PK_ID DESC;  
+    （2）如果报“Error getting the version of the native layer: java.lang.UnsatisfiedLinkError: no sapjco3 in java.library.path”，那么SAP的jar版本就不对

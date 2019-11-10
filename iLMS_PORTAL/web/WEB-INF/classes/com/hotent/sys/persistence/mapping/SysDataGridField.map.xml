@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.sys.persistence.model.SysDataGridField">
+	<resultMap id="SysDataGridField" type="com.hotent.sys.persistence.model.SysDataGridField">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<id property="gridId" column="gridId_" jdbcType="VARCHAR"/>
+		<result property="field" column="field_" jdbcType="VARCHAR"/>
+		<result property="dbfield" column="dbfield_" jdbcType="VARCHAR"/>
+		<result property="title" column="title_" jdbcType="VARCHAR"/>
+		<result property="hidden" column="hidden_" jdbcType="BOOLEAN"/>
+		<result property="orderNum" column="order_num_" jdbcType="NUMERIC"/>
+		<result property="width" column="width_" jdbcType="NUMERIC"/>
+		<result property="align" column="align_" jdbcType="VARCHAR"/>
+		<result property="sortable" column="sortable_" jdbcType="BOOLEAN"/>
+		<result property="resizable" column="resizable_" jdbcType="BOOLEAN"/>
+		<result property="formatter" column="formatter_" jdbcType="VARCHAR"/>
+		<result property="styler" column="styler_" jdbcType="VARCHAR"/>
+		<result property="editor" column="editor_" jdbcType="VARCHAR"/>
+		<result property="editorType" column="editor_type_" jdbcType="VARCHAR"/>
+		
+		<result property="rowspan" column="rowspan_" jdbcType="NUMERIC"/>
+		<result property="colspan" column="colspan_" jdbcType="NUMERIC"/>
+		<result property="search" column="search_" jdbcType="BOOLEAN"/>
+		<result property="searchParamter" column="search_paramter_" jdbcType="VARCHAR"/>
+		<result property="searchCombobox" column="search_combobox_" jdbcType="VARCHAR"/>
+		<result property="datatype" column="datatype_" jdbcType="VARCHAR"/>
+		<result property="required" column="required_" jdbcType="BOOLEAN"/>
+		<result property="frozen" column="frozen_" jdbcType="BOOLEAN"/>
+		<result property="edit" column="edit_" jdbcType="BOOLEAN"/>
+		<result property="mergeIndexed" column="merge_indexed_" jdbcType="NUMERIC"/>
+		<result property="ispk" column="ispk_" jdbcType="BOOLEAN"/>
+		<result property="isunique" column="isunique_" jdbcType="BOOLEAN"/>
+		<result property="isphysicsField" column="isphysics_field_" jdbcType="BOOLEAN"/>
+		<result property="creator" column="creator_" jdbcType="VARCHAR"/>
+		<result property="createdTime" column="created_time_" jdbcType="TIMESTAMP"/>
+		<result property="isHiddenInput" column="is_hidden_input_" jdbcType="BOOLEAN"/>
+	</resultMap>
+	
+
+	<insert id="create" parameterType="com.hotent.sys.persistence.model.SysDataGridField">
+		INSERT INTO sys_datagrid_field
+		(id_,gridId_,field_,title_,dbfield_,hidden_,order_num_,width_,align_,sortable_,resizable_,formatter_,styler_,editor_,editor_type_,rowspan_,colspan_,search_,search_paramter_,search_combobox_,datatype_,required_,frozen_,edit_,merge_indexed_,ispk_,isunique_,isphysics_field_,creator_,created_time_,is_hidden_input_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{gridId,jdbcType=VARCHAR},  #{field,jdbcType=VARCHAR}, #{title,jdbcType=VARCHAR}, #{dbfield,jdbcType=VARCHAR}, #{hidden,jdbcType=NUMERIC}, #{orderNum,jdbcType=NUMERIC}, #{width,jdbcType=NUMERIC}, #{align,jdbcType=VARCHAR}, #{sortable,jdbcType=NUMERIC}, #{resizable,jdbcType=NUMERIC}, #{formatter,jdbcType=VARCHAR}, #{styler,jdbcType=VARCHAR}, #{editor,jdbcType=VARCHAR},#{editorType,jdbcType=VARCHAR}, #{rowspan,jdbcType=NUMERIC}, #{colspan,jdbcType=NUMERIC}, #{search,jdbcType=NUMERIC}, #{searchParamter,jdbcType=VARCHAR}, #{searchCombobox,jdbcType=VARCHAR}, #{datatype,jdbcType=VARCHAR}, #{required,jdbcType=NUMERIC}, #{frozen,jdbcType=NUMERIC}, #{edit,jdbcType=NUMERIC}, #{mergeIndexed,jdbcType=NUMERIC}, #{ispk,jdbcType=NUMERIC}, #{isunique,jdbcType=NUMERIC}, #{isphysicsField,jdbcType=NUMERIC}, #{creator,jdbcType=VARCHAR}, #{createdTime,jdbcType=TIMESTAMP}, #{isHiddenInput,jdbcType=BOOLEAN})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="SysDataGridField">
+		SELECT * FROM sys_datagrid_field 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="SysDataGridField">
+		SELECT * FROM sys_datagrid_field
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY order_num_ ASC
+		</if>
+	</select>
+	
+		
+	<update id="update" parameterType="com.hotent.sys.persistence.model.SysDataGridField">
+		UPDATE sys_datagrid_field SET
+		gridId_=#{gridId,jdbcType=VARCHAR},
+		field_=#{field,jdbcType=VARCHAR},
+		title_=#{title,jdbcType=VARCHAR},
+		dbfield_=#{dbfield,jdbcType=VARCHAR},
+		hidden_=#{hidden,jdbcType=NUMERIC},
+		order_num_=#{orderNum,jdbcType=NUMERIC},
+		width_=#{width,jdbcType=NUMERIC},
+		align_=#{align,jdbcType=VARCHAR},
+		sortable_=#{sortable,jdbcType=NUMERIC},
+		resizable_=#{resizable,jdbcType=NUMERIC},
+		formatter_=#{formatter,jdbcType=VARCHAR},
+		styler_=#{styler,jdbcType=VARCHAR},
+		editor_=#{editor,jdbcType=VARCHAR},
+		editor_type_=#{editorType,jdbcType=VARCHAR},
+		
+		rowspan_=#{rowspan,jdbcType=NUMERIC},
+		colspan_=#{colspan,jdbcType=NUMERIC},
+		search_=#{search,jdbcType=NUMERIC},
+		search_paramter_=#{searchParamter,jdbcType=VARCHAR},
+		search_combobox_=#{searchCombobox,jdbcType=VARCHAR},
+		datatype_=#{datatype,jdbcType=VARCHAR},
+		required_=#{required,jdbcType=NUMERIC},
+		frozen_=#{frozen,jdbcType=NUMERIC},
+		edit_=#{edit,jdbcType=NUMERIC},
+		merge_indexed_=#{mergeIndexed,jdbcType=NUMERIC},
+		ispk_=#{ispk,jdbcType=NUMERIC},
+		isunique_=#{isunique,jdbcType=NUMERIC},
+		isphysics_field_=#{isphysicsField,jdbcType=NUMERIC},
+		creator_=#{creator,jdbcType=VARCHAR},
+		created_time_=#{createdTime,jdbcType=TIMESTAMP},
+		is_hidden_input_=#{isHiddenInput,jdbcType=NUMERIC}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_datagrid_field 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+</mapper>

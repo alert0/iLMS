@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.jiso.model.JisoNetDemandModel">
+
+	<select id="queryJisoNetDemandPage" parameterType="com.hanthink.jiso.model.JisoNetDemandModel"
+			resultType="com.hanthink.jiso.model.JisoNetDemandModel">
+		SELECT 
+			   A.PARTGROUP_NO			partgroupNo,
+		       A.PART_NO				partNo,
+		       UDA.PART_SHORT_NO		partShortNo,
+		       UDA.PART_NAME_CN			partNameCn,
+		       A.SUPPLIER_NO			supplierNo,
+		       UDA.SUP_FACTORY			supFactory,
+		       SUP.SUPPLIER_NAME		supplierName,
+		       A.ARR_DEPOT				arrDepot,
+		       A.REQUIRE_NUM			requireNum,
+		       A.OFFLINE_TIME			offlineTime
+		  FROM MM_JISO_PART_PLAN A
+		  LEFT JOIN MM_PUB_PART_UDA UDA
+		    ON A.PART_NO = UDA.PART_NO
+		  LEFT JOIN MM_PUB_SUPPLIER SUP
+		    ON A.SUPPLIER_NO = SUP.SUPPLIER_NO
+		  WHERE 1=1 
+		   <!-- 数据权限, 2 供应商, 4 GBL -->
+		 <if test="null != userType and '2'.toString() == userType">
+		      <if test="null != userId and ''!= userId">
+		      	AND A.SUPPLIER_NO = #{supplierNo}
+		      	AND UDA.SUP_FACTORY IN (SELECT V.VALUE_CODE FROM VIEW_SYS_USER_DATA_PERM V 
+		      		WHERE V.USER_ID = #{userId} AND V.TYPE_CODE = 'JISO_SUP_FACTORY')
+		      </if>
+	      </if>
+		  
+		 <if test="null != userType and '4'.toString() == userType">
+		      <if test="null != userId and ''!= userId">
+		      	AND T.SUP_FACTORY IN (SELECT V.VALUE_CODE FROM VIEW_SYS_USER_DATA_PERM V 
+		      		WHERE V.USER_ID = #{userId} AND V.TYPE_CODE = 'JISO_SUP_FACTORY')
+		      </if>
+	      </if>
+	      
+		<if test="null != offlineTimeStart and '' != offlineTimeStart">
+	  	    <![CDATA[ AND A.OFFLINE_TIME>= TO_DATE(#{offlineTimeStart},'yyyy-MM-dd') ]]>
+	  	</if>
+	  	<if test="null != offlineTimeEnd and '' != offlineTimeEnd">
+	  	    <![CDATA[ AND A.OFFLINE_TIME <= TO_DATE(#{offlineTimeEnd},'yyyy-MM-dd') +1 ]]>
+	  	</if>
+	  	
+	  	<if test="supplierNo != null and '' != supplierNo">
+	  		AND A.SUPPLIER_NO = #{supplierNo}
+	  	</if>
+	  	
+	    <if test="supFactory != null and '' != supFactory">
+	  		AND UDA.SUP_FACTORY = #{supFactory}
+	  	</if>
+	  	
+	    <if test="partgroupNo != null and '' != partgroupNo">
+	  		AND A.PARTGROUP_NO LIKE CONCAT (#{partgroupNo},'%') 
+	  	</if>
+	  	
+	    <if test="partNo != null and '' != partNo">
+	  		AND A.PART_NO LIKE CONCAT (#{partNo},'%') 
+	  	</if>
+	  	ORDER BY A.SUPPLIER_NO ASC,A.PARTGROUP_NO ASC
+	</select>
+	
+	
+</mapper>

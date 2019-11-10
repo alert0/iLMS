@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.mon.model.MonPCInStockModel">
+	<select id="queryPCInStock" parameterType="com.hanthink.mon.model.MonPCInStockModel" resultType="com.hanthink.mon.model.MonPCInStockModel">
+		SELECT MIS.PART_NO partNo,
+		       MPP.PART_SHORT_NO partShortNo,
+		       MIP.STORAGE pcLocation,
+		       MIP.LOCATION lineLocation,
+		       MIU.WORK_CENTER workCenter,
+		       CEIL(MIS.MAX_STOCK / NVL(MPPD.STANDARD_PACKAGE, 1)) maxStock,
+		       CEIL(MIS.SAFE_STOCK / NVL(MPPD.STANDARD_PACKAGE, 1)) minStock,
+		       CEIL(MIS.STOCK / NVL(MPPD.STANDARD_PACKAGE, 1)) stock,
+		       CASE
+		         WHEN NVL(MIS.STOCK, 0) &lt; NVL(MIS.SAFE_STOCK, 0) THEN
+		          0
+		         WHEN NVL(MIS.STOCK, 0) &gt; NVL(MIS.MAX_STOCK, 0) THEN
+		          1
+		         ELSE
+		          2
+		       END status,
+		    MMP.ARRIVE_DATE nextArriveTime
+		  FROM MM_INV_STOCK MIS
+		  LEFT JOIN (SELECT DISTINCT UN.FACTORY_CODE, UN.WARE_CODE, UN.WORK_CENTER
+               FROM MM_INV_UNLOAD UN) MIU
+		    ON MIU.WARE_CODE = MIS.WARE_CODE
+		   AND MIU.FACTORY_CODE = MIS.FACTORY_CODE
+		  <!-- i-LMS2019053001 mod by dtp -->
+		  LEFT JOIN MM_PUB_PART_UDA MPP
+		    ON MPP.PART_NO = MIS.PART_NO
+		   AND MPP.FACTORY_CODE = MIS.FACTORY_CODE
+		  <!-- i-LMS2019053001 mod by dtp -->
+		  LEFT JOIN MM_PUB_PART_SUPPLIER MPPS
+		    ON MIS.PART_NO = MPPS.PART_NO
+		   AND MIS.FACTORY_CODE = MPPS.FACTORY_CODE
+		   AND SYSDATE BETWEEN MPPS.EFF_START AND MPPS.EFF_END
+		  LEFT JOIN (SELECT A.FACTORY_CODE,
+		                    A.PART_NO,
+		                    A.WARE_CODE,
+		                    A.SUPPLIER_NO,
+		                    MIN(A.LOCATION) LOCATION,
+		                    MIN(A.STORAGE) STORAGE,
+		                    MIN(A.WORKCENTER) WORKCENTER
+		               FROM MM_INV_PART_LOCATION A
+		              WHERE SYSDATE BETWEEN A.EFF_START AND A.EFF_END
+		              GROUP BY A.FACTORY_CODE, A.PART_NO, A.WARE_CODE, A.SUPPLIER_NO) MIP
+		    ON MIP.PART_NO = MIS.PART_NO
+		   AND MIP.FACTORY_CODE = MIS.FACTORY_CODE
+		   AND MIP.SUPPLIER_NO = MPPS.SUPPLIER_NO
+		   AND MIP.WARE_CODE = MIS.WARE_CODE
+		  LEFT JOIN MM_PKG_PROPOSAL MPPR
+		    ON MPPR.PART_NO = MIS.PART_NO
+		   AND MPPR.FACTORY_CODE = MIS.FACTORY_CODE
+		   AND MPPR.PROPOSAL_STATUS = 5
+		   AND SYSDATE BETWEEN MPPR.EFF_START AND MPPR.EFF_END
+		  LEFT JOIN MM_PKG_PROPOSAL_DETAIL MPPD
+		    ON MPPR.ID = MPPD.PROPOSAL_ID
+		  LEFT JOIN (SELECT MIN(MSO.ARRIVE_DATE) ARRIVE_DATE, MSOD.PART_NO
+		               FROM MM_SW_ORDER MSO
+		               LEFT JOIN (SELECT A.PURCHASE_NO, A.PART_NO
+		                           FROM MM_SW_ORDER_DETAIL A
+		                          GROUP BY A.PURCHASE_NO, A.PART_NO) MSOD
+		                 ON MSO.PURCHASE_NO = MSOD.PURCHASE_NO
+		              WHERE MSO.ARRIVE_DATE &gt;= SYSDATE
+		              GROUP BY MSOD.PART_NO) MMP
+		    ON MMP.PART_NO = MIS.PART_NO
+		 WHERE MIS.WARE_CODE IN (SELECT MIW.WARE_CODE
+		                           FROM MM_INV_WAREHOUSE MIW
+		                          WHERE MIW.WARE_TYPE = 1)
+		       AND MIS.FACTORY_CODE = #{factoryCode}
+		<if test="null != workCenter and '' != workCenter">
+			AND MIU.WORK_CENTER = #{workCenter}
+		</if>
+		 ORDER BY status
+	</select>
+	
+	<select id="queryForLineCharts" parameterType="com.hanthink.mon.model.MonPCInStockModel" resultType="com.hanthink.mon.model.MonPCInStockModel">
+		SELECT TM.calPoint calPoint,
+           CEIL(NVL(TM.stock,0) / NVL(MPPD.STANDARD_PACKAGE, 1)) stock
+	      FROM (SELECT DISTINCT TO_CHAR(MID.CAL_POINT, 'hh24:mi:ss') calPoint,
+	                            SUM(MID.STOCK) stock
+	              FROM MM_INV_DEVELOP MID
+	             WHERE MID.WORK_CENTER = #{workCenter}
+	               AND MID.PART_NO = #{partNo}
+	               AND TRUNC(MID.CAL_POINT) = (SELECT TRUNC(MIN(MID.CAL_POINT))
+													  FROM MM_INV_DEVELOP MID
+													 WHERE MID.WORK_CENTER = #{workCenter}
+													   AND MID.PART_NO = #{partNo}
+													   AND MID.FACTORY_CODE = #{factoryCode})
+	               AND MID.FACTORY_CODE = #{factoryCode}
+	             GROUP BY MID.CAL_POINT) TM
+	      LEFT JOIN MM_PKG_PROPOSAL MPPR
+	        ON MPPR.PART_NO = #{partNo}
+	       AND MPPR.FACTORY_CODE = #{factoryCode}
+	       AND MPPR.PROPOSAL_STATUS = 5
+	       AND TRUNC(SYSDATE) BETWEEN TRUNC(MPPR.EFF_START) AND TRUNC(MPPR.EFF_END)
+	      LEFT JOIN MM_PKG_PROPOSAL_DETAIL MPPD
+	        ON MPPR.ID = MPPD.PROPOSAL_ID
+	    ORDER BY TM.calPoint
+	</select>
+</mapper>

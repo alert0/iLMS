@@ -1,0 +1,419 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.business.dpm.model.DpmInsModel">
+
+	<!-- 从系统参数表中获取最大流水号 -->
+	<select id="getSerialNum" resultType="java.lang.Integer">
+		SELECT PARAM_VAL seriaNum
+		FROM MM_PUB_SYS_PARAM
+		WHERE PARAM_CODE = 'DPM_SERIAL_NUM'
+	</select>
+
+	<!-- 修改系统参数表中流水号为最大值 -->
+	<update id="updateSerialNum" parameterType="java.lang.Integer">
+		UPDATE MM_PUB_SYS_PARAM SET PARAM_VAL = #{seriaNum,jdbcType=NUMERIC}
+		WHERE PARAM_CODE='DPM_SERIAL_NUM'
+	</update>
+
+	<!-- 打开新增界面带出默认信息 -->
+	<select id="getDefaultMsg" parameterType="java.lang.String"
+		resultType="com.hanthink.business.dpm.model.DpmInsModel">
+		SELECT
+		D.NAME_ applyDep,
+		E.AREA_CODE discoArea
+		FROM MM_DPM_DEP_PERSON A
+		LEFT JOIN SYS_ORG_USER B
+		ON A.USER_ID = B.USER_ID_
+		LEFT JOIN SYS_USER C
+		ON B.ID_ = C.ID_
+		LEFT JOIN SYS_ORG D
+		ON B.ORG_ID_ = D.ID_
+		LEFT JOIN MM_DPM_AREA E
+		ON A.DEFAULT_DISCO_AREA = E.AREA_CODE
+		WHERE A.USER_ID = #{userId}
+	</select>
+
+	<!-- 填写加不新增界面的零件号，带出零件名称、简号、供应商代码、供应商名称、供应商担当（联系人） -->
+	<select id="getMsgByPartNo" parameterType="java.lang.String"
+		resultType="com.hanthink.business.dpm.model.DpmInsModel">
+		SELECT
+		A.PART_NAME_CN partNameCn,
+		A.PART_SHORT_NO partShortNo,
+		C.SUPPLIER_NO supplierNo,
+		C.SUPPLIER_NAME supplierName,
+		C.TEL_NO telNo,
+		C.CONTACT contact
+		FROM MM_PUB_PART A
+		LEFT JOIN MM_PUB_PART_SUPPLIER B
+		ON A.PART_NO = B.PART_NO
+		LEFT JOIN MM_PUB_SUPPLIER C
+		ON B.SUPPLIER_NO = C.SUPPLIER_NO
+		WHERE A.PART_NO = #{partNo}
+	</select>
+
+	<!-- 根据登录用户的ID带出加不添加界面的发现区域 -->
+	<select id="getDescoAreaByUserId" parameterType="java.lang.String"
+		resultType="com.hanthink.business.dpm.model.DpmInsModel">
+		SELECT B.AREA_NAME areaName
+		FROM MM_DPM_DEP_PERSON A
+		LEFT JOIN MM_DPM_AREA B
+		ON A.DEFAULT_DISCO_AREA=B.AREA_CODE
+		WHERE A.USER_ID=#{userId}
+	</select>
+
+	<!-- 不良品添加 -->
+	<insert id="create" parameterType="com.hanthink.business.dpm.model.DpmInsModel">
+		INSERT INTO MM_DPM_INS
+		(APPLY_NO,
+		FACTORY_CODE,
+		DPM_TYPE,
+		MODEL_CODE,
+		INS_DATE,
+		PART_NO,
+		SUPPLIER_NO,
+		DPM_NUM,
+		RESP_DEP,
+		DEAL_RESULT,
+		DISCO_AREA,
+		DPM_CODE,
+		REMARK,
+		APPLY_DEP,
+		CREATION_USER,
+		CREATION_TIME)
+		VALUES(
+		#{applyNo,jdbcType=VARCHAR},
+		#{factoryCode,jdbcType=VARCHAR},
+		#{dpmType,jdbcType=VARCHAR},
+		#{modelCode,jdbcType=VARCHAR},
+		to_date(#{insDate,jdbcType=VARCHAR},'yyyy-mm-dd'),
+		#{partNo,jdbcType=VARCHAR},
+		#{supplierNo,jdbcType=VARCHAR},
+		#{dpmNum,jdbcType=VARCHAR},
+		#{respDep,jdbcType=VARCHAR},
+		#{dealResult,jdbcType=VARCHAR},
+		#{discoArea,jdbcType=VARCHAR},
+		#{dpmCode,jdbcType=VARCHAR},
+		#{remark,jdbcType=VARCHAR},
+		#{applyDep,jdbcType=VARCHAR},
+		#{creationUser,jdbcType=VARCHAR},
+		SYSDATE
+		)
+	</insert>
+
+	<!-- 分页查询显示列表信息 -->
+	<select id="queryDpmInsForPage" parameterType="com.hanthink.business.dpm.model.DpmInsModel" resultType="com.hanthink.business.dpm.model.DpmInsModel">
+	   SELECT A.APPLY_NO applyNo,
+       D.CODE_VALUE_NAME dpmType,
+       E.CODE_VALUE_NAME insStatus,
+       A.APPLY_DEP applyDep,
+       TO_CHAR(A.INS_DATE, 'YYYY-MM-DD') insDate,
+       TO_CHAR(A.CHECK_DATE,'YYYY-MM-DD') checkDate,
+       A.CHECK_USER checkUser,
+       A.PART_NO partNo,
+       C.PART_SHORT_NO partShortNo,
+       C.PART_NAME_CN partNameCn,
+       A.SUPPLIER_NO supplierNo,
+       B.SUPPLIER_NAME supplierName,
+       B.CONTACT contact,
+       B.TEL_NO telNo,
+       A.DISCO_AREA discoArea,
+       A.DPM_CODE dpmCode,
+       D.ITEM_NAME dpmName,
+       D.ITEM_DESC dpmDesc,
+       A.DPM_NUM dpmNum,
+       A.RESP_DEP respDep,
+       J.CODE_VALUE_NAME dealResult,
+       A.MODEL_CODE modelCode,
+       F.CODE_VALUE_NAME printStatus,
+       G.CODE_VALUE_NAME orderStatus,
+       H.CODE_VALUE_NAME excepStatus,
+       A.REMARK remark,
+       A.CREATION_USER creator,
+       A.ISURGENT isUrgent
+  	   FROM (SELECT W.*,CASE WHEN W.STOCK - W.SAFE_STOCK &lt;  W.TOTAL_DPM_NUM 
+  	   			THEN '紧急'
+                 ELSE '正常'
+               END ISURGENT
+          FROM (SELECT Z.*,
+                       SUM(Z.DPM_NUM) OVER(PARTITION BY Z.PART_NO, X.WARE_CODE ORDER BY Z.CREATION_TIME) TOTAL_DPM_NUM,
+                       NVL(X.SAFE_STOCK, 0) SAFE_STOCK,
+                       NVL(X.STOCK, 0) STOCK,
+                       X.WARE_CODE
+                  FROM MM_DPM_INS Z
+                  LEFT JOIN MM_DPM_AREA Y
+                    ON Z.DISCO_AREA = Y.AREA_CODE
+                  LEFT JOIN MM_INV_STOCK X
+                    ON Y.WARE_CODE = X.WARE_CODE
+                   AND Z.PART_NO = X.PART_NO) W) A
+		  LEFT JOIN MM_PUB_SUPPLIER B
+		    ON A.SUPPLIER_NO = B.SUPPLIER_NO
+		  LEFT JOIN MM_PUB_PART C
+		    ON A.PART_NO = C.PART_NO
+		  LEFT JOIN MM_DPM_ITEM D
+		    ON A.DPM_CODE = D.ITEM_CODE
+		  LEFT JOIN MM_PUB_DATA_DICT D
+		    ON A.DPM_TYPE = D.CODE_VALUE
+		   AND d.Code_Type = 'DPM_TYPE'
+		  LEFT JOIN MM_PUB_DATA_DICT E
+		    ON A.INS_STATUS = E.CODE_VALUE
+		   AND E.CODE_TYPE = 'DPM_DOCUMENT_STATUS'
+		  LEFT JOIN MM_PUB_DATA_DICT F
+		    ON A.PRINT_STATUS = F.CODE_VALUE
+		   AND F.CODE_TYPE = 'PUB_PRINT_STATUS'
+		  LEFT JOIN MM_PUB_DATA_DICT G
+		    ON A.ORDER_STATUS = G.CODE_VALUE
+		   AND G.CODE_TYPE = 'DPM_ORDER_STATUS'
+		  LEFT JOIN MM_PUB_DATA_DICT H
+		    ON A.EXCEP_STATUS = H.CODE_VALUE
+		   AND H.CODE_TYPE = 'DPM_EXCEP_STATUS'
+		  LEFT JOIN MM_PUB_DATA_DICT J
+		    ON A.DEAL_RESULT = J.CODE_VALUE
+		   AND J.CODE_TYPE = 'DPM_HANDLE_RESULT'
+		  LEFT JOIN SYS_USER K
+		    ON A.CREATION_USER = K.ID_
+		 WHERE 1 = 1
+		<if test="applyNo !=null">
+			AND A.APPLY_NO=#{applyNo}
+		</if>
+		<if test="partNo !=null">
+			AND A.PART_NO like CONCAT(#{partNo}, '%')
+		</if>
+		<if test="partShortNo !=null">
+			AND C.PART_SHORT_NO=#{partShortNo}
+		</if>
+		<if test="supplierNo !=null">
+			AND A.SUPPLIER_NO=#{supplierNo}
+		</if>
+		<if test="insDateStart !=null and insDateStart!='' ">
+		<![CDATA[ AND A.INS_DATE >= TO_DATE(#{insDateStart},'yyyy-MM-dd HH24:mm:ss') ]]>
+		</if>
+		<if test="insDateEnd !=null and insDateEnd!='' ">
+		<![CDATA[ AND A.INS_DATE <= TO_DATE(#{insDateEnd},'yyyy-MM-dd HH24:mm:ss') ]]>
+		</if>
+		<if test="dpmCode !=null">
+			AND A.DPM_CODE=#{dpmCode}
+		</if>
+		<if test="discoArea !=null">
+			AND A.DISCO_AREA=#{discoArea}
+		</if>
+		<if test="insStatus !=null">
+			AND A.INS_STATUS=#{insStatus}
+		</if>
+		<if test="printStatus !=null">
+			AND A.PRINT_STATUS=#{printStatus}
+		</if>
+		<if test="dpmType !=null">
+			AND A.DPM_TYPE=#{dpmType}
+		</if>
+		ORDER BY APPLY_NO DESC
+	</select>
+
+	<!-- 获取新增界面处理结果下拉框 -->
+	<select id="getUnloadDealResult" parameterType="java.util.Map"
+		resultType="com.hanthink.base.model.DictVO">
+		SELECT CODE_VALUE valueKey,CODE_VALUE_NAME valueName FROM MM_PUB_DATA_DICT
+		WHERE CODE_TYPE='DPM_HANDLE_RESULT'
+	</select>
+
+	<!-- 获取新增界面不良品项目下拉框 -->
+	<select id="getUnloadDpmCode" parameterType="java.util.Map"
+		resultType="com.hanthink.base.model.DictVO">
+		SELECT ITEM_CODE valueKey,ITEM_CODE valueName FROM MM_DPM_ITEM
+	</select>
+
+	<!-- 获取新增界面责任组下拉框 -->
+	<select id="getUnloadRespDep" parameterType="java.util.Map"
+		resultType="com.hanthink.base.model.DictVO">
+		SELECT DEP_CODE valueKey,DEP_CODE valueName FROM MM_DPM_DEPARTMENT
+	</select>
+
+	<!-- 删除不良品申请信息 -->
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM MM_DPM_INS
+		WHERE
+		APPLY_NO = #{applyNo}
+	</delete>
+
+	<!-- 修改不良品申请信息 -->
+	<update id="update" parameterType="com.hanthink.business.dpm.model.DpmInsModel">
+		UPDATE MM_DPM_INS SET
+		APPLY_NO = #{applyNo,jdbcType=VARCHAR},
+		FACTORY_CODE = #{factoryCode,jdbcType=VARCHAR},
+		DPM_TYPE = #{dpmType,jdbcType=VARCHAR},
+		MODEL_CODE = #{modelCode,jdbcType=VARCHAR},
+		
+		PART_NO = #{partNo,jdbcType=VARCHAR},
+		DPM_NUM = #{dpmNum,jdbcType=VARCHAR},
+		RESP_DEP = #{respDep,jdbcType=VARCHAR} ,
+		DEAL_RESULT = #{dealResult,jdbcType=VARCHAR},
+		DISCO_AREA = #{discoArea,jdbcType=VARCHAR},
+		DPM_CODE = #{dpmCode,jdbcType=VARCHAR},
+		REMARK = #{remark,jdbcType=VARCHAR},
+		LAST_MODIFIED_USER = #{lastModifiedUser,jdbcType=VARCHAR} ,
+		LAST_MODIFIED_TIME = SYSDATE
+		WHERE APPLY_NO = #{applyNo}
+	</update>
+
+	<!-- 获取不良品信息明细 -->
+	<select id="get" parameterType="java.lang.String" resultType="com.hanthink.business.dpm.model.DpmInsModel">
+		SELECT A.APPLY_NO        applyNo,
+       A.DPM_TYPE        dpmType,
+       D.CODE_VALUE_NAME dpmTypeName,
+       A.INS_STATUS      insStatus,
+       E.CODE_VALUE_NAME insStatusName,
+       A.APPLY_DEP       applyDep,
+       A.INS_DATE        insDate,
+       A.PART_NO         partNo,
+       C.PART_SHORT_NO   partShortNo,
+       C.PART_NAME_CN    partNameCn,
+       A.SUPPLIER_NO     supplierNo,
+       B.SUPPLIER_NAME   supplierName,
+       B.TEL_NO          telNo,
+       A.DISCO_AREA      discoArea,
+       A.DPM_CODE        dpmCode,
+       A.DPM_NUM         dpmNum,
+       A.RESP_DEP        respDep,
+       A.DEAL_RESULT     dealResult,
+       F.CODE_VALUE_NAME dealResultName,
+       A.MODEL_CODE      modelCode,
+       A.PRINT_STATUS    printStatus,
+       A.ORDER_STATUS    orderStatus,
+       A.EXCEP_STATUS    excepStatus,
+       B.SUP_FACTORY     supFactory,
+       A.FACTORY_CODE    factoryCode,
+       G.WARE_CODE       orderDepot,
+       A.CREATION_USER   creator,
+       A.REMARK          remark
+	  FROM MM_DPM_INS A
+	  LEFT JOIN MM_PUB_SUPPLIER B
+	    ON A.SUPPLIER_NO = B.SUPPLIER_NO
+	  LEFT JOIN MM_PUB_PART C
+	    ON A.PART_NO = C.PART_NO
+	  LEFT JOIN MM_DPM_AREA G
+    	ON A.DISCO_AREA = G.AREA_CODE
+	  LEFT JOIN MM_PUB_DATA_DICT D
+	    ON A.DPM_TYPE = D.CODE_VALUE
+	   AND D.CODE_TYPE = 'DPM_TYPE'
+	  LEFT JOIN MM_PUB_DATA_DICT E
+	    ON A.INS_STATUS = E.CODE_VALUE
+	   AND E.CODE_TYPE = 'DPM_DOCUMENT_STATUS'
+	  LEFT JOIN MM_PUB_DATA_DICT F
+	    ON A.DEAL_RESULT = F.CODE_VALUE
+	   AND F.CODE_TYPE = 'DPM_HANDLE_RESULT'
+		WHERE A.APPLY_NO = #{applyNo}
+
+	</select>
+
+	<!-- 修改不良品信息状态 -->
+	<update id="updateInsStatus" parameterType="java.util.Map">
+		UPDATE MM_DPM_INS SET
+		<if test="insStatus !=null">
+			INS_STATUS = #{insStatus,jdbcType=VARCHAR},
+		</if>
+		<if test="checker !=null">
+			CHECK_USER = #{checker,jdbcType=VARCHAR},
+			CHECK_DATE = SYSDATE,
+		</if>
+		<if test="dpmType !=null">
+			DPM_TYPE = #{dpmType,jdbcType=VARCHAR},
+		</if>
+		<if test="excepStatus !=null">
+			EXCEP_STATUS = #{excepStatus,jdbcType=VARCHAR},
+		</if>
+		APPLY_NO = #{applyNo}
+		WHERE APPLY_NO=#{applyNo}
+	</update>
+
+	<!-- 查询不良品明细，用于打印 -->
+	<select id="queryDpmInsDetailList" parameterType="com.hanthink.business.dpm.model.DpmInsModel"
+		resultType="com.hanthink.business.dpm.model.DpmInsModel">
+		SELECT
+		A.APPLY_NO applyNo,
+		A.DPM_TYPE dpmType,
+		A.INS_STATUS insStatus,
+		A.APPLY_DEP applyDep,
+		TO_CHAR(A.INS_DATE, 'YYYY-MM-DD') insDate,
+		A.PART_NO partNo,
+		C.PART_SHORT_NO partShortNo,
+		C.PART_NAME_CN partNameCn,
+		A.SUPPLIER_NO supplierNo,
+		B.SUPPLIER_NAME supplierName,
+		B.TEL_NO telNo,
+		A.DISCO_AREA discoArea,
+		A.DPM_CODE dpmCode,
+		A.DPM_NUM dpmNum,
+		A.RESP_DEP respDep,
+		A.DEAL_RESULT dealResult,
+		A.MODEL_CODE modelCode,
+		A.PRINT_STATUS printStatus,
+		A.ORDER_STATUS orderStatus,
+		A.EXCEP_STATUS excepStatus,
+		A.REMARK remark
+		FROM MM_DPM_INS A LEFT JOIN MM_PUB_SUPPLIER B ON
+		A.SUPPLIER_NO=B.SUPPLIER_NO
+		LEFT JOIN MM_PUB_PART C ON A.PART_NO=C.PART_NO 
+		WHERE 1=1 AND
+		A.APPLY_NO=#{applyNo}
+		
+	</select>
+
+	<insert id="">
+
+	</insert>
+
+	<!-- 调用存储过程获取例外订单号 -->
+	<parameterMap type="map" id="getExcepOrderNoMap">
+		<parameter property="excepNo" jdbcType="VARCHAR" mode="OUT" />
+		<parameter property="curFactoryCode" jdbcType="VARCHAR"
+			mode="IN" />
+		<parameter property="orderType" jdbcType="VARCHAR" mode="IN" />
+		<parameter property="arrayDate" jdbcType="DATE" mode="IN" />
+	</parameterMap>
+	<select id="getExcepOrderNo" parameterMap="getExcepOrderNoMap"
+		statementType="CALLABLE">
+		{? = call PKG_PUB.USF_GET_ORDER_NO_BY_DATE(?, ?, ?)}
+	</select>
+
+	<!-- 生成例外订单把数据写入例外订单表中 -->
+	<insert id="insertExcepOrder" parameterType="com.hanthink.business.dpm.model.DpmInsModel">
+		INSERT INTO MM_MP_EXCEP_ORDER
+		(
+		ORDER_NO,
+		PURCHASE_NO,
+		SUP_FACTORY,
+		SUPPLIER_NO,
+		ARRIVE_DATE,
+		FACTORY_CODE,
+		CREATION_USER,
+		CREATION_TIME,
+		FLAG)
+		VALUES (
+		#{excepOrderNo, jdbcType=VARCHAR},
+		#{excepOrderNo, jdbcType=VARCHAR},
+		#{supFactory,jdbcType=VARCHAR},
+		#{supplierNo, jdbcType=VARCHAR},
+		to_date(#{arriveDate,jdbcType=VARCHAR},'yyyy-mm-dd'),
+		#{factoryCode,jdbcType=VARCHAR},
+		#{createBy, jdbcType=VARCHAR},
+		SYSDATE,
+		'1')
+	</insert>
+
+    <!-- 生成例外订单将数据写入订单明细表 -->
+	<insert id="insertExcepOrderDetail" parameterType="com.hanthink.business.dpm.model.DpmInsModel">
+		INSERT INTO MM_MP_EXCEP_ORDER_DETAIL
+		(ORDER_NO,
+		ROW_NO,
+		PART_NO,
+		ORDER_NUM,
+		ORDER_DEPOT)
+		VALUES (
+		#{excepOrderNo, jdbcType=VARCHAR},
+		10,
+		#{partNo, jdbcType=VARCHAR},
+		#{dpmNum, jdbcType=VARCHAR},
+		#{orderDepot, jdbcType=VARCHAR}
+		)
+	</insert>
+	
+</mapper>

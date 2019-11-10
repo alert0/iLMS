@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.base.core.mail.model.MailSetting">
+	<resultMap id="MailSetting" type="com.hotent.base.core.mail.model.MailSetting">
+		<id property="id" column="ID_" jdbcType="VARCHAR"/>
+		<result property="userId" column="USER_ID_" jdbcType="VARCHAR"/>
+		<result property="nickName" column="USER_NAME_" jdbcType="VARCHAR"/>
+		<result property="mailAddress" column="MAIL_ADDRESS_" jdbcType="VARCHAR"/>
+		<result property="password" column="MAIL_PASS_" jdbcType="VARCHAR"/>
+		<result property="smtpHost" column="SMTP_HOST_" jdbcType="VARCHAR"/>
+		<result property="smtpPort" column="SMTP_PORT_" jdbcType="VARCHAR"/>
+		<result property="popHost" column="POP_HOST_" jdbcType="VARCHAR"/>
+		<result property="popPort" column="POP_PORT_" jdbcType="VARCHAR"/>
+		<result property="imapHost" column="IMAP_HOST_" jdbcType="VARCHAR"/>
+		<result property="imapPort" column="IMAP_PORT_" jdbcType="VARCHAR"/>
+		<result property="isDefault" column="IS_DEFAULT_" jdbcType="NUMERIC"/>
+		<result property="mailType" column="MAIL_TYPE_" jdbcType="VARCHAR"/>
+		<result property="SSL" column="USE_SSL_" jdbcType="NUMERIC"/>
+		<result property="validate" column="IS_VALIDATE_" jdbcType="NUMERIC"/>
+		<result property="isDeleteRemote" column="IS_DELETE_REMOTE_" jdbcType="NUMERIC"/>
+		<result property="isHandleAttach" column="IS_HANDLE_ATTACH_" jdbcType="NUMERIC"/>
+	</resultMap>
+	
+	<sql id="columns">
+		ID_,USER_ID_,USER_NAME_,MAIL_ADDRESS_,MAIL_PASS_,SMTP_HOST_,SMTP_PORT_,POP_HOST_,POP_PORT_,IMAP_HOST_,IMAP_PORT_,IS_DEFAULT_,MAIL_TYPE_,USE_SSL_,IS_VALIDATE_,IS_DELETE_REMOTE_,IS_HANDLE_ATTACH_
+	</sql>
+	
+	<sql id="dynamicWhere">
+		<where>
+			<if test="@Ognl@isNotEmpty(userId)"> AND USER_ID_  =#{userId} </if>
+			<if test="@Ognl@isNotEmpty(nickName)"> AND USER_NAME_  LIKE #{nickName}  </if>
+			<if test="@Ognl@isNotEmpty(mailAddress)"> AND MAIL_ADDRESS_  LIKE #{mailAddress}  </if>
+			<if test="@Ognl@isNotEmpty(isDefault)"> AND IS_DEFAULT_  =#{isDefault} </if>
+		</where>
+	</sql>
+	
+	<insert id="create" parameterType="com.hotent.base.core.mail.model.MailSetting">
+		INSERT INTO sys_mail_setting
+		(ID_,USER_ID_,USER_NAME_,MAIL_ADDRESS_,MAIL_PASS_,SMTP_HOST_,SMTP_PORT_,POP_HOST_,POP_PORT_,IMAP_HOST_,IMAP_PORT_,IS_DEFAULT_,MAIL_TYPE_,USE_SSL_,IS_VALIDATE_,IS_DELETE_REMOTE_,IS_HANDLE_ATTACH_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{userId,jdbcType=VARCHAR}, #{nickName,jdbcType=VARCHAR}, #{mailAddress,jdbcType=VARCHAR}, #{password,jdbcType=VARCHAR}, #{smtpHost,jdbcType=VARCHAR}, #{smtpPort,jdbcType=VARCHAR}, #{popHost,jdbcType=VARCHAR}, #{popPort,jdbcType=VARCHAR}, #{imapHost,jdbcType=VARCHAR}, #{imapPort,jdbcType=VARCHAR}, #{isDefault,jdbcType=NUMERIC}, #{mailType,jdbcType=VARCHAR}, #{SSL,jdbcType=NUMERIC}, #{validate,jdbcType=NUMERIC}, #{isDeleteRemote,jdbcType=NUMERIC}, #{isHandleAttach,jdbcType=NUMERIC})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="MailSetting">
+		SELECT * FROM sys_mail_setting 
+		WHERE 
+		ID_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="MailSetting">
+		SELECT * FROM sys_mail_setting
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY ID_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.base.core.mail.model.MailSetting">
+		UPDATE sys_mail_setting SET
+		USER_ID_=#{userId,jdbcType=VARCHAR},
+		USER_NAME_=#{nickName,jdbcType=VARCHAR},
+		MAIL_ADDRESS_=#{mailAddress,jdbcType=VARCHAR},
+		MAIL_PASS_=#{password,jdbcType=VARCHAR},
+		SMTP_HOST_=#{smtpHost,jdbcType=VARCHAR},
+		SMTP_PORT_=#{smtpPort,jdbcType=VARCHAR},
+		POP_HOST_=#{popHost,jdbcType=VARCHAR},
+		POP_PORT_=#{popPort,jdbcType=VARCHAR},
+		IMAP_HOST_=#{imapHost,jdbcType=VARCHAR},
+		IMAP_PORT_=#{imapPort,jdbcType=VARCHAR},
+		IS_DEFAULT_=#{isDefault,jdbcType=NUMERIC},
+		MAIL_TYPE_=#{mailType,jdbcType=VARCHAR},
+		USE_SSL_=#{SSL,jdbcType=NUMERIC},
+		IS_VALIDATE_=#{validate,jdbcType=NUMERIC},
+		IS_DELETE_REMOTE_=#{isDeleteRemote,jdbcType=NUMERIC},
+		IS_HANDLE_ATTACH_=#{isHandleAttach,jdbcType=NUMERIC}
+		WHERE
+		ID_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_mail_setting 
+		WHERE
+		ID_=#{id}
+	</delete>
+	
+	
+	<update id="updateDefault" parameterType="com.hotent.base.core.mail.model.MailSetting">
+		UPDATE sys_mail_setting SET
+		IS_DEFAULT_=#{isDefault,jdbcType=NUMERIC}
+		WHERE
+		ID_=#{id}
+	</update>
+	
+	<select id="getAll" resultMap="MailSetting">
+		SELECT <include refid="columns"/>
+		FROM sys_mail_setting   
+		<include refid="dynamicWhere" />
+		<if test="@Ognl@isNotEmpty(orderField)">
+		order by ${orderField} ${orderSeq}
+		</if>
+		<if test="@Ognl@isEmpty(orderField)">
+		order by id  desc
+		</if>
+	</select>
+	
+	<select id="getAllByUserId" resultMap="MailSetting">
+		SELECT <include refid="columns"/>
+		FROM sys_mail_setting
+		<include refid="dynamicWhere" />
+		<if test="@Ognl@isNotEmpty(orderField)">
+		order by ${orderField} ${orderSeq}
+		</if>
+		<if test="@Ognl@isEmpty(orderField)">
+		order by id  desc
+		</if>
+	</select>
+	
+	<select id="getMailByAddress" parameterType="java.lang.String" resultMap="MailSetting">
+		SELECT <include refid="columns"/>
+		FROM sys_mail_setting
+		WHERE
+		MAIL_ADDRESS_=#{address}
+	</select>
+	
+	<select id="getMailByUserId" parameterType="java.lang.String" resultMap="MailSetting">
+		SELECT <include refid="columns"/>
+		FROM sys_mail_setting
+		WHERE
+		USER_ID_=#{userId}
+	</select>
+		
+	<select id="getByIsDefault" parameterType="java.lang.String" resultMap="MailSetting">
+		SELECT <include refid="columns"/>
+		FROM sys_mail_setting
+		WHERE
+		USER_ID_=#{userId} and IS_DEFAULT_=1
+	</select>
+	
+	<select id="getCountByAddress" parameterType="java.lang.String" resultType="int">
+		SELECT COUNT(*)
+		FROM sys_mail_setting
+		WHERE
+		MAIL_ADDRESS_=#{address}
+	</select>
+	
+	<select id="getCountByUserId" parameterType="java.lang.String" resultType="int">
+		SELECT COUNT(*)
+		FROM sys_mail_setting
+		WHERE
+		USER_ID_=#{userId}
+	</select>
+	
+</mapper>

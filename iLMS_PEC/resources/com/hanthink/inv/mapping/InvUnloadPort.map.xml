@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.inv.model.InvUnloadPortModel">
+	<!-- 分页数据查询 -->
+	<select id="queryUnloadPortForPage" parameterType="com.hanthink.inv.model.InvUnloadPortModel" resultType="com.hanthink.inv.model.InvUnloadPortModel">
+	    SELECT MIU.ID id,
+               MIU.FACTORY_CODE factoryCode,
+               MIU.WARE_CODE wareCode,
+               MIW.WARE_NAME wareName,
+               MIU.UNLOAD_PORT unloadPort,
+               MIU.LOGIC_UNLOAD_PORT logicUnload,
+               MIU.INNER_LOGISTICS_MODEL innerLogisticsMode,
+               MIU.NOTE note,
+               MIU.CREATION_USER creationUser,
+               TO_CHAR(MIU.CREATION_TIME,'yyyy-MM-dd hh24:mi:ss') creationTime,
+               MIU.LAST_MODIFIED_USER lastModifiedUser,
+               TO_CHAR(MIU.LAST_MODIFIED_TIME,'yyyy-MM-dd hh24:mi:ss') lastModifiedTime,
+               MIU.WORK_CENTER workCenter,
+               MIU.IS_PL plFlag,
+               MIU.UNLOAD_PORT_TYPE unloadType,
+               MIU.LOGISTICS_MODE logisticsMode,
+               MPD.CODE_VALUE_NAME excelWorkCenter,
+               MPD1.CODE_VALUE_NAME excelPlFlag,
+               MPD2.CODE_VALUE_NAME excelLogisticsModel
+          FROM MM_INV_UNLOAD MIU
+             LEFT JOIN MM_PUB_DATA_DICT MPD
+             ON MPD.CODE_TYPE = 'PUB_WORKCENTER'
+             AND MPD.CODE_VALUE = MIU.WORK_CENTER
+             AND MPD.FACTORY_CODE = #{factoryCode}
+             LEFT JOIN MM_PUB_DATA_DICT MPD1
+             ON MPD1.CODE_TYPE = 'PUB_TRUE_FALSE'
+             AND MPD1.CODE_VALUE = MIU.IS_PL
+             AND MPD1.FACTORY_CODE = #{factoryCode}
+             LEFT JOIN MM_PUB_DATA_DICT MPD2
+             ON MPD2.CODE_TYPE = 'PUB_MM_MODEL'
+             AND MPD2.CODE_VALUE = MIU.LOGISTICS_MODE
+             AND MPD2.FACTORY_CODE = #{factoryCode}
+             LEFT JOIN MM_INV_WAREHOUSE MIW
+             ON MIU.WARE_CODE = MIW.WARE_CODE
+             AND MIW.FACTORY_CODE = #{factoryCode}
+	    WHERE MIU.FACTORY_CODE = #{factoryCode}
+		<if test="workCenter != null and workCenter != ''">
+			AND MIU.WORK_CENTER = #{workCenter,jdbcType=VARCHAR}
+		</if>
+		<if test="unloadPort != null and unloadPort != ''">
+			AND MIU.UNLOAD_PORT = #{unloadPort,jdbcType=VARCHAR}
+		</if>
+		<if test="plFlag != null and plFlag != ''">
+			AND MIU.IS_PL = #{plFlag,jdbcType=VARCHAR}
+		</if>
+		<if test="logisticsMode != null and logisticsMode != ''">
+			AND MIU.LOGISTICS_MODE = #{logisticsMode,jdbcType=VARCHAR}
+		</if>
+		 ORDER BY MIU.ID DESC
+	</select>
+	<!-- 单条/批量数据删除 -->
+	<delete id="removeUnloadPort" parameterType="java.lang.String">
+		DELETE FROM MM_INV_UNLOAD
+		WHERE ID IN
+		<foreach item="ids" collection="array" open="(" separator="," close=")">
+			#{ids,jdbcType=VARCHAR}
+		</foreach>
+	</delete>
+	<select id="isExistsUnload" parameterType="com.hanthink.inv.model.InvUnloadPortModel" resultType="java.lang.Boolean">
+		SELECT COUNT(*) FROM MM_INV_UNLOAD
+		  WHERE FACTORY_CODE = #{factoryCode}
+		  AND UNLOAD_PORT = #{unloadPort}
+	</select>
+	<select id="isExistsWareCode" parameterType="com.hanthink.inv.model.InvUnloadPortModel" resultType="java.lang.Boolean">
+		SELECT COUNT(*) FROM MM_INV_WAREHOUSE
+		WHERE FACTORY_CODE = #{factoryCode}
+		AND WARE_CODE = #{wareCode}
+	</select>
+	<!-- 新增卸货口 -->
+	<insert id="createUnloadport" parameterType="com.hanthink.inv.model.InvUnloadPortModel">
+		INSERT INTO MM_INV_UNLOAD
+		(ID,FACTORY_CODE,WORK_CENTER,WARE_CODE,UNLOAD_PORT,LOGIC_UNLOAD_PORT,INNER_LOGISTICS_MODEL,
+		IS_PL,LOGISTICS_MODE,UNLOAD_PORT_TYPE,NOTE,CREATION_USER,CREATION_TIME)
+		VALUES
+		(PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_INV_UNLOAD'),#{factoryCode},#{workCenter},
+		#{wareCode},#{unloadPort},#{logicUnload},#{innerLogisticsMode},#{plFlag},#{logisticsMode},#{unloadType},#{note},
+		#{creationUser},sysdate)
+	</insert>
+	<!-- 修改卸货口数据 -->
+	<update id="updateUnloadPort" parameterType="com.hanthink.inv.model.InvUnloadPortModel">
+		UPDATE MM_INV_UNLOAD SET
+			WORK_CENTER = #{workCenter,jdbcType=VARCHAR},
+			WARE_CODE = #{wareCode,jdbcType=VARCHAR},
+			IS_PL = #{plFlag,jdbcType=VARCHAR},
+			LOGISTICS_MODE = #{logisticsMode,jdbcType=VARCHAR},
+			UNLOAD_PORT_TYPE = #{unloadType,jdbcType=VARCHAR},
+			LOGIC_UNLOAD_PORT = #{logicUnload,jdbcType=VARCHAR},
+			INNER_LOGISTICS_MODEL = #{innerLogisticsMode,jdbcType=VARCHAR},
+			NOTE = #{note,jdbcType=VARCHAR},
+			LAST_MODIFIED_USER = #{lastModifiedUser,jdbcType=VARCHAR},
+			LAST_MODIFIED_TIME = sysdate
+		WHERE ID = #{id}
+	</update>
+	<!-- 查询仓库列表 -->
+	<select id="queryWareCodeLsit" parameterType="java.lang.String" resultType="com.hanthink.inv.model.InvUnloadPortModel">
+		SELECT DISTINCT MIW.WARE_NAME wareCodeLabel, MIW.WARE_CODE wareCodeValue
+		  FROM MM_INV_WAREHOUSE MIW
+		 WHERE MIW.FACTORY_CODE = #{factoryCode}
+		 AND MIW.WARE_TYPE IN ('0', '1', '2')
+	</select>
+	<!-- 查询物理卸货口数据 -->
+	<select id="queryLogicUnload" parameterType="java.lang.String" resultType="com.hanthink.inv.model.InvUnloadPortModel">
+		SELECT MPD.CODE_VALUE wareCodeValue, 
+		       MPD.CODE_VALUE_NAME wareCodeLabel
+		  FROM MM_PUB_DATA_DICT MPD
+		WHERE MPD.FACTORY_CODE = #{factoryCode}
+		  AND MPD.CODE_TYPE = 'INV_LOGIC_UNLOAD'
+		ORDER BY MPD.FACTORY_CODE,MPD.CODE_VALUE
+	</select>
+	
+	<select id="unloadPortIsUsedInLocation" parameterType="java.lang.String" resultType="java.lang.Boolean">
+		SELECT COUNT(1) AS A
+		  FROM MM_INV_PART_LOCATION MIP
+		 WHERE MIP.UNLOAD_PORT IN (SELECT MIU.UNLOAD_PORT
+		                             FROM MM_INV_UNLOAD MIU
+		                            WHERE MIU.ID IN 
+		<foreach item="ids" collection="array" open="(" separator="," close=")">
+			#{ids,jdbcType=VARCHAR}
+		</foreach>)
+		AND SYSDATE BETWEEN MIP.EFF_START AND MIP.EFF_END
+	</select>
+	<select id="isUsedInLocation" parameterType="com.hanthink.inv.model.InvUnloadPortModel" resultType="java.lang.Boolean">
+		SELECT COUNT(1) FROM MM_INV_PART_LOCATION MIP 
+			WHERE MIP.UNLOAD_PORT = #{unloadPort,jdbcType=VARCHAR}
+			AND SYSDATE BETWEEN MIP.EFF_START AND MIP.EFF_END
+	</select>
+</mapper>

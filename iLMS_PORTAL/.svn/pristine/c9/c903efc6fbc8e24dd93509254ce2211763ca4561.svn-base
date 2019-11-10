@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hanthink.pkg.model.PkgPartModel">
+	
+	<!-- 获取明细 -->
+	<select id="get" parameterType="java.lang.String" resultType="com.hanthink.pkg.model.PkgPartModel">
+	    SELECT 
+        A.ID id,
+        A.CAR_TYPE carType,
+        A.PROJECT project,
+        A.PART_NO partNo,
+        B.PART_NAME_CN partNameCn,
+        D.SUPPLIER_NO supplierNo,
+        D.SUPPLIER_NAME supplierName,
+        A.PART_RESP_USER partRespUser,
+        F.MOBILE_ telNo,
+        E.CODE_VALUE_NAME status
+        FROM MM_PKG_PROPOSAL A LEFT JOIN MM_PUB_PART B ON A.PART_NO=B.PART_NO AND A.FACTORY_CODE = B.FACTORY_CODE
+        LEFT JOIN MM_PUB_PART_SUPPLIER C ON B.PART_NO=C.PART_NO AND A.FACTORY_CODE = C.FACTORY_CODE
+        LEFT JOIN MM_PUB_SUPPLIER D ON C.SUPPLIER_NO=D.SUPPLIER_NO
+        LEFT JOIN SYS_USER F ON A.PART_RESP_USER=F.FULLNAME_
+        LEFT JOIN MM_PUB_DATA_DICT E ON A.STATUS=E.CODE_VALUE AND E.CODE_TYPE='PKG_STAY_NEW' AND A.FACTORY_CODE = E.FACTORY_CODE
+        WHERE
+		A.ID = #{id}
+	</select>
+
+    <!-- 分页查询显示列表信息 -->
+	<select id="queryPkgPartForPage" parameterType="com.hanthink.pkg.model.PkgProposalModel" resultType="com.hanthink.pkg.model.PkgProposalModel">
+        SELECT 
+        A.ID id,
+        A.CAR_TYPE carType,
+        A.PROJECT project,
+        A.PART_NO partNo,
+        B.PART_NAME_CN partNameCn,
+        A.SUPPLIER_NO supplierNo,
+        D.SUPPLIER_NAME supplierName,
+        A.PART_RESP_USER partRespUser,
+        F.MOBILE_ telNo,
+        E.CODE_VALUE_NAME status
+        FROM MM_PKG_PART A LEFT JOIN MM_PUB_PART B ON A.PART_NO = B.PART_NO AND A.FACTORY_CODE = B.FACTORY_CODE
+        LEFT JOIN MM_PUB_PART_SUPPLIER C ON B.PART_NO = C.PART_NO AND A.FACTORY_CODE = C.FACTORY_CODE
+        LEFT JOIN MM_PUB_SUPPLIER D ON C.SUPPLIER_NO = D.SUPPLIER_NO
+        LEFT JOIN SYS_USER F ON A.PART_RESP_USER = F.ACCOUNT_
+        LEFT JOIN MM_PUB_DATA_DICT E ON A.STATUS=E.CODE_VALUE 
+        	AND E.CODE_TYPE='PKG_STAY_NEW' 
+        	AND E.FACTORY_CODE = #{factoryCode}
+        WHERE A.FACTORY_CODE = #{factoryCode}
+		<if test="carType !=null and carType !='' " >
+		AND	A.CAR_TYPE = #{carType}
+		</if>
+		<if test="supplierNo!=null and supplierNo !='' ">
+		AND	D.SUPPLIER_NO = #{supplierNo}
+		</if>
+		<if test="supplierName!=null and supplierName !=''">
+		AND	D.SUPPLIER_NAME = #{supplierName}
+		</if>
+		<if test="partNo!=null and partNo!='' ">
+		AND	A.PART_NO LIKE CONCAT (#{partNo},'%')
+		</if>
+		<if test="status!=null and status!='' ">
+		AND	A.STATUS = #{status}
+		</if>
+		ORDER BY A.ID DESC
+	</select>
+	
+	<!-- 修改零件担当维护信息 -->
+	<update id="update"  parameterType="com.hanthink.pkg.model.PkgPartModel">
+	    UPDATE MM_PKG_PART SET 
+		PART_RESP_USER = #{partRespUser,jdbcType=VARCHAR},
+		PROJECT = #{project,jdbcType=VARCHAR},
+		LAST_MODIFIED_USER = #{lastModifiedUser,jdbcType=VARCHAR},
+		LAST_MODIFIED_TIME = SYSDATE
+		WHERE ID = #{id}
+	</update>
+	
+	
+	<select id="getTelNoByUser"  parameterType="java.util.Map" resultType="com.hanthink.pkg.model.PkgProposalModel">
+	    SELECT A.ID_ id, A.MOBILE_ telNo FROM SYS_USER A WHERE A.ACCOUNT_ = #{partRespUser} AND A.FACTORY_CODE = #{factoryCode}
+	</select>
+</mapper>

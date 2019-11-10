@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html ng-app="myApp">
+<head>
+<title>X5手机平台</title>
+<meta charset="utf-8">
+<script src="../assets/js/importJs.js"></script>
+
+<script type="text/javascript">
+var myApp = angular.module("myApp", ['base','mobileDirective']);
+myApp.controller("myTaskCtrl",['$scope','baseService','$sce', function(scope,baseService,$sce) {
+	var id=HtUtil.getParameter("id");
+	var orgId=HtUtil.getParameter("orgId");
+	// 加载用户
+	scope.loadUser = function(){
+		var param = {"orgId":orgId,"userId":id};
+		var url = __ctx + "/org/user/getUserAndGroup";
+		baseService.postForm(url,param).then(
+				function(data){
+					scope.userRes = data.rows[0];
+					if(scope.userRes.photo == undefined){
+						scope.userRes.photo = __ctx+"/mobile/assets/img/svg/default_avatar.svg";
+					}else{
+						scope.userRes.photo = __ctx + scope.userRes.photo;
+					}
+				},function(){}
+			)
+	}
+	scope.loadUser();
+	
+}]);
+
+$(function(){
+	$("a.item-inner").click(function(){
+		$.closePanel()
+	});
+})
+</script>
+</head>
+<body ng-controller="myTaskCtrl">
+<div class="page" id="taskToDo">
+ 	<header class="hkm-red-header bar bar-nav">
+		  <a class="icon icon-left pull-left" href="#" onclick="javascript:history.go(-1);"></a>
+		  <span class='title'>{{userRes.fullName}}资料</span>
+		</header>
+			<div class="content infinite-scroll">
+			<div class="grzl-page">
+				 <div class="touxiang">
+				 	<img ng-src="{{userRes.photo}}"/><br /><span>{{userRes.fullName}}<br />{{userRes.orgName}}-{{userRes.relName}}</span>
+				 </div>   
+				   <div class="list-block">
+				    <ul>
+				      <li class="item-content">
+				        <div class="item-inner">
+				          <div class="item-title">所属单位</div>
+				          <div class="item-after">{{userRes.orgName}}</div>
+				        </div>
+				      </li>
+				      <li class="item-content">
+				        <div class="item-inner">
+				          <div class="item-title">任职岗位</div>
+				          <div class="item-after">{{userRes.relName}}</div>
+				        </div>
+				      </li>
+				      <li class="item-content" ng-hide="userRes.encry=='true'">
+				        <div class="item-inner">
+				          <div class="item-title">联系电话</div>
+				          <div class="item-after">{{userRes.mobile}}</div>
+				        </div>
+				      </li>
+				      <li class="item-content">
+				        <div class="item-inner">
+				          <div class="item-title">常用邮箱</div>
+				          <div class="item-after">{{userRes.email}}</div>
+				        </div>
+				      </li>
+				    </ul>
+				  </div>
+					<div class="call" ng-hide="userRes.encry=='true'">
+						<a href="tel:{{userRes.mobile}}" class="button button-big button-fill button-success" external>拨打电话</a>
+					</div>
+					
+				
+			</div>
+		      
+		</div>
+	</div>
+</body>
+</html>

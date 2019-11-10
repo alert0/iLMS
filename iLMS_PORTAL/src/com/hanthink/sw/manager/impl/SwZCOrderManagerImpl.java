@@ -1,0 +1,295 @@
+package com.hanthink.sw.manager.impl;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.hanthink.base.manager.impl.AbstractManagerImpl;
+import com.hanthink.sw.dao.SwZCOrderDao;
+import com.hanthink.sw.manager.SwZCOrderManager;
+import com.hanthink.sw.model.SwZCOrderModel;
+import com.hanthink.util.excel.ExcelUtil;
+import com.hotent.base.core.util.string.StringUtil;
+import com.hotent.base.db.api.Dao;
+import com.hotent.base.db.mybatis.domain.DefaultPage;
+import com.hotent.base.db.mybatis.domain.PageList;
+import com.hotent.sys.util.ContextUtil;
+
+/**
+ * @ClassName: SwZCOrderManagerImpl
+ * @Description: 资材订单
+ * @author dtp
+ * @date 2019年3月1日
+ */
+@Service("SwZCOrderManager")
+public class SwZCOrderManagerImpl  extends AbstractManagerImpl<String, SwZCOrderModel> implements SwZCOrderManager{
+
+	@Resource
+	private  SwZCOrderDao  swZCOrder;
+	
+	@Override
+	protected Dao<String, SwZCOrderModel> getDao() {
+		return swZCOrder;
+	}
+
+	/**
+	 * @Description:  资材订单查询    
+	 * @param: @param model
+	 * @param: @param page
+	 * @param: @return    
+	 * @return: PageList<SwZCOrderModel>   
+	 * @author: dtp
+	 * @date: 2019年3月1日
+	 */
+	@Override
+	public PageList<SwZCOrderModel> queryZCOrderPage(SwZCOrderModel model, DefaultPage page) {
+		return swZCOrder.queryZCOrderPage(model, page);
+	}
+
+	/**
+	 * @Description: 资材订单导出 
+	 * @param: @param model
+	 * @param: @return    
+	 * @return: List<SwZCOrderModel>   
+	 * @author: dtp
+	 * @date: 2019年3月1日
+	 */
+	@Override
+	public List<SwZCOrderModel> queryZCOrderList(SwZCOrderModel model) {
+		return swZCOrder.queryZCOrderList(model);
+	}
+
+	/**
+	 * 删除导入数据
+	 * @Description:   
+	 * @param: @param uuid    
+	 * @return: void   
+	 * @author: dtp
+	 * @date: 2019年3月3日
+	 */
+	@Override
+	public void deleteImportTempDataByUUID(String uuid) {
+		swZCOrder.deleteImportTempDataByUUID(uuid);
+	}
+
+	/**
+	 * @Description: 导入excel数据  
+	 * @param: @param file
+	 * @param: @param uuid
+	 * @param: @param ipAddr
+	 * @param: @return    
+	 * @return: Map<String,Object>   
+	 * @author: dtp
+	 * @date: 2019年3月3日
+	 */
+	@SuppressWarnings("unchecked")
+	@Override
+	public Map<String, Object> importZCOrder(MultipartFile file, String uuid, String opeIp) {
+		Map<String,Object> rtnMap = new HashMap<String, Object>();
+		Boolean result = true;
+		String console = "";
+		if(file == null || file.isEmpty()){
+			result = false;
+			console = "文件为空！";
+			throw new RuntimeException(console);
+		}
+		//读取Excel数据
+		String fileExt = file.getOriginalFilename().substring(file.getOriginalFilename().indexOf("."));
+		String[] columns = {"purchaseNo", "partNo", "partNameCn", "standPackage", 
+				"partSpec",
+				"orderQty","orderUnit","arriveDate", 
+				"planNum", "planTime", "returnMsg"};
+		List<SwZCOrderModel> importList = null;
+		try {
+			if(ExcelUtil.EXCEL_XLS.equals(fileExt.toLowerCase())){
+				importList = (List<SwZCOrderModel>) ExcelUtil.importExcelXLS(new SwZCOrderModel(), file.getInputStream(), columns, 1, 0);
+			}else if(ExcelUtil.EXCEL_XLSX.equals(fileExt.toLowerCase())){
+				importList = (List<SwZCOrderModel>) ExcelUtil.importExcelXLSX(new SwZCOrderModel(), file.getInputStream(), columns, 1, 0);
+			}else{
+				result = false;
+				console = "上传文件不是excel类型！";
+				throw new RuntimeException(console);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			result = false;
+			console = e.getMessage();
+			throw new RuntimeException(console);
+		}
+		//数据导入初始化，格式初步检查
+		int i = 1;
+		for(SwZCOrderModel m : importList){
+			m.setReplySeqNo((i++)+"");
+			m.setCheckResult(ExcelUtil.EXCEL_IMPCKRESULT_SUCCESS); 
+			m.setImportStatus(ExcelUtil.EXCEL_IMPSTATUS_NO);
+			m.setUuid(uuid);
+			m.setFactoryCode(ContextUtil.getCurrentUser().getCurFactoryCode());
+			m.setCreationUser(ContextUtil.getCurrentUser().getAccount());
+			SwZCOrderModel.checkImportData(importList, m);
+		}
+		//导入数据写入到资材反馈临时表(MM_SW_FEEDBACK_ZC_IMP)
+		swZCOrder.insertSwZCOrderTempData(importList);
+		
+		//调用存储过程等检查数据准确性
+		Map<String, String> ckParamMap = new HashMap<String, String>();
+		ckParamMap.put("uuid", uuid);
+		ckParamMap.put("userName", ContextUtil.getCurrentUser().getAccount());
+		ckParamMap.put("opeIp", opeIp);
+		ckParamMap.put("errorFlag", "");
+		ckParamMap.put("errorMsg", "");
+		swZCOrder.checkImportData(ckParamMap);
+		result = "0".equals(String.valueOf(ckParamMap.get("errorFlag")));
+		if(!result && StringUtil.isEmpty(console)){
+			console = String.valueOf(ckParamMap.get("errorMsg"));
+		}
+		
+		//临时导入情况返回
+		rtnMap.put("result", result);
+		rtnMap.put("console", console);
+		return rtnMap;
+	}
+
+	/**
+	 * @Description: 查询导入校验结果是否包含不通过  
+	 * @param: @param uuid
+	 * @param: @return    
+	 * @return: int   
+	 * @author: dtp
+	 * @date: 2019年3月3日
+	 */
+	@Override
+	public int queryIsExistsCheckResultFalse(String uuid) {
+		return swZCOrder.queryIsExistsCheckResultFalse(uuid);
+	}
+
+	/**
+	 * @Description:  写入反馈表 
+	 * @param: @param paramMap    
+	 * @return: void   
+	 * @author: dtp
+	 * @date: 2019年3月3日
+	 */
+	@Override
+	public void insertImportData(Map<String, String> paramMap) {
+		swZCOrder.insertImportData(paramMap);
+		//更新临时数据导入状态
+		swZCOrder.updateImportDataImpStatus(paramMap);
+	}
+
+	/**
+	 * @Description:  查询临时表数据 
+	 * @param: @param model
+	 * @param: @param page
+	 * @param: @return    
+	 * @return: PageList<SwZCOrderModel>   
+	 * @author: dtp
+	 * @date: 2019年3月3日
+	 */
+	@Override
+	public PageList<SwZCOrderModel> queryImportTempPage(SwZCOrderModel model, DefaultPage page) {
+		return swZCOrder.queryImportTempPage(model, page);
+	}
+
+	/**
+	 * @Description:  资材反馈导出 
+	 * @param: @param model
+	 * @param: @return    
+	 * @return: List<SwZCOrderModel>   
+	 * @author: dtp
+	 * @date: 2019年3月3日
+	 */
+	@Override
+	public List<SwZCOrderModel> queryImportTempList(SwZCOrderModel model) {
+		return swZCOrder.queryImportTempList(model);
+	}
+
+	/**
+	 * @Description: 资材反馈  
+	 * @param: @param model
+	 * @param: @param ipAddr    
+	 * @return: void   
+	 * @author: dtp
+	 * @date: 2019年3月3日
+	 */
+	@Override
+	public void insertZCOrderFeedBack(SwZCOrderModel model, String ipAddr) {
+		swZCOrder.insertZCOrderFeedBack(model);
+	}
+
+	/**
+	 * @Description:  修改反馈
+	 * @param: @param model
+	 * @param: @param ipAddr    
+	 * @return: void   
+	 * @author: dtp
+	 * @date: 2019年3月3日
+	 */
+	@Override
+	public void updateZCOrderFeedBack(SwZCOrderModel model, String ipAddr) {
+		swZCOrder.updateZCOrderFeedBack(model);
+	}
+
+	/**
+	 * @Description: 资材PC端反馈 
+	 * @param: @param models
+	 * @param: @param ipAddr    
+	 * @return: void   
+	 * @author: dtp
+	 * @date: 2019年3月7日
+	 */
+	@Override
+	public void zcPCFeedback(SwZCOrderModel[] models, String ipAddr) {
+		for (SwZCOrderModel model : models) {
+			model.setCreationUser(ContextUtil.getCurrentUser().getAccount());
+			model.setFactoryCode(ContextUtil.getCurrentUser().getCurFactoryCode());
+			swZCOrder.zcPCFeedback(model);
+		}
+	}
+
+	/**
+	 * @Description: 查询资材订单打印信息 
+	 * @param: @param model_q
+	 * @param: @return    
+	 * @return: List<SwZCOrderModel>   
+	 * @author: dtp
+	 * @date: 2019年3月10日
+	 */
+	@Override
+	public List<SwZCOrderModel> queryZCOrderPrintDetailList(SwZCOrderModel model_q) {
+		return swZCOrder.queryZCOrderPrintDetailList(model_q);
+	}
+
+	/**
+	 * @Description: 更新资材订单打印状态 
+	 * @param: @param list_printInfo    
+	 * @return: void   
+	 * @author: dtp
+	 * @date: 2019年3月10日
+	 */
+	@Override
+	public void updatePrintInfo(List<SwZCOrderModel> list_printInfo) {
+		for (SwZCOrderModel model : list_printInfo) {
+			swZCOrder.updatePrintInfo(model);//更新资材反馈表打印状态
+			swZCOrder.updateSwOrderPrintInfo(model);//更新订单表打印状态
+		}
+	}
+
+	/**
+	 * @Description: 查询资材标签打印信息 
+	 * @param: @param model_q
+	 * @param: @return    
+	 * @return: List<SwZCOrderModel>   
+	 * @author: dtp
+	 * @date: 2019年3月14日
+	 */
+	@Override
+	public List<SwZCOrderModel> queryZCOrderLabelDetailList(SwZCOrderModel model_q) {
+		return swZCOrder.queryZCOrderLabelDetailList(model_q);
+	}
+
+}

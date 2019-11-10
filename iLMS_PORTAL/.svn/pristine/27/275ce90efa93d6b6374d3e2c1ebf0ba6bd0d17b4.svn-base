@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html ng-app="myApp" >
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+<script type="text/javascript" src="../../../lib/angular/angular.min.js"></script>
+<script type="text/javascript" src="../../../lib/jquery/jquery.min.js"></script>
+<script type="text/javascript" src="../../service/BaseService.js"></script>
+<script type="text/javascript" src="../../../lib/My97DatePicker/WdatePicker.js"></script>
+<script type="text/javascript" src="../FormDirective.js"></script>
+</head>
+<body ng-controller="ctrl">
+<div >
+		日期格式:yyyy-MM-dd HH:mm:ss
+		<br/>
+       <input type="text" ht-date="yyyy-MM-dd HH:mm:00" ng-model="date1" />
+       <br/>
+       	日期格式:yyyy-MM-dd
+       	<br/>
+       <input type="text" ht-date="yyyy-MM-dd" ng-model="date2" />
+       <br/>
+	   <input type="button" ng-click="getData()" value="getData">
+   </div>
+   <script>
+       var app=angular.module("myApp",["formDirective"]);
+		app.controller('ctrl', ['$scope',function($scope){
+			$scope.date1="2016-09-07 12:9:8";
+			$scope.date2="2016-03-07";
+			$scope.getData=function(){
+				$scope.date1="2016-09-8 12:9:8";
+				$scope.date2="2016-11-07";
+			}
+		}])
+    </script>
+
+</body>
+</html>

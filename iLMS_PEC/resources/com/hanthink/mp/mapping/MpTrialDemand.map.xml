@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.mp.model.MpTrialDemandModel">
+	
+	<insert id="create" parameterType="com.hanthink.mp.model.MpTrialDemandModel">
+		INSERT INTO MM_MP_TRIAL_DEMAND
+		(ID,FACTORY_CODE,PART_NO,SUPPLIER_NO,SUP_FACTORY,UNLOAD_PORT,
+		CREATION_USER,CREATION_TIME,LAST_MODIFIED_USER,LAST_MODIFIED_TIME)
+		VALUES 
+		(SEQ_MM_MP_RESIDUAL.NEXTVAL,#{factoryCode,jdbcType=VARCHAR}, #{partNo,jdbcType=VARCHAR}, #{supplierNo,jdbcType=VARCHAR}, 
+		#{supFactory,jdbcType=VARCHAR}, #{unloadPort,jdbcType=VARCHAR}, 
+		#{creationUser,jdbcType=VARCHAR},sysdate, 
+		#{lastModifiedUser,jdbcType=VARCHAR}, sysdate)
+	</insert>
+	
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="queryMpTrialDemandForPage" parameterType="com.hanthink.mp.model.MpTrialDemandModel" resultType="com.hanthink.mp.model.MpTrialDemandModel">
+			SELECT A.ID id,
+		       A.SUP_FACTORY supFactory,
+		       A.ORDER_NUM + A.EXC_ORDER_NUM totalOrderNum,
+		       A.PART_NO partNo,
+		       B.PART_SHORT_NO partShortNo,
+		       A.SUPPLIER_NO supplierNo,
+		       B.SUPPLIER_NAME supplierName,
+		       TO_CHAR(a.ARRIVE_TIME, 'YYYY-MM-DD') arriveTimeStr,
+		       A.ORDER_NUM orderNum,
+		       A.PURCHASE_TYPE purchaseType,
+		       A.EXC_ORDER_NUM excOrderNum,
+		       A.REL_STATUS  relStatus,
+		       D.ORDER_NO orderNo,
+		       D.ORDER_NO purchaseNo,
+		       E.ROW_NO rowNo,
+		       F.CODE_VALUE_NAME codeValueNameD
+		  FROM MM_MP_TRIAL_DEMAND A
+		  LEFT JOIN MM_PUB_PART_UDA B
+		    ON A.PART_NO = B.PART_NO
+		    AND B.FACTORY_CODE = A.FACTORY_CODE
+		  LEFT JOIN MM_MP_TRIAL_OD_RELATION C
+		    ON A.ID = C.DEMAND_ID
+		   AND A.FACTORY_CODE = C.FACTORY_CODE
+		  LEFT JOIN MM_MP_TRIAL_ORDER D
+		    ON C.ORDER_NO = D.ORDER_NO
+		  LEFT JOIN MM_MP_TRIAL_ORDER_DETAIL E
+		    ON D.ORDER_NO = E.ORDER_NO
+		   AND A.PART_NO = E.PART_NO
+	      LEFT JOIN MM_PUB_DATA_DICT F
+	        ON A.REL_STATUS = F.CODE_VALUE
+	       AND F.CODE_TYPE ='MP_ORDER_STATUS'
+	       AND F.FACTORY_CODE = A.FACTORY_CODE
+		 WHERE 1 = 1
+		<if test="supplierNo!=null and supplierNo!='' ">
+		AND	A.SUPPLIER_NO = #{supplierNo}
+		</if>
+		<if test="supFactory!=null and supFactory!='' ">
+		AND	A.SUP_FACTORY = #{supFactory}
+		</if>
+		<if test="partNo!=null and partNo!='' ">
+		AND	A.PART_NO LIKE CONCAT(#{partNo}, '%')
+		</if>
+		<if test="partShortNo!=null and partShortNo!='' ">
+		AND	B.PART_SHORT_NO = #{partShortNo}
+		</if>
+		<if test="arriveTimeStrStart != null and arriveTimeStrStart != ''">
+		<![CDATA[ AND A.ARRIVE_TIME >= TO_DATE(#{arriveTimeStrStart},'yyyy-MM-dd') ]]>
+		</if>
+        <if test="arriveTimeStrEnd != null and arriveTimeStrEnd != ''">
+        <![CDATA[ AND A.ARRIVE_TIME <= TO_DATE(#{arriveTimeStrEnd},'yyyy-MM-dd') ]]>
+        </if>
+        <if test="relStatus!=null and relStatus!='' ">
+		AND	A.REL_STATUS = #{relStatus}
+		</if>
+		ORDER BY A.SUPPLIER_NO,A.SUP_FACTORY,A.PART_NO,A.ARRIVE_TIME
+	</select>
+		
+	<!-- 修改方法 -->
+	<update id="update" parameterType="com.hanthink.mp.model.MpTrialDemandModel">
+		UPDATE  MM_MP_TRIAL_DEMAND  SET
+		TOTAL_ORDER_NUM = #{orderNum,jdbcType=VARCHAR} + EXC_ORDER_NUM,
+		ORDER_NUM = #{orderNum,jdbcType=VARCHAR},
+        LAST_MODIFIED_USER = #{lastModifiedUser,jdbcType=VARCHAR},
+        LAST_MODIFIED_TIME = sysdate
+		WHERE 1=1
+		AND ID=#{id}
+	</update>
+	
+	<!-- 删除方法 -->
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM  MM_MP_TRIAL_DEMAND 
+		WHERE 1=1
+		AND ID=#{id}
+	</delete>
+	
+	<!-- 批量导入数据写入到临时表 -->
+	<insert id="insertMpTrialDemandImportTempData" parameterType="java.util.List">
+		INSERT INTO MM_MP_TRIAL_DEMAND_IMP
+		(SUP_FACTORY,
+		PART_NO,
+		SUPPLIER_NO,
+        ARRIVE_TIME,
+        ORDER_NUM,
+        EXC_ORDER_NUM,
+        TOTAL_ORDER_NUM,
+        CREATION_USER,
+        CREATION_TIME,
+        IMP_UUID,
+        CHECK_RESULT,
+        CHECK_INFO,
+        IMPORT_STATUS)
+		<foreach collection="list" item="item" index="index" separator=" UNION ALL ">
+		  SELECT #{item.supFactory,jdbcType=VARCHAR},
+		         #{item.partNo,jdbcType=VARCHAR},
+		         #{item.supplierNo,jdbcType=VARCHAR}, 
+				 to_date(#{item.arriveTimeStr,jdbcType=VARCHAR}, 'yyyy-mm-dd'),
+				 #{item.orderNum,jdbcType=NUMERIC}, 
+				 #{item.excOrderNum,jdbcType=NUMERIC},
+				 #{item.totalOrderNum,jdbcType=NUMERIC},
+				 #{item.creationUser,jdbcType=VARCHAR},
+				 sysdate,
+				 #{item.uuid,jdbcType=VARCHAR},
+				 #{item.checkResult,jdbcType=NUMERIC}, 
+				 #{item.checkInfo,jdbcType=VARCHAR}, 
+				 #{item.importStatus,jdbcType=NUMERIC}
+				FROM DUAL 
+    	</foreach>
+	</insert>
+	
+	<!-- 检查导入临时表数据 -->
+	<parameterMap type="map" id="impCkParamMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="userName" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<select id="checkMpTrialDemandImportData" parameterMap="impCkParamMap" statementType="CALLABLE">
+		{CALL PKG_MP_CHECK.USP_MP_TRIAL_DEMAND_CHECK(?, ?, ?,  ?,?)}
+	</select>
+	
+	<!-- 查询临时表数据 -->
+	<select id="queryMpTrialDemandImportTempData" parameterType="java.util.Map" resultType="com.hanthink.mp.model.MpTrialDemandModelImport">
+			SELECT A.ID  id,
+			       A.SUPPLIER_NO  supplierNo,
+			       A.SUP_FACTORY  supFactory,
+			       A.PART_NO  partNo,
+			       TO_CHAR(A.ARRIVE_TIME, 'YYYY-MM-DD')  arriveTimeStr,
+			       A.ORDER_NUM   orderNum,
+			       A.EXC_ORDER_NUM   excOrderNum,
+			       A.TOTAL_ORDER_NUM  totalOrderNum,
+			       A.CREATION_USER  creationUser,
+			       A.CREATION_TIME  creationTime,
+			       A.IMP_UUID  uuid,
+			       A.CHECK_RESULT   checkResult,
+			       A.CHECK_INFO   checkInfo,
+			       A.IMPORT_STATUS  importStatus,
+			       A.OPE_TYPE   opeType,
+			       B.CODE_VALUE_NAME codeValueNameB,
+		           C.CODE_VALUE_NAME codeValueNameC
+			  FROM MM_MP_TRIAL_DEMAND_IMP  A
+			  LEFT JOIN MM_PUB_DATA_DICT B
+		      ON A.CHECK_RESULT = B.CODE_VALUE
+		      AND B.CODE_TYPE ='PUB_IMP_CK_RESULT'
+		      <!-- i-LMS2019053001 mod by 赵明健 -->
+		      AND B.FACTORY_CODE = #{factoryCode}
+		      LEFT JOIN MM_PUB_DATA_DICT C
+		      ON A.IMPORT_STATUS = C.CODE_VALUE
+		      AND C.CODE_TYPE ='PUB_IMP_STATUS'
+		      <!-- i-LMS2019053001 mod by 赵明健 -->
+		      AND C.FACTORY_CODE = #{factoryCode}
+		      WHERE A.IMP_UUID = #{uuid,jdbcType=VARCHAR}
+	</select>
+	
+	
+	<!-- 导入临时数据写入到正式表 -->
+	<insert id="insertMpTrialDemandImportData" parameterType="java.util.Map" >
+		INSERT INTO MM_MP_TRIAL_DEMAND 
+				  ( ID, 
+					SUPPLIER_NO, 
+					SUP_FACTORY,
+					PART_NO, 
+					ARRIVE_TIME,
+					ORDER_NUM,
+					EXC_ORDER_NUM,
+					TOTAL_ORDER_NUM,
+					CREATION_USER,
+					CREATION_TIME)
+		   (SELECT  SEQ_MM_MP_TRIAL_DEMAND.NEXTVAL, 	 
+					SUPPLIER_NO, 
+					SUP_FACTORY, 
+					PART_NO,
+					ARRIVE_TIME,
+					ORDER_NUM,
+					EXC_ORDER_NUM,
+					ORDER_NUM+EXC_ORDER_NUM,
+					CREATION_USER,
+					CREATION_TIME
+		      FROM  MM_MP_TRIAL_DEMAND_IMP
+		      WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+			    AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+				AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR}
+				AND OPE_TYPE = 'I')
+	</insert>
+	
+	<!-- 更新临时表数据导入状态 -->
+	<update id="updateMpTrialDemandImportDataImpStatus" parameterType="java.util.Map">
+		UPDATE  MM_MP_TRIAL_DEMAND_IMP SET IMPORT_STATUS = #{IMPORT_STATUS_YES,jdbcType=VARCHAR} 
+		WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		  AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+		  AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR} 
+	</update>
+	
+	<!-- 根据UUID删除导入的临时数据 -->
+	<delete id="deleteMpTrialDemandImportTempDataByUUID" parameterType="java.lang.String">
+		DELETE FROM  MM_MP_TRIAL_DEMAND_IMP WHERE IMP_UUID = #{value,jdbcType=VARCHAR}
+	</delete>
+	
+	<!-- 拿出ID,查询哪些数据需要修改 -->
+	<select id="queryUpdateDataFromMpTrialDemandImp" parameterType="java.util.Map" resultType="java.lang.String">
+		SELECT A.ID
+		  FROM  MM_MP_TRIAL_DEMAND_IMP A
+		 WHERE A.OPE_TYPE = 'U'
+		   AND A.IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR} 
+		   AND A.IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		   AND A.CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+	</select>
+
+    <!-- 更新导入的方法 -->
+	<update id="updateMpTrialDemandImportData" parameterType="java.util.Map">
+	    UPDATE  MM_MP_TRIAL_DEMAND A  SET 
+	   (A.EXC_ORDER_NUM, A.LAST_MODIFIED_USER, A.LAST_MODIFIED_TIME) =
+	   (SELECT B.EXC_ORDER_NUM, B.CREATION_USER, sysdate
+	   FROM  MM_MP_TRIAL_DEMAND_IMP B
+	   WHERE IMP_UUID =
+	   #{uuid,jdbcType = VARCHAR} 
+	   AND CHECK_RESULT =#{checkResult,jdbcType = VARCHAR}
+	   AND IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}
+	   AND OPE_TYPE = 'U')
+	</update>
+	
+	<!-- 查询临时表中的数据是否可以导入 -->
+	<select id="queryMpTrialDemandIsImportFlag" parameterType="java.lang.String" resultType="java.lang.String">
+		WITH TEMPA AS
+		 (SELECT COUNT(1) s
+		    FROM  MM_MP_TRIAL_DEMAND_IMP A
+		   WHERE A.CHECK_RESULT = 0
+		     AND A.IMP_UUID = #{VALUE}),
+		TEMPB AS
+		 (SELECT COUNT(1) S
+		    FROM  MM_MP_TRIAL_DEMAND_IMP B
+		   WHERE B.IMP_UUID = #{VALUE})
+		SELECT CASE
+		         WHEN A.S >= B.S THEN
+		          0
+		         ELSE
+		          1
+		       END AS FLAG
+		  FROM TEMPA A, TEMPB B
+	</select>
+	
+	<!-- 查询可导入数据 -->
+	<select id="queryForInsertList" parameterType="java.util.Map" resultType="com.hanthink.mp.model.MpTrialDemandModel">
+		SELECT A.ID id
+		FROM  MM_MP_TRIAL_DEMAND_IMP A
+		WHERE A.IMP_UUID = #{uuid}
+			  AND A.IMPORT_STATUS = #{importStatus}
+			  AND A.CHECK_RESULT = #{checkResult}
+	</select>
+	
+	<!-- 需求计算生成 -->
+	<parameterMap type="map" id="generateMpTrialDemandMap">  
+		<parameter property="factoryCode" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="outCode" jdbcType="INTEGER" mode="OUT"/> 
+	</parameterMap> 
+	<select id="generateMpTrialDemand" parameterMap="generateMpTrialDemandMap" statementType="CALLABLE">
+		{CALL PKG_MP_MAIN.USP_MP_TRIAL_ZSB(?,?)}
+	</select>
+	
+	<!-- 需求计算发布 -->
+	<parameterMap type="map" id="releaseMpTrialDemandMap">  
+		<parameter property="factoryCode" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="outCode" jdbcType="INTEGER" mode="OUT"/>   
+	</parameterMap> 
+	<select id="releaseMpTrialDemand" parameterMap="releaseMpTrialDemandMap" statementType="CALLABLE">
+		{CALL PKG_MP_MAIN.USP_MP_TRIAL_PO(?,?)}
+	</select>
+</mapper>

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.bpmx.persistence.model.BpmTaskDueTime">
+	<resultMap id="BpmTaskDueTime" type="com.hotent.bpmx.persistence.model.BpmTaskDueTime">
+		<id property="id" column="ID_" jdbcType="VARCHAR"/>
+		<result property="parentId" column="PARENT_ID_" jdbcType="VARCHAR"/>
+		<result property="instId" column="INST_ID_" jdbcType="VARCHAR"/>
+		<result property="taskId" column="TASK_ID_" jdbcType="VARCHAR"/>
+		<result property="dateType" column="DATE_TYPE_" jdbcType="VARCHAR"/>
+		<result property="dueTime" column="DUE_TIME_" jdbcType="NUMERIC"/>
+		<result property="addDueTime" column="ADD_DUE_TIME_" jdbcType="NUMERIC"/>
+		<result property="startTime" column="START_TIME_" jdbcType="TIMESTAMP"/>
+		<result property="expirationDate" column="EXPIRATION_DATE_" jdbcType="TIMESTAMP"/>
+		<result property="remainingTime" column="REMAINING_TIME_" jdbcType="NUMERIC"/>
+		<result property="createTime" column="CREATE_TIME_" jdbcType="TIMESTAMP"/>
+		<result property="status" column="STATUS_" jdbcType="NUMERIC"/>
+		<result property="userId" column="USER_ID_" jdbcType="VARCHAR"/>
+		<result property="userName" column="USER_NAME_" jdbcType="VARCHAR"/>
+		<result property="remark" column="REMARK_" jdbcType="VARCHAR"/>
+		<result property="fileId" column="FILE_ID_" jdbcType="VARCHAR"/>
+		<result property="isNew" column="IS_NEW_" jdbcType="NUMERIC"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.bpmx.persistence.model.BpmTaskDueTime">
+		INSERT INTO bpm_task_due_time
+		(ID_,PARENT_ID_,INST_ID_,TASK_ID_,DATE_TYPE_,DUE_TIME_,ADD_DUE_TIME_,START_TIME_,EXPIRATION_DATE_,REMAINING_TIME_,CREATE_TIME_,STATUS_,USER_ID_,USER_NAME_,REMARK_,FILE_ID_,IS_NEW_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{parentId,jdbcType=VARCHAR}, #{instId,jdbcType=VARCHAR}, #{taskId,jdbcType=VARCHAR}, #{dateType,jdbcType=VARCHAR}, #{dueTime,jdbcType=NUMERIC}, #{addDueTime,jdbcType=NUMERIC}, #{startTime,jdbcType=TIMESTAMP}, #{expirationDate,jdbcType=TIMESTAMP}, #{remainingTime,jdbcType=NUMERIC}, #{createTime,jdbcType=TIMESTAMP}, #{status,jdbcType=NUMERIC}, #{userId,jdbcType=VARCHAR}, #{userName,jdbcType=VARCHAR}, #{remark,jdbcType=VARCHAR}, #{fileId,jdbcType=VARCHAR}, #{isNew,jdbcType=NUMERIC})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="BpmTaskDueTime">
+		SELECT * FROM bpm_task_due_time 
+		WHERE 
+		ID_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="BpmTaskDueTime">
+		SELECT * FROM bpm_task_due_time
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY ID_ DESC
+		</if>
+	</select>
+	
+	<select id="getByTaskId" parameterType="java.lang.String" resultMap="BpmTaskDueTime">
+		SELECT * FROM bpm_task_due_time WHERE TASK_ID_ = #{taskId} and is_new_ = 1
+	</select>
+	
+	<update id="update" parameterType="com.hotent.bpmx.persistence.model.BpmTaskDueTime">
+		UPDATE bpm_task_due_time SET
+		PARENT_ID_=#{parentId,jdbcType=VARCHAR},
+		INST_ID_=#{instId,jdbcType=VARCHAR},
+		TASK_ID_=#{taskId,jdbcType=VARCHAR},
+		DATE_TYPE_=#{dateType,jdbcType=VARCHAR},
+		DUE_TIME_=#{dueTime,jdbcType=NUMERIC},
+		ADD_DUE_TIME_=#{addDueTime,jdbcType=NUMERIC},
+		START_TIME_=#{startTime,jdbcType=TIMESTAMP},
+		EXPIRATION_DATE_=#{expirationDate,jdbcType=TIMESTAMP},
+		REMAINING_TIME_=#{remainingTime,jdbcType=NUMERIC},
+		CREATE_TIME_=#{createTime,jdbcType=TIMESTAMP},
+		STATUS_=#{status,jdbcType=NUMERIC},
+		USER_ID_=#{userId,jdbcType=VARCHAR},
+		USER_NAME_=#{userName,jdbcType=VARCHAR},
+		REMARK_=#{remark,jdbcType=VARCHAR},
+		FILE_ID_=#{fileId,jdbcType=VARCHAR},
+		IS_NEW_=#{isNew,jdbcType=NUMERIC}
+		WHERE
+		ID_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM bpm_task_due_time 
+		WHERE
+		ID_=#{id}
+	</delete>
+	
+	
+</mapper>

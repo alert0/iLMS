@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.sys.model.SysDpRoleManageModel">
+	
+	<insert id="create" parameterType="com.hanthink.sys.model.SysDpRoleManageModel">
+		INSERT INTO SYS_DP_ROLE 
+		(DATA_ROLE_ID, DATA_ROLE_NAME, DATA_ROLE_TYPE, REMARK, SORT_NUM, CREATE_USER, CREATE_TIME, LAST_MODIFY_USER, LAST_MODIFY_TIME)
+		VALUES 
+		(#{dataRoleId,jdbcType=VARCHAR}, #{dataRoleName,jdbcType=VARCHAR}, #{dataRoleTypeCode,jdbcType=VARCHAR}, #{remark,jdbcType=VARCHAR}, #{sortNum,jdbcType=NUMERIC}, #{createBy,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP}, #{updateBy,jdbcType=VARCHAR}, #{updateTime,jdbcType=TIMESTAMP})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultType="com.hanthink.sys.model.SysDpRoleManageModel">
+		SELECT DATA_ROLE_ID dataRoleId,
+		  DATA_ROLE_NAME dataRoleName,
+		  DATA_ROLE_TYPE dataRoleTypeCode,
+		  REMARK remark,
+		  SORT_NUM sortNum
+		FROM SYS_DP_ROLE WHERE DATA_ROLE_ID = #{id}
+	</select>
+	
+	<update id="update" parameterType="com.hanthink.sys.model.SysDpRoleManageModel">
+		UPDATE SYS_DP_ROLE SET
+		DATA_ROLE_NAME=#{dataRoleName,jdbcType=VARCHAR},
+		DATA_ROLE_TYPE=#{dataRoleTypeCode,jdbcType=VARCHAR},
+		REMARK=#{remark,jdbcType=VARCHAR},
+		SORT_NUM=#{sortNum,jdbcType=NUMERIC},
+		LAST_MODIFY_USER=#{updateBy,jdbcType=VARCHAR},
+		LAST_MODIFY_TIME=#{updateTime,jdbcType=TIMESTAMP}
+		WHERE DATA_ROLE_ID = #{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM SYS_DP_ROLE WHERE DATA_ROLE_ID=#{id}
+	</delete>
+		
+	<!-- 查询数据角色数据信息 -->
+	<select id="queryDpRole" parameterType="com.hanthink.sys.model.SysDpRoleManageModel" resultType="com.hanthink.sys.model.SysDpRoleManageModel">
+	                SELECT  A.DATA_ROLE_ID  dataRoleId,
+	                		A.DATA_ROLE_TYPE dataRoleTypeCode,
+	                	    T.NAME_  dataRoleTypeName, 
+					        A.DATA_ROLE_NAME dataRoleName, 
+					        A.REMARK remark,
+					        A.SORT_NUM sortNum
+					  FROM SYS_DP_ROLE A
+					  LEFT JOIN SYS_TYPE T
+					    ON T.TYPE_GROUP_KEY_ = 'SYS_DP_ROLE_TYPE'
+					   AND T.TYPE_KEY_ = A.DATA_ROLE_TYPE
+					 WHERE 1=1
+					<if test="dataRoleName!=null and dataRoleName!='' ">
+					  AND  A.DATA_ROLE_NAME LIKE '%' || #{dataRoleName} || '%'
+					</if>
+					<if test="dataRoleTypeName!=null and dataRoleTypeName!='' ">
+					  AND  T.NAME_ LIKE '%' || #{dataRoleTypeName} || '%'
+					</if>
+					ORDER BY A.DATA_ROLE_TYPE, A.SORT_NUM
+	</select>
+	
+	<!-- 查询数据角色对应的数据权限基础数据 -->
+	<select id="queryDpRoleBaseData" parameterType="com.hanthink.sys.model.SysDpRoleManageModel" resultType="com.hanthink.sys.model.SysDpRoleManageModel">
+		           SELECT RD.DP_BASE_ID dpBaseId,
+		           		  RD.DATA_ROLE_ID dataRoleId,
+		           		  A.TYPE_CODE  typeCode, 
+						  T.NAME_  typeName, 
+						  A.VALUE_CODE  valueCode, 
+						  A.VALUE_DESC  valueDesc,
+						  A.SORT_NUM sortNum 
+					 FROM SYS_DP_ROLE_DATA RD
+					 LEFT JOIN SYS_DP_BASE_DATA A ON RD.DP_BASE_ID = A.DP_BASE_ID
+					 LEFT JOIN SYS_TYPE T ON T.TYPE_GROUP_KEY_ = 'SYS_DP_BASE_TYPE' AND T.TYPE_KEY_ = A.TYPE_CODE
+					WHERE 1=1 
+					<if test="dataRoleId!=null and dataRoleId!='' ">
+					  AND RD.DATA_ROLE_ID = #{dataRoleId} 
+					</if>
+					<if test="typeName!=null and typeName!='' ">
+					  AND (A.TYPE_CODE LIKE '%' || #{typeName} || '%' OR T.NAME_ LIKE '%' || #{typeName} || '%')
+					</if>
+					<if test="valueDesc!=null and valueDesc!='' ">
+					  AND (A.VALUE_CODE LIKE '%' || #{valueDesc} || '%' OR A.VALUE_DESC LIKE '%' || #{valueDesc} || '%')
+					</if>
+					ORDER BY A.TYPE_CODE, A.SORT_NUM 
+	</select>
+	
+	<!-- 根据角色ID删除该角色的权限关系信息 -->
+	<delete id="deleteDpRoleDataByDataRoleId" parameterType="java.lang.String">
+		DELETE FROM SYS_DP_ROLE_DATA WHERE DATA_ROLE_ID=#{value}
+	</delete>
+	
+	<!-- 根据角色ID删除该角色所对应的用户角色关系信息 -->
+	<delete id="deleteDpUserRoleByDataRoleId" parameterType="java.lang.String">
+		DELETE FROM SYS_DP_USER_ROLE WHERE DATA_ROLE_ID=#{value}
+	</delete>
+	
+	<!-- 根据角色ID查询该角色还未添加的数据权限基础数据信息-->
+	<select id="queryNotAddDpRoleDataByDataRoleId" parameterType="com.hanthink.sys.model.SysDpRoleManageModel" resultType="com.hanthink.sys.model.SysDpRoleManageModel">
+		SELECT A.DP_BASE_ID dpBaseId,
+		  A.TYPE_CODE  typeCode, 
+		  T.NAME_  typeName, 
+		  A.VALUE_CODE  valueCode, 
+		  A.VALUE_DESC  valueDesc,
+		  A.SORT_NUM sortNum 
+		FROM SYS_DP_BASE_DATA A
+		LEFT JOIN SYS_TYPE T ON T.TYPE_GROUP_KEY_ = 'SYS_DP_BASE_TYPE' AND T.TYPE_KEY_ = A.TYPE_CODE
+		WHERE NOT EXISTS (SELECT 1 FROM SYS_DP_ROLE_DATA WHERE DP_BASE_ID = A.DP_BASE_ID AND DATA_ROLE_ID = #{dataRoleId,jdbcType=VARCHAR}) 
+		<if test="typeName!=null and typeName!='' ">
+		  AND (A.TYPE_CODE LIKE '%' || #{typeName} || '%' OR T.NAME_ LIKE '%' || #{typeName} || '%')
+		</if>
+		<if test="valueDesc!=null and valueDesc!='' ">
+		  AND (A.VALUE_CODE LIKE '%' || #{valueDesc} || '%' OR A.VALUE_DESC LIKE '%' || #{valueDesc} || '%')
+		</if>
+		ORDER BY A.TYPE_CODE, A.SORT_NUM
+	</select>
+	
+	<!-- 添加数据角色的权限数据信息 -->
+	<insert id="insert_addDpRoleData" parameterType="com.hanthink.sys.model.SysDpRoleManageModel">
+		INSERT INTO SYS_DP_ROLE_DATA 
+		(DP_BASE_ID, DATA_ROLE_ID, CREATE_USER, CREATE_TIME)
+		VALUES 
+		(#{dpBaseId,jdbcType=VARCHAR}, #{dataRoleId,jdbcType=VARCHAR}, #{createBy,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP})
+	</insert>
+	
+	<!-- 删除角色数据权限关系数据 -->
+	<delete id="deleteDpRoleData" parameterType="com.hanthink.sys.model.SysDpRoleManageModel">
+		DELETE FROM SYS_DP_ROLE_DATA 
+		WHERE DATA_ROLE_ID = #{dataRoleId,jdbcType=VARCHAR} 
+		  AND DP_BASE_ID = #{dpBaseId,jdbcType=VARCHAR}
+	</delete>
+	
+</mapper>

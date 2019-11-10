@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="jis">
+	<typeAlias alias="jisJisPartVO" type="com.hanthink.gps.jis.vo.JisPartVO" />
+	
+	<!--add by chenyong 2016-09-21-->
+	<typeAlias alias="JisOutReckonStopVO" type="com.hanthink.gps.jis.vo.JisOutReckonStopVO"/>
+	
+	<!-- 查询厂外同步MTOC零件明细未维护信息 -->
+	<!-- mod by dtp 2018-08-20 增加无需维护车型(M)过滤功能 -->
+	<select id="select_queryJisoMtocPartInfo" parameterClass="jisJisPartVO" resultClass="jisJisPartVO">
+		select t3.mtoc as mtoc, wm_concat(t3.group_name) as groupName
+      from (select t.mtoc,t1.head_id,t1.group_name
+              from (
+                    <!--需检查的MTOC列表(取锁定计划的MTOC，取当前已锁定sortId的前2000台)-->
+                    select distinct a.mtoc
+                         from if_mm_veh_plan a
+                        where a.sortid >
+                              (select b.max_sortid-2000
+                                 from MM_JIT_QUEUE_CONFIG b
+                                where b.plan_code = 'AFPLAN'
+                                  and b.factory = #factoryCode#) and a.factory=#factoryCode# 
+                                  and a.phase in(4,5,7)) t,
+                   MM_JISO_GROUP_HEAD t1
+             where t1.del_flg = 0 and t1.arr_factory=#factoryCode# 
+               and t1.indt &lt;= sysdate and t1.exdt>sysdate
+            minus
+            select l.mtoc,h.head_id,h.group_name
+              from MM_JISO_GROUP_LINE l,
+                   MM_JISO_GROUP_HEAD h
+             where h.head_id = l.head_id and h.arr_factory=#factoryCode# 
+             and l.indt &lt;=sysdate and l.exdt>sysdate and l.del_flg=0 
+             and h.indt &lt;=sysdate and h.exdt>sysdate and h.del_flg=0) t3 
+             WHERE EXISTS(select 1 FROM MM_JISO_GROUP_LINE m,MM_JISO_GROUP_HEAD n where m.head_id=n.head_id and n.arr_factory=#factoryCode#  
+             and m.indt &lt;=sysdate and m.exdt>sysdate and m.del_flg=0 
+             and n.indt &lt;=sysdate and n.exdt>sysdate and n.del_flg=0 
+             and substr(m.mtoc,1,4)=substr(t3.mtoc,1,4) and n.head_id=t3.head_id) 
+             group by t3.mtoc
+	</select>
+	
+	<!--
+	add by chenyong 厂外同步推算服务停止提醒
+	date 2016-09-21
+	-->
+	<select id="select_queryJisOutReckonStopInfo" resultClass="JisOutReckonStopVO" parameterClass="JisOutReckonStopVO">
+	    select round((sysdate - t.last_update_time) * 24 * 60) as stopTime, 
+		  t.param_code as paramCode 
+	    from MM_PUB_SYS_PARAM t
+	    where t.param_code like #paramCode# || '%'
+		   and (sysdate - t.last_update_time) * 24 * 60 > 8
+	</select>
+	
+</sqlMap>

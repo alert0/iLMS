@@ -1,0 +1,279 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns ="http://www.springframework.org/schema/beans" 
+	xmlns:xsi ="http://www.w3.org/2001/XMLSchema-instance" 
+	xsi:schemaLocation ="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.0.xsd" >   
+
+	<bean id="springUtilInitializer" 
+ 		class="com.hanthink.gps.util.SpringApplicationContextHolder" lazy-init="false" />
+ 	
+	<bean id="mailService" class="com.hanthink.gps.util.mail.MailService">
+	</bean>  
+	
+	<bean id="DevelopeService" parent="txProxyTemplate">
+		<property name="target">
+			<bean class="com.hanthink.gps.pub.service.impl.DevelopeServiceImpl">
+				<property name="developeDao">
+					<ref  bean="DevelopeDao"/>
+				</property>
+			</bean>
+		</property>
+	</bean>
+	
+	<bean id="loginService" parent="txProxyTemplate">
+		<property name="target">
+			<bean class="com.hanthink.gps.pub.service.impl.LoginServiceImpl">
+				<property name="userDao">
+					<ref  bean="userDao"/>
+				</property>
+			</bean>
+		</property>
+	</bean>
+	
+	<bean id="CommService" parent="txProxyTemplate">
+		<property name="target">
+			<bean class="com.hanthink.gps.pub.service.impl.CommServiceImpl">
+				<property name="commDao">
+					<ref  bean="commDao"/>
+				</property>
+			</bean>
+		</property>
+	</bean>
+	
+	<!-- 定时器管理  -->
+	<bean id="emailManageService" parent="txProxyTemplate">
+		<property name="target">
+			<bean class="com.hanthink.gps.email.service.impl.EmailManageServiceImpl">
+				<property name="emailDao">
+					<ref  bean="emailManageDao"/>
+				</property>
+			</bean>
+		</property>
+	</bean>
+	<!-- 分组维护  -->
+	<bean id="msgGroupService" parent="txProxyTemplate">
+		<property name="target">
+			<bean class="com.hanthink.gps.email.service.impl.MsgGroupServiceImpl">
+				<property name="groupDao">
+					<ref  bean="msgGroupDao"/>
+				</property>
+			</bean>
+		</property>
+	</bean>
+
+	<bean id="mainPoolService" parent="txProxyTemplate">
+		<property name="target">
+			<bean class="com.hanthink.gps.mail.service.impl.MainPoolServiceImpl">
+				<property name="mainPoolDao">
+					<ref  bean="mainPoolDao"/>
+				</property>
+			</bean>
+		</property>
+	</bean>
+	
+	<!-- QUEUE Service  -->
+	<bean id="queueService" parent="txProxyTemplate">
+		<property name="target">
+			<bean class="com.hanthink.gps.mail.service.impl.QueueServiceImpl">
+				<property name="queueDao">
+					<ref  bean="queueDao"/>
+				</property>
+			</bean>
+		</property>
+	</bean>
+	
+	<!-- ****************************以下为 Job Service ********************************* -->
+	
+	<!-- 系统JOB Service -->
+	<!-- 每日点检邮件信息Service -->
+	<bean id="dailyCheckInfoService" parent="txProxyTemplate">
+	  <property name="target">
+	    <bean class="com.hanthink.gps.system.service.impl.DailyCheckInfoServiceImpl">
+	      <property name="dao">
+	         <ref bean="dailyCheckInfoDao"/>
+	      </property>
+	      <property name="portalDao">
+			 <ref bean="portalDao"/>
+		  </property>
+	    </bean>
+	  </property>
+	</bean>
+	
+	<!-- add by chenyong 2016-10-09 数据库阻塞异常邮件提醒Service -->
+	<bean id="dataBaseBlockErrorService" parent="txProxyTemplate">
+	  <property name="target">
+	    <bean class="com.hanthink.gps.system.service.impl.DataBaseBlockErrorServiceImpl">
+	      <property name="dao">
+	        <ref bean="dataBaseBlockErrorDao"/>
+	      </property>
+	      <property name="portalDao">
+			 <ref bean="portalDao"/>
+		  </property>
+	    </bean>
+	  </property>
+	</bean>
+	
+	<!-- add by chenyong 2016-09-22 接口异常邮件提醒Service -->
+	<bean id="interfErrorService" parent="txProxyTemplate">
+	   <property name="target">
+	     <bean class="com.hanthink.gps.system.service.impl.InterfErrorServiceImpl">
+	         <property name="dao">
+	           <ref bean="interfErrorDao"/>
+	         </property>
+	     </bean>
+	   </property>
+	</bean>
+	
+	<!-- add by chenyong 2016-09-21 新增 自动打印邮件提醒Service -->
+	<bean id="printErrorService" parent="txProxyTemplate">
+	   <property name="target">
+	      <bean class="com.hanthink.gps.system.service.impl.PrintErrorServiceImpl">
+	         <property name="dao">
+	           <ref  bean="printErrorDao"/>
+	         </property>
+	      </bean>
+	   </property>
+	</bean>
+	
+	<bean id="sysErrorService" parent="txProxyTemplate">
+		<property name="target">
+			<bean class="com.hanthink.gps.system.service.impl.SysErrorServiceImpl">
+				<property name="dao">
+					<ref  bean="sysErrorDao"/>
+				</property>
+				<property name="dailyCheckInfoDao">
+			        <ref bean="dailyCheckInfoDao"/>
+			    </property>
+			</bean>
+		</property>
+	</bean>
+	
+	<!-- 系统警讯提醒Service -->
+	<bean id="sysAlertService" parent="txProxyTemplate">
+	   <property name="target">
+	    <bean class="com.hanthink.gps.system.service.impl.SysAlertServiceImpl">
+	      <property name="dao">
+	         <ref bean="sysAlertDao"/>
+	      </property>
+	    </bean>
+	  </property>
+	</bean>
+	
+	<!-- 系统JOB Service -->
+	
+	
+	<!-- ************************************************* -->
+	
+	<!--  -->
+	<bean id="swNoticeInfoOverTimeService" parent="txProxyTemplate">
+		<property name="target">
+			<bean class="com.hanthink.gps.gacne.sw.service.impl.NoticeInfoOverTimeServiceImpl">
+				<property name="dao">
+					<ref  bean="swNoticeInfoOverTimeDao"/>
+				</property>
+			</bean>
+		</property>
+	</bean>
+	
+	<bean id="swPickupPlanService" parent="txProxyTemplate">
+		<property name="target">
+			<bean class="com.hanthink.gps.gacne.sw.service.impl.PickupPlanServiceImpl">
+				<property name="dao">
+					<ref  bean="swPickupPlanServiceDao"/>
+				</property>
+			</bean>
+		</property>
+	</bean>
+	
+	
+	<!-- 同步异常提醒信息Service -->
+	<bean id="jisExceServicePEC" parent="txProxyTemplate">
+		<property name="target">
+			<bean class="com.hanthink.gps.jis.service.impl.JisExceServiceImpl">
+				<property name="dao">
+					<ref  bean="jisExceDaoPEC"/>
+				</property>
+			</bean>
+		</property>
+	</bean>
+	
+	<!-- 拉动异常提醒信息Service -->
+	<bean id="jitExceServicePEC" parent="txProxyTemplate">
+		<property name="target">
+			<bean class="com.hanthink.gps.jit.service.impl.JitExceServiceImpl">
+				<property name="dao">
+					<ref  bean="jitExceDaoPEC"/>
+				</property>
+			</bean>
+		</property>
+	</bean>
+	
+	<!-- 不良品提醒信息Service -->
+	<bean id="dpmInsServicePEC" parent="txProxyTemplate">
+		<property name="target">
+			<bean class="com.hanthink.gps.dpm.service.impl.DpmInsServiceImpl">
+				<property name="dao">
+					<ref  bean="dpmDaoPEC"/>
+				</property>
+			</bean>
+		</property>
+	</bean>
+	
+	<!-- 包装零件担当维护提醒信息Service -->
+	<bean id="pkgPartServicePEC" parent="txProxyTemplate">
+		<property name="target">
+			<bean class="com.hanthink.gps.pkg.service.impl.PkgPartServiceImpl">
+				<property name="dao">
+					<ref  bean="PkgPartDaoPEC"/>
+				</property>
+			</bean>
+		</property>
+	</bean>
+	
+	<!-- 广汽新能源_订购零件基本信息维护异常邮件提醒Service -->
+	<bean id="pubOrderAlertService" parent="txProxyTemplate">
+		<property name="target">
+			<bean class="com.hanthink.gps.gacne.pub.service.impl.PubOrderAlertServiceImpl">
+				<property name="dao">
+					<ref bean="pubOrderAlertDao"/>
+				</property>
+			</bean>
+		</property>
+	</bean>
+	
+		<!-- 长周期订单Service -->
+	<bean id="LongOrderServicePMC" parent="txProxyTemplate">
+		<property name="target">
+			<bean class="com.hanthink.gps.gacne.sw.service.impl.LongOrderServiceImpl">
+				<property name="dao">
+					<ref  bean="LongOrderDaoPMC"/>
+				</property>
+			</bean>
+		</property>
+	</bean>
+	
+  	<!-- 定制化订单检查提醒Service -->
+	<bean id="NonStandardServicePEC" parent="txProxyTemplate">
+		<property name="target">
+			<bean class="com.hanthink.gps.gacne.pecNon.service.impl.NonStandardServiceImpl">
+				<property name="dao">
+					<ref  bean="NonStandardDaoPEC"/>
+				</property>
+			</bean>
+		</property>
+	</bean>
+	
+	<!-- 数据库job异常停止 -->
+	<bean id="DataBaseExceptionStopServicePEC" parent="txProxyTemplate">
+		<property name="target">
+			<bean class="com.hanthink.gps.system.service.impl.DataBaseExceptionStopServiceImpl">
+				<property name="dao">
+					<ref bean="DataBaseExceptionStopDaoPEC"/>
+				</property>
+				<property name="portalDao">
+					<ref bean="portalDao"/>
+				</property>
+			</bean>
+		</property>
+	</bean>
+	
+</beans>

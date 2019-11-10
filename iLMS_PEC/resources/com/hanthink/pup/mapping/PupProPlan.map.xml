@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.pup.model.PupProPlanModel">
+		
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="queryProPlanForPage" parameterType="com.hanthink.pup.model.PupProPlanModel" resultType="com.hanthink.pup.model.PupProPlanModel">
+		SELECT MPP.FACTORY_CODE factoryCode,
+			   MPP.SORT_ID sortId,
+			   MPP.ORDER_NO orderNo,
+			   MPP.CAR_TYPE carType,
+			   MPP.MARK mark,
+			   MPP.MIX_SORT_ID mixSortId,
+			   MPP.SINGLE_SORT_ID singleSortId,
+			   TO_CHAR(MPP.AFOFF_TIME,'yyyy-MM-dd') afoffDate,
+			   TO_CHAR(MPP.AFOFF_TIME,'hh24:mi:ss') afoffTime,
+			   MPP.CREATION_USER creationUser,
+			   TO_CHAR(MPP.CREATION_TIME,'yyyy-MM-dd hh24:mi:ss') creationTime,
+			   MPP.LAST_MODIFIED_USER lastModifiedUser,
+			   TO_CHAR(MPP.LAST_MODIFIED_TIME,'yyyy-MM-dd hh24:mi:ss') lastModifiedTime,
+			   MPP.SEND_FLAG sendFlag,
+			   MPD.CODE_VALUE_NAME excelSendFlag
+		FROM MM_PUP_PRO_PLAN MPP
+			 LEFT JOIN MM_PUB_DATA_DICT MPD
+			 ON MPD.code_type = 'PUP_SEND_FLAG'
+			 AND MPP.SEND_FLAG = MPD.CODE_VALUE
+			 AND MPD.FACTORY_CODE = #{factoryCode}
+		WHERE MPP.FACTORY_CODE = #{factoryCode}
+		<if test="afoffTimeStart != null and afoffTimeStart != ''">
+			AND MPP.AFOFF_TIME >= TO_DATE(#{afoffTimeStart},'yyyy-MM-dd hh24:mi:ss')
+		</if>
+		<if test="afoffTimeEnd != null and afoffTimeEnd != ''">
+			AND MPP.AFOFF_TIME <![CDATA[<=]]> TO_DATE(#{afoffTimeEnd},'yyyy-MM-dd hh24:mi:ss')
+		</if>
+		<if test="mixSortId != null and mixSortId != ''">
+			AND MPP.MIX_SORT_ID LIKE CONCAT(CONCAT('%',#{mixSortId}),'%')
+		</if>
+		<if test="singleSortId != null and singleSortId != ''">
+			AND MPP.SINGLE_SORT_ID = #{singleSortId}
+		</if>
+		<if test="orderNo != null and orderNo != ''">
+			AND MPP.ORDER_NO LIKE CONCAT(#{orderNo}, '%')
+		</if>
+		<if test="carType != null and carType != ''">
+			AND MPP.CAR_TYPE=#{carType}
+		</if>
+		ORDER BY MPP.SORT_ID
+	</select>	
+	<!-- 根据导入UUID删除数据 -->
+	<delete id="deleteProPlanTempDataByUUID" parameterType="java.lang.String">
+		DELETE FROM MM_PUP_PRO_PLAN_IMP
+		WHERE
+		IMP_UUID = #{uuid}
+	</delete>
+	<!-- 将Excel数据插入临时表 -->
+	<insert id="insertProPlanIntoTempData">
+		INSERT INTO MM_PUP_PRO_PLAN_IMP
+		(ID,FACTORY_CODE,SORT_ID,ORDER_NO,CAR_TYPE,MARK,MIX_SORT_ID,SINGLE_SORT_ID,AFOFF_TIME,
+		 IMP_UUID,CHECK_RESULT,CHECK_INFO,IMPORT_STATUS,OPE_TYPE,CREATION_USER,CREATION_TIME)
+		<foreach  collection="list" item="item" index="index" separator=" UNION ALL" >
+			SELECT #{item.id,jdbcType=VARCHAR},
+				 #{item.factoryCode,jdbcType=VARCHAR},
+				 #{item.sortId,jdbcType=VARCHAR},
+				 #{item.orderNo,jdbcType=VARCHAR},
+				 #{item.carType,jdbcType=VARCHAR},
+				 #{item.mark,jdbcType=VARCHAR},
+				 #{item.mixSortId,jdbcType=VARCHAR},
+				 #{item.singleSortId,jdbcType=VARCHAR},
+			     TO_DATE(#{item.afoffTime,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss'),
+				 #{item.uuid,jdbcType=VARCHAR},
+				 #{item.checkResult,jdbcType=VARCHAR},
+				 #{item.checkInfo,jdbcType=VARCHAR},
+				 #{item.importStatus,jdbcType=VARCHAR},
+				 #{item.opeType,jdbcType=VARCHAR},
+				 #{item.creationUser,jdbcType=VARCHAR},
+				 sysdate
+			FROM DUAL
+		</foreach>
+	</insert>
+	<!-- 检查导入临时表的数据 -->
+	<parameterMap type="map" id="impCkParamMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="userName" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap>
+	<select id="checkProplanImportDataInformation" parameterMap="impCkParamMap" statementType="CALLABLE">
+		{CALL PKG_PUP_CHECK.PUP_PRO_PLAN_CHECK(?, ?, ?,  ?,?)}
+	</select>
+	<!-- 根据UUID查询导入数据 -->
+	<select id="queryImportInformationForPage" parameterType="java.util.Map" resultType="com.hanthink.pup.model.PupProPlanModel">
+		SELECT MPP.ID id,
+			   MPP.FACTORY_CODE factoryCode,
+			   MPP.SORT_ID sortId,
+			   MPP.ORDER_NO orderNo,
+			   MPP.CAR_TYPE carType,
+			   MPP.MARK mark,
+			   MPP.MIX_SORT_ID mixSortId,
+			   MPP.SINGLE_SORT_ID singleSortId,
+			   TO_CHAR(MPP.AFOFF_TIME,'yyyy-MM-dd') afoffDate,
+			   TO_CHAR(MPP.AFOFF_TIME,'hh24:mi:ss') afoffTime,
+			   MPP.IMP_UUID uuid,
+			   MPP.CHECK_RESULT checkResult,
+			   MPDD.CODE_VALUE_NAME excelCheckResult,
+			   MPP.CHECK_INFO checkInfo,
+			   MPP.IMPORT_STATUS importStatus,
+			   MPD.CODE_VALUE_NAME excelImportStatus,
+			   MPP.OPE_TYPE opeType,
+			   MPP.CREATION_USER creationUser,
+			   TO_CHAR(MPP.CREATION_TIME,'yyyy-MM-dd hh24:mi:ss') creationTime
+		FROM MM_PUP_PRO_PLAN_IMP MPP
+			 LEFT JOIN MM_PUB_DATA_DICT MPD
+			 ON MPD.CODE_TYPE = 'PUB_IMP_STATUS'
+			 AND MPD.CODE_VALUE = MPP.IMPORT_STATUS
+			 AND MPD.FACTORY_CODE = #{factoryCode}
+			 LEFT JOIN MM_PUB_DATA_DICT MPDD
+			 ON MPDD.CODE_TYPE = 'PUB_IMP_CK_RESULT'
+			 AND MPDD.CODE_VALUE = MPP.CHECK_RESULT
+			 AND MPDD.FACTORY_CODE = #{factoryCode}
+		WHERE MPP.IMP_UUID = #{uuid,jdbcType=VARCHAR}
+	</select>
+	<!-- 查询导入状态 -->
+	<select id="queryProPlanImportFlag" parameterType="java.lang.String" resultType="java.lang.String">
+		WITH TEMPA AS
+		 (SELECT COUNT(1) s
+		    FROM MM_PUP_PRO_PLAN_IMP A
+		   WHERE A.CHECK_RESULT = 0
+		     AND A.IMP_UUID = #{uuid}),
+		TEMPB AS
+		 (SELECT COUNT(1) S
+		    FROM MM_PUP_PRO_PLAN_IMP B
+		   WHERE B.IMP_UUID = #{uuid})
+		SELECT CASE
+		         WHEN A.S >= B.S THEN
+		          0
+		         ELSE
+		          1
+		       END AS FLAG
+		  FROM TEMPA A, TEMPB B
+	</select>
+	<!-- 查询正确数据的条数 -->
+	<select id="getProPlanCountForImport" parameterType="java.util.Map" resultType="java.lang.Integer">
+		SELECT COUNT(*) FROM MM_PUP_PRO_PLAN_IMP
+		WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		  AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+		  AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR}
+	</select>
+	<!-- 删除前一次的计划数据 -->
+	<delete id="deleteRegulaData" parameterType="java.util.Map">
+		DELETE FROM MM_PUP_PRO_PLAN WHERE FACTORY_CODE = #{factoryCode}
+	</delete>
+	<!-- 将临时表校验通过的数据写到正式表 -->
+	<insert id="insertTempDataToRegula" parameterType="java.util.Map">
+		INSERT INTO MM_PUP_PRO_PLAN
+		(FACTORY_CODE,SORT_ID,ORDER_NO,CAR_TYPE,MARK,MIX_SORT_ID,SINGLE_SORT_ID,
+		 AFOFF_TIME,CREATION_USER,CREATION_TIME)
+		 SELECT 
+		  	   MPP.FACTORY_CODE,
+		  	   MPP.SORT_ID,
+               MPP.ORDER_NO,
+               MPP.CAR_TYPE,
+               MPP.MARK,
+               MPP.MIX_SORT_ID,
+               MPP.SINGLE_SORT_ID,
+               MPP.AFOFF_TIME,
+               MPP.CREATION_USER,
+               MPP.CREATION_TIME
+          FROM MM_PUP_PRO_PLAN_IMP MPP
+         WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		  AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+		  AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR}
+		  ORDER BY MPP.SORT_ID
+	</insert>
+	<!-- 修改已导入正式表的数据的导入状态 -->
+	<update id="updateImportStatus" parameterType="java.util.Map">
+		UPDATE MM_PUP_PRO_PLAN_IMP SET 
+			IMPORT_STATUS = #{IMPORT_STATUS_YES,jdbcType=VARCHAR} 
+		WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		  AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+		  AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR} 
+	</update>
+	<!-- 删除已导入正式表的数据 -->
+	<delete id="deleteImportedTempData" parameterType="java.util.Map">
+		DELETE FROM MM_PUP_PRO_PLAN_IMP
+		WHERE
+		IMPORT_STATUS = '1'
+	</delete>
+	<!-- 查询需要修改的数据 -->
+	<select id="queryUpdateDataFromImportPlan" parameterType="java.util.Map" resultType="java.lang.String">
+		SELECT A.ID,A.FACTORY_CODE,A.SORT_ID,A.ORDER_NO, A.CAR_TYPE, A.MARK,A.MIX_SORT_ID,
+		       A.SINGLE_SORT_ID,A.AFOFF_TIME
+		FROM MM_PUP_PRO_PLAN_IMP A
+		WHERE A.OPE_TYPE = 'U'
+		   AND A.IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		   AND A.CHECK_RESULT = '0'
+	</select>
+	<!-- 获取生产计划 -->
+	<parameterMap type="java.util.Map" id="planParameters">  
+		<parameter property="afoffTimeStart" jdbcType="VARCHAR" mode="IN"/> 
+		<parameter property="afoffTimeEnd" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="week" jdbcType="VARCHAR" mode="IN"/>   
+		<parameter property="factoryCode" jdbcType="VARCHAR" mode="IN"/>   
+		<parameter property="opeId" jdbcType="VARCHAR" mode="IN"/>   
+	</parameterMap> 
+	<select id="getProPlan" parameterMap="planParameters" statementType="CALLABLE">
+		{call PKG_PUP_MAIN.USP_PUP_GET_PLAN(?,?,?,?,?)}
+	</select>
+	<select id="querySearchTimes" parameterType="java.lang.String" resultType="com.hanthink.pup.model.PupProPlanModel">
+		SELECT TO_CHAR(MIN(MP.AFOFF_TIME),'yyyy-MM-dd') afoffTimeStart, 
+			   TO_CHAR(MAX(MP.AFOFF_TIME),'yyyy-MM-dd') afoffTimeEnd
+		  FROM MM_MP_PRO_PLAN_HIS MP
+		 WHERE MP.VERSION = (SELECT MAX(MMP.VERSION)
+		                       FROM MM_MP_PRO_PLAN_HIS MMP
+		                      WHERE MMP.FACTORY_CODE = #{fatoryCode})
+	</select>
+</mapper>

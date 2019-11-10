@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.bo.api.model.BOService">
+	<resultMap id="BOService" type="com.hotent.bo.api.model.BOService">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="defId" column="def_id_" jdbcType="VARCHAR"/>
+		<result property="serviceName" column="service_name_" jdbcType="VARCHAR"/>
+		<result property="group" column="group_" jdbcType="VARCHAR"/>
+		<result property="serviceType" column="service_type_" jdbcType="VARCHAR"/>
+		<result property="isDefault" column="default_" jdbcType="VARCHAR"/>
+		<result property="description" column="description_" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.bo.api.model.BOService">
+		INSERT INTO xbo_service
+		(id_,def_id_,service_name_,group_,service_type_,default_,description_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{defId,jdbcType=VARCHAR}, #{serviceName,jdbcType=VARCHAR}, #{group,jdbcType=VARCHAR}, #{serviceType,jdbcType=VARCHAR}, #{isDefault,jdbcType=VARCHAR}, #{description,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get" parameterType="java.lang.String" resultMap="BOService">
+		SELECT * FROM xbo_service 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="getServicesByDefId" parameterType="java.lang.String" resultMap="BOService">
+		SELECT * FROM xbo_service 
+		WHERE 
+		def_id_=#{defId}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="BOService">
+		SELECT * FROM xbo_service
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.bo.api.model.BOService">
+		UPDATE xbo_service SET
+		def_id_=#{defId,jdbcType=VARCHAR},
+		service_name_=#{serviceName,jdbcType=VARCHAR},
+		group_=#{group,jdbcType=VARCHAR},
+		service_type_=#{serviceType,jdbcType=VARCHAR},
+		default_=#{isDefault,jdbcType=VARCHAR},
+		description_=#{description,jdbcType=VARCHAR}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM xbo_service 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	<delete id="removeServicesByDefId" parameterType="java.lang.String">
+		DELETE FROM xbo_service 
+		WHERE
+		def_id_=#{defId}
+	</delete>
+</mapper>

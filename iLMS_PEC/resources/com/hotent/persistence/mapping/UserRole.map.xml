@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.org.persistence.model.UserRole">
+	<resultMap id="UserRole" type="com.hotent.org.persistence.model.UserRole">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="roleId" column="role_id_" jdbcType="VARCHAR"/>
+		<result property="userId" column="user_id_" jdbcType="VARCHAR"/>
+		
+		<result property="fullname" column="fullname_" jdbcType="VARCHAR"/>
+		<result property="roleName" column="role_name_" jdbcType="VARCHAR"/>
+		<result property="alias" column="alias_" jdbcType="VARCHAR"/>
+		<result property="account" column="account_" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.org.persistence.model.UserRole">
+		INSERT INTO sys_user_role
+		(id_,role_id_,user_id_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{roleId,jdbcType=VARCHAR}, #{userId,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="UserRole">
+		SELECT * FROM sys_user_role 
+		WHERE 
+		id_=#{id}
+	</select>
+
+   <select id="getByRoleIdUserId"  parameterType="java.util.Map" resultMap="UserRole">
+		SELECT * FROM sys_user_role 
+		WHERE 
+		role_id_=#{roleId} and user_id_=#{userId}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="UserRole">
+	SELECT ur.*,u.fullname_,u.account_,r.name_ "role_name_" ,r.alias_  from sys_user_role ur  INNER JOIN sys_user u on ur.user_id_=u.id_ 
+INNER JOIN sys_role  r on  ur.role_id_=r.id_
+		<if test="roleId!=null">
+			 and ur.role_id_= #{roleId}
+		</if>
+		<if test="userId!=null">
+			 and ur.user_id_= #{userId}
+		</if>
+		<if test="alias!=null">
+			 and r.alias_= #{alias}
+		</if>
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY ur.id_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.org.persistence.model.UserRole">
+		UPDATE sys_user_role SET
+		role_id_=#{roleId,jdbcType=VARCHAR},
+		user_id_=#{userId,jdbcType=VARCHAR}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_user_role 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	<delete id="removeByRoleId" parameterType="java.lang.String">
+		DELETE FROM sys_user_role 
+		WHERE
+		role_id_=#{roleId}
+	</delete>
+	
+	
+	<delete id="removeByUserId" parameterType="java.lang.String">
+		DELETE FROM sys_user_role 
+		WHERE
+		user_id_=#{userId}
+	</delete>
+	
+	
+	<!-- 根据用户ID查询该用户待添加菜单据角色信息 -->
+	<select id="queryAddUserMenuRoleByUserId" parameterType="com.hotent.org.persistence.model.UserRole" resultType="com.hotent.org.persistence.model.UserRole">
+		SELECT R.ID_ id, R.ALIAS_ alias,
+	      R.NAME_ roleName
+	    FROM sys_role R 
+	    WHERE NOT EXISTS (SELECT 1 FROM sys_user_role WHERE USER_ID_ = #{userId} AND ROLE_ID_ = R.ID_)
+		<if test="roleName!=null and roleName!='' ">
+		  AND  R.NAME_ LIKE '%' || #{roleName} || '%'
+		</if>
+		<if test="alias!=null and alias!='' ">
+		  AND  R.ALIAS_ LIKE '%' || #{alias} || '%'
+		</if>
+		ORDER BY R.NAME_		 
+	</select>
+	
+	<!-- 根据用户ID查询该用户待添加的菜单角色信息(非管理员,只能查询当前用户自身有的角色) -->
+	<select id="queryCurUserAddUserMenuRoleByUserId" parameterType="com.hotent.org.persistence.model.UserRole" resultType="com.hotent.org.persistence.model.UserRole">
+		SELECT R.ID_ id, R.ALIAS_ alias,
+	      R.NAME_ roleName
+	    FROM sys_role R 
+	    WHERE NOT EXISTS (SELECT 1 FROM sys_user_role WHERE USER_ID_ = #{userId} AND ROLE_ID_ = R.ID_)
+			  AND R.ID_ IN (SELECT ROLE_ID_ FROM sys_user_role WHERE USER_ID_ = #{curLoginUserId} )
+		<if test="roleName!=null and roleName!='' ">
+		  AND  R.NAME_ LIKE '%' || #{roleName} || '%'
+		</if>
+		<if test="alias!=null and alias!='' ">
+		  AND  R.ALIAS_ LIKE '%' || #{alias} || '%'
+		</if>
+		ORDER BY R.NAME_			 
+	</select>
+		
+	 
+</mapper>

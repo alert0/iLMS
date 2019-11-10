@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.base.TableDataLog">
+
+	<select id="select_selectTableColumnInfoByTableName" parameterType="java.lang.String" resultType="com.hanthink.base.model.TableColumnVO">
+		SELECT COLUMN_NAME columnName, data_type dbDataType, DATA_LENGTH dataLength
+ 	 	FROM USER_TAB_COLUMNS WHERE TABLE_NAME = UPPER(#{value})
+	</select>
+	
+	<insert id="insert_insertTableDataLog" parameterType="com.hanthink.base.model.TableOpeLogVO">
+		INSERT INTO MM_PUB_OPE_LOG ( ID, TRX_TIME, 
+ 			USER_ID, TABLE_NAME, FORM_NAME, TRX_TYPE, 
+ 			OLD_VALUE, LOCAL_IP, RECORD_KEY, ID_COLUMN)
+		SELECT SEQ_MM_PUB_OPE_LOG_ID.NEXTVAL, SYSDATE,
+			#{opeUserName,jdbcType=VARCHAR}, #{tableName,jdbcType=VARCHAR}, #{fromName,jdbcType=VARCHAR}, #{opeType,jdbcType=VARCHAR},
+			${logValSql}, #{opeIp,jdbcType=VARCHAR}, #{pkRecord,jdbcType=VARCHAR}, #{pkColumn,jdbcType=VARCHAR}
+		FROM ${tableName} WHERE ${pkConSql}
+	</insert>
+	
+</mapper>

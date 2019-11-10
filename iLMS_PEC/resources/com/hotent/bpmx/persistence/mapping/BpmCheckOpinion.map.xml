@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.bpmx.persistence.model.DefaultBpmCheckOpinion">
+	<resultMap id="BpmCheckOpinion" type="com.hotent.bpmx.persistence.model.DefaultBpmCheckOpinion">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="procDefId" column="proc_def_id_" jdbcType="VARCHAR"/>
+		<result property="supInstId" column="sup_inst_id_" jdbcType="VARCHAR"/>
+		<result property="procInstId" column="proc_inst_id_" jdbcType="VARCHAR"/>
+		<result property="taskId" column="task_id_" jdbcType="VARCHAR"/>
+		<result property="taskKey" column="task_key_" jdbcType="VARCHAR"/>
+		<result property="taskName" column="task_name_" jdbcType="VARCHAR"/>
+		<result property="token" column="token_" jdbcType="VARCHAR"/>
+		<result property="qualfieds" column="qualfieds_" jdbcType="VARCHAR"/>
+		<result property="qualfiedNames" column="qualfied_names_" jdbcType="VARCHAR"/>
+		<result property="auditor" column="auditor_" jdbcType="VARCHAR"/>
+		<result property="auditorName" column="auditor_name_" jdbcType="VARCHAR"/>
+		<result property="opinion" column="opinion_" jdbcType="VARCHAR"/>
+		<result property="status" column="status_" jdbcType="VARCHAR"/>
+		<result property="formDefId" column="form_def_id_" jdbcType="VARCHAR"/>
+		<result property="formName" column="form_name_" jdbcType="VARCHAR"/>
+		<result property="createTime" column="create_time_" jdbcType="TIMESTAMP"/>
+		<result property="assignTime" column="assign_time_" jdbcType="TIMESTAMP"/>
+		<result property="completeTime" column="complete_time_" jdbcType="TIMESTAMP"/>
+		<result property="durMs" column="dur_ms_" jdbcType="NUMERIC"/>
+		<result property="files" column="files_" jdbcType="VARCHAR"/>
+		<result property="interpose" column="interpose_" jdbcType="NUMERIC"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.bpmx.persistence.model.DefaultBpmCheckOpinion">
+		INSERT INTO bpm_check_opinion
+		(id_,proc_def_id_,sup_inst_id_,proc_inst_id_,task_id_,task_key_,task_name_,token_,qualfieds_,qualfied_names_,auditor_,auditor_name_,opinion_,status_,form_def_id_,form_name_,create_time_,assign_time_,complete_time_,dur_ms_,files_,interpose_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{procDefId,jdbcType=VARCHAR}, #{supInstId,jdbcType=VARCHAR}, #{procInstId,jdbcType=VARCHAR}, #{taskId,jdbcType=VARCHAR}, #{taskKey,jdbcType=VARCHAR}, #{taskName,jdbcType=VARCHAR}, #{token,jdbcType=VARCHAR}, #{qualfieds,jdbcType=VARCHAR}, #{qualfiedNames,jdbcType=VARCHAR}, #{auditor,jdbcType=VARCHAR}, #{auditorName,jdbcType=VARCHAR}, #{opinion,jdbcType=VARCHAR}, #{status,jdbcType=VARCHAR}, #{formDefId,jdbcType=VARCHAR}, #{formName,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP}, #{assignTime,jdbcType=TIMESTAMP}, #{completeTime,jdbcType=TIMESTAMP}, #{durMs,jdbcType=NUMERIC},#{files,jdbcType=VARCHAR}, #{interpose,jdbcType=NUMERIC})
+	</insert>
+	
+	<insert id="archiveHistory" parameterType="java.lang.String">
+		insert into bpm_check_opinion_hi (id_,proc_def_id_,sup_inst_id_,proc_inst_id_,task_id_,task_key_,task_name_,token_,qualfieds_,qualfied_names_,auditor_,auditor_name_,opinion_,status_,form_def_id_,form_name_,create_time_,assign_time_,complete_time_,dur_ms_,files_,interpose_) 
+		select id_,proc_def_id_,sup_inst_id_,proc_inst_id_,task_id_,task_key_,task_name_,token_,qualfieds_,qualfied_names_,auditor_,auditor_name_,opinion_,status_,form_def_id_,form_name_,create_time_,assign_time_,complete_time_,dur_ms_,files_,interpose_  from bpm_check_opinion where proc_inst_id_=#{procInstId}
+	</insert>
+	
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="BpmCheckOpinion">
+		SELECT * FROM bpm_check_opinion 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="BpmCheckOpinion">
+		SELECT * FROM bpm_check_opinion
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<select id="getByTaskId"   parameterType="java.util.Map" resultMap="BpmCheckOpinion">
+		SELECT * FROM bpm_check_opinion 
+		WHERE 
+		task_id_=#{taskId} and status_='awaiting_check'
+	</select>	
+	
+	
+	<select id="getByTaskIdAction"   parameterType="java.util.Map" resultMap="BpmCheckOpinion">
+		SELECT * FROM bpm_check_opinion 
+		WHERE
+		task_id_=#{taskId} and status_=#{taskAction}
+	</select>
+		
+	
+	<select id="queryByProcInstId"   parameterType="java.lang.String" resultMap="BpmCheckOpinion">
+		SELECT * FROM bpm_check_opinion 
+		WHERE 
+		proc_inst_id_=#{procInstId}		
+	</select>	
+	
+	<select id="getBySupInstId"   parameterType="java.lang.String" resultType="java.lang.String">
+		select distinct t.proc_inst_id_   FROM bpm_check_opinion t 
+		WHERE t.sup_inst_id_=#{procInstId}
+	</select>		
+	
+	<select id="getSupInstByInstId" resultType="java.lang.String">
+		select distinct t.sup_inst_id_  
+		FROM bpm_check_opinion t WHERE t.proc_inst_id_=#{procInstId} and sup_inst_id_!='0'
+	</select>
+	
+	
+	<select id="getByInstIds"   parameterType="java.lang.String" resultMap="BpmCheckOpinion">
+		SELECT * FROM bpm_check_opinion 
+		WHERE proc_inst_id_ in 
+		<foreach collection="list" index="index" item="instId" open="(" separator="," close=")"> 
+            #{instId} 
+        </foreach> 
+        order by create_time_,id_,complete_time_
+	</select>
+	
+	
+	<delete id="delByInstList" >
+		DELETE FROM bpm_check_opinion  WHERE proc_inst_id_ in 
+		<foreach collection="list" index="index" item="instId" open="(" separator="," close=")"> 
+            #{instId} 
+        </foreach> 
+	</delete>
+
+	
+	<update id="update" parameterType="com.hotent.bpmx.persistence.model.DefaultBpmCheckOpinion">
+		UPDATE bpm_check_opinion SET
+		proc_def_id_=#{procDefId,jdbcType=VARCHAR},
+		sup_inst_id_=#{supInstId,jdbcType=VARCHAR},
+		proc_inst_id_=#{procInstId,jdbcType=VARCHAR},
+		task_id_=#{taskId,jdbcType=VARCHAR},
+		task_key_=#{taskKey,jdbcType=VARCHAR},
+		task_name_=#{taskName,jdbcType=VARCHAR},
+		token_=#{token,jdbcType=VARCHAR},
+		qualfieds_=#{qualfieds,jdbcType=VARCHAR},
+		qualfied_names_=#{qualfiedNames,jdbcType=VARCHAR},
+		auditor_=#{auditor,jdbcType=VARCHAR},
+		auditor_name_=#{auditorName,jdbcType=VARCHAR},
+		opinion_=#{opinion,jdbcType=VARCHAR},
+		status_=#{status,jdbcType=VARCHAR},
+		form_def_id_=#{formDefId,jdbcType=VARCHAR},
+		form_name_=#{formName,jdbcType=VARCHAR},
+		create_time_=#{createTime,jdbcType=TIMESTAMP},
+		assign_time_=#{assignTime,jdbcType=TIMESTAMP},
+		complete_time_=#{completeTime,jdbcType=TIMESTAMP},
+		dur_ms_=#{durMs,jdbcType=NUMERIC},
+		files_=#{files,jdbcType=VARCHAR},
+		interpose_=#{interpose,jdbcType=VARCHAR}
+		WHERE
+		id_=#{id}
+	</update>	
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM bpm_check_opinion 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	<select id="getByInstNodeId"   parameterType="java.util.Map" resultMap="BpmCheckOpinion">
+		SELECT * FROM bpm_check_opinion 
+		WHERE proc_inst_id_ = #{instId} 
+		AND task_key_ = #{nodeId}
+        order by create_time_ 
+	</select>
+		
+	<select id="getByInstNodeIdAgree"   parameterType="java.util.Map" resultMap="BpmCheckOpinion">
+		SELECT * FROM bpm_check_opinion 
+		WHERE proc_inst_id_ = #{instId} 
+		AND task_key_ = #{nodeId}
+		AND  status_ = 'agree'
+        order by create_time_ 
+	</select>	
+	
+	<update id="updStatusByWait" parameterType="java.util.Map">
+		UPDATE bpm_check_opinion SET
+		status_=#{status,jdbcType=VARCHAR}
+		WHERE
+		task_id_=#{taskId,jdbcType=VARCHAR} and status_='awaiting_check'
+	</update>
+	
+	
+	<select id="getByInstIdsAndWait"   parameterType="java.lang.String" resultMap="BpmCheckOpinion">
+		SELECT * FROM bpm_check_opinion 
+		WHERE proc_inst_id_ in 
+		<foreach collection="list" index="index" item="instId" open="(" separator="," close=")"> 
+            #{instId} 
+        </foreach> 
+       and status_='awaiting_check'
+	</select>
+
+	
+</mapper>

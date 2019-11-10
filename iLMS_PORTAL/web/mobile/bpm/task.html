@@ -1,0 +1,144 @@
+<!doctype html>
+<html ng-app="approveFlow">
+<head>
+<title>任务审批</title>
+<meta charset="utf-8">
+<script src="../assets/js/importJs.js"></script>
+<script type="text/javascript">
+var FORM_TYPE_ = 'mobile';
+
+importCss(flowAryCss);
+importJs(flowAryJs);
+importJs(["/mobile/assets/js/bpm/approveFlowController.js"]);
+		
+</script>
+<style type="text/css">
+.content-block{
+	padding:0px 0px 0px 0px;
+	margin:  0rem 0 2rem 0;
+}
+
+.panel{
+	background: #f7f7f8
+}
+
+.panel-left{
+	width:180px;
+}
+a.btn{
+	width:100%;
+	
+}
+</style>
+
+</head>
+<body ng-controller="taskCtrl" >
+	<div class="page">
+		<header class="bar bar-nav">
+			<a class="icon icon-left pull-left back"></a>
+			<span class='title'>任务处理</span>
+			<a  href="#" class="icon icon-menu pull-right open-panel"  ></a>
+			
+		</header>
+	
+		<div class="content">
+			    <div class="content-block" ht-bind-html="formHtml" id="formHtml"></div>
+		</div>
+		<nav class="bar bar-tab">
+		
+				<a href="#" class="tab-item active" ng-click="approveFlow('agree','同意')" ng-if="!isTransStatus"> 
+					<i class="icon icon-check"></i>
+					<span class="tab-label">同意</span>
+				</a>
+				<a href="#" class="tab-item active" ng-click="approveFlow('oppose','反对')" ng-if="isSignTask"> 
+					<i class="icon icon-cart"></i>
+					<span class="tab-label">反对</span>
+				</a>
+				<a href="#" class="tab-item active" ng-click="approveFlow('abandon','弃权')" ng-if="isSignTask"> 
+					<i class="icon icon-cart"></i>
+					<span class="tab-label">弃权</span>
+				</a>
+				<a href="#" class="tab-item active" ng-click="approveFlow('agreeTrans','同意')" ng-if="isTransStatus"> 
+					<i class="icon icon-check"></i>
+					<span class="tab-label">同意</span>
+				</a>
+				<a href="#" class="tab-item active" ng-click="approveFlow('opposeTrans','反对')" ng-if="isTransStatus"> 
+					<i class="icon icon-cart"></i>
+					<span class="tab-label">反对</span>
+				</a>
+				<a href="#" class="tab-item active" ng-click="approveFlow('reject','驳回')"  onclick="$.closePanel();" ng-if="isApproveTask">
+				 <i class="icon icon-refresh"></i>
+				 	<span class="tab-label">驳回</span>
+				</a>
+				<!--<a href="#" class="tab-item active" ng-click="approveFlow('backToStart','驳回发起人')"  onclick="$.closePanel();">
+				 <i class="icon icon-refresh"></i>
+				 	<span class="tab-label">驳回到发起人</span>
+				</a>-->
+				<a href="#" class="tab-item active" ng-click="startTrans('startTrans','协办')"  onclick="$.closePanel();"  ng-if="isApproveTask">
+				 <i class="icon icon-friends"></i>
+				 	<span class="tab-label">协办</span>
+				</a>
+				
+		</nav>
+	</div>
+	<!-- 侧栏 -->
+	<div class="panel panel-left panel-cover" >
+	  <div class="content-block">
+		  <div class="list-block">
+		    <ul>
+		      <li class="item-content item-link" ng-if="!isTransStatus">
+		        <a href="#" class="btn" ng-click="approveFlow('agree','同意')" onclick="$.closePanel();"> 
+					<i class="icon icon-check"></i>
+					<span class="tab-label">同意</span>
+				</a>
+		      </li>
+		      <li class="item-content item-link" ng-if="!isTransStatus">
+		       <a href="#" class="btn" ng-click="approveFlow('oppose','反对')"  onclick="$.closePanel();" > 
+					<i class="icon icon-refresh"></i>
+					<span class="tab-label">反对</span>
+				</a>
+		      </li>
+		      <li class="item-content item-link" ng-if="isSignTask">
+		       <a href="#" class="btn" ng-click="approveFlow('abandon','弃权')"  onclick="$.closePanel();"> 
+					<i class="icon icon-app"></i>
+					<span class="tab-label">弃权</span>
+				</a>
+		      </li>
+		      <li class="item-content item-link" ng-if="isTransStatus">
+		       <a href="#" class="btn" ng-click="approveFlow('agreeTrans','同意')"  onclick="$.closePanel();" > 
+					<i class="icon icon-check"></i>
+					<span class="tab-label">同意</span>
+				</a>
+		      </li>
+		      <li class="item-content item-link" ng-if="isTransStatus">
+		       <a href="#" class="btn" ng-click="approveFlow('opposeTrans','反对')"  onclick="$.closePanel();"> 
+					<i class="icon icon-cart"></i>
+					<span class="tab-label">反对</span>
+				</a>
+		      </li>
+		       <li class="item-content item-link" ng-if="isApproveTask" >
+		       	<a href="#" class="btn" ng-click="approveFlow('backToStart','驳回发起人')"  onclick="$.closePanel();">
+				 <i class="icon icon-refresh"></i>
+				 	<span class="tab-label">驳回到发起人</span>
+				</a>
+		      </li>
+		      
+		      <li class="item-content item-link" >
+		       	<a href="#" class="btn" ng-click="showOpinion()"  onclick="$.closePanel();">
+				 <i class="icon icon-menu"></i> 
+				 	<span class="tab-label">审批历史</span>
+				</a>
+		      </li>
+		      
+		      <li class="item-content item-link" >
+		       	<a href="#" class="btn" ng-click="showFlowPic()"  onclick="$.closePanel();">
+				 <i class="icon icon-picture"></i> 
+				 <span class="tab-label">流程图</span>
+				</a>
+		      </li>
+		    </ul>
+		  </div>
+		</div>
+	</div>
+</body>
+</html>

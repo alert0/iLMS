@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.demo.model.DemoModel">
+	<resultMap id="DemoModel" type="com.hanthink.demo.model.DemoModel">
+		<id property="pkId" column="PK_ID" jdbcType="VARCHAR"/>
+		<result property="col1" column="COL1" jdbcType="VARCHAR"/>
+		<result property="col2" column="COL2" jdbcType="VARCHAR"/>
+		<result property="col3" column="COL3" jdbcType="VARCHAR"/>
+		<result property="col4" column="COL4" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hanthink.demo.model.DemoModel">
+		INSERT INTO DEMO_MODEL
+		(PK_ID, COL1, COL2, COL3, COL4)
+		VALUES 
+		(#{pkId,jdbcType=VARCHAR}, #{col1,jdbcType=VARCHAR}, #{col2,jdbcType=VARCHAR}, #{col3,jdbcType=VARCHAR}, #{col4,jdbcType=VARCHAR} )
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="DemoModel">
+		SELECT * FROM DEMO_MODEL 
+		WHERE PK_ID=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="DemoModel">
+		SELECT * FROM DEMO_MODEL
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY ID_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hanthink.demo.model.DemoModel">
+		UPDATE DEMO_MODEL SET
+		COL1 = #{col1,jdbcType=VARCHAR},
+		COL2 = #{col2,jdbcType=VARCHAR},
+		COL3 = #{col3,jdbcType=VARCHAR},
+		COL4 = #{col4,jdbcType=VARCHAR}
+		WHERE
+		PK_ID = #{pkId}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM DEMO_MODEL 
+		WHERE
+		PK_ID = #{pkId}
+	</delete>
+	
+	<!-- 批量导入数据写入到临时表 -->
+	<insert id="insertImportTempData" parameterType="java.util.List">
+		INSERT INTO DEMO_MODEL_IMPTMP
+		(PK_ID, COL1, COL2, COL3, COL4, IMP_UUID, CHECK_RESULT, CHECK_INFO, IMPORT_STATUS) 
+		<foreach collection="list" item="item" index="index" separator=" UNION ALL ">
+			SELECT #{item.pkId,jdbcType=VARCHAR}, #{item.col1,jdbcType=VARCHAR}, #{item.col2,jdbcType=VARCHAR}, 
+			 #{item.col3,jdbcType=VARCHAR}, #{item.col4,jdbcType=VARCHAR},
+			 #{item.uuid,jdbcType=VARCHAR}, #{item.checkResult,jdbcType=VARCHAR}, #{item.checkInfo,jdbcType=VARCHAR}, #{item.importStatus,jdbcType=VARCHAR} 
+			FROM DUAL 
+    	</foreach>
+	</insert>
+	
+	<!-- 检查导入临时表数据 -->
+	<parameterMap type="map" id="impCkParamMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="userName" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<select id="checkImportData" parameterMap="impCkParamMap" statementType="CALLABLE">
+		{CALL PKG_IMP_DEMO.USP_DEMO_TEST(?, ?, ?,  ?,?)}
+	</select>
+	
+	<!-- 查询临时表数据 -->
+	<select id="queryImportTempData" parameterType="java.util.Map" resultType="com.hanthink.demo.model.DemoModelImport">
+		SELECT PK_ID pkId, COL1 col1, COL2 col2, COL3 col3, COL4 col4, 
+		  IMP_UUID uuid, CHECK_RESULT checkResult, CHECK_INFO checkInfo, IMPORT_STATUS importStatus  
+		FROM DEMO_MODEL_IMPTMP 
+		WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR}
+	</select>
+	
+	
+	<!-- 导入临时数据写入到正式表 -->
+	<insert id="insertImportData">
+		INSERT INTO DEMO_MODEL
+		(PK_ID, COL1, COL2, COL3, COL4)
+		SELECT PK_ID, COL1, COL2, COL3, COL4 
+		FROM DEMO_MODEL_IMPTMP 
+		WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		  AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+		  AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR} 
+	</insert>
+	
+	<!-- 更新临时表数据导入状态 -->
+	<update id="updateImportDataImpStatus">
+		UPDATE DEMO_MODEL_IMPTMP SET IMPORT_STATUS = #{IMPORT_STATUS_YES,jdbcType=VARCHAR} 
+		WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		  AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+		  AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR} 
+	</update>
+	
+	<!-- 根据UUID删除导入的临时数据 -->
+	<delete id="deleteImportTempDataByUUID" parameterType="java.lang.String">
+		DELETE FROM DEMO_MODEL_IMPTMP WHERE IMP_UUID = #{value,jdbcType=VARCHAR}
+	</delete>
+	
+	 
+</mapper>

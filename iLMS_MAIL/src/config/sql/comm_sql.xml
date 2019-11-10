@@ -1,0 +1,358 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="comm">
+	<typeAlias alias="CmbItemVO" type="com.hanthink.gps.pub.vo.CmbItemVO" />
+	<typeAlias alias="factoryParamItemVO" type="com.hanthink.gps.pub.vo.FactoryParamItemVO" />
+	
+	<typeAlias alias="AogFactoryVo" type="com.hanthink.gps.pub.vo.AogFactoryVo" />
+	
+	
+	<resultMap id="CmbItemResult" class="CmbItemVO">
+		<result column="code" property="code"/>
+		<result column="name" property="name"/>
+	</resultMap>
+	
+	<resultMap id="aogFactoryItemResult" class="AogFactoryVo">
+		<result column="code" property="code"/>
+		<result column="name" property="name"/>
+		<result column="aogFactory" property="aogFactory"/>
+	</resultMap>
+	
+	<!--获取序列值 -->
+	<select id="select_sequence" parameterClass="SeqVO" resultClass="java.lang.String">
+  		select $seqId$.NEXTVAL from dual
+	</select>
+	
+	<!-- 获取检索记录总件数 -->
+	<select id="getTotalCount" parameterClass="java.lang.String" resultClass="java.lang.Integer">
+		$value$
+	</select>
+	
+	<!-- 广乘角色下拉框 -->
+	<select id="select_cmbitems_role"  resultMap="CmbItemResult">
+    	SELECT R.PK_ROLE_ID AS code, R.ROLE_NAME AS name 
+		FROM MM_PUB_ROLE R WHERE R.STATUS = '1' AND ROLE_TYPE = '1'
+		ORDER BY SORT
+	</select>
+	
+	<!-- 供应商角色下拉框 -->
+	<select id="select_cmbitems_supplierRole" parameterClass="java.lang.String" resultMap="CmbItemResult">
+  		SELECT R.PK_ROLE_ID AS code, R.ROLE_NAME AS name 
+		FROM MM_PUB_ROLE R WHERE R.STATUS = '1' AND ROLE_TYPE = #value#
+		ORDER BY SORT
+	</select>
+	
+	<!-- 角色类型下拉框 -->
+	<select id="select_cmbitems_roleType" parameterClass="java.lang.String" resultMap="CmbItemResult">
+		SELECT PDD.CODE_VALUE AS code, PDD.CODE_VALUE_NAME AS name
+		FROM MM_PUB_DATA_DICT PDD WHERE PDD.CODE_TYPE = 'ROLE_TYPE'
+		ORDER BY SORT_NO
+	</select>
+	
+	<!-- 部门下拉框 -->
+	<select id="select_cmbitems_department"  resultMap="CmbItemResult">
+    	SELECT PDD.CODE_VALUE AS code, PDD.CODE_VALUE_NAME AS name
+		FROM MM_PUB_DATA_DICT PDD WHERE PDD.CODE_TYPE = 'DEPARTMENT_CODE'
+		ORDER BY SORT_NO
+	</select>
+	<!-- 同步管理-查询同步零件组下拉框数据信息  根据工厂-->
+	<select id="select_synComponentGroupComboBoxList" parameterClass="java.lang.String" resultMap="CmbItemResult">		
+		select sigh.head_id as code, 
+		  sigh.group_code || '-' || sigh.group_name as name
+		from MM_JISO_GROUP_HEAD sigh
+		where sigh.del_flg = '0'
+		  and sysdate between sigh.indt and sigh.exdt
+		  AND sigh.ARR_FACTORY = #value#
+		order by sigh.head_id 
+	</select>
+	
+	<!-- 同步管理-查询同步零件供应商出货地下拉框数据 -->
+	<select id="select_synComponentGroupSupFactoryId" parameterClass="java.lang.String" resultMap="CmbItemResult">		
+		select distinct sigs.group_supplier_id as code,
+		  sigs.supplier_id || '-' || nvl(sigs.factory_id, sigs.supplier_id) as name,
+		  sigs.head_id
+		from MM_JISO_GROUP_SUPPLIER sigs
+		where sigs.del_flg = '0'
+		  and sysdate between sigs.indt and sigs.exdt
+		<isNotEmpty prepend="AND" property="value">
+		  sigs.head_id = #value#
+		</isNotEmpty>
+		order by sigs.supplier_id, sigs.factory_id
+	</select>
+	
+	<!-- 工厂下拉框 -->
+	<select id="select_cmbitems_factory"  resultMap="CmbItemResult">
+    	SELECT PF.FACTORY_CODE AS code, PF.FACTORY_NAME AS name FROM MM_PUB_FACTORY PF
+	</select>
+	
+	<!-- 生失效状态下拉框 -->
+	<select id="select_cmbitems_effState"  resultMap="CmbItemResult">
+    	SELECT PDD.CODE_VALUE AS code, PDD.CODE_VALUE_NAME AS name
+		FROM MM_PUB_DATA_DICT PDD WHERE PDD.CODE_TYPE = 'EFF_STATE'
+		ORDER BY SORT_NO
+	</select>
+	
+	<!-- 工厂下拉框 根据登陆选择-->
+	<select id="select_cmbitems_checkFactory"  resultMap="CmbItemResult">
+    	SELECT PF.FACTORY_CODE AS code, PF.FACTORY_NAME AS name FROM MM_PUB_FACTORY PF
+    			WHERE PF.FACTORY_CODE = #value#
+	</select>
+	
+	<!--下拉框：到货仓库 -->
+	<select id="select_warehouse"  resultMap="CmbItemResult">
+	SELECT 
+		WAREHOUSE_ID   AS code,
+		WAREHOUSE_NAME AS name 
+	FROM 
+  		MM_MP_WAREHOUSE 
+  	WHERE WAREHOUSE_ADDRESS=#value#
+  	ORDER BY
+  		WAREHOUSE_ID
+  
+	</select>
+	
+	<!-- 机能区下拉框 -->
+	<select id="select_cmbitems_functionArea"  resultMap="CmbItemResult">
+    	SELECT MPDD.CODE_VALUE AS code, MPDD.CODE_VALUE_NAME AS name 
+    	FROM MM_PUB_DATA_DICT MPDD WHERE MPDD.CODE_TYPE ='JIT_LOC_FUNCAREA'
+    	ORDER BY SORT_NO
+	</select>
+	<!-- 看板代码下拉框 -->
+	<select id="select_cmbitems_kbCode"  resultMap="CmbItemResult">
+    	SELECT MPDD.CODE_VALUE AS code, MPDD.CODE_VALUE_NAME AS name 
+    	FROM MM_PUB_DATA_DICT MPDD WHERE MPDD.CODE_TYPE ='JIT_KB_CODE'
+    	ORDER BY SORT_NO
+	</select>
+	<!-- 供应商组下拉框 -->
+	<select id="select_cmbitems_supGroupId"  resultMap="CmbItemResult">
+    	SELECT GROUP_ID AS code, GROUP_NAME AS name FROM MM_SW_SUPPLIER_GROUP 
+	</select>
+	
+	<!-- 厂内物流工作中心下拉框 -->
+	<select id="select_cmbitems_workcenter"  resultMap="CmbItemResult">
+    	SELECT MPDD.CODE_VALUE AS code, MPDD.CODE_VALUE_NAME AS name 
+    	FROM MM_PUB_DATA_DICT MPDD WHERE MPDD.CODE_TYPE = 'WORKCENTER'
+		ORDER BY SORT_NO
+	</select>
+	
+	<!-- 订购模块工作中心下拉框 anMin-->
+	<select id="select_cmbitems_mpWorkcenter"  resultMap="CmbItemResult">
+    	SELECT MP.center_id AS code, MP.center_name AS name 
+    	FROM MM_MP_CENTER MP WHERE MP.DEL_FLG = '0' and mp.ADDRESS_CODE=#factory#
+	</select>
+
+	<!-- 同步类型下拉框  -->
+	<select id="select_cmbitems_jisFlag"  resultMap="CmbItemResult">
+    	SELECT MPDD.CODE_VALUE AS code, MPDD.CODE_VALUE_NAME AS name FROM MM_PUB_DATA_DICT MPDD WHERE
+			MPDD.CODE_TYPE = 'JIS_FLAG'
+	</select>
+	<!-- 是否发送ERP下拉框  -->
+	<select id="select_cmbitems_isSendToErp"  resultMap="CmbItemResult">
+    	SELECT MPDD.CODE_VALUE AS code, MPDD.CODE_VALUE_NAME AS name FROM MM_PUB_DATA_DICT MPDD WHERE
+			MPDD.CODE_TYPE = 'IS_SENDTOERP'
+	</select>
+	
+	<!-- 是否自动打印下拉框  -->
+	<select id="select_cmbitems_isAutoPrint"  resultMap="CmbItemResult">
+    	SELECT MPDD.CODE_VALUE AS code, MPDD.CODE_VALUE_NAME AS name FROM MM_PUB_DATA_DICT MPDD WHERE
+			MPDD.CODE_TYPE = 'IS_AUTO_PRINT'
+	</select>
+	
+	<!-- 打印机下拉框 -->
+	<select id="select_cmbitems_printer"  resultMap="CmbItemResult">
+    	SELECT MPDD.CODE_VALUE AS code, MPDD.CODE_VALUE_NAME AS name FROM MM_PUB_DATA_DICT MPDD WHERE
+			MPDD.CODE_TYPE = 'MM_PRINTER'
+	</select>
+	
+	<!-- MES收货状态下拉框 -->
+	<select id="select_cmbitems_mesStatus"  resultMap="CmbItemResult">
+    	SELECT MPDD.CODE_VALUE AS code, MPDD.CODE_VALUE_NAME AS name 
+    	FROM MM_PUB_DATA_DICT MPDD WHERE MPDD.CODE_TYPE = 'REC_MES_STATE'
+		ORDER BY SORT_NO
+	</select>
+	
+	<!-- ERP收货状态下拉框 -->
+	<select id="select_cmbitems_erpStatus"  resultMap="CmbItemResult">
+    	SELECT MPDD.CODE_VALUE AS code, MPDD.CODE_VALUE_NAME AS name 
+    	FROM MM_PUB_DATA_DICT MPDD WHERE MPDD.CODE_TYPE = 'REC_ERP_STATE'
+		ORDER BY SORT_NO
+	</select>
+	
+	<!-- 信息点下拉框 -->
+	<select id="select_cmbitems_planCode"  resultMap="CmbItemResult">
+    	SELECT MPDD.CODE_VALUE AS code, MPDD.CODE_VALUE_NAME AS name 
+    	FROM MM_PUB_DATA_DICT MPDD WHERE MPDD.CODE_TYPE = 'JIT_PLAN_CODE'
+		ORDER BY SORT_NO
+	</select>
+	
+	<!-- 是否加急件 -->
+	<select id="select_cmbitems_orderDiff"  resultMap="CmbItemResult">
+    	SELECT MPDD.CODE_VALUE AS code, MPDD.CODE_VALUE_NAME AS name 
+    	FROM MM_PUB_DATA_DICT MPDD WHERE MPDD.CODE_TYPE = 'JIT_ORDER_DIFF'
+		ORDER BY SORT_NO
+	</select>
+	
+	<!-- 所属分组 -->
+	<select id="select_cmbitems_printerGroup"  resultMap="CmbItemResult">
+    	SELECT MPDD.CODE_VALUE AS code, MPDD.CODE_VALUE_NAME AS name 
+    	FROM MM_PUB_DATA_DICT MPDD WHERE MPDD.CODE_TYPE = 'PUB_PRINTER_GROUP'
+		ORDER BY SORT_NO
+	</select>
+	
+	<!-- 打印单据类型 -->
+	<select id="select_cmbitems_billType"  resultMap="CmbItemResult">
+    	SELECT MPDD.CODE_VALUE AS code, MPDD.CODE_VALUE_NAME AS name 
+    	FROM MM_PUB_DATA_DICT MPDD WHERE MPDD.CODE_TYPE = 'PUB_BILL_TYPE'
+		ORDER BY SORT_NO
+	</select>
+	
+	<!-- 订单打印状态 -->
+	<select id="select_cmbitems_jitOrderState"  resultMap="CmbItemResult">
+    	SELECT MPDD.CODE_VALUE AS code, MPDD.CODE_VALUE_NAME AS name 
+    	FROM MM_PUB_DATA_DICT MPDD WHERE MPDD.CODE_TYPE = 'MM_JIT_ORDER_STATE'
+		ORDER BY SORT_NO
+	</select>
+	
+	<!-- 打印状态 -->
+	<select id="select_cmbitems_printStatus"  resultMap="CmbItemResult">
+    	SELECT MPDD.CODE_VALUE AS code, MPDD.CODE_VALUE_NAME AS name 
+    	FROM MM_PUB_DATA_DICT MPDD WHERE MPDD.CODE_TYPE = 'PRINT_STATUS'
+		ORDER BY SORT_NO
+	</select>
+	
+	<!-- 零件组下拉框 -->
+	<select id="select_partGroup"  resultMap="CmbItemResult">
+    	SELECT MJP.PARTGROUP_NO AS code, MJP.PARTGROUP_NAME AS name FROM MM_JISI_PARTGROUP MJP
+	</select>
+	
+	<!-- 零件组下拉框 -->
+	<select id="select_shipDepotByPlanCode" parameterClass="java.lang.String" resultMap="CmbItemResult">
+    	SELECT '' AS code,'' AS name FROM DUAL
+			UNION ALL
+		SELECT DISTINCT T.SHIP_DEPOT AS code, DC.CODE_VALUE_NAME AS name
+		FROM MM_JIT_PART T
+		INNER JOIN MM_PUB_DATA_DICT DC ON T.SHIP_DEPOT=DC.CODE_VALUE 
+		      AND DC.CODE_TYPE = 'JIT_SHIP_DEPOT'
+		WHERE T.PLAN_CODE = #value# ORDER BY code DESC
+	</select>
+	
+	<!-- 零件组下拉框 根据登陆选择的工厂 -->
+	<select id="select_partGroupByFactory"  resultMap="CmbItemResult">
+    	SELECT MJP.PARTGROUP_NO AS code, MJP.PARTGROUP_NAME AS name FROM MM_JISI_PARTGROUP MJP
+    		WHERE MJP.FACTORY = #value#
+	</select>
+	
+	<!-- 车辆订单下拉框 -->
+	<select id="select_vehOrderStatus"  resultMap="CmbItemResult">
+    	SELECT MPDD.CODE_VALUE AS code, MPDD.CODE_VALUE_NAME AS name FROM MM_PUB_DATA_DICT MPDD WHERE
+			MPDD.CODE_TYPE = 'VEH_ORDER_STATUS'
+	</select>
+	
+	<!-- 生产阶段下拉框 -->
+	<select id="select_proPhase"  resultMap="CmbItemResult">
+    	SELECT MPDD.CODE_VALUE AS code, MPDD.CODE_VALUE_NAME AS name FROM MM_PUB_DATA_DICT MPDD WHERE
+			MPDD.CODE_TYPE = 'PRO_PHASE'
+	</select>
+	
+	<!-- 出货仓库 -->
+	<select id="select_cmbitems_shipDepot"  resultMap="CmbItemResult">
+    	SELECT MPDD.CODE_VALUE AS code, MPDD.CODE_VALUE_NAME AS name FROM MM_PUB_DATA_DICT MPDD WHERE
+			MPDD.CODE_TYPE = 'JIT_SHIP_DEPOT'
+	</select>
+	
+	<!-- 出货仓库类别 -->
+	<select id="select_cmbitems_shipDepotType"  resultMap="CmbItemResult">
+    	SELECT MPDD.CODE_VALUE AS code, MPDD.CODE_VALUE_NAME AS name FROM MM_PUB_DATA_DICT MPDD WHERE
+			MPDD.CODE_TYPE = 'JIT_SHIP_DEPOT_TYPE'
+	</select>
+	
+    <!-- 出货仓库 输入选择 -->
+	<select id='select_JitDepot_byParamType' parameterClass="factoryParamItemVO" resultMap="aogFactoryItemResult">
+		
+		SELECT a.supplier_no AS code,a.supplier_no AS name,'' aogFactory FROM mm_supplier a WHERE 
+		a.supplier_no LIKE UPPER(#param#) ||'%' AND ( a.supplier_no=#factory# 
+		     		OR a.parent_no=#factory#)
+	</select>
+	
+	<select id='select_JitDepot_byParam' parameterClass="factoryParamItemVO" resultMap="aogFactoryItemResult">
+		SELECT T.SUPPLIER_NO AS code,T.SUPPLIER_NO AS name,'' aogFactory from      
+			MM_PUB_USER_SUPPLIER T WHERE T.supplier_no LIKE UPPER(#param#) ||'%' AND USER_NAME = #factory#
+	</select>
+	
+	<select id='select_JitDepot_byNoParam' parameterClass="factoryParamItemVO" resultMap="aogFactoryItemResult">
+		SELECT T.SUPPLIER_NO AS code,T.SUPPLIER_NO AS name,'' aogFactory from      
+			MM_PUB_USER_SUPPLIER T WHERE USER_NAME = #factory#
+	</select>
+	
+	<!-- 出货仓库 输入选择 -->
+	
+	<!-- 到货仓库 -->
+	<select id="select_cmbitems_arrDepot"  resultMap="CmbItemResult">
+    	SELECT MPDD.CODE_VALUE AS code, MPDD.CODE_VALUE_NAME AS name FROM MM_PUB_DATA_DICT MPDD WHERE
+			MPDD.CODE_TYPE = 'JIT_ARR_DEPOT'
+	</select>
+	
+	<!-- ERP到货仓库 -->
+	<select id="select_cmbitems_erpArrDepot"  resultMap="CmbItemResult">
+    	SELECT MPDD.CODE_VALUE AS code, MPDD.CODE_VALUE_NAME AS name FROM MM_PUB_DATA_DICT MPDD WHERE
+			MPDD.CODE_TYPE = 'JIT_ERP_ARR_DEPOT'
+	</select>
+	
+	<!-- 订单类型 下拉框 -->
+	<select id="select_cmbitems_orderType"  resultMap="CmbItemResult">
+    	SELECT MPDD.CODE_VALUE AS code, MPDD.CODE_VALUE_NAME AS name FROM MM_PUB_DATA_DICT MPDD WHERE
+			MPDD.CODE_TYPE = 'ORDER_TYPE'
+	</select>
+	
+	<!-- 到货车间类别 下拉框 -->
+	<select id="select_cmbitems_workcenterType"  resultMap="CmbItemResult">
+    	SELECT MPDD.CODE_VALUE AS code, MPDD.CODE_VALUE_NAME AS name FROM MM_PUB_DATA_DICT MPDD WHERE
+			MPDD.CODE_TYPE = 'WORKCENTER_TYPE'
+	</select>
+	
+	<!-- 包装类型 -->
+	<select id="select_cmbitems_packageType"  resultMap="CmbItemResult">
+    	SELECT MPDD.CODE_VALUE AS code, MPDD.CODE_VALUE_NAME AS name FROM MM_PUB_DATA_DICT MPDD WHERE
+			MPDD.CODE_TYPE = 'JIT_PACKAGE_TYPE'
+	</select>
+	
+	<!-- 物流看板下拉框 -->
+	<select id="select_cmbitems_jitKb"  resultMap="CmbItemResult">
+    	SELECT T.Kb_Code AS CODE, T.KB_NAME AS name FROM MM_JIT_KB T
+    	 WHERE T.FACTORY = #value# ORDER BY T.KB_CODE
+	</select>
+	
+	<!-- 零脱批-->
+	<select id="select_cmbitems_isLtp"  resultMap="CmbItemResult">
+    	SELECT MPDD.CODE_VALUE AS code, MPDD.CODE_VALUE_NAME AS name FROM MM_PUB_DATA_DICT MPDD WHERE
+			MPDD.CODE_TYPE = 'JIT_IS_LTP'
+	</select>
+	
+	<!-- 供应商代码 -->
+	<select id="select_cmbitems_supplierNo"  resultMap="CmbItemResult">
+    	SELECT DISTINCT SUPPLIER_NO AS code, SUPPLIER_NO AS name FROM MM_SUPPLIER 
+    		ORDER BY SUPPLIER_NO
+	</select>
+	
+	<!-- 中转仓代码TYPE:3-中转仓 4-外协仓 -->
+	<select id="select_cmbitems_transitNo"  resultMap="CmbItemResult">
+    	SELECT COMPANY_NO AS code, COMPANY_NO AS name
+		FROM MM_PUB_LOGISTICS_COMPANY WHERE TYPE = '3'
+	</select>
+	
+	<!-- 外协仓代码TYPE:3-中转仓 4-外协仓 -->
+	<select id="select_cmbitems_outSourcingNo"  resultMap="CmbItemResult">
+    	SELECT COMPANY_NO AS code, COMPANY_NO AS name
+		FROM MM_PUB_LOGISTICS_COMPANY WHERE TYPE = '4'
+	</select>
+	
+  
+  <!-- 定时器分组 -->
+  <select id="select_cmbitems_Code" parameterClass="java.lang.String" resultMap="CmbItemResult">
+  select GROUP_CODE as code, GROUP_NAME as name
+                     from MM_PUB_MSG_GROUP
+                    ORDER BY GROUP_CODE 
+	</select>
+	
+</sqlMap>	

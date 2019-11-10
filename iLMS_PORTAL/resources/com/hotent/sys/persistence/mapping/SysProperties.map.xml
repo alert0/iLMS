@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.sys.persistence.model.SysProperties">
+	<resultMap id="SysProperties" type="com.hotent.sys.persistence.model.SysProperties">
+		<id property="id" column="id" jdbcType="VARCHAR"/>
+		<result property="name" column="name" jdbcType="VARCHAR"/>
+		<result property="alias" column="alias" jdbcType="VARCHAR"/>
+		<result property="group" column="group_" jdbcType="VARCHAR"/>
+		<result property="value" column="value" jdbcType="VARCHAR"/>
+		<result property="encrypt" column="encrypt" jdbcType="NUMERIC"/>
+		<result property="createTime" column="createTime" jdbcType="TIMESTAMP"/>
+		<result property="description" column="description" jdbcType="VARCHAR"/>
+		
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.sys.persistence.model.SysProperties">
+		INSERT INTO SYS_PROPERTIES
+		(id,name,alias,group_,value,encrypt,createTime,description)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR}, #{alias,jdbcType=VARCHAR}, 
+		#{group,jdbcType=VARCHAR}, #{value,jdbcType=VARCHAR}, #{encrypt,jdbcType=NUMERIC},#{createTime,jdbcType=TIMESTAMP}, #{description,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="SysProperties">
+		SELECT * FROM SYS_PROPERTIES 
+		WHERE 
+		id=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="SysProperties">
+		SELECT * FROM SYS_PROPERTIES
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY group_,createTime desc
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.sys.persistence.model.SysProperties">
+		UPDATE SYS_PROPERTIES SET
+		name=#{name,jdbcType=VARCHAR},
+		alias=#{alias,jdbcType=VARCHAR},
+		group_=#{group,jdbcType=VARCHAR},
+		value=#{value,jdbcType=VARCHAR},
+		encrypt=#{encrypt,jdbcType=NUMERIC},
+		createTime=#{createTime,jdbcType=TIMESTAMP},
+		description= #{description,jdbcType=VARCHAR}
+		WHERE
+		id=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM SYS_PROPERTIES 
+		WHERE
+		id=#{id}
+	</delete>
+	
+	
+	<select id="getGroups" resultType="java.lang.String">
+		SELECT distinct group_ FROM SYS_PROPERTIES
+	</select>
+	
+	<select id="isExist" resultType="java.lang.Integer">
+		SELECT count(1) FROM SYS_PROPERTIES where alias=#{alias}
+		<if test="id!=null">
+			and id!=#{id}
+		</if>
+	</select>
+	
+	
+</mapper>

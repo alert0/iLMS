@@ -1,0 +1,631 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.mon.model.MonOrderTrackingModel">
+	<select id="queryOrderTrackingForPage" parameterType="com.hanthink.mon.model.MonOrderTrackingModel" resultType="com.hanthink.mon.model.MonOrderTrackingModel">
+	  WITH TEMP_DAIC_DATA AS
+	  	(SELECT A.CODE_TYPE,A.CODE_VALUE,A.CODE_VALUE_NAME
+		  FROM MM_PUB_DATA_DICT A WHERE A.CODE_TYPE IN('MON_ORDER_ONTIME_STATUS',
+		                                               'MON_ORDER_REC_STATUS',
+		                                               'MON_ORDER_DEL_STATUS',
+		                                               'MON_ORDER_PRE_STATUS')
+		    										AND A.FACTORY_CODE = #{factoryCode})
+	  SELECT T.purchaseNo purchaseNo,
+	  		 T.orderNo orderNo,
+	  		 T.supplierNo supplierNo,
+	  		 T.supFactory supFactory,
+		     T.supplierName supplierName,
+		     T.supWareCode supWareCode,
+		     T.intoWareCode intoWareCode,
+		     T.partNo partNo,
+		     T.partShortNo partShortNo,
+		     T.partName partName,
+		     T.vinNo vinNo,
+		     T.orderQTY orderQTY,
+		     T.planPreTime planPreTime,
+		     T.realyPreTime realyPreTime,
+		     T.preNum preNum,
+		     T.preStatus preStatus,
+		     T.preOnTimeStatus preOnTimeStatus,
+		     T.planOutTime planOutTime,
+		     T.realyOutTime realyOutTime,
+		     T.outStatus outStatus,
+		     T.outNum outNum,
+		     T.outOnTimeStatus outOnTimeStatus,
+		     T.planArrTime planArrTime,
+		     T.realyArrTime realyArrTime,
+		     T.arrNum arrNum,
+		     T.arrStatus arrStatus,
+		     T.arrOntimeStatus arrOntimeStatus,
+		     T.jitPlanArrTime jitPlanArrTime,
+		     T.jitActualArrTime jitActualArrTime,
+	  		 TDD1.CODE_VALUE_NAME preExcelStatus,
+	  		 TDD2.CODE_VALUE_NAME outExcelStatus,
+	  		 TDD3.CODE_VALUE_NAME arrExcelStatus,
+	  		 TDD4.CODE_VALUE_NAME preExcelOnTimeStatus,
+	  		 TDD5.CODE_VALUE_NAME outExcelOnTimeStatus,
+	  		 TDD6.CODE_VALUE_NAME arrExcelOnTimeStatus
+	   FROM (
+		SELECT MSO.PURCHASE_NO purchaseNo,
+		       MSO.ORDER_NO orderNo,
+		       MSO.SUPPLIER_NO supplierNo,
+		       MSO.SUP_FACTORY supFactory,
+		       MPS.SUPPLIER_NAME supplierName,
+		       NULL supWareCode,
+		       MSOD.DEPOT_NO intoWareCode,
+		       MSOD.PART_NO partNo,
+		       MUA.PART_SHORT_NO partShortNo,
+		       MPP.PART_NAME_CN partName,
+		       NULL vinNo,
+		       MSOD.ORDER_QTY orderQTY,
+		       TO_CHAR(MSO.PLAN_PREPARE_TIME,'yyyy-MM-dd hh24:mi:ss') planPreTime,
+		       TO_CHAR(MSO.PREPARE_TIME,'yyyy-MM-dd hh24:mi:ss') realyPreTime,
+		       NVL(MSOD.PREPARE_NUM,0) preNum,
+		       CASE
+		         WHEN NVL(MSO.PREPARE_STATUS, 0) = 0 THEN
+		          '0'
+		         WHEN MSO.PREPARE_STATUS = 1 THEN
+		          '1'
+		         WHEN MSO.PREPARE_STATUS = 1 AND MSO.PREPARE_COUNT <![CDATA[>]]> 1 THEN
+		          '2'
+		         WHEN MSO.PREPARE_STATUS = 1 AND MSO.PREPARE_COUNT = 1 THEN
+		          '3'
+		       END AS preStatus,
+		       CASE
+		         WHEN (MSO.PLAN_PREPARE_TIME IS NULL) OR (
+		         	MSO.PLAN_PREPARE_TIME + NVL(MMAD.ERROR_DATE, 0) > MSO.PREPARE_TIME
+		         ) THEN
+		          '0' <!-- 延迟 -->
+		         WHEN MSO.PLAN_PREPARE_TIME IS NOT NULL AND 
+		         	  MSO.PREPARE_TIME IS NOT NULL AND
+		              MSO.PREPARE_TIME <![CDATA[<]]>
+		              MSO.PLAN_PREPARE_TIME - NVL(MMAD.ERROR_DATE, 0) / 60 / 24 THEN
+		          '1' <!-- 提前 -->
+		         WHEN MSO.PLAN_PREPARE_TIME IS NOT NULL AND
+		         	  MSO.PREPARE_TIME IS NOT NULL AND
+		              MSO.PREPARE_TIME BETWEEN
+		              MSO.PLAN_PREPARE_TIME - NVL(MMAD.ERROR_DATE, 0) / 60 / 24 AND
+		              MSO.PLAN_PREPARE_TIME + NVL(MMAD.ERROR_DATE, 0) / 60 / 24 THEN
+		          '2' <!-- 准时 -->
+		          ELSE
+		          '3' <!-- 计划 -->
+		       END AS preOnTimeStatus,
+		       TO_CHAR(MSP.PLAN_PICKUP_TIME,'yyyy-MM-dd hh24:mi:ss') planOutTime,
+		       NULL realyOutTime,
+		       CASE
+		         WHEN NVL(MSO.DELIVERY_STATUS, 0) = 0 THEN
+		          '0'
+		         WHEN MSO.DELIVERY_STATUS = 1 THEN
+		          '1'
+		         WHEN MSO.DELIVERY_STATUS = 2 AND MSO.DELIVERY_STATUS <![CDATA[>]]> 1 THEN
+		          '2'
+		         WHEN MSO.DELIVERY_STATUS = 2 AND MSO.DELIVERY_STATUS = 1 THEN
+		          '3'
+		       END AS outStatus,
+		       NVL(TOTAL_DELIV_QTY,0) outNum,
+		       CASE
+		         WHEN MSP.PLAN_PICKUP_TIME IS NOT NULL AND MSP.PLAN_PICKUP_TIME +
+		              NVL(MMAD.ERROR_DATE, 0) / 60 / 24 <![CDATA[<]]> SYSDATE THEN
+		          '0'
+		         WHEN MSP.PLAN_PICKUP_TIME IS NOT NULL AND
+		              MSP.PLAN_PICKUP_TIME <![CDATA[<]]>
+		              SYSDATE - NVL(MMAD.ERROR_DATE, 0) / 60 / 24 THEN
+		          '1'
+		         WHEN MSP.PLAN_PICKUP_TIME IS NOT NULL AND
+		              MSP.PLAN_PICKUP_TIME BETWEEN
+		              SYSDATE - NVL(MMAD.ERROR_DATE, 0) / 60 / 24 AND
+		              SYSDATE + NVL(MMAD.ERROR_DATE, 0) / 60 / 24 THEN
+		          '2'
+		          ELSE
+		          '3'
+		       END AS outOnTimeStatus,
+		       TO_CHAR(MSO.ARRIVE_DATE,'yyyy-MM-dd hh24:mi:ss') planArrTime,
+		       TO_CHAR(MSOD.RECEIVE_DATE,'yyyy-MM-dd hh24:mi:ss') realyArrTime,
+		       NVL(MSOD.ARRIVE_NUM, 0) arrNum,
+		       CASE
+		         WHEN NVL(MSOD.RECEIVE_STATUS, 0) = 0 THEN
+		          '0'
+		         WHEN MSOD.RECEIVE_STATUS = 1 THEN
+		          '1'
+		         WHEN MSOD.RECEIVE_STATUS = 2 AND MSOD.RECEIVE_COUNT <![CDATA[>]]> 1 THEN
+		          '2'
+		         WHEN MSOD.RECEIVE_STATUS = 2 AND MSOD.RECEIVE_COUNT = 1 THEN
+		          '3'
+		       END AS arrStatus,
+		       CASE
+		         WHEN MSOD.RECEIVE_DATE IS NOT NULL AND
+		              MSO.ARRIVE_DATE + NVL(MMAD.ERROR_DATE, 0) / 60 / 24 <![CDATA[<]]>
+		              MSOD.RECEIVE_DATE THEN
+		          '0'
+		         WHEN MSOD.RECEIVE_DATE IS NOT NULL AND
+		              MSOD.RECEIVE_DATE <![CDATA[<]]>
+		              MSO.ARRIVE_DATE - NVL(MMAD.ERROR_DATE, 0) / 60 / 24 THEN
+		          '1'
+		         WHEN MSOD.RECEIVE_DATE IS NOT NULL AND
+		              MSOD.RECEIVE_DATE BETWEEN
+		              MSO.ARRIVE_DATE - NVL(MMAD.ERROR_DATE, 0) / 60 / 24 AND
+		              MSO.ARRIVE_DATE + NVL(MMAD.ERROR_DATE, 0) / 60 / 24 THEN
+		          '2'
+		          ELSE
+		          '3'
+		       END AS arrOntimeStatus,
+		       null jitPlanArrTime,
+		       null jitActualArrTime
+		  FROM MM_SW_ORDER MSO
+		  LEFT JOIN MM_SW_ORDER_DETAIL MSOD
+		    ON MSO.PURCHASE_NO = MSOD.PURCHASE_NO
+		  LEFT JOIN MM_SW_PICKUP_PLAN MSP
+		    ON MSP.ORDER_NO = MSO.ORDER_NO
+		  LEFT JOIN MM_MON_ALLOW_DEVIATION MMAD
+		    ON MSP.ROUTE_CODE = MMAD.ROUTE_CODE
+		  <!-- i-LMS2019053001 mod by dtp -->
+		  LEFT JOIN MM_PUB_PART MPP
+		    ON MPP.PART_NO = MSOD.PART_NO AND MPP.FACTORY_CODE = #{factoryCode}
+		    AND MPP.FACTORY_CODE = MSO.FACTORY_CODE
+		  <!-- i-LMS2019053001 mod by dtp -->
+		  LEFT JOIN MM_PUB_PART_UDA MUA
+		  	ON MUA.PART_NO = MSOD.PART_NO
+		  	AND MUA.FACTORY_CODE = MSO.FACTORY_CODE
+		  LEFT JOIN MM_PUB_SUPPLIER MPS
+		    ON MPS.SUPPLIER_NO = MSO.SUPPLIER_NO
+		WHERE MSO.FACTORY_CODE = #{factoryCode}
+			  AND MSO.ORDER_TYPE IN ('01','02','05')
+		  <if test="orderNo != null and orderNo != ''">
+		  	AND MSO.ORDER_NO = #{orderNo}
+		  </if>
+		  <if test="purchaseNo != null and purchaseNo != ''">
+		  	AND MSO.PURCHASE_NO = #{purchaseNo}
+		  </if>
+		  <if test="partShortNo != null and partShortNo != ''">
+		  	AND MUA.PART_SHORT_NO = #{partShortNo}
+		  </if>
+		  <if test="partNo != null and partNo != ''">
+		  	AND MSOD.PART_NO LIKE CONCAT(CONCAT('%',#{partNo}),'%')
+		  </if>
+		  <if test="supplierNo != null and supplierNo != ''">
+		  	AND MSO.SUPPLIER_NO = #{supplierNo}
+		  </if>
+		  <if test="supFactory != null and supFactory != ''">
+		  	AND MSO.SUP_FACTORY = #{supFactory}
+		  </if>
+		  <if test="supWareCode != null and supWareCode != ''">
+		  	AND 1 = 2
+		  </if>
+		  <choose>
+		  	<when test="orderType != null and orderType != '' ">
+		  		<choose>
+		  			<when test="'01' == orderType">
+		  				AND MSO.ORDER_TYPE = #{orderType}
+		  			</when>
+		  			<when test="'02' == orderType">
+		  				AND MSO.ORDER_TYPE = #{orderType}
+		  			</when>
+		  			<when test="'05' == orderType">
+		  				AND MSO.ORDER_TYPE = #{orderType}
+		  			</when>
+		  			<otherwise>
+		  				AND 1 = 2
+		  			</otherwise>
+		  		</choose>
+		  	</when>
+		  </choose>
+		  <if test="creationTimeStart != null and creationTimeStart != ''">
+		  	AND TRUNC(MSO.CREATION_TIME) <![CDATA[>=]]> TO_DATE(#{creationTimeStart},'yyyy-MM-dd')
+		  </if>
+		  <if test="creationTimeEnd != null and creationTimeEnd != ''">
+		  	AND TRUNC(MSO.CREATION_TIME) <![CDATA[<=]]> TO_DATE(#{creationTimeEnd},'yyyy-MM-dd')
+		  </if>
+		  <if test="planArrTimeStart != null and planArrTimeStart != ''">
+		  	AND TRUNC(MSO.ARRIVE_DATE) <![CDATA[>=]]> TO_DATE(#{planArrTimeStart},'yyyy-MM-dd')
+		  </if>
+		  <if test="planArrTimeEnd != null and planArrTimeEnd != ''">
+		  	AND TRUNC(MSO.ARRIVE_DATE) <![CDATA[<=]]> TO_DATE(#{planArrTimeEnd},'yyyy-MM-dd')
+		  </if>
+		  <if test="realyArrTimeStart != null and realyArrTimeStart != ''">
+		  	AND TRUNC(MSOD.RECEIVE_DATE) <![CDATA[>=]]> TO_DATE(#{realyArrTimeStart},'yyyy-MM-dd')
+		  </if>
+		  <if test="realyArrTimeEnd != null and realyArrTimeEnd != ''">
+		  	AND TRUNC(MSOD.RECEIVE_DATE) <![CDATA[<=]]> TO_DATE(#{realyArrTimeEnd},'yyyy-MM-dd')
+		  </if>
+		  <if test="vinNo != null and vinNo != ''">
+		  	AND 1 = 2
+		  </if>
+	UNION ALL
+		SELECT MJO.PURCHASE_ORDERNO purchaseNo,
+			   MJO.ORDER_NO orderNo,
+		       MJO.SUPPLIER_NO supplierNo,
+		       MJO.SUP_FACTORY supFactory,
+		       MJO.SUPPLIER_NAME supplierName,
+		       MJO.SHIP_DEPOT supWareCode,
+		       MJO.ARR_DEPOT intoWareCode,
+		       MJOD.PART_NO partNo,
+		       MJOD.PART_SHORT_NO partShortNo,
+		       MJOD.PART_NAME partName,
+		       MPV.VIN vinNo,
+		       MJOD.REQUIRE_NUM orderQTY,
+		       TO_CHAR(TMP.PLAN_PRE_BATCHSEQNO_E) planPreTime,
+		       TO_CHAR(TMP.ACTUAL_PRE_BATCHSEQNO) realyPreTime,
+		       MJOD.PREPARE_NUM preNum,
+		       CASE
+		         WHEN MJOD.PREPARE_STATUS = 0 THEN
+		          '0'
+		         WHEN MJOD.PREPARE_STATUS = 1 THEN
+		          '1'
+		         WHEN MJOD.PREPARE_STATUS = 2 AND MJOD.PREPARE_COUNT <![CDATA[>]]> 1 THEN
+		          '2'
+		         WHEN MJOD.PREPARE_STATUS = 2 AND MJOD.PREPARE_COUNT = 1 THEN
+		          '3'
+		       END AS preStatus,
+		       CASE
+		     	<!-- O:延迟 1:提前 2:准时 3:计划 -->
+		         WHEN (MJO.E_PREPARE_PRODUCT_SEQNO > MMK.PRODUCT_SEQNO) OR
+		         	  (MJO.E_PREPARE_PRODUCT_SEQNO > MJO.ACTUAL_PRE_PRODUCT_SEQNO) THEN
+		          '0'
+		         WHEN MJO.S_PREPARE_BATCH_NO <![CDATA[<]]> MJO.ACTUAL_PRE_PRODUCT_SEQNO THEN
+		          '1'
+		         WHEN (MJO.S_PREPARE_BATCH_NO <![CDATA[<=]]> MJO.ACTUAL_PRE_PRODUCT_SEQNO AND
+		         	   MJO.E_PREPARE_BATCH_NO <![CDATA[>=]]> MJO.ACTUAL_PRE_PRODUCT_SEQNO) OR
+		         	   (MJO.S_PREPARE_BATCH_NO <![CDATA[<=]]> MMK.PRODUCT_SEQNO AND
+		         	   MJO.E_PREPARE_BATCH_NO <![CDATA[>=]]> MMK.PRODUCT_SEQNO) THEN
+		          '2'
+		         ELSE 
+		         '3'
+		       END AS preOnTimeStatus,
+		       TO_CHAR(TMP.PLAN_DELIVERY_BATCHSEQNO) planOutTime,
+		       TO_CHAR(TMP.ACTUAL_DELIVERY_BATCHSEQNO) realyOutTime,
+		       CASE
+		         WHEN NVL(MJO.DELIVERY_STATUS, 0) = 0 THEN
+		          '0'
+		         WHEN MJO.DELIVERY_STATUS = 1 THEN
+		          '1'
+		         WHEN MJO.DELIVERY_STATUS = 2 AND MJO.DELIVERY_COUNT <![CDATA[>]]> 1 THEN
+		          '2'
+		         WHEN MJO.DELIVERY_STATUS = 2 AND MJO.DELIVERY_COUNT = 1 THEN
+		          '3'
+		       END AS outStatus,
+		       MJOD.DELIVERY_NUM outNum,
+		       CASE
+		         WHEN (MJO.DELIVERY_PRODUCT_SEQNO <![CDATA[<]]> MJO.ACTUAL_DELI_PRODUCT_SEQNO) OR
+		         	  (MJO.DELIVERY_PRODUCT_SEQNO <![CDATA[<]]> MMK.PRODUCT_SEQNO) THEN
+		          '0'
+		         WHEN MJO.DELIVERY_PRODUCT_SEQNO <![CDATA[>]]> MJO.ACTUAL_DELI_PRODUCT_SEQNO THEN
+		          '1'
+		         WHEN (MJO.DELIVERY_PRODUCT_SEQNO <![CDATA[=]]> MJO.ACTUAL_DELI_PRODUCT_SEQNO) OR
+		         	  (MJO.DELIVERY_PRODUCT_SEQNO <![CDATA[=]]> MMK.PRODUCT_SEQNO) THEN
+		          '2'
+		         ELSE
+		          '3'
+		       END AS outOnTimeStatus,
+		       TO_CHAR(MJO.ARRIVE_TIME,'yyyy-mm-dd hh24:mi:ss') planArrTime,
+		       TO_CHAR(MJOD.RECEIVE_DATE,'yyyy-mm-dd hh24:mi:ss') realyArrTime,
+		       MJOD.ARRIVE_NUM arrNum,
+		       CASE WHEN MJOD.ARRIVE_STATUS = 0 THEN '0'
+		            WHEN MJOD.ARRIVE_STATUS = 1 THEN '1'
+		            WHEN MJOD.ARRIVE_STATUS = 2 AND MJOD.ARRIVE_COUNT <![CDATA[>]]> 1 THEN '2'
+		            WHEN MJOD.ARRIVE_STATUS = 2 AND MJOD.ARRIVE_COUNT = 1 THEN '3'
+		       END AS arrStatus,
+		       CASE WHEN (MJO.ARRIVE_PRODUCT_SEQNO <![CDATA[<]]> MJO.ACTUAL_ARR_PRODUCT_SEQNO) OR
+		        		 (MJO.ARRIVE_PRODUCT_SEQNO <![CDATA[<]]> MMK.PRODUCT_SEQNO) THEN '0'
+		            WHEN MJO.ARRIVE_PRODUCT_SEQNO <![CDATA[>]]> MJO.ACTUAL_ARR_PRODUCT_SEQNO THEN '1'
+		            WHEN (MJO.ARRIVE_PRODUCT_SEQNO <![CDATA[=]]> MJO.ACTUAL_ARR_PRODUCT_SEQNO) OR
+		        		 (MJO.ARRIVE_PRODUCT_SEQNO <![CDATA[=]]> MMK.PRODUCT_SEQNO) THEN '2'
+		            ELSE '3'
+		       END AS arrOntimeStatus,
+		       TO_CHAR(TMP.PLAN_ARR_BATCHSEQNO) jitPlanArrTime,
+		       TO_CHAR(TMP.ACTUAL_ARR_BATCHSEQNO) jitActualArrTime
+		  FROM MM_JIT_ORDER MJO
+		  LEFT JOIN (SELECT A.ORDER_NO,
+             PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(A.PLAN_CODE,
+                                                   A.S_PREPARE_PRODUCT_SEQNO) PLAN_PRE_BATCHSEQNO_S, 
+             PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(A.PLAN_CODE,
+                                                   A.E_PREPARE_PRODUCT_SEQNO) PLAN_PRE_BATCHSEQNO_E,
+             PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(A.PLAN_CODE,
+                                                   A.ACTUAL_PRE_PRODUCT_SEQNO) ACTUAL_PRE_BATCHSEQNO, 
+             PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(A.PLAN_CODE,
+                                                   A.DELIVERY_PRODUCT_SEQNO) PLAN_DELIVERY_BATCHSEQNO,
+             PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(A.PLAN_CODE,
+                                                   A.ACTUAL_DELI_PRODUCT_SEQNO) ACTUAL_DELIVERY_BATCHSEQNO,
+             PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(A.PLAN_CODE,
+                                                   A.ARRIVE_PRODUCT_SEQNO) PLAN_ARR_BATCHSEQNO, 
+             PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(A.PLAN_CODE,
+                                                   A.ACTUAL_ARR_PRODUCT_SEQNO) ACTUAL_ARR_BATCHSEQNO
+        FROM MM_JIT_ORDER A) TMP
+        ON TMP.ORDER_NO = MJO.ORDER_NO
+		  LEFT JOIN MM_JIT_ORDER_DETAIL MJOD
+		    ON MJO.ORDER_NO = MJOD.ORDER_NO
+		  LEFT JOIN MM_PUB_PLAN_CODE MPPC
+		    ON MJO.PLAN_CODE = MPPC.PLAN_CODE
+		    AND MPPC.FACTORY_CODE = #{factoryCode}
+		  LEFT JOIN MM_MON_KB MMK
+			ON MPPC.KB_ID = MMK.ID
+		  LEFT JOIN MM_PUB_VEH_PASS MPV
+		    ON MPV.FACTORY_CODE = #{factoryCode}
+		   AND MPV.STATION_CODE = MPPC.STATION_CODE
+		   AND MPV.ORDER_NO = MJO.ORDER_NO
+		  WHERE 1 = 1
+		   <if test="orderNo != null and orderNo != ''">
+		  	AND MJO.ORDER_NO = #{orderNo}
+		  </if>
+		  <if test="purchaseNo != null and purchaseNo != ''">
+		  	AND MJO.PURCHASE_ORDERNO = #{purchaseNo}
+		  </if>
+		  <if test="partShortNo != null and partShortNo != ''">
+		  	AND MJOD.PART_SHORT_NO = #{partShortNo}
+		  </if>
+		  <if test="partNo != null and partNo != ''">
+		  	AND MJOD.PART_NO LIKE CONCAT(CONCAT('%',#{partNo}),'%')
+		  </if>
+		  <if test="supplierNo != null and supplierNo != ''">
+		  	AND MJO.SUPPLIER_NO = #{supplierNo}
+		  </if>
+		  <if test="supFactory != null and supFactory != ''">
+		  	AND MJO.SUP_FACTORY = #{supFactory}
+		  </if>
+		  <if test="supWareCode != null and supWareCode != ''">
+		  	AND MJO.SHIP_DEPOT = #{supWareCode}
+		  </if>
+		  <choose>
+		  	<when test="orderType != null and orderType != '' and orderType == '03'">
+		  		AND 1 = 1
+		  	</when>
+		  	<when test="orderType != null and orderType != ''">
+		  		AND 1 = 2
+		  	</when>
+		  </choose>
+		  <if test="creationTimeStart != null and creationTimeStart != ''">
+		  	AND TRUNC(MJO.CREATION_TIME) <![CDATA[>=]]> TO_DATE(#{creationTimeStart},'yyyy-MM-dd')
+		  </if>
+		  <if test="creationTimeEnd != null and creationTimeEnd != ''">
+		  	AND TRUNC(MJO.CREATION_TIME) <![CDATA[<=]]> TO_DATE(#{creationTimeEnd},'yyyy-MM-dd')
+		  </if>
+		  <if test="vinNo != null and vinNo != ''">
+		  	AND MPV.VIN LIKE CONCAT('%', #{vinNo})
+		  </if>
+		  <if test="planArrTimeStart != null and planArrTimeStart != ''">
+		  	AND TRUNC(MJO.ARRIVE_TIME) <![CDATA[>=]]> TO_DATE(#{planArrTimeStart},'yyyy-MM-dd')
+		  </if>
+		  <if test="planArrTimeEnd != null and planArrTimeEnd != ''">
+		  	AND TRUNC(MJO.ARRIVE_TIME) <![CDATA[<=]]> TO_DATE(#{planArrTimeEnd},'yyyy-MM-dd')
+		  </if>
+		  <if test="realyArrTimeStart != null and realyArrTimeStart != ''">
+		  	AND TRUNC(MJOD.RECEIVE_DATE) <![CDATA[>=]]> TO_DATE(#{realyArrTimeStart},'yyyy-MM-dd')
+		  </if>
+		  <if test="realyArrTimeEnd != null and realyArrTimeEnd != ''">
+		  	AND TRUNC(MJOD.RECEIVE_DATE) <![CDATA[<=]]> TO_DATE(#{realyArrTimeEnd},'yyyy-MM-dd')
+		  </if>
+		UNION ALL
+			SELECT MJO.PURCHASE_ORDERNO purchaseNo,
+				   MJO.ORDER_NO orderNo,
+			       MJO.SUPPLIER_NO supplierNo,
+			       MJO.SUP_FACTORY supFactory,
+			       MJO.SUPPLIER_NAME supplierName,
+			       NULL supWareCode,
+			       MJO.ARR_DEPOT intoWareCode,
+			       MJOD.PART_NO partNo,
+			       MJOD.PART_SHORT_NO partShortNo,
+			       MJOD.PART_NAME partName,
+			       MPV.VIN vinNo,
+			       MJOD.REQUIRE_NUM orderQTY,
+			       TO_CHAR(TMP.PREPARE_PRODUCT_SEQNO) planPreTime,
+			       NULL realyPreTime,
+			       NULL preNum,
+			       NULL preStatus,
+			       CASE
+			         WHEN MJO.PREPARE_PRODUCT_SEQNO <![CDATA[<]]> MMK.PRODUCT_SEQNO THEN
+			          '0' 
+			         WHEN MJO.PREPARE_PRODUCT_SEQNO <![CDATA[>]]> MMK.PRODUCT_SEQNO THEN
+			          '1'
+			         WHEN MJO.PREPARE_PRODUCT_SEQNO <![CDATA[=]]> MMK.PRODUCT_SEQNO THEN
+			          '2'
+			         ELSE
+			          '3'
+			       END AS preOnTimeStatus,
+			       NULL planOutTime,
+			       TO_CHAR(MJO.DELIVERY_TIME,'yyyy-MM-dd hh24:mi:ss') realyOutTime,
+			       NULL outNum,
+			       NULL outStatus,
+			       CASE
+			         WHEN MJO.DELIVERY_PRODUCT_SEQNO <![CDATA[<]]> MMK.PRODUCT_SEQNO THEN
+			          '0'
+			         WHEN MJO.DELIVERY_PRODUCT_SEQNO <![CDATA[>]]> MMK.PRODUCT_SEQNO THEN
+			          '1'
+			         WHEN MJO.DELIVERY_PRODUCT_SEQNO <![CDATA[=]]> MMK.PRODUCT_SEQNO THEN
+			          '2'
+			         ELSE
+			          '3'
+			       END AS outOnTimeStatus,
+			       TO_CHAR(MJO.ARRIVE_TIME,'yyyy-mm-dd hh24:mi:ss') planArrTime,
+			       TO_CHAR(MJOD.RECEIVE_DATE,'yyyy-mm-dd hh24:mi:ss') realyArrTime,
+			       MJOD.ARRIVE_NUM arrNum,
+			       CASE
+			         WHEN NVL(MJOD.ARRIVE_STATUS, 0) = 0 THEN
+			          '0'
+			         WHEN MJOD.ARRIVE_STATUS = 1 THEN
+			          '1'
+			         WHEN MJOD.ARRIVE_STATUS = 2 AND MJOD.ARRIVE_COUNT <![CDATA[>]]> 1 THEN
+			          '2'
+			         WHEN MJOD.ARRIVE_STATUS = 2 AND MJOD.ARRIVE_COUNT <![CDATA[=]]> 1 THEN
+			          '3'
+			       END AS arrStatus,
+			       CASE
+			         WHEN (MJO.ARRIVE_PRODUCT_SEQNO <![CDATA[<]]> MJO.ACTUAL_ARR_PRODUCT_SEQNO) OR
+			         	  (MJO.ARRIVE_PRODUCT_SEQNO <![CDATA[<]]> MMK.PRODUCT_SEQNO) THEN
+			          '0'
+			         WHEN MJO.ARRIVE_PRODUCT_SEQNO <![CDATA[>]]> MJO.ACTUAL_ARR_PRODUCT_SEQNO THEN
+			          '2'
+			         WHEN (MJO.ARRIVE_PRODUCT_SEQNO <![CDATA[=]]> MJO.ACTUAL_ARR_PRODUCT_SEQNO) OR
+			         	  (MJO.ARRIVE_PRODUCT_SEQNO <![CDATA[=]]> MMK.PRODUCT_SEQNO) THEN
+			          '1'
+			         ELSE
+			          '3'
+			       END AS arrOntimeStatus,
+				   TO_CHAR(TMP.DELIVERY_PRODUCT_SEQNO) jitPlanArrTime,
+			       NULL jitActualArrTime			       
+			  FROM MM_JISO_ORDER MJO
+			  LEFT JOIN MM_JISO_ORDER_DETAIL MJOD
+			    ON MJO.ORDER_NO = MJOD.ORDER_NO
+			  LEFT JOIN MM_PUB_PLAN_CODE MPPC
+			    ON MPPC.PLAN_CODE = MJO.PLAN_CODE
+			    AND MPPC.FACTORY_CODE = #{factoryCode}
+			  LEFT JOIN MM_MON_KB MMK
+			    ON MPPC.KB_ID = MMK.ID
+			  LEFT JOIN MM_PUB_VEH_PASS MPV
+			    ON MPV.FACTORY_CODE = #{factoryCode}
+			   AND MPV.STATION_CODE = MPPC.STATION_CODE
+			   AND MPV.ORDER_NO = MJO.ORDER_NO
+			  LEFT JOIN (SELECT A.ORDER_NO,
+			                    PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(A.PLAN_CODE,
+			                                                          A.PREPARE_PRODUCT_SEQNO) PREPARE_PRODUCT_SEQNO,
+			                    PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(A.PLAN_CODE,
+			                                                          A.DELIVERY_PRODUCT_SEQNO) DELIVERY_PRODUCT_SEQNO,
+			                    PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(A.PLAN_CODE,
+			                                                          A.ARRIVE_PRODUCT_SEQNO) ARRIVE_PRODUCT_SEQNO,
+			                    PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(A.PLAN_CODE,
+			                                                          A.ARRIVE_PRODUCT_SEQNO) ACTUAL_ARRIVE_PRODUCT_SEQNO
+			               FROM MM_JISO_ORDER A) TMP
+			    ON MJO.ORDER_NO = TMP.ORDER_NO
+		WHERE 1 = 1 
+		<if test="orderNo != null and orderNo != ''">
+		  	AND MJO.ORDER_NO = #{orderNo}
+		  </if>
+		  <if test="purchaseNo != null and purchaseNo != ''">
+		  	AND MJO.PURCHASE_ORDERNO = #{purchaseNo}
+		  </if>
+		  <if test="partShortNo != null and partShortNo != ''">
+		  	AND MJOD.PART_SHORT_NO = #{partShortNo}
+		  </if>
+		  <if test="partNo != null and partNo != ''">
+		  	AND MJOD.PART_NO LIKE CONCAT(CONCAT('%',#{partNo}),'%')
+		  </if>
+		  <if test="supplierNo != null and supplierNo != ''">
+		  	AND MJO.SUPPLIER_NO = #{supplierNo}
+		  </if>
+		  <if test="supFactory != null and supFactory != ''">
+		  	AND MJO.SUP_FACTORY = #{supFactory}
+		  </if>
+		  <if test="supWareCode != null and supWareCode != ''">
+		  	AND 1 = 2
+		  </if>
+		  <choose>
+		  	<when test="orderType != null and orderType != '' and orderType == '04'">
+		  		AND 1 = 1
+		  	</when>
+		  	<when test="orderType != null and orderType != ''">
+		  		AND 1 = 2
+		  	</when>
+		  </choose>
+		  <if test="creationTimeStart != null and creationTimeStart != ''">
+		  	AND TRUNC(MJO.CREATION_TIME) <![CDATA[>=]]> TO_DATE(#{creationTimeStart},'yyyy-MM-dd')
+		  </if>
+		  <if test="creationTimeEnd != null and creationTimeEnd != ''">
+		  	AND TRUNC(MJO.CREATION_TIME) <![CDATA[<=]]> TO_DATE(#{creationTimeEnd},'yyyy-MM-dd')
+		  </if>
+		  <if test="planArrTimeStart != null and planArrTimeStart != ''">
+		  	AND TRUNC(MJO.ARRIVE_TIME) <![CDATA[>=]]> TO_DATE(#{planArrTimeStart},'yyyy-MM-dd')
+		  </if>
+		  <if test="planArrTimeEnd != null and planArrTimeEnd != ''">
+		  	AND TRUNC(MJO.ARRIVE_TIME) <![CDATA[<=]]> TO_DATE(#{planArrTimeEnd},'yyyy-MM-dd')
+		  </if>
+		  <if test="realyArrTimeStart != null and realyArrTimeStart != ''">
+		  	AND TRUNC(MJOD.RECEIVE_DATE) <![CDATA[>=]]> TO_DATE(#{realyArrTimeStart},'yyyy-MM-dd')
+		  </if>
+		  <if test="realyArrTimeEnd != null and realyArrTimeEnd != ''">
+		  	AND TRUNC(MJOD.RECEIVE_DATE) <![CDATA[<=]]> TO_DATE(#{realyArrTimeEnd},'yyyy-MM-dd')
+		  </if>
+		  <if test="vinNo != null and vinNo != ''">
+		  	AND MJO.ORDER_NO IN (
+		  		SELECT DISTINCT A.ORDER_NO
+				  FROM MM_JISO_INS A
+				 WHERE A.INS_NO IN (SELECT DISTINCT A.INS_NO
+				                      FROM MM_JISO_INS_DETAIL A
+				                     WHERE A.VIN LIKE CONCAT(CONCAT('%',#{vinNo}),'%'))
+						  	)
+		  </if>
+		 ) T
+		LEFT JOIN TEMP_DAIC_DATA TDD1
+		ON TDD1.CODE_TYPE = 'MON_ORDER_PRE_STATUS'
+		AND TDD1.CODE_VALUE = T.preStatus
+		LEFT JOIN TEMP_DAIC_DATA TDD2
+		ON TDD2.CODE_TYPE = 'MON_ORDER_DEL_STATUS'
+		AND TDD2.CODE_VALUE = T.outStatus
+		LEFT JOIN TEMP_DAIC_DATA TDD3
+		ON TDD3.CODE_TYPE = 'MON_ORDER_REC_STATUS'
+		AND TDD3.CODE_VALUE = T.arrStatus
+		LEFT JOIN TEMP_DAIC_DATA TDD4
+		ON TDD4.CODE_TYPE = 'MON_ORDER_ONTIME_STATUS'
+		AND TDD4.CODE_VALUE = T.preOnTimeStatus
+		LEFT JOIN TEMP_DAIC_DATA TDD5
+		ON TDD5.CODE_TYPE = 'MON_ORDER_ONTIME_STATUS'
+		AND TDD5.CODE_VALUE = T.outOnTimeStatus
+		LEFT JOIN TEMP_DAIC_DATA TDD6
+		ON TDD6.CODE_TYPE = 'MON_ORDER_ONTIME_STATUS'
+		AND TDD6.CODE_VALUE = T.arrOntimeStatus
+		WHERE 1 = 1
+		<choose>
+	  		<when test="opeType != null and opeType != '' and opeType == 0">
+	  			<if test="finishStatus != null and finishStatus != '' and finishStatus == 0">
+	  				AND preStatus IN ('0','1')
+	  			</if>
+	  			<if test="finishStatus != null and finishStatus != '' and finishStatus == 1">
+	  				AND preStatus = '1'
+	  			</if>
+	  			<if test="finishStatus != null and finishStatus != '' and finishStatus == 2">
+	  				AND preStatus IN ('2','3')
+	  			</if>
+	  			<if test="onTimeStatus != null and onTimeStatus != ''">
+	  				AND preOnTimeStatus = #{onTimeStatus}
+	  			</if>
+	  		</when>
+	  		<when test="opeType != null and opeType != '' and opeType == 1">
+	  			<if test="finishStatus != null and finishStatus != '' and finishStatus == 0">
+	  				AND preStatus IN ('0','1')
+	  			</if>
+	  			<if test="finishStatus != null and finishStatus != '' and finishStatus == 1">
+	  				AND preStatus = '1'
+	  			</if>
+	  			<if test="finishStatus != null and finishStatus != '' and finishStatus == 2">
+	  				AND preStatus IN ('2','3')
+	  			</if>
+	  			<if test="onTimeStatus != null and onTimeStatus != ''">
+	  				AND outOnTimeStatus = #{onTimeStatus}
+	  			</if>
+	  		</when>
+	  		<when test="opeType != null and opeType != '' and opeType == 2">
+	  			<if test="finishStatus != null and finishStatus != '' and finishStatus == 0">
+	  				AND arrStatus IN ('0','1')
+	  			</if>
+	  			<if test="finishStatus != null and finishStatus != '' and finishStatus == 1">
+	  				AND arrStatus = '1'
+	  			</if>
+	  			<if test="finishStatus != null and finishStatus != '' and finishStatus == 2">
+	  				AND arrStatus IN ('2','3')
+	  			</if>
+	  			<if test="onTimeStatus != null and onTimeStatus != ''">
+	  				AND outOnTimeStatus = #{onTimeStatus}
+	  			</if>
+	  		</when>
+	  		<otherwise>
+	  			<if test="finishStatus != null and finishStatus != '' and finishStatus == 0">
+	  				AND preStatus IN ('0','1') AND outStatus IN ('0','1') AND arrStatus IN ('0','1')
+	  			</if>
+	  			<if test="finishStatus != null and finishStatus != '' and finishStatus == 1">
+	  				AND preStatus = '1' AND outStatus = '1' AND arrStatus = '1'
+	  			</if>
+	  			<if test="finishStatus != null and finishStatus != '' and finishStatus == 2">
+	  				AND preStatus IN ('2','3') AND outStatus IN ('2','3') AND arrStatus IN ('2','3')
+	  			</if>
+	  			<if test="onTimeStatus != null and onTimeStatus != ''">
+	  				AND preOnTimeStatus = #{onTimeStatus} AND outOnTimeStatus = #{onTimeStatus} AND arrOnTimeStatus = #{onTimeStatus}
+	  			</if>
+	  		</otherwise>
+		  </choose>
+	</select>
+	
+	<select id="queryForOrderType" parameterType="java.lang.String" resultType="com.hanthink.base.model.DictVO">
+		SELECT MPP.CODE_VALUE valueKey,
+		       MPP.CODE_VALUE_NAME valueName
+		  FROM MM_PUB_DATA_DICT MPP
+		 WHERE MPP.CODE_TYPE = 'SW_ORDER_TYPE'
+		   AND MPP.OTHER_CODE_VALUE = '1'
+		   AND MPP.FACTORY_CODE = #{factoryCode}
+	</select>
+</mapper>

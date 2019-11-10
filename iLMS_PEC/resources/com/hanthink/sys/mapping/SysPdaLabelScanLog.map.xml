@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.sys.model.SysPdaLabelScanLogModel">
+		
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="querySysPdaLabelScanLogForPage" parameterType="com.hanthink.sys.model.SysPdaLabelScanLogModel" resultType="com.hanthink.sys.model.SysPdaLabelScanLogModel">
+	        SELECT A.FACTORY_CODE  factoryCode,
+		           A.BAR_CODE  barCode,
+		           A.ORDER_NO   orderNo,
+		           A.ROW_NO   rowNo,
+		           A.PART_NO   partNo,
+		           C.PART_NAME_CN   partNameCn,
+		           C.PART_SHORT_NO  partShortNo,
+		           A.QTY  qty,
+		           A.BAR_UUID   barUuid,
+		           A.TYPE  type,
+		           B.CODE_VALUE_NAME  codeValueNameA,
+		           A.SHELVE_ID   shelveId,
+		           A.DELIVER_NO   deliverNo,
+		           A.TORA_ID   toraId,
+		           A.CREATE_USER   createUser,
+		           TO_CHAR(A.CREATE_TIME, 'YYYY-MM-DD hh24:mi:ss')  createTimeStr,
+		           A.IP   ip,
+		           A.INS_NO    insNo
+		      FROM MM_PDA_LABEL_SCAN_LOG A
+		      LEFT JOIN MM_PUB_DATA_DICT B
+	          ON B.CODE_TYPE = 'PDA_OPT_TYPE'
+	          <!-- i-LMS2019061201 mod by 林卓  -->
+	          AND B.FACTORY_CODE = A.FACTORY_CODE
+	          AND B.CODE_VALUE = A.TYPE
+	          LEFT JOIN MM_PUB_PART_UDA C
+	          ON C.PART_NO = A.PART_NO AND C.FACTORY_CODE = A.FACTORY_CODE
+			 WHERE 1=1 
+			<if test="orderNo!=null and orderNo!='' ">
+				AND	A.ORDER_NO LIKE CONCAT(#{orderNo}, '%')
+			</if>
+			<if test="partNo!=null and partNo!='' ">
+				AND	A.PART_NO LIKE CONCAT(#{partNo}, '%')
+			</if>
+			<if test="partShortNo!=null and partShortNo!='' ">
+				AND	C.PART_SHORT_NO LIKE CONCAT(#{partShortNo}, '%')
+			</if>
+			<if test="createUser!=null and createUser!='' ">
+				AND	A.CREATE_USER LIKE CONCAT(#{createUser}, '%')
+			</if>
+			<if test="createTimeStrStart != null and createTimeStrStart != ''">
+			<![CDATA[ AND A.CREATE_TIME >= TO_DATE(#{createTimeStrStart},'yyyy-MM-dd hh24:mi:ss') ]]>
+			</if>
+	        <if test="createTimeStrEnd != null and createTimeStrEnd != ''">
+	        <![CDATA[ AND A.CREATE_TIME <= TO_DATE(#{createTimeStrEnd},'yyyy-MM-dd hh24:mi:ss') ]]>
+	        </if>
+			    AND A.FACTORY_CODE = #{factoryCode}
+	</select>
+	
+</mapper>

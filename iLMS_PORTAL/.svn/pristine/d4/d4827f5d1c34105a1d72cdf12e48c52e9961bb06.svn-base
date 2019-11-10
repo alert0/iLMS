@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.sys.persistence.model.DataDict">
+	<resultMap id="DataDict" type="com.hotent.sys.persistence.model.DataDict">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="typeId" column="type_id_" jdbcType="VARCHAR"/>
+		<result property="key" column="key_" jdbcType="VARCHAR"/>
+		<result property="name" column="name_" jdbcType="VARCHAR"/>
+		<result property="parentId" column="parent_id_" jdbcType="VARCHAR"/>
+		<result property="sn" column="sn_" jdbcType="NUMERIC"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.sys.persistence.model.DataDict">
+		INSERT INTO sys_dic
+		(id_,type_id_,key_,name_,parent_id_,sn_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{typeId,jdbcType=VARCHAR}, #{key,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR}, #{parentId,jdbcType=VARCHAR},#{sn,jdbcType=NUMERIC})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="DataDict">
+		SELECT * FROM sys_dic 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="DataDict">
+		SELECT * FROM sys_dic
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+	</select>
+	
+	<select id="getByTypeId" parameterType="java.util.Map" resultMap="DataDict">
+		SELECT * FROM sys_dic
+		WHERE type_id_  = #{typeId} ORDER BY SN_
+	</select>
+	
+	<select id="getInfoByTypeId" parameterType="java.util.Map" resultMap="DataDict">
+		SELECT * FROM MM_PUB_DATA_DICT
+		WHERE type_id_  = #{typeId} ORDER BY SN_
+	</select>
+	
+	<!-- sys_dict字典表 -->
+	<select id="getByDictKey" parameterType="java.util.Map" resultMap="DataDict">
+		SELECT * FROM sys_dic
+		WHERE type_id_  = #{typeId} AND key_ = #{key}
+	</select>
+	<!-- MM_PUB_DATA_DICT字典表 -->
+	<select id="getInfoByDictKey" parameterType="java.util.Map" resultMap="DataDict">
+		SELECT * FROM MM_PUB_DATA_DICT
+		WHERE type_id_  = #{typeId} AND key_ = #{key}
+	</select>
+	
+	<select id="getByParentId" parameterType="java.lang.String" resultMap="DataDict">
+		SELECT * FROM sys_dic
+		WHERE parent_id_ = #{parentId} ORDER BY SN_
+	</select>
+	
+	<update id="update" parameterType="com.hotent.sys.persistence.model.DataDict">
+		UPDATE sys_dic SET
+		type_id_=#{typeId,jdbcType=VARCHAR},
+		key_=#{key,jdbcType=VARCHAR},
+		name_=#{name,jdbcType=VARCHAR},
+		parent_id_=#{parentId,jdbcType=VARCHAR},
+		sn_ = #{sn,jdbcType=NUMERIC}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<update id="updSn" parameterType="Map">
+		update sys_dic set sn_=#{sn} 
+		WHERE
+		id_=#{dicId}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_dic 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	<delete id="delByDictTypeId" parameterType="java.lang.String">
+		DELETE FROM sys_dic 
+		WHERE
+		type_id_ = #{dictTypeId}
+	</delete>
+	
+	
+</mapper>

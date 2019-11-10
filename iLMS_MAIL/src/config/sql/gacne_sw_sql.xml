@@ -1,0 +1,412 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="gacne_sw">
+
+    <typeAlias alias="NoticeOverTimeData" type="com.hanthink.gps.gacne.sw.vo.NoticeOverTimeData"/>
+    <typeAlias alias="PickupPlanVo" type="com.hanthink.gps.gacne.sw.vo.PickupPlanVo"/>
+    <typeAlias alias="ZCOrderVO" type="com.hanthink.gps.gacne.sw.vo.ZCOrderVO"/>		
+	<typeAlias alias="LongOrderVo" type="com.hanthink.gps.gacne.sw.vo.LongOrderVo"/>
+	<typeAlias alias="map" type="java.util.Map" />
+	
+	<!-- 查询资材已取消订单 (10min) -->
+    <select id="select_queryZCOrderCancle" parameterClass="ZCOrderVO" resultClass="ZCOrderVO">
+    	SELECT T.SUPPLIER_NO  supplierNo,
+             T.PURCHASE_NO  purchaseNo,
+             U.FULLNAME_    fullName,
+             U.EMAIL_       email,
+             DE.IMPORT_NAME importName,
+             DE.IMPORT_MAIL importMail,
+             DE.PT_NAME     ptName,
+             DE.PT_MAIL     ptMail,
+             DE.PT_NAME_A   ptNameA,
+             DE.PT_MAIL_A   ptMailA,
+             DE.MASS_NAME   massName,
+             DE.MASS_MAIL_A massMailA,
+             DE.MASS_MAIL   massMail
+        FROM MM_SW_ORDER T
+       INNER JOIN MM_SW_ORDER_DETAIL D
+          ON D.PURCHASE_NO = T.PURCHASE_NO
+       LEFT JOIN MM_PUB_SUPPLIER_DETAIL DE
+            ON DE.SUPPLIER_NO = T.SUPPLIER_NO
+       LEFT JOIN SYS_USER U ON U.SUPPLIER_NO = T.SUPPLIER_NO
+       WHERE T.ORDER_TYPE = '14' 
+       AND D.CANCEL_NUM = D.ORDER_QTY
+       AND D.LAST_MODIFIED_TIME > SYSDATE - 10/1440
+    </select>	
+    
+    <!-- 更新资材订单邮件发送状态 -->
+    <update id="updateEmailSendStatus" parameterClass="ZCOrderVO">
+    UPDATE MM_SW_ORDER T
+		   SET T.EMAIL_FLAG = '1'
+		 WHERE T.SUPPLIER_NO = #supplierNo# AND T.EMAIL_FLAG = '0'
+    <!--
+    	UPDATE MM_SW_ORDER T
+		   SET T.EMAIL_FLAG = '1'
+		 WHERE T.PURCHASE_NO = #purchaseNo#
+    -->
+    </update>
+    
+    <!-- 资材订单邮件提醒(有新订单,提醒供应商到共享平台查看) --> 	
+    <select id="select_queryZCOrder" parameterClass="ZCOrderVO" resultClass="ZCOrderVO">
+    	SELECT T.SUPPLIER_NO  supplierNo,
+	           T.PURCHASE_NO  purchaseNo,
+	           U.FULLNAME_    fullName,
+	           U.EMAIL_       email,
+	           DE.IMPORT_NAME importName,
+	           DE.IMPORT_MAIL importMail,
+	           DE.PT_NAME     ptName,
+	           DE.PT_MAIL     ptMail,
+	           DE.PT_NAME_A   ptNameA,
+	           DE.PT_MAIL_A   ptMailA,
+	           DE.MASS_NAME   massName,
+	           DE.MASS_MAIL_A massMailA,
+	           DE.MASS_MAIL   massMail
+	      FROM MM_SW_ORDER T
+	     INNER JOIN MM_SW_ORDER_DETAIL D
+	        ON D.PURCHASE_NO = T.PURCHASE_NO
+	     LEFT JOIN MM_PUB_SUPPLIER_DETAIL DE
+	          ON DE.SUPPLIER_NO = T.SUPPLIER_NO
+	     LEFT JOIN SYS_USER U ON U.SUPPLIER_NO = T.SUPPLIER_NO
+	     WHERE T.ORDER_TYPE = '14'  
+	     AND T.CREATION_TIME > SYSDATE - 60/1440	
+	     AND T.EMAIL_FLAG = '0'
+	</select>
+	
+	<!-- 查询未查看公告的发布者信息 -->
+	<select id="select_queryPickupPlanInfo" parameterClass="java.lang.String" resultClass="PickupPlanVo">
+		SELECT DISTINCT T.CREATION_USER account,
+               TO_CHAR(SYSDATE, 'YYYY-MM-DD HH24:MI') time,
+                        U.FULLNAME_ planUser,
+                        U.EMAIL_ mail
+                   FROM MM_SW_PICKUP_PLAN T
+              LEFT JOIN SYS_USER U
+                     ON T.CREATION_USER = U.ACCOUNT_
+ 				  WHERE (T.FEEDBACK_STATUS = 0 OR T.DOWNLOAD_STATUS = 0)
+                    AND T.PLAN_ARR_TIME > SYSDATE
+	</select>
+	
+	<!-- 查询未查看公告的发布者信息 -->
+	<select id="select_queryPickupPlanNum" parameterClass="java.lang.String" resultClass="PickupPlanVo">
+		SELECT COUNT(1) planNum
+                   FROM MM_SW_PICKUP_PLAN T
+              LEFT JOIN SYS_USER U
+                     ON T.CREATION_USER = U.ACCOUNT_
+ 				  WHERE (T.FEEDBACK_STATUS = 0 OR T.DOWNLOAD_STATUS = 0)
+                    AND T.PLAN_ARR_TIME > SYSDATE
+                    <isNotEmpty prepend="AND" property="value">
+			    		T.CREATION_USER = #value#
+					</isNotEmpty>
+	</select>
+	
+	<!-- 查询未查看公告的发布者信息 -->
+	<select id="select_queryUserNoticeInfo" parameterClass="java.lang.String" resultClass="NoticeOverTimeData">
+		SELECT 
+		       (SELECT COUNT(*) FROM MM_SW_NOTICE_VIEW V WHERE V.NOTICE_ID = T.NOTICE_ID AND V.VIEW_STATUS = 2) viewNum,
+		       U.FULLNAME_ noticeUser,
+		       T.NOTICE_TITLE noticeName,
+		       U.EMAIL_ mail,
+		       TO_CHAR(T.PUBLISH_TIME, 'YYYY-MM-DD') noticeTime
+		FROM MM_SW_NOTICE T
+		LEFT JOIN SYS_USER U ON U.ACCOUNT_ = T.PUBLISH_USER
+		WHERE T.PUBLISH_TIME &lt; (SYSDATE - T.FEEDBACK_DAY)
+		AND T.NOTICE_STATUS = 1
+		AND T.IS_FEEDBACK = 1
+	<!--
+	  	  SELECT DISTINCT V.FULLNAME_ noticeUser,
+                 T.NOTICE_ID noticeId,
+                 T.NOTICE_TITLE noticeName,
+                 V.EMAIL_ mail,
+                 TO_CHAR(T.PUBLISH_TIME, 'YYYY-MM-DD') noticeTime
+            FROM MM_SW_NOTICE T
+       LEFT JOIN SYS_USER V
+              ON T.PUBLISH_USER = V.ACCOUNT_
+           WHERE T.FEEDBACK_STATUS = 0
+             AND T.PUBLISH_TIME &lt; (SYSDATE - T.FEEDBACK_DAY)
+             AND T.NOTICE_STATUS = 1
+             AND T.IS_FEEDBACK = 1
+	-->
+	</select>
+	
+	<!-- 查询未发送邮件的公告 -->
+	<select id="getNocitcList" parameterClass="NoticeOverTimeData" resultClass="NoticeOverTimeData">
+	select a.publish_user	publishUser,
+	a.notice_id 			noticeId,
+	u.email_ 				publishtEmail,
+	a.notice_title          noticeName
+	from mm_sw_notice a 
+	left join sys_user u 
+	on a.publish_user = u.account_ 
+	where a.is_send_mail = 0 
+
+	</select>
+	
+	<!-- 查询已发布公告 -->
+	<select id="select_queryNotice" parameterClass="NoticeOverTimeData" resultClass="NoticeOverTimeData">
+	    
+	    SELECT 
+        T.NOTICE_ID noticeId,
+        T.PUBLISH_USER publishUser,
+        US.EMAIL_      publishtEmail,
+        T.NOTICE_TITLE noticeName,
+        nvl(S.SUPPLIER_NAME, U.FULLNAME_) noticeUser,
+        nvl(S.EMAIL, U.EMAIL_) mail,
+        U.ACCOUNT_,
+        SUBSTR(U.ACCOUNT_,0,5),
+        SUBSTR(U.ACCOUNT_,6,6),
+        DE.IMPORT_MAIL  	importMail,
+        DE.IMPORT_MAIL_A	importMailA,
+        DE.PT_MAIL      	PtMail,
+        DE.PT_MAIL_A		PtMailA,
+        DE.MASS_MAIL		massMail,
+        DE.MASS_MAIL_A		massMailA,
+        DE.EXCEP_MAIL_A		excepMailA,
+        DE.EXCEP_MAIL_B		excepMailB,
+        DE.DEVICE_MAIL		deviceMail,
+        DE.DEVICE_MAIL_A	deviceMailA,
+        DE.PACK_MAIL_A		packMailA,
+        DE.PACK_MAIL_B		packMailB,
+        DE.PT_LOGISTICS_MAIL	PtLogisticsMail,
+        DE.PT_LOGISTICS_MAIL_A	PtLogisticsMailA,
+        DE.MASS_LOGISTICS_MAIL	massLogisticeMail,
+        DE.MASS_LOGISTICS_MAIL_A	massLogisticeMailA
+      FROM MM_SW_NOTICE T
+      LEFT JOIN MM_SW_NOTICE_VIEW V ON V.NOTICE_ID = T.NOTICE_ID
+      LEFT JOIN SYS_USER U ON U.ACCOUNT_ = V.SUPPLIER_NO
+      LEFT JOIN MM_PUB_SUPPLIER S ON S.SUPPLIER_NO = V.SUPPLIER_NO
+      LEFT JOIN MM_PUB_SUPPLIER_DETAIL DE ON DE.SUPPLIER_NO = SUBSTR(U.ACCOUNT_,0,5)
+        AND DE.SUP_FACTORY = SUBSTR(U.ACCOUNT_,6,6)
+      LEFT JOIN SYS_USER US ON T.PUBLISH_USER = US.ACCOUNT_
+      WHERE T.NOTICE_STATUS = 1
+      AND T.IS_SEND_MAIL = 0 
+	</select>
+	
+	<!-- 更新公告发送状态 -->
+	<update id="update_updateMailSendStatus" parameterClass="NoticeOverTimeData">
+		UPDATE MM_SW_NOTICE T
+			SET T.IS_SEND_MAIL = 1 
+		WHERE T.IS_SEND_MAIL = 0 AND T.NOTICE_ID = #noticeId#
+	</update>
+	
+	<!--  长周期、周预测、月预测反馈NG提醒*****************************************************************************************-->
+	<!-- 长周期 -->
+	<select id="getLongOrderSupplier" parameterClass="map" resultClass="LongOrderVo">
+		SELECT A.SUPPLIER_NO supplierNo,
+	       B.SUPPLIER_NAME   supplierName
+	  FROM MM_SW_LONG_ORDER_DETAIL A
+	  LEFT JOIN MM_PUB_SUPPLIER B
+	    ON A.SUPPLIER_NO = B.SUPPLIER_NO
+	 WHERE A.EMAIL_FLAG = 0
+	   AND A.FEEDBACK_STATUS = 1
+	</select>
+	
+	<update id="updateEmailFlag" parameterClass="map">
+	UPDATE MM_SW_LONG_ORDER_DETAIL A SET A.EMAIL_FLAG = 1 
+	WHERE A.FEEDBACK_STATUS = 1 AND A.EMAIL_FLAG = 0
+	</update>
+	
+	<!-- 周预测 -->
+	<select id="getWeekForecasetSupplier" parameterClass="map" resultClass="LongOrderVo">
+	SELECT A.SUPPLIER_NO supplierNo,
+         B.SUPPLIER_NAME   supplierName
+    FROM MM_SW_DEMAND_FORECAST A
+    LEFT JOIN MM_PUB_SUPPLIER B
+      ON A.SUPPLIER_NO = B.SUPPLIER_NO
+   WHERE A.FORE_TYPE = 2
+     AND A.EMAIL_FLAG = 0
+     AND A.FEEDBACK_STATUS = 1
+	</select>
+	
+	<update id="updateWeekEmailFlag" parameterClass="map">
+	UPDATE MM_SW_DEMAND_FORECAST A SET A.EMAIL_FLAG = 1 
+  WHERE A.FEEDBACK_STATUS = 1 AND A.EMAIL_FLAG = 0 AND A.FORE_TYPE = 2 
+	</update>
+	
+	<!-- 月预测 -->
+	<select id="getMonthForecasetSupplier" parameterClass="map" resultClass="LongOrderVo">
+		SELECT A.SUPPLIER_NO supplierNo,
+         B.SUPPLIER_NAME   supplierName
+    FROM MM_SW_DEMAND_FORECAST A
+    LEFT JOIN MM_PUB_SUPPLIER B
+      ON A.SUPPLIER_NO = B.SUPPLIER_NO
+   WHERE  A.FORE_TYPE = 1
+     AND A.EMAIL_FLAG = 0
+     AND A.FEEDBACK_STATUS = 1
+	</select>
+	
+	<update id="updateMonthEmailFlag" parameterClass="map">
+	UPDATE MM_SW_DEMAND_FORECAST A SET A.EMAIL_FLAG = 1 
+	WHERE A.FEEDBACK_STATUS = 1 AND A.EMAIL_FLAG = 0 AND A.FORE_TYPE = 1
+	</update>
+	
+	<!--  例外订单、售后订单、定制化订单有新零件过来提醒供应商****************************************-->
+	<!--  例外订单有新零件提醒对应的供应商-->
+	<select id="getExcepOrderSupplier" resultClass="LongOrderVo">
+	<!-- SELECT COUNT(*) count FROM MM_SW_ORDER A WHERE A.ORDER_TYPE = '02' AND A.EMAIL_FLAG = 0 AND A.ZG_FLAG = 0; -->
+	
+		SELECT COUNT(*)         count,
+		       A.SUPPLIER_NO    supplierNo,
+		       DE.IMPORT_MAIL   importMail,
+		       DE.IMPORT_MAIL_A importMailA,
+		       DE.PT_MAIL       PtMail,
+		       DE.PT_MAIL_A     PtMailA,
+		       DE.MASS_MAIL     massMail,
+		       DE.MASS_MAIL_A   massMailA,
+		       DE.EXCEP_MAIL_A  excepMailA,
+		       DE.EXCEP_MAIL_B  excepMailB,
+		       DE.DEVICE_MAIL   deviceMail,
+		       DE.DEVICE_MAIL_A deviceMailA,
+		       DE.PACK_MAIL_A   packMailA,
+		       DE.PACK_MAIL_B   packMailB,
+		       DE.PT_LOGISTICS_MAIL   PtLogisticsMail,
+		       DE.PT_LOGISTICS_MAIL_A PtLogisticsMailA,
+		       DE.MASS_LOGISTICS_MAIL massLogisticeMail,
+		       DE.MASS_LOGISTICS_MAIL_A massLogisticeMailA,
+		       U.EMAIL_                 mail
+		  FROM MM_SW_ORDER A
+		  LEFT JOIN SYS_USER U
+        	ON A.SUPPLIER_NO = U.SUPPLIER_NO
+        	AND substr(U.ACCOUNT_,6,6) = A.SUP_FACTORY
+		  LEFT JOIN MM_PUB_SUPPLIER_DETAIL DE
+		    ON A.SUPPLIER_NO = DE.SUPPLIER_NO
+		    AND A.SUP_FACTORY = DE.SUP_FACTORY
+		 WHERE A.ORDER_TYPE = '02'
+		   AND A.EMAIL_FLAG = 0
+		 GROUP BY A.SUPPLIER_NO,
+		          DE.IMPORT_MAIL,
+		          DE.IMPORT_MAIL_A,
+		          DE.PT_MAIL,
+		          DE.PT_MAIL_A,
+		          DE.MASS_MAIL,
+		          DE.MASS_MAIL_A,
+		          DE.EXCEP_MAIL_A,
+		          DE.EXCEP_MAIL_B,
+		          DE.DEVICE_MAIL,
+		          DE.DEVICE_MAIL_A,
+		          DE.PACK_MAIL_A,
+		          DE.PACK_MAIL_B,
+		          DE.PT_LOGISTICS_MAIL,
+		          DE.PT_LOGISTICS_MAIL_A,
+		          DE.MASS_LOGISTICS_MAIL,
+		          DE.MASS_LOGISTICS_MAIL_A,
+		          U.EMAIL_
+	</select>
+	
+	<update id="updateExcepOrderMail" parameterClass="map">
+	UPDATE MM_SW_ORDER A SET A.EMAIL_FLAG = 1 WHERE A.ORDER_TYPE = '02' AND A.EMAIL_FLAG = 0 
+	</update>
+	
+	<!--  售后订单有新零件提醒对应的供应商-->
+	<select id="getAfterOrderSupplier" resultClass="LongOrderVo">
+	<!-- SELECT COUNT(*) count FROM MM_SW_ORDER A WHERE A.ORDER_TYPE = '12' AND A.EMAIL_FLAG = 0 AND A.ZG_FLAG = 0 -->
+	
+	SELECT 	   COUNT(*)         count,
+		       A.SUPPLIER_NO    supplierNo,
+		       DE.IMPORT_MAIL   importMail,
+		       DE.IMPORT_MAIL_A importMailA,
+		       DE.PT_MAIL       PtMail,
+		       DE.PT_MAIL_A     PtMailA,
+		       DE.MASS_MAIL     massMail,
+		       DE.MASS_MAIL_A   massMailA,
+		       DE.EXCEP_MAIL_A  excepMailA,
+		       DE.EXCEP_MAIL_B  excepMailB,
+		       DE.DEVICE_MAIL   deviceMail,
+		       DE.DEVICE_MAIL_A deviceMailA,
+		       DE.PACK_MAIL_A   packMailA,
+		       DE.PACK_MAIL_B   packMailB,
+		       DE.PT_LOGISTICS_MAIL   PtLogisticsMail,
+		       DE.PT_LOGISTICS_MAIL_A PtLogisticsMailA,
+		       DE.MASS_LOGISTICS_MAIL massLogisticeMail,
+		       DE.MASS_LOGISTICS_MAIL_A massLogisticeMailA,
+		       U.EMAIL_                 mail
+		  FROM MM_SW_ORDER A
+		  LEFT JOIN SYS_USER U
+        	ON A.SUPPLIER_NO = U.SUPPLIER_NO
+        	AND substr(U.ACCOUNT_,6,6) = A.SUP_FACTORY
+		  LEFT JOIN MM_PUB_SUPPLIER_DETAIL DE
+		    ON A.SUPPLIER_NO = DE.SUPPLIER_NO
+		    AND A.SUP_FACTORY = DE.SUP_FACTORY
+		 WHERE A.ORDER_TYPE = '12'
+		   AND A.EMAIL_FLAG = 0
+		 GROUP BY A.SUPPLIER_NO,
+		          DE.IMPORT_MAIL,
+		          DE.IMPORT_MAIL_A,
+		          DE.PT_MAIL,
+		          DE.PT_MAIL_A,
+		          DE.MASS_MAIL,
+		          DE.MASS_MAIL_A,
+		          DE.EXCEP_MAIL_A,
+		          DE.EXCEP_MAIL_B,
+		          DE.DEVICE_MAIL,
+		          DE.DEVICE_MAIL_A,
+		          DE.PACK_MAIL_A,
+		          DE.PACK_MAIL_B,
+		          DE.PT_LOGISTICS_MAIL,
+		          DE.PT_LOGISTICS_MAIL_A,
+		          DE.MASS_LOGISTICS_MAIL,
+		          DE.MASS_LOGISTICS_MAIL_A,
+		          U.EMAIL_
+	</select>
+	
+	<update id="updateAfterOrderMail" parameterClass="map">
+	UPDATE MM_SW_ORDER A SET A.EMAIL_FLAG = 1 WHERE A.ORDER_TYPE = '12' AND A.EMAIL_FLAG = 0 
+	</update>
+	
+	<!--  定制化订单新零件提醒供应商-->
+	<select id="getNonOrderSupplier" resultClass="LongOrderVo">
+		SELECT COUNT(*)         count,
+	           A.SUPPLIER_NO    supplierNo,
+	           DE.IMPORT_MAIL   importMail,
+	           DE.IMPORT_MAIL_A importMailA,
+	           DE.PT_MAIL       PtMail,
+	           DE.PT_MAIL_A     PtMailA,
+	           DE.MASS_MAIL     massMail,
+	           DE.MASS_MAIL_A   massMailA,
+	           DE.EXCEP_MAIL_A  excepMailA,
+	           DE.EXCEP_MAIL_B  excepMailB,
+	           DE.DEVICE_MAIL   deviceMail,
+	           DE.DEVICE_MAIL_A deviceMailA,
+	           DE.PACK_MAIL_A   packMailA,
+	           DE.PACK_MAIL_B   packMailB,
+	           DE.PT_LOGISTICS_MAIL   PtLogisticsMail,
+	           DE.PT_LOGISTICS_MAIL_A PtLogisticsMailA,
+	           DE.MASS_LOGISTICS_MAIL massLogisticeMail,
+	           DE.MASS_LOGISTICS_MAIL_A massLogisticeMailA,
+	           U.EMAIL_                 mail
+	      FROM MM_SW_NON_STANDARD A
+	      LEFT JOIN MM_PUB_PART_UDA UDA
+            ON A.PART_NO = UDA.PART_NO
+            AND UDA.FACTORY_CODE = '2000'
+	      LEFT JOIN SYS_USER U
+	          ON A.SUPPLIER_NO = U.SUPPLIER_NO
+	          AND substr(U.ACCOUNT_,6,6) = UDA.SUP_FACTORY
+	      LEFT JOIN MM_PUB_SUPPLIER_DETAIL DE
+	        ON A.SUPPLIER_NO = DE.SUPPLIER_NO
+	        AND UDA.SUP_FACTORY = DE.SUP_FACTORY
+	     WHERE A.EMAIL_FLAG = 0
+	     GROUP BY A.SUPPLIER_NO,
+	              DE.IMPORT_MAIL,
+	              DE.IMPORT_MAIL_A,
+	              DE.PT_MAIL,
+	              DE.PT_MAIL_A,
+	              DE.MASS_MAIL,
+	              DE.MASS_MAIL_A,
+	              DE.EXCEP_MAIL_A,
+	              DE.EXCEP_MAIL_B,
+	              DE.DEVICE_MAIL,
+	              DE.DEVICE_MAIL_A,
+	              DE.PACK_MAIL_A,
+	              DE.PACK_MAIL_B,
+	              DE.PT_LOGISTICS_MAIL,
+	              DE.PT_LOGISTICS_MAIL_A,
+	              DE.MASS_LOGISTICS_MAIL,
+	              DE.MASS_LOGISTICS_MAIL_A,
+	              U.EMAIL_
+	</select>
+	
+	<update id="gacne_sw.updateNonOrderMail" parameterClass="map">
+		 UPDATE MM_SW_NON_STANDARD A SET A.EMAIL_FLAG = 1 WHERE A.EMAIL_FLAG = 0
+	</update>
+</sqlMap>
+
+

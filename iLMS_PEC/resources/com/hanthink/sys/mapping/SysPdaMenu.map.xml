@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.sys.model.SysPdaMenuModel">
+		
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="querySysPdaMenuForPage" parameterType="com.hanthink.sys.model.SysPdaMenuModel" resultType="com.hanthink.sys.model.SysPdaMenuModel">
+					SELECT A.USER_ID   userId,
+					       A.USER_NAME  userName,
+					       A.USER_PWD   userPwd,
+					       A.FACTORY_CODE  factoryCode
+					 FROM MM_PDA_USER A
+                     WHERE 1=1
+                     <if test="opeUser != 'admin' ">
+						AND A.USER_ID NOT IN (
+						  SELECT B.VALUE_CODE 
+						  FROM VIEW_SYS_USER_DATA_PERM  B
+			              WHERE B.USER_ID =  #{opeUser}
+			              AND  B.TYPE_CODE = 'PDA_SYS'
+			            ) 			
+					</if>
+					<if test="userId!=null and userId!='' ">
+					AND	A.USER_ID LIKE CONCAT(#{userId}, '%')
+					</if>
+					<if test="userName!= null and userName!= ''">
+					AND	A.USER_NAME LIKE CONCAT(#{userName}, '%')
+					</if>
+					AND A.FACTORY_CODE = #{factoryCode}
+	</select>
+	
+	<!-- 查询已配置菜单信息 -->
+	<select id="getRowClick" parameterType="java.util.Map" 
+	    resultType="com.hanthink.sys.model.SysPdaMenuModel">
+					 SELECT M.MENU_DESC menuDesc,
+                            M.MENU_ID menuId
+                       FROM MM_PDA_MENU M
+                      WHERE M.MENU_ID
+                        IN 
+                      (SELECT A.MENU_ID
+                       FROM MM_PDA_USER_MENU A
+                       LEFT JOIN MM_PDA_USER B
+                              ON A.USER_ID = B.USER_ID
+					   WHERE  B.USER_NAME = #{userName}
+					   )
+	</select>
+	
+	<!-- 根据用户ID查询该用户待添加的PDA菜单权限信息 -->
+	<select id="queryAddPdaMenuByUserName" parameterType="java.util.Map" 
+	    resultType="com.hanthink.sys.model.SysPdaMenuModel">
+			  SELECT M.MENU_DESC menuDesc,
+                     M.MENU_ID menuId
+                FROM MM_PDA_MENU M
+               WHERE M.MENU_ID
+               NOT  IN 
+               (SELECT A.MENU_ID
+                FROM MM_PDA_USER_MENU A
+                LEFT JOIN MM_PDA_USER B
+                       ON A.USER_ID = B.USER_ID
+               <if test="userName!= null and userName!= ''">
+				 WHERE  B.USER_NAME = #{userName}
+			   </if>
+				 ) 
+			   <if test="menuDesc!= null and menuDesc!= ''">
+				AND M.MENU_DESC = #{menuDesc}
+			   </if>
+	</select>
+	
+	<!-- 添加用户的PDA菜单权限信息 -->
+	<insert id="addPdaMenu" parameterType="com.hanthink.sys.model.SysPdaMenuModel">
+		INSERT INTO MM_PDA_USER_MENU 
+		(USER_ID, MENU_ID, CREATION_TIME)
+		VALUES 
+		(#{userId,jdbcType=VARCHAR}, #{menuId,jdbcType=NUMERIC}, sysdate)
+	</insert>
+	
+	<!-- 删除用户的PDA菜单权限信息 -->
+	<delete id="deletePdaMenu" parameterType="com.hanthink.sys.model.SysPdaMenuModel">
+		DELETE FROM MM_PDA_USER_MENU 
+		WHERE USER_ID = #{userId,jdbcType=VARCHAR} 
+		  AND MENU_ID = #{menuId,jdbcType=NUMERIC}
+	</delete>
+	
+	
+</mapper>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html ng-app="mobileDirective">
+<head>
+<title>X5手机平台</title>
+<meta charset="utf-8">
+<script src="../assets/js/importJs.js"></script>
+</head>
+<body list-load="/mobile/bpm/getMyDraft" >
+<div class="page">
+<header class="bar bar-nav">
+  <a class="icon icon-left pull-left back"></a> 
+  <a class="icon icon-home pull-right" href="../index.html" external></a>
+  <span class='title'>我的草稿</span>
+</header>
+  <div class="content pull-to-refresh-content infinite-scroll">
+  	 <div class="pull-to-refresh-layer">
+        <div class="preloader"></div>
+        <div class="pull-to-refresh-arrow"></div>
+    </div>
+  	
+      <div class="card" ng-repeat="instance in dataList">
+      		<div class="card-header">
+      			<div class="item-title">{{instance.procDefName}}</div>
+          		<div flow-status="instance.status"></div>
+      		</div>
+      		<div class="card-header">
+         		<a class="item-text" ng-bind-html="instance.subject" href="startFlow.html?runId={{instance.id}}&defId={{instance.procDefId}}" external></a>
+      		</div>
+          	<div class="card-footer">
+          		<div class="item-title">创建日期：{{instance.createTime |date:'yyyy-MM-dd HH:mm:ss'}}</div>
+          	</div>
+      </div>
+       <div ng-if="dataList.length==0" class="content-block-title">未查到任何数据 </div>
+  </div>
+</div>
+</body>
+</html>

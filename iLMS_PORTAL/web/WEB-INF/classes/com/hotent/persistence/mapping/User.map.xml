@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.org.persistence.model.User">
+	<resultMap id="User" type="com.hotent.org.persistence.model.User">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="fullname" column="fullname_" jdbcType="VARCHAR"/>
+		<result property="account" column="account_" jdbcType="VARCHAR"/>
+		<result property="password" column="password_" jdbcType="VARCHAR"/>
+		<result property="email" column="email_" jdbcType="VARCHAR"/>
+		<result property="mobile" column="mobile_" jdbcType="VARCHAR"/>
+		<result property="weixin" column="weixin_" jdbcType="VARCHAR"/>
+		<result property="createTime" column="create_time_" jdbcType="TIMESTAMP"/>
+		<result property="address" column="address_" jdbcType="VARCHAR"/>
+		<result property="photo" column="photo_" jdbcType="VARCHAR"/>
+		<result property="sex" column="sex_" jdbcType="VARCHAR"/>
+		<result property="from" column="from_" jdbcType="VARCHAR"/>
+		<result property="status" column="status_" jdbcType="NUMERIC"/>
+		<result property="hasSyncToWx" column="has_sync_to_wx_" jdbcType="NUMERIC"/>
+		<result property="openId" column="open_id_" jdbcType="VARCHAR"/>
+		<result property="signNameFileId" column="sign_name_fileid" jdbcType="VARCHAR"/>
+		<result property="userType" column="USER_TYPE" jdbcType="NUMERIC"/>
+		<result property="supplierNo" column="SUPPLIER_NO" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<resultMap extends="User" id="SysUser" type="com.hotent.org.persistence.model.SysUser" ></resultMap>
+	
+	<insert id="create" parameterType="com.hotent.org.persistence.model.User">
+		INSERT INTO sys_user
+		(id_,fullname_,account_,password_,email_,mobile_,weixin_,create_time_,address_,photo_,sex_,from_,status_,has_sync_to_wx_,open_id_,sign_name_fileid,USER_TYPE,SUPPLIER_NO)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{fullname,jdbcType=VARCHAR}, #{account,jdbcType=VARCHAR}, #{password,jdbcType=VARCHAR}, #{email,jdbcType=VARCHAR}, #{mobile,jdbcType=VARCHAR}, #{weixin,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP}, #{address,jdbcType=VARCHAR}, #{photo,jdbcType=VARCHAR}, #{sex,jdbcType=VARCHAR}, #{from,jdbcType=VARCHAR}, #{status,jdbcType=NUMERIC}, #{hasSyncToWx,jdbcType=NUMERIC}, #{openId,jdbcType=VARCHAR},#{signNameFileId,jdbcType=VARCHAR},#{userType,jdbcType=VARCHAR},#{supplierNo,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="User">
+		SELECT * FROM sys_user 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="getByAccount"   parameterType="java.lang.String" resultMap="SysUser">
+		SELECT * FROM sys_user 
+		WHERE 
+		account_=#{account} or weixin_=#{account} or open_id_=#{account}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="User">
+		SELECT * FROM sys_user
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<select id="getUserListByRel" parameterType="java.util.Map" resultMap="User">
+		SELECT org.id_ "org_id_", org.name_ "org_name_" ,org.code_ "org_code_",orguser.is_master_ "is_master_",orguser.rel_id_ "relId",orguser.id_ "orgUserId",  u.*,rel.rel_name_ "relName"  FROM sys_user u inner JOIN sys_org_user orguser on u.id_=orguser.user_id_
+inner join sys_org org on org.id_=orguser.org_id_ inner join sys_org_rel rel ON
+orguser.rel_id_=rel.id_
+		<if test="relId!=null">
+		 and orguser.rel_id_=#{relId}
+		</if>
+		<if test="relCode!=null">
+			and rel.rel_code_=#{relCode}
+		</if>
+	</select>
+		
+	<select id="getUserListByRole" parameterType="java.util.Map" resultMap="User">
+	SELECT u.*,r.alias_ from sys_user u inner JOIN sys_user_role ur on u.id_=ur.user_id_
+inner join sys_role r on ur.role_id_=r.id_
+		<if test="roleId!=null">
+		 and ur.role_id_=#{roleId}
+		</if>
+		<if test="roleCode!=null">
+		 and r.alias_=#{roleCode}
+		</if>
+	</select>
+	
+	<!-- 组织用户岗位   orgId,orgName,orgCode,isMaster,relName -->
+	<select id="queryOrgUserRel" parameterType="java.util.Map" resultType="java.util.HashMap">
+		SELECT orguser.id_ "orgUserId", org.id_ "orgId", org.name_ "orgName" ,org.code_ "orgCode",
+			orguser.is_master_ "isMaster",rel.rel_name_ "relName"  FROM   sys_org_user orguser 
+		 join sys_org org on org.id_=orguser.org_id_ LEFT JOIN sys_org_rel rel ON orguser.rel_id_=rel.id_
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY orguser.id_ DESC
+		</if>
+	</select>
+	
+	
+	<!-- 组织用户-->
+	<select id="queryOrgUser" parameterType="java.util.Map" resultMap="User">
+SELECT org.id_ "org_id_", org.name_ "org_name_" ,org.code_ "org_code_", u.* 
+FROM sys_user u inner JOIN (select DISTINCT org_id_,user_id_ from sys_org_user)  orguser on u.id_=orguser.user_id_
+inner join sys_org org on org.id_=orguser.org_id_
+		<if test="orgId!=null">
+		  and org.id_=#{orgId}
+		</if>
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+	
+ 
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY u.id_ DESC
+		</if>
+	</select>
+	
+
+	
+	
+	<update id="update" parameterType="com.hotent.org.persistence.model.User">
+		UPDATE sys_user SET
+		fullname_=#{fullname,jdbcType=VARCHAR},
+		account_=#{account,jdbcType=VARCHAR},
+		password_=#{password,jdbcType=VARCHAR},
+		email_=#{email,jdbcType=VARCHAR},
+		mobile_=#{mobile,jdbcType=VARCHAR},
+		weixin_=#{weixin,jdbcType=VARCHAR},
+		create_time_=#{createTime,jdbcType=TIMESTAMP},
+		address_=#{address,jdbcType=VARCHAR},
+		photo_=#{photo,jdbcType=VARCHAR},
+		sex_=#{sex,jdbcType=VARCHAR},
+		from_=#{from,jdbcType=VARCHAR},
+		status_=#{status,jdbcType=NUMERIC},
+		has_sync_to_wx_=#{hasSyncToWx,jdbcType=NUMERIC},
+		open_id_=#{openId,jdbcType=VARCHAR},
+		sign_name_fileid = #{signNameFileId,jdbcType=VARCHAR},
+		USER_TYPE = #{userType,jdbcType=VARCHAR},
+		SUPPLIER_NO = #{supplierNo,jdbcType=VARCHAR}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_user 
+		WHERE
+		id_=#{id} and account_ != 'admin'
+	</delete>
+	
+	<!-- 用户个人信息修改，屏蔽修改敏感信息 -->
+	<update id="updateUserInfoBySelf" parameterType="com.hotent.org.persistence.model.User">
+		UPDATE sys_user SET
+		fullname_=#{fullname,jdbcType=VARCHAR},
+		email_=#{email,jdbcType=VARCHAR},
+		mobile_=#{mobile,jdbcType=VARCHAR},
+		address_=#{address,jdbcType=VARCHAR},
+		photo_=#{photo,jdbcType=VARCHAR},
+		sign_name_fileid = #{signNameFileId,jdbcType=VARCHAR}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<select id="isUserExist" resultType="java.lang.Integer">
+		SELECT count(1) FROM sys_user where account_=#{account}
+		<if test="id!=null">
+			and id_!=#{id}
+		</if>
+	</select>
+	
+	<select id="getByUserIds"   parameterType="java.util.Map" resultMap="SysUser">
+		SELECT * FROM sys_user 
+		WHERE 
+		id_ in 
+		<foreach collection="userIds" index="index" item="id" open="(" close=")" separator=",">
+			#{id}
+		</foreach>
+	</select>
+	<!-- 根据email查询用户 -->
+	<select id="getByUserEmail" parameterType="java.util.Map" resultMap="User" >
+	    select * from sys_user where email_=#{email}
+	</select>
+	
+	<!--获取用户的所有上级  -->
+	<select id="getUpUsersByUserId" parameterType="java.lang.String" resultMap="User"  >
+		select * from sys_user u WHERE 
+		u.ID_ in (select ud.USER_ID_ from sys_user_under ud WHERE ud.UNDER_USER_ID_ = #{underUserId});
+	</select>
+	<!--获取用户某组织下的上级  -->
+	<select id="getUpUserByUserIdAndOrgId" parameterType="java.util.Map" resultMap="User"  >
+		select * from sys_user u WHERE u.ID_ in 
+		(select ud.USER_ID_ from sys_user_under ud WHERE ud.UNDER_USER_ID_ = #{underUserId} and ud.ORG_ID_=#{orgId});
+	</select>
+	<!--获取用户的所有下级  -->
+	<select id="getUnderUsersByUserId" parameterType="java.lang.String" resultMap="User"  >
+		select * from sys_user u WHERE 
+		u.ID_ in(select ud.UNDER_USER_ID_ from sys_user_under ud WHERE ud.USER_ID_ = #{upUserId});
+	</select>
+	<!--获取用户某组织下的下级用户  -->
+	<select id="getUnderUserByUserIdAndOrgId" parameterType="java.util.Map" resultMap="User"  >
+		select * from sys_user u WHERE u.ID_ in 
+		(select ud.UNDER_USER_ID_ from sys_user_under ud WHERE ud.USER_ID_ = #{upUserId} and ud.ORG_ID_=#{orgId});
+	</select>
+	
+	<!-- 获取供应商账号的  -->
+	<select id="querySupplierAccountStatus" parameterType="java.lang.String"  resultType="java.lang.Integer" >
+		SELECT COUNT(1)
+		  FROM MM_PUB_SUPPLIER_DETAIL A
+		 WHERE A.SUPPLIER_NO || A.SUP_FACTORY = #{account}
+	</select>
+</mapper>

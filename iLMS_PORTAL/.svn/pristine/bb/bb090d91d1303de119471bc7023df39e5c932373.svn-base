@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html ng-app="myApp">
+<head>
+<title>X5手机平台</title>
+<meta charset="utf-8">
+<script src="../assets/js/importJs.js"></script>
+
+<script type="text/javascript">
+	var storage=window.localStorage
+var myApp = angular.module("myApp", ['base','mobileDirective']);
+myApp.controller("myTaskCtrl",['$scope','baseService','$sce', function(scope,baseService,$sce) {
+	scope.loadSearchUser = function(userName){
+		var param = {"userName":userName,page:1,rows:1000};
+		var url = __ctx + "/org/user/getSerachUser";
+		baseService.postForm(url,param).then(
+				function(data){
+					scope.searchUserRes = data.rows;
+					$.each(scope.searchUserRes,function(){
+						if(this.photo == undefined){
+							this.photo = __ctx+"/mobile/assets/img/svg/default_avatar.svg";
+						}else{
+							this.photo = __ctx + this.photo;
+						}
+					})
+				},function(){}
+			)
+	}
+	var name = storage.getItem("searchUserName")
+	if(name){
+		scope.loadSearchUser(name);
+		scope.searchUserName = name;
+	}
+	scope.searchUser = function(){
+		if(scope.searchUserName){
+			scope.loadSearchUser(scope.searchUserName);
+			storage.setItem("searchUserName",scope.searchUserName);
+		}else{
+			scope.searchUserRes = null;
+		}
+	}
+	scope.userDetail = function(item){
+		location.href = "contactDetail.html?id="+item.userId+"&orgId="+item.orgId;
+	}
+}]);
+
+$(function(){
+	$("a.item-inner").click(function(){
+		$.closePanel()
+	});
+	$("#search").focus();
+})
+</script>
+</head>
+<body ng-controller="myTaskCtrl">
+<div class="page contact-search-list-page" id="taskToDo">
+ 	<header class="hkm-red-header bar bar-nav">
+		  <a class="icon icon-left pull-left back" href="javascript:storage.removeItem('searchUserName');history.go(-1);" ></a>
+		  <span class='title'>搜索</span>
+		</header>
+		<div class="mysearch bar bar-header-secondary">
+		  <div class="searchbar">
+		    <a class="searchbar-cancel">取消</a>
+		    <div class="search-input">
+		      <input type="search" class="searchAbout" id='search' placeholder='搜索关键字' ng-change="searchUser()" ng-model="searchUserName"/>
+		      <label class="icon icon-search" for="search"></label>
+		    </div>
+		  </div>
+		</div>
+		<div class="content">
+			<div class="contact-search" style="position: relative;">
+			  <div class="content-block">
+	    		<div class="list-block">
+			      <ul>
+			        <!-- Additional "swipeout" class on li -->
+			        <li class="swipeout transitioning">
+			          <div class="swipeout-content" style="">
+		            	<div class="list-block media-list">
+						    <ul>
+						      <li ng-repeat="item in searchUserRes" ng-click="userDetail(item)">
+						        <a href="javascript:void(0);" class="item-link item-content">
+						          <div class="item-media"><img ng-src="{{item.photo}}"></div>
+						          <div class="item-inner">
+						            <div class="item-title-row">
+						              <div class="item-title formwho">{{item.fullName}}</div>
+						            </div>
+						            <div class="item-title contact-search-list-title"></div>
+						            <div class="item-title contact-search-list-text">{{item.orgName}} - {{item.relName}}</div>
+						          </div>
+						        </a>
+						      </li>
+						    </ul>
+						</div>
+			          </div>
+			        </li>
+			      </ul>
+			    </div>
+			  </div>
+			</div>
+		</div>
+	</div>
+</body>
+</html>

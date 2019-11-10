@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.pub.model.PubSuppBomModel">
+		
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="queryPubSuppBomForPage" parameterType="com.hanthink.pub.model.PubSuppBomModel" resultType="com.hanthink.pub.model.PubSuppBomModel">
+			SELECT A.PARTF_ID       partfId,
+	             UDA.PART_SHORT_NO    partShortNoId,
+	             T.PART_NAME_CN     partNameId,
+	             A.PART_ROW_NO      partRowNo,
+	             A.PART_NO        partNo,
+	             U.PART_SHORT_NO      partShortNo,
+	             P.PART_NAME_CN     partName,
+	             A.NUM          num,
+	             A.USE_AGE_AMOUNT_UNIT  useAgeAmountUnit,
+	             A.LINE_STATION     lineStation,
+	             A.NEXT_PLACEMENT     nextPlacement,
+	             A.PURCHASE_TYPE      purchaseType,
+	             to_char(A.CREATION_TIME,'yyyy-mm-dd hh24:mi:ss')     creationTime,     
+	             to_char(A.LAST_MODIFIED_TIME,'yyyy-mm-dd hh24:mi:ss')  lastModifiedTime
+	        FROM MM_PUB_SUPPORTING_PART A
+	        LEFT JOIN MM_PUB_PART P
+	          ON A.PART_NO = P.PART_NO
+	          AND P.FACTORY_CODE = A.FACTORY_CODE
+	        LEFT JOIN MM_PUB_PART_UDA U
+	          ON A.PART_NO = U.PART_NO
+	          AND U.FACTORY_CODE = A.FACTORY_CODE
+	        LEFT JOIN MM_PUB_PART T
+	          ON A.PARTF_ID = T.PART_NO
+	          AND T.FACTORY_CODE = A.FACTORY_CODE
+	        LEFT JOIN MM_PUB_PART_UDA UDA
+	          ON A.PARTF_ID = UDA.PART_NO
+	          AND UDA.FACTORY_CODE = A.FACTORY_CODE
+	        WHERE 1=1 AND A.FACTORY_CODE = #{factoryCode}
+
+		  <if test="partNo !=null and partNo != '' ">
+		  	AND  A.PART_NO  LIKE CONCAT(#{partNo}, '%')
+		  </if>
+		  <if test="partfId !=null and partfId != '' ">
+		  	AND   A.PARTF_ID  LIKE CONCAT(#{partfId}, '%')
+		  </if>
+		  
+		  <if test="partShortNo !=null and partShortNo != '' ">
+		  	AND   U.PART_SHORT_NO  = #{partShortNo}
+		  </if>
+		  <if test="partShortNoId !=null and partShortNoId != '' ">
+		  	AND   UDA.PART_SHORT_NO   = #{partShortNoId}
+		  </if>
+		  
+		  <if test="partName !=null and partName != '' ">
+		  	AND   P.PART_NAME_CN LIKE CONCAT(#{partName}, '%')
+		  </if>
+		  <if test="partNameId !=null and partNameId != '' ">
+		  	AND   T.PART_NAME_CN  LIKE CONCAT(#{partNameId}, '%')
+		  </if>
+		  
+		  <if test="creationTime != null and creationTime != '' ">
+		  <![CDATA[ AND A.CREATION_TIME >= TO_DATE(#{creationTime},'yyyy-MM-dd hh24:mi:ss') ]]>
+		  </if>
+         <if test="creationTimeEnd != null and creationTimeEnd != '' ">
+         <![CDATA[ AND A.CREATION_TIME <= TO_DATE(#{creationTimeEnd},'yyyy-MM-dd hh24:mi:ss') ]]>
+         </if>
+		  ORDER BY A.PARTF_ID,A.PART_NO,A.PART_ROW_NO ASC
+	</select>
+	
+</mapper>

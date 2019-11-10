@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.mp.model.MpAdjOrderDiffCheckModel">
+		
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="queryMpAdjOrderDiffCheckForPage" parameterType="com.hanthink.mp.model.MpAdjOrderDiffCheckModel" resultType="com.hanthink.mp.model.MpAdjOrderDiffCheckModel">
+		    SELECT A.FACTORY_CODE  factoryCode,
+			       A.SUPPLIER_NO   supplierNo,
+			       A.SUP_FACTORY   supFactory,
+			       A.UNLOAD_PORT   unloadPort,
+			       A.PART_NO       partNo,
+			       NVL(A.ADJ_DIFF_NUM, 0)  adjDiffNum,
+			       C.CODE_VALUE_NAME    workcenter,
+			       A.MODEL_CODE    modelCode,
+			       B.PART_SHORT_NO partShortNo,
+			       B.PART_NAME_CN  partName,
+			       NVL(A.MANU_NUM, 0) manuNum,
+			       NVL(A.ADJ_DIFF_NUM, 0) + NVL(A.MANU_NUM, 0) afAdjNum
+			  FROM MM_MP_PLAN_DIFF_TEMP A
+			  LEFT JOIN MM_PUB_PART_UDA B
+			    ON A.PART_NO = B.PART_NO
+			   AND A.FACTORY_CODE = B.FACTORY_CODE
+			   LEFT JOIN MM_PUB_DATA_DICT C
+			   ON C.CODE_TYPE = 'PUB_WORKCENTER'
+			   AND C.CODE_VALUE = A.WORKCENTER
+			   AND C.FACTORY_CODE = A.FACTORY_CODE
+			 WHERE 1 = 1
+			<if test="partNo!=null and partNo!='' ">
+			AND	A.PART_NO LIKE CONCAT(#{partNo}, '%')
+			</if>
+			<if test="supplierNo!=null and supplierNo!='' ">
+			AND	A.SUPPLIER_NO = #{supplierNo}
+			</if>
+			<if test="supFactory!=null and supFactory!='' ">
+			AND	A.SUP_FACTORY = #{supFactory}
+			</if>
+			<if test="unloadPort!=null and unloadPort!='' ">
+			AND	A.UNLOAD_PORT = #{unloadPort}
+			</if>
+			AND A.FACTORY_CODE = #{factoryCode}
+	</select>
+	
+	<!-- 获取调整计划 -->
+	<parameterMap type="map" id="getMpZsbDiffMap">  
+		<parameter property="in_arr_factory" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="outCode" jdbcType="INTEGER" mode="OUT"/> 
+	</parameterMap> 
+	<select id="getMpZsbDiff" parameterMap="getMpZsbDiffMap" statementType="CALLABLE">
+		{CALL PKG_MP_MAIN.USP_MP_ZSB_DIFF( ?, ?)}
+	</select>
+	
+	<!-- 清除计划对比差异数据 -->
+	<delete id="clearOrderDiffData" parameterType="java.lang.String">
+		DELETE FROM MM_MP_PLAN_DIFF_TEMP A 
+		WHERE A.FACTORY_CODE = #{factoryCode}
+	</delete>
+	
+	<!-- 更新手工调整数 -->
+	<update id="updateManuNum" parameterType="com.hanthink.mp.model.MpAdjOrderDiffCheckModel">
+		UPDATE MM_MP_PLAN_DIFF_TEMP A
+		   SET A.MANU_NUM = #{manuNum}
+		 WHERE A.SUPPLIER_NO = #{supplierNo}
+		   AND A.SUP_FACTORY = #{supFactory}
+		   AND A.UNLOAD_PORT = #{unloadPort}
+		   AND A.PART_NO = #{partNo}
+		   AND A.FACTORY_CODE = #{factoryCode}
+	</update>
+	
+	<!-- 删除临时表的计划对比差异数据 -->
+	<update id="deleteMpAdjOrderDiffImportTempDataByUUID" parameterType="java.lang.String">
+		DELETE FROM MM_MP_PLAN_DIFF_TEMP_IMP A WHERE A.IMP_UUID = #{uuid}
+	</update>
+	
+	<!-- 批量导入数据写入到临时表 -->
+	<insert id="insertMpAdjOrderDiffImportTempData" parameterType="java.util.List">
+		INSERT INTO MM_MP_PLAN_DIFF_TEMP_IMP
+		  (ID,
+		   FACTORY_CODE,
+		   SUPPLIER_NO,
+		   SUP_FACTORY,
+		   UNLOAD_PORT,
+		   PART_NO,
+		   ADJ_DIFF_NUM,
+		   MODEL_CODE,
+		   WORKCENTER,
+		   MANU_NUM,
+		   IMP_UUID,
+		   CHECK_RESULT,
+		   CHECK_INFO,
+		   IMPORT_STATUS,
+		   CREATION_USER,
+		   CREATION_TIME)
+		<foreach collection="list" item="item" index="index" separator=" UNION ALL ">
+			SELECT 
+			 PKG_PUB.USF_GET_SEQUENCE('SEQ_IMPORT_DATA_TEMP'),
+			 #{item.factoryCode,jdbcType=VARCHAR},
+			 #{item.supplierNo,jdbcType=VARCHAR},
+			 #{item.supFactory,jdbcType=VARCHAR}, 
+			 #{item.unloadPort,jdbcType=VARCHAR},
+			 #{item.partNo,jdbcType=VARCHAR},
+			 #{item.adjDiffNum,jdbcType=VARCHAR},
+			 #{item.modelCode,jdbcType=VARCHAR},
+			 #{item.workcenter,jdbcType=VARCHAR},
+			 #{item.manuNum,jdbcType=NUMERIC},
+			 #{item.uuid,jdbcType=VARCHAR}, 
+			 #{item.checkResult,jdbcType=VARCHAR}, 
+			 #{item.checkInfo,jdbcType=VARCHAR}, 
+			 #{item.importStatus,jdbcType=VARCHAR},
+			 #{item.creationUser,jdbcType=VARCHAR},
+			 SYSDATE
+			FROM DUAL 
+    	</foreach>
+	</insert>
+	
+	<!-- 检查导入临时表数据 -->
+	<parameterMap type="map" id="impCkParamMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="userName" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	
+	<!-- 导入校验 -->
+	<select id="checkMpAdjOrderDiffImportData" parameterMap="impCkParamMap" statementType="CALLABLE">
+		{CALL PKG_MP_CHECK.USP_MP_ADJ_ORDER_CHECK(?, ?, ?,  ?,?)}
+	</select>
+	
+	<!-- 查询临时表中的数据是否可以导入 -->
+	<select id="queryMpaAdjOrderIsImportFlag" parameterType="java.lang.String" resultType="java.lang.String">
+		WITH TEMPA AS
+		 (SELECT COUNT(1) s
+		    FROM MM_MP_PLAN_DIFF_TEMP_IMP A
+		   WHERE A.CHECK_RESULT = 0
+		     AND A.IMP_UUID = #{VALUE}),
+		TEMPB AS
+		 (SELECT COUNT(1) S
+		    FROM MM_MP_PLAN_DIFF_TEMP_IMP B
+		   WHERE B.IMP_UUID = #{VALUE})
+		SELECT CASE
+		         WHEN A.S >= B.S THEN
+		          0
+		         ELSE
+		          1
+		       END AS FLAG
+		  FROM TEMPA A, TEMPB B
+	</select>
+	
+	<!-- 查询导入的临时订购需求数据 -->
+	<select id="queryMpAdjOrderImportTempData" parameterType="java.util.Map" resultType="com.hanthink.mp.model.MpAdjOrderDiffCheckModelImport">
+			SELECT A.FACTORY_CODE    factoryCode,
+		       A.SUPPLIER_NO     supplierNo,
+		       A.SUP_FACTORY     supFactory,
+		       A.UNLOAD_PORT     unloadPort,
+		       A.PART_NO         partNo,
+		       A.ADJ_DIFF_NUM    adjDiffNum,
+		       A.MODEL_CODE      modelCode,
+		       A.WORKCENTER      workcenter,
+		       A.MANU_NUM        manuNum,
+		       D.PART_SHORT_NO   partShortNo,
+		       D.PART_NAME_CN    partName,
+		       B.CODE_VALUE_NAME checkResult,
+		       A.CHECK_INFO      checkInfo,
+		       C.CODE_VALUE_NAME importStatus
+		  FROM MM_MP_PLAN_DIFF_TEMP_IMP A
+		  LEFT JOIN MM_PUB_DATA_DICT B
+		    ON A.CHECK_RESULT = B.CODE_VALUE
+		   AND B.CODE_TYPE = 'PUB_IMP_CK_RESULT'
+		   AND B.FACTORY_CODE = A.FACTORY_CODE
+		  LEFT JOIN MM_PUB_DATA_DICT C
+		    ON A.IMPORT_STATUS = C.CODE_VALUE
+		   AND C.CODE_TYPE = 'PUB_IMP_STATUS'
+		   AND C.FACTORY_CODE = A.FACTORY_CODE
+		  LEFT JOIN MM_PUB_PART_UDA D
+		    ON A.PART_NO = D.PART_NO
+		   AND A.FACTORY_CODE = D.FACTORY_CODE
+		 WHERE A.IMP_UUID = #{uuid}
+		 ORDER BY A.CHECK_RESULT,
+          A.SUPPLIER_NO,
+          A.SUP_FACTORY,
+          A.UNLOAD_PORT,
+          A.PART_NO
+	</select>
+	
+	<!-- 导入之前先删除例外订购需求表中处理标识为未处理的数据 -->
+	<update id="updateMpAdjOrderImportDate" parameterType="java.util.Map">
+		MERGE INTO MM_MP_PLAN_DIFF_TEMP A
+		USING (SELECT B.*
+		         FROM MM_MP_PLAN_DIFF_TEMP_IMP B
+		        WHERE B.IMP_UUID = #{uuid}
+		          AND B.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		          AND B.IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}) C
+		ON (A.SUPPLIER_NO = C.SUPPLIER_NO AND A.SUP_FACTORY = C.SUP_FACTORY AND A.UNLOAD_PORT = C.UNLOAD_PORT AND A.PART_NO = C.PART_NO AND A.FACTORY_CODE = C.FACTORY_CODE)
+		WHEN MATCHED THEN
+		  UPDATE SET A.MANU_NUM = NVL(C.MANU_NUM, 0)
+	</update>
+	
+	<!-- 导入成功更新导入状态 -->
+	<update id="updateAdjOrderImportDataImpStatus" parameterType="java.util.Map">
+		UPDATE MM_MP_PLAN_DIFF_TEMP_IMP A
+		   SET A.IMPORT_STATUS = '1'
+		 WHERE A.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		   AND A.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		   AND A.IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+	</update>
+
+</mapper>

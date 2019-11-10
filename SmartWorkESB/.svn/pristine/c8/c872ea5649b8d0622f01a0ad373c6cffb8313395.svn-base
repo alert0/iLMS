@@ -1,0 +1,82 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE hibernate-configuration PUBLIC
+          "-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+          "http://www.hibernate.org/dtd/hibernate-configuration-3.0.dtd">
+<hibernate-configuration>
+
+    <session-factory>
+    
+        <!--本机环境 -->
+        <property name="myeclipse.connection.profile">SmartWorkESB</property>
+        
+        
+        <property name="connection.url">jdbc:oracle:thin:@172.18.189.62:1521:ilmspec</property>
+        <property name="connection.username">ilmspec</property>
+        <property name="connection.password">ilmsdev</property>
+        
+         <!-- 测试环境
+        <property name="connection.url">jdbc:oracle:thin:@172.18.189.112:1521:ilmpectest</property>
+        <property name="connection.username">ilmspectest</property>
+        <property name="connection.password">ilmspectest</property>
+          -->
+        <!-- 
+        <property name="connection.url">jdbc:oracle:thin:@localhost:1521:FRAMEWORK</property>
+        <property name="connection.username">scott</property>
+        <property name="connection.password">tiger</property>
+        -->
+        
+        <property name="hibernate.show_sql">true</property>
+        <property name="hibernate.connection.autocommit">false</property>
+        <property name="connection.driver_class">oracle.jdbc.xa.client.OracleXADataSource</property>
+        <property name="dialect">com.smartwork.esb.dialect.OracleDialect</property>
+        <property name="hibernate.current_session_context_class">org.springframework.orm.hibernate4.SpringSessionContext</property>
+        
+        <property name="hibernate.connection.provider_class">org.hibernate.service.jdbc.connections.internal.C3P0ConnectionProvider</property>
+        <property name="hibernate.c3p0.max_size">60</property>
+        <property name="hibernate.c3p0.min_size">5</property>
+        <property name="hibernate.c3p0.timeout">120</property> <!-- ms -->
+        <property name="hibernate.c3p0.max_statements">100</property>
+        <property name="hibernate.c3p0.idle_test_period">120</property> <!-- s -->
+        <property name="hibernate.c3p0.acquire_increment">5</property> 
+        <property name="hibernate.c3p0.validate">true</property>
+         
+        <!--
+        <property name="hbm2ddl.auto">update</property> 
+        --> 
+        
+        <!-- 配置 -->
+        <mapping resource="com/smartwork/esb/config/po/TIfConfig.hbm.xml" />
+        <mapping resource="com/smartwork/esb/config/po/TIfQueryConfig.hbm.xml" />
+        <mapping resource="com/smartwork/esb/config/po/TIfReceiveConfig.hbm.xml" />
+        <mapping resource="com/smartwork/esb/config/po/TIfElement.hbm.xml" />
+        <mapping resource="com/smartwork/esb/config/po/TIfParam.hbm.xml" />
+        <mapping resource="com/smartwork/esb/config/po/TIfTimer.hbm.xml" />
+        <mapping resource="com/smartwork/esb/config/po/TIfReceiveServiceState.hbm.xml" />
+        <mapping resource="com/smartwork/esb/config/po/TIfParamTemplateGroup.hbm.xml" />
+        <mapping resource="com/smartwork/esb/config/po/TIfParamTemplate.hbm.xml" />
+
+        <!-- 日志 -->
+        <mapping resource="com/smartwork/esb/log/po/TIfReceiveLog.hbm.xml" />
+        <mapping resource="com/smartwork/esb/log/po/TIfQueryLog.hbm.xml" />
+        <mapping resource="com/smartwork/esb/log/po/TIfXmlFileLog.hbm.xml" />
+        <mapping resource="com/smartwork/esb/log/po/TIfQueryLogHis.hbm.xml" />
+        <mapping resource="com/smartwork/esb/log/po/TIfReceiveLogHis.hbm.xml" />
+        
+        <!-- 报表 -->
+        <mapping resource="com/smartwork/esb/chart/po/TIfExecutionDay.hbm.xml" />
+        <mapping resource="com/smartwork/esb/chart/po/TIfExecutionMonth.hbm.xml" />
+        <mapping resource="com/smartwork/esb/chart/po/TIfExecutionQuarter.hbm.xml" />
+        <mapping resource="com/smartwork/esb/chart/po/TIfExecutionWeek.hbm.xml" />
+        <mapping resource="com/smartwork/esb/chart/po/TIfExecutionYear.hbm.xml" />
+        
+        <!-- 公共模块 -->
+        <mapping resource="com/smartwork/esb/pub/po/TIfDataDict.hbm.xml" />
+        <mapping resource="com/smartwork/esb/pub/po/TIfModule.hbm.xml" />
+        <mapping resource="com/smartwork/esb/pub/po/TIfPrivileges.hbm.xml" />
+        <mapping resource="com/smartwork/esb/pub/po/TIfRole.hbm.xml" />
+        <mapping resource="com/smartwork/esb/pub/po/TIfRolePrivileges.hbm.xml" />
+        <mapping resource="com/smartwork/esb/pub/po/TIfUser.hbm.xml" />
+        <mapping resource="com/smartwork/esb/pub/po/TIfUserRole.hbm.xml" />
+        
+    </session-factory>
+</hibernate-configuration>

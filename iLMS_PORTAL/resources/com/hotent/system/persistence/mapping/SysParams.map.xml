@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.org.persistence.model.SysParams">
+	<resultMap id="SysParams" type="com.hotent.org.persistence.model.SysParams">
+		<id property="id" column="ID_" jdbcType="VARCHAR"/>
+		<result property="name" column="NAME_" jdbcType="VARCHAR"/>
+		<result property="alias" column="ALIAS_" jdbcType="VARCHAR"/>
+		<result property="type" column="TYPE_" jdbcType="VARCHAR"/>
+		<result property="ctlType" column="CTL_TYPE_" jdbcType="VARCHAR"/>
+		<result property="json" column="JSON_" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.org.persistence.model.SysParams">
+		INSERT INTO sys_params
+		(ID_,NAME_,ALIAS_,TYPE_,CTL_TYPE_,JSON_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR}, #{alias,jdbcType=VARCHAR}, #{type,jdbcType=VARCHAR}, #{ctlType,jdbcType=VARCHAR}, #{json,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="SysParams">
+		SELECT * FROM sys_params 
+		WHERE 
+		ID_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="SysParams">
+		SELECT * FROM sys_params
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY ID_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.org.persistence.model.SysParams">
+		UPDATE sys_params SET
+		NAME_=#{name,jdbcType=VARCHAR},
+		ALIAS_=#{alias,jdbcType=VARCHAR},
+		TYPE_=#{type,jdbcType=VARCHAR},
+		CTL_TYPE_=#{ctlType,jdbcType=VARCHAR},
+		JSON_=#{json,jdbcType=VARCHAR}
+		WHERE
+		ID_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_params 
+		WHERE
+		ID_=#{id}
+	</delete>
+	
+	<select id="getByAlias" parameterType="java.lang.String" resultMap="SysParams">
+		SELECT * FROM SYS_PARAMS WHERE ALIAS_ = #{alias}
+	</select>
+	
+	<select id="getByType" parameterType="java.lang.String" resultMap="SysParams">
+		SELECT * FROM SYS_PARAMS WHERE TYPE_ = #{type}
+	</select>
+	
+	
+</mapper>

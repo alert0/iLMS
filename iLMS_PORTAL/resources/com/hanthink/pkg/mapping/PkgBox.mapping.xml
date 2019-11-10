@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hanthink.pkg.model.PkgBoxModel">
+     <!-- 新增箱种包装信息 -->
+	<insert id="create" parameterType="com.hanthink.pkg.model.PkgBoxModel">
+		INSERT INTO MM_PKG_BOX
+		(ID,
+		FACTORY_CODE, 
+		BOX_CODE, 
+		BOX_TYPE, 
+		PACK_LENGTH,
+		PACK_WIDTH,
+		PACK_HEIGHT,
+		STATUS,
+		CREATION_USER)
+		VALUES
+		 (SEQ_MM_PKG_BOX.NEXTVAL, 
+		#{factoryCode,jdbcType=VARCHAR},
+		#{boxCode,jdbcType=VARCHAR}, 
+		#{boxType,jdbcType=VARCHAR},
+		#{packLength,jdbcType=VARCHAR},
+		#{packWidth,jdbcType=VARCHAR},
+		#{packHeight,jdbcType=VARCHAR},
+		#{status,jdbcType=VARCHAR},
+		#{createUser,jdbcType=VARCHAR} )
+	</insert>
+	
+	<!-- 获取明细 -->
+	<select id="get" parameterType="java.lang.String" resultType="com.hanthink.pkg.model.PkgBoxModel">
+	    SELECT A.ID id,
+          A.BOX_CODE boxCode,
+          B.CODE_VALUE boxType,
+          C.CODE_VALUE status,
+          B.CODE_VALUE_NAME boxTypeName,
+          C.CODE_VALUE_NAME statusName,
+          A.PACK_LENGTH packLength,
+          A.PACK_WIDTH packWidth,
+          A.PACK_HEIGHT packHeight
+        FROM MM_PKG_BOX A LEFT JOIN MM_PUB_DATA_DICT B ON A.BOX_TYPE=B.CODE_VALUE AND B.CODE_TYPE='INV_BOX_TYPE'
+        LEFT JOIN MM_PUB_DATA_DICT C ON A.STATUS=C.CODE_VALUE AND C.CODE_TYPE='PUB_IS_ENABLE'
+        WHERE
+		A.ID = #{id}
+	</select>
+	
+	<!-- 通过箱code判断是否已存在 -->
+	<select id="getByCode" parameterType="com.hanthink.pkg.model.PkgBoxModel" resultType="com.hanthink.pkg.model.PkgBoxModel">
+		   SELECT 
+		   A.ID          id,
+	       A.BOX_CODE    boxCode,
+	       A.BOX_TYPE    boxType,
+	       A.PACK_LENGTH packLength,
+	       A.PACK_WIDTH  packWidth,
+	       A.PACK_WIDTH  packWidth,
+	       A.PACK_HEIGHT packHeight,
+	       A.STATUS      status
+	       FROM MM_PKG_BOX A
+	       WHERE BOX_CODE= #{boxCode}
+	       AND A.FACTORY_CODE = #{factoryCode}
+	</select>
+
+
+    <!-- 分页查询显示列表信息 -->
+	<select id="queryPkgBoxForPage" parameterType="com.hanthink.pkg.model.PkgBoxModel" resultType="com.hanthink.pkg.model.PkgBoxModel">
+		  SELECT 
+          A.ID id,
+          A.BOX_CODE boxCode,
+          A.BOX_TYPE  boxType,
+          A.STATUS    status,
+          A.PACK_LENGTH packLength,
+          A.PACK_WIDTH packWidth,
+          A.PACK_HEIGHT packHeight
+        FROM MM_PKG_BOX A LEFT JOIN MM_PUB_DATA_DICT B ON A.BOX_TYPE=B.CODE_VALUE
+        AND B.CODE_TYPE='INV_BOX_TYPE'
+        LEFT JOIN MM_PUB_DATA_DICT C ON A.STATUS=C.CODE_VALUE AND C.CODE_TYPE='PUB_IS_ENABLE'
+        WHERE 1=1 AND A.FACTORY_CODE = #{factoryCode}
+		<if test="boxType != null and boxType != ''">
+		AND	A.BOX_TYPE = #{boxType}
+		</if>
+		<if test="boxCode != null and boxCode != ''">
+		AND	A.BOX_CODE = #{boxCode}
+		</if>
+		<if test="status != null and status != ''">
+		AND	A.STATUS = #{status}
+		</if>
+		ORDER BY ID DESC
+	</select>
+	
+	<!-- 删除箱种信息 -->
+    <delete id="remove" parameterType="java.lang.String">
+		DELETE FROM MM_PKG_BOX 
+		WHERE
+		ID = #{id}
+	</delete>
+	
+	<!-- 修改包装管理箱种信息 -->
+	<update id="update"  parameterType="com.hanthink.pkg.model.PkgBoxModel">
+	    UPDATE MM_PKG_BOX SET 
+		PACK_LENGTH = #{packLength,jdbcType=VARCHAR},
+		PACK_WIDTH = #{packWidth,jdbcType=VARCHAR},
+		PACK_HEIGHT = #{packHeight,jdbcType=VARCHAR},
+		STATUS = #{status,jdbcType=VARCHAR},
+		LAST_MODIFIED_USER = #{lastModifiedUser,jdbcType=VARCHAR},
+		LAST_MODIFIED_TIME = SYSDATE
+		WHERE ID = #{id}
+	</update>
+	
+	<!-- 加载可使用的箱CODE信息,用于下拉框选择使用等 -->
+	<select id="loadBoxCodeData" parameterType="com.hanthink.pkg.model.PkgBoxModel" resultType="com.hanthink.pkg.model.PkgBoxModel">
+		   SELECT 
+		   A.ID          id,
+	       A.BOX_CODE    boxCode,
+	       A.BOX_TYPE    boxType,
+	       A.PACK_LENGTH packLength,
+	       A.PACK_WIDTH  packWidth,
+	       A.PACK_HEIGHT packHeight,
+	       A.STATUS      status
+	       FROM MM_PKG_BOX A
+	       WHERE 1 = 1
+	       AND A.FACTORY_CODE=#{factoryCode}
+	       <if test="status!=null and '' != status">
+	       		AND STATUS = #{status,jdbcType=VARCHAR}
+		   </if>
+	</select>
+	
+</mapper>

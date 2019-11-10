@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.jit.model.JitInvenCompModel">
+
+	<!-- 批量导入数据写入到临时表 -->
+	<insert id="insertImportTempData" parameterType="java.util.List">
+		INSERT INTO MM_JIT_INVEN_COMP
+		  (ID,
+		   PLAN_CODE,
+		   PART_NO,
+		   VIN,
+		   ARR_BATCH_NO,
+		   ARR_PROCESS_NO,
+		   CURR_INVENTORY,
+		   SAFETY_INVENTORY,
+		   IMP_UUID,
+		   CHECK_RESULT,
+		   CHECK_INFO,
+		   IMPORT_STATUS)
+		<foreach collection="list" item="item" index="index" separator=" UNION ALL ">
+			SELECT	#{item.id},
+					#{item.planCode},
+					#{item.partNo},	
+					#{item.vin},
+					#{item.arrBatchNo},
+					#{item.arrProcessNo},
+					#{item.currInventory},
+					#{item.safetyInventory},
+					#{item.impUuid},
+					#{item.checkResult},
+					#{item.checkInfo},
+					#{item.importStatus}
+				FROM DUAL
+		</foreach>
+	</insert>
+	
+	<!-- 检查导入临时表数据 -->
+	<parameterMap type="map" id="impCkParamMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="userName" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<select id="checkImportData" parameterMap="impCkParamMap" statementType="CALLABLE">
+		{CALL PKG_IMP_DEMO.USP_DEMO_TEST(?, ?, ?,  ?, ?)}
+	</select>
+	
+	<!-- 查询excel导入数据 -->
+	<select id="queryImportTempPage" parameterType="com.hanthink.jit.model.JitInvenCompModel"
+			resultType="com.hanthink.jit.model.JitInvenCompModel">
+	  SELECT T.ID id,     
+             T.IMPORT_STATUS importStatus,
+             T.CHECK_INFO checkInfo,
+             C.WORKCENTER workcenter,
+             T.PLAN_CODE planCode,
+             C.PLAN_CODE_DESC planCodeDesc,
+             T.PART_NO partNo,   
+             T.CHECK_PART_SHORT_NO partShortNo,
+             T.CHECK_PART_NAME partName,
+             T.VIN vin,
+             PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(T.PLAN_CODE, T.CHECK_ARR_PRO_SEQNO) checkArrProSeqno,
+             T.CHECK_CAL_VIN checkCalVin,
+             PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(T.PLAN_CODE, T.CHECK_CAL_KB_PRO_SEQNO) checkCalKbProSeqno,
+             T.CURR_INVENTORY currInventory,
+             T.SAFETY_INVENTORY safetyInventory,
+             T.CHECK_PLAN_QTY checkPlanQty,
+             T.CHECK_ASSEMBLY_QTY checkAssemblyQty,
+             T.CURR_INVENTORY + T.CHECK_PLAN_QTY + T.SAFETY_INVENTORY - T.CHECK_ASSEMBLY_QTY diff
+        FROM MM_JIT_INVEN_COMP T
+        LEFT JOIN MM_PUB_PLAN_CODE C ON C.PLAN_CODE = T.PLAN_CODE		
+		  WHERE T.IMP_UUID = #{impUuid}
+	</select>
+	
+	<!-- 拉动库存对比推算 -->
+	<parameterMap type="map" id="reckonParamMap">  
+		<parameter property="impUuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="result" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap>
+	<select id="isReckon" parameterMap="reckonParamMap" statementType="CALLABLE">
+		{CALL PKG_JIT_BASIC.USP_JIT_INVEN_COMP(?, ?, ?)}
+	</select>
+	
+</mapper>

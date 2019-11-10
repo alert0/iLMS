@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.jit.model.JitPartLackModel">
+
+	<!-- 分页查询拉动零件缺件记录 -->
+	<select id="getJitPartLackList" parameterType = "com.hanthink.jit.model.JitPartLackModel"
+				  resultType = "com.hanthink.jit.model.JitPartLackModel">
+		SELECT A.ID					id,
+			   A.PLAN_CODE  		planCode,
+		       A.PART_NO			partNo,
+		       A.LOCATION			location,
+		       A.LACK_NUM			lackNum,
+		       A.DISTRI_NUM			distriNum,
+		       NVL(A.LACK_NUM,'0')-NVL(A.DISTRI_NUM,'0') waitDistriNum,
+		       A.DEAL_STATUS		dealStatus,
+		       PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(A.PLAN_CODE,
+		                                            A.E_PREPARE_PRODUCT_SEQNO)  prepareProduct,
+		       PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(A.PLAN_CODE,
+		                                            A.E_DISTRI_PRODUCT_SEQNO)	distriProduct,
+		       part.part_name_cn	partNameCn,
+		       uda.part_short_no	partShortNo,
+		       D.CODE_VALUE_NAME    dealStatusName,
+		       to_char(A.CREATION_TIME,'yyyy-mm-dd hh24:mi:ss')      creationTime     
+		  <!-- i-LMS2019053001 mod by dtp -->      	                       
+		  FROM MM_JIT_PART_LACK A LEFT JOIN MM_PUB_PART part 
+		  	ON A.PART_NO = part.part_no AND PART.FACTORY_CODE = #{factoryCode}
+		  <!-- i-LMS2019053001 mod by dtp -->
+		  LEFT JOIN MM_PUB_PART_UDA uda
+		  	ON A.PART_NO = uda.part_no AND uda.factory_code = #{factoryCode}
+		  LEFT JOIN MM_PUB_DATA_DICT D
+			  ON D.CODE_TYPE = 'DEAL_STATUS'
+			  AND D.FACTORY_CODE = #{factoryCode}
+			  AND A.DEAL_STATUS = D.CODE_VALUE
+		  INNER JOIN MM_PUB_PLAN_CODE P
+		     ON A.PLAN_CODE = P.PLAN_CODE
+		  WHERE P.FACTORY_CODE = #{factoryCode}
+		  <if test="null != partNo and '' != partNo">
+		   AND A.PART_NO LIKE CONCAT( #{partNo}, '%')
+		  </if>
+		  <if test="null != partShortNo and '' != partShortNo">
+		   AND uda.PART_SHORT_NO = #{partShortNo}
+		  </if>
+		  <if test="null != dealStatus and '' != dealStatus">
+		  AND A.DEAL_STATUS = #{dealStatus}
+		  </if>
+		  <if test="null != location and '' != location">
+		  AND A.LOCATION = #{location}
+		  </if>
+		  <if test="null != prepareProduct and '' != prepareProduct">
+		  AND PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(A.PLAN_CODE,
+                                            A.E_PREPARE_PRODUCT_SEQNO) = #{prepareProduct}
+		  </if>
+		  
+		  <if test="null != creationTimeStart and '' != creationTimeStart">
+	  	    AND A.CREATION_TIME &gt;= to_date(#{creationTimeStart}, 'yyyy-mm-dd hh24:mi:ss')
+	  	  </if>
+	  	  <if test="null != creationTimeEnd and '' != creationTimeEnd">
+	  	    AND A.CREATION_TIME &lt;= to_date(#{creationTimeEnd}, 'yyyy-mm-dd hh24:mi:ss')
+	  	  </if>
+	  	  ORDER BY A.CREATION_TIME ASC
+	</select>
+	
+	<!-- 查询明细 -->
+	<select id="getJitPartLackDetialList" parameterType = "com.hanthink.jit.model.JitPartLackModel"
+				  resultType = "com.hanthink.jit.model.JitPartLackModel">
+		SELECT   PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(B.PLAN_CODE,
+                                                A.DISTRI_PRODUCT_SEQNO)   distriProduct,
+             A.ORDER_NO         orderNo,
+             A.DISTRI_NUM       distriNum,
+             A.DEAL_USER        dealUser,
+             A.DEAL_IP        	dealIp,
+             to_char(A.DEAL_TIME,'yyyy-mm-dd hh24:mi:ss')  dealTime,
+             A.DEAL_METHOD    	dealMethod,
+             D.CODE_VALUE_NAME  dealMethodName,
+             U.FULLNAME_        dealUserName
+	        FROM MM_JIT_PART_LACK_DEAL A
+	        LEFT JOIN MM_JIT_PART_LACK B 
+	          ON A.LACK_ID = B.ID
+	        LEFT JOIN MM_PUB_DATA_DICT D 
+	          ON D.CODE_TYPE = 'DEAL_METHOD'
+	          AND D.FACTORY_CODE = #{factoryCode}
+	          AND D.CODE_VALUE = A.DEAL_METHOD
+	       LEFT JOIN SYS_USER U
+	         ON A.DEAL_USER = U.ACCOUNT_
+		   WHERE A.LACK_ID = #{id}
+		   ORDER BY distriProduct asc,dealTime ASC
+	</select>
+	
+	<!-- 处理更新主表处理标识 -->
+	<update id="updateCheckFlag" parameterType = "com.hanthink.jit.model.JitPartLackModel">
+		UPDATE MM_JIT_PART_LACK A SET 
+				A.DEAL_STATUS = 1 ,
+				A.DISTRI_NUM = A.LACK_NUM 
+			WHERE A.ID = #{id,jdbcType = VARCHAR}
+	</update>
+	
+	<!-- 处理后数据插入处理表中 -->
+	<insert id="insertLackDeal" parameterType = "com.hanthink.jit.model.JitPartLackModel">
+	INSERT INTO MM_JIT_PART_LACK_DEAL
+		(ID,
+         LACK_ID,
+         ORDER_NO,
+         LABEL_ROWNO,
+         DISTRI_PRODUCT_SEQNO,
+         DISTRI_NUM,
+         DEAL_USER,
+         DEAL_IP,
+         DEAL_TIME,
+         CREATION_TIME,
+         DEAL_METHOD)
+         SELECT 
+         SEQ_MM_JIT_PART_LACK_DEAL.NEXTVAL ,
+         #{id,jdbcType = VARCHAR},
+         '',
+         '',
+         A.E_DISTRI_PRODUCT_SEQNO,
+         A.DISTRI_NUM,
+         #{dealUser,jdbcType = VARCHAR},
+         #{dealIp,jdbcType = VARCHAR},
+         SYSDATE,
+         SYSDATE,
+         '1'
+         FROM MM_JIT_PART_LACK A where A.ID = #{id,jdbcType = VARCHAR}
+	</insert>
+
+</mapper>

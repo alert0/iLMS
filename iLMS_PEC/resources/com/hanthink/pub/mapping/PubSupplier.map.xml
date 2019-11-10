@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.pub.model.PubSupplierModel">
+		
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="queryPubSupplierForPage" parameterType="com.hanthink.pub.model.PubSupplierModel" resultType="com.hanthink.pub.model.PubSupplierModel">
+		SELECT DISTINCT
+                       NVL(C.SUP_FACTORY,D.SUP_FACTORY)   supFactory,
+                       A.SUPPLIER_NO   supplierNo,
+                       A.SUPPLIER_NAME   supplierName,
+                       A.DETAIL_ADDR    detailAddr,
+                       case when 
+                       (C.SUP_FACTORY IS NOT NULL and C.SUPPLIER_NO IS NOT NULL) THEN '激活'
+                               else '未激活' 
+                               end  codeValueName,   
+                       A.EMAIL   email,
+                       A.CONTACT   contact,
+                       A.MOBILE_NO   mobileNo,
+                       A.TEL_NO   telNo,
+        
+                       C.SUP_FACTORY_ADDR  supFactoryAddr,
+                       C.IMPORT_DEP   importDep,
+                       C.IMPORT_POSITION   importPosition,
+                       C.IMPORT_NAME  importName,
+                       C.IMPORT_MOBILE   importMobile,
+                       C.IMPORT_TEL   importTel,
+                       C.IMPORT_MAIL   importMail,
+                       C.PT_DEP   ptDep,
+                       C.PT_POSITION   ptPosition,
+                       C.PT_NAME   ptName,
+                       C.PT_MOBILE   ptMobile,
+                       C.PT_TEL   ptTel,
+                       C.PT_MAIL   ptMail,
+                       C.MASS_DEP   massDep,
+                       C.MASS_POSITION   massPosition,
+                       C.MASS_NAME   massName,
+                       C.MASS_MOBILE   massMobile,
+                       C.MASS_TEL   massTel,
+                       C.MASS_MAIL   massMail,
+                       C.EXCEP_DEP_A   excepDepA,
+                       C.EXCEP_DEP_B   excepDepB,
+                       C.EXCEP_POSITION_A  excepPositionA,
+                       C.EXCEP_POSITION_B  excepPositionB,
+                       C.EXCEP_NAME_A   excepNameA,
+                       C.EXCEP_NAME_B   excepNameB,
+                       C.EXCEP_MOBILE_A   excepMobileA,
+                       C.EXCEP_MOBILE_B   excepMobileB,
+                       C.EXCEP_TEL_A    excepTelA,
+                       C.EXCEP_TEL_B    excepTelB,
+                       C.EXCEP_MAIL_A    excepMailA,
+                       C.EXCEP_MAIL_B    excepMailB,
+                       C.DEVICE_DEP    deviceDep,
+                       C.DEVICE_POSITION   devicePosition,
+                       C.DEVICE_NAME    deviceName,
+                       C.DEVICE_MOBILE    deviceMobile,
+                       C.DEVICE_TEL    deviceTel,
+                       C.DEVICE_MAIL    deviceMail,
+                       C.IMPORT_DEP_A    importDepA,
+                       C.IMPORT_POSITION_A   importPositionA,
+                       C.IMPORT_NAME_A     importNameA,
+                       C.IMPORT_MOBILE_A     importMobileA,
+                       C.IMPORT_TEL_A     importTelA,
+                       C.IMPORT_MAIL_A     importMailA,
+                       C.PT_DEP_A    ptDepA,
+                       C.PT_POSITION_A    ptPositionA,
+                       C.PT_NAME_A    ptNameA,
+                       C.PT_MOBILE_A    ptMobileA,
+                       C.PT_TEL_A    ptTelA,
+                       C.PT_MAIL_A    ptMailA,
+                       C.MASS_DEP_A    massDepA,
+                       C.MASS_POSITION_A   massPositionA,
+                       C.MASS_NAME_A    massNameA,
+                       C.MASS_MOBILE_A   massMobileA,
+                       C.MASS_TEL_A    massTelA,
+                       C.MASS_MAIL_A    massMailA,
+                       C.DEVICE_DEP_A    deviceDepA,
+                       C.DEVICE_POSITION_A   devicePositionA,
+                       C.DEVICE_NAME_A    deviceNameA,
+                       C.DEVICE_MOBILE_A    deviceMobileA,
+                       C.DEVICE_TEL_A    deviceTelA,
+                       C.DEVICE_MAIL_A    deviceMailA,
+                       C.PACK_DEP_A    packDepA,
+                       C.PACK_POSITION_A   packPositionA,
+                       C.PACK_NAME_A   packNameA,
+                       C.PACK_MOBILE_A    packMobileA,
+                       C.PACK_TEL_A    packTelA,
+                       C.PACK_MAIL_A    packMailA,
+                       C.PACK_DEP_B   packDepB,
+                       C.PACK_POSITION_B   packPositionB,
+                       C.PACK_NAME_B   packNameB,
+                       C.PACK_MOBILE_B   packMobileB,
+                       C.PACK_TEL_B    packTelB,
+                       C.PACK_MAIL_B     packMailB,
+                       C.PT_LOGISTICS_DEP   ptLogisticsDep,
+                       C.PT_LOGISTICS_NAME    ptLogisticsName,
+                       C.PT_LOGISTICS_POSITION   ptLogisticsPosition,
+                       C.PT_LOGISTICS_MOBILE    ptLogisticsMobile,
+                       C.PT_LOGISTICS_TEL    ptLogisticsTel,
+                       C.PT_LOGISTICS_MAIL    ptLogisticsMail,
+                       C.PT_LOGISTICS_DEP_A    ptLogisticsDepA,
+                       C.PT_LOGISTICS_NAME_A    ptLogisticsNameA,
+                       C.PT_LOGISTICS_POSITION_A    ptLogisticsPositionA,
+                       C.PT_LOGISTICS_MOBILE_A    ptLogisticsMobileA,
+                       C.PT_LOGISTICS_TEL_A     ptLogisticsTelA,
+                       C.PT_LOGISTICS_MAIL_A     ptLogisticsMailA,
+                       C.MASS_LOGISTICS_DEP    massLogisticsDep,
+                       C.MASS_LOGISTICS_POSITION    massLogisticsPosition,
+                       C.MASS_LOGISTICS_NAME    massLogisticsName,
+                       C.MASS_LOGISTICS_MOBILE    massLogisticsMobile,
+                       C.MASS_LOGISTICS_TEL    massLogisticsTel,
+                       C.MASS_LOGISTICS_MAIL    massLogisticsMail,
+                       C.MASS_LOGISTICS_DEP_A    massLogisticsDepA,
+                       C.MASS_LOGISTICS_POSITION_A   massLogisticsPositionA,
+                       C.MASS_LOGISTICS_NAME_A    massLogisticsNameA,
+                       C.MASS_LOGISTICS_MOBILE_A   massLogisticsMobileA,
+                       C.MASS_LOGISTICS_TEL_A     massLogisticsTelA,
+                       C.MASS_LOGISTICS_MAIL_A    massLogisticsMailA
+                  FROM MM_PUB_SUPPLIER A
+                  LEFT JOIN MM_PUB_DATA_DICT B
+                  ON B.CODE_TYPE = 'PUB_SUP_STATUS'
+                  AND B.CODE_VALUE = A.SUP_STATUS
+                  LEFT JOIN MM_PUB_SUPPLIER_DETAIL C
+                  ON C.SUPPLIER_NO = A.SUPPLIER_NO
+                  LEFT JOIN MM_PUB_PART_UDA D
+                  ON D.SUPPLIER_NO = A.SUPPLIER_NO
+                  AND D.FACTORY_CODE = #{factoryCode}
+              WHERE 1=1 
+						  <if test="supplierNo!=null and supplierNo!='' ">
+						  AND	A.SUPPLIER_NO = #{supplierNo}
+						  </if>
+						  <if test="supFactory!=null and supFactory!='' ">
+						  AND   (C.SUP_FACTORY = #{supFactory} OR  D.SUP_FACTORY = #{supFactory})
+						  </if>
+						  <if test="supplierName!=null and supplierName!='' ">
+						  AND	A.SUPPLIER_NAME LIKE CONCAT(#{supplierName}, '%')
+						  </if>
+						  ORDER BY 1
+	</select>
+	
+	<!-- 根据供应商代码查询供应商信息 -->
+	<select id="queryPubSupplierBySupplierNo" parameterType="com.hanthink.pub.model.PubSupplierModel" resultType="com.hanthink.pub.model.PubSupplierModel">
+				SELECT NVL(C.SUP_FACTORY,D.SUP_FACTORY)   supFactory,
+               A.SUPPLIER_NO   supplierNo,
+               A.SUPPLIER_NAME   supplierName,
+               A.DETAIL_ADDR    detailAddr,
+               case when 
+                   (C.SUP_FACTORY IS NOT NULL and C.SUPPLIER_NO IS NOT NULL) THEN '激活'
+                       else '未激活' 
+                       end   codeValueName,
+               A.EMAIL   email,
+               A.CONTACT   contact,
+               A.MOBILE_NO   mobileNo,
+               A.TEL_NO   telNo,
+
+               C.SUP_FACTORY_ADDR  supFactoryAddr,
+               C.IMPORT_DEP   importDep,
+               C.IMPORT_POSITION   importPosition,
+               C.IMPORT_NAME  importName,
+               C.IMPORT_MOBILE   importMobile,
+               C.IMPORT_TEL   importTel,
+               C.IMPORT_MAIL   importMail,
+               C.PT_DEP   ptDep,
+               C.PT_POSITION   ptPosition,
+               C.PT_NAME   ptName,
+               C.PT_MOBILE   ptMobile,
+               C.PT_TEL   ptTel,
+               C.PT_MAIL   ptMail,
+               C.MASS_DEP   massDep,
+               C.MASS_POSITION   massPosition,
+               C.MASS_NAME   massName,
+               C.MASS_MOBILE   massMobile,
+               C.MASS_TEL   massTel,
+               C.MASS_MAIL   massMail,
+               C.EXCEP_DEP_A   excepDepA,
+               C.EXCEP_DEP_B   excepDepB,
+               C.EXCEP_POSITION_A  excepPositionA,
+               C.EXCEP_POSITION_B  excepPositionB,
+               C.EXCEP_NAME_A   excepNameA,
+               C.EXCEP_NAME_B   excepNameB,
+               C.EXCEP_MOBILE_A   excepMobileA,
+               C.EXCEP_MOBILE_B   excepMobileB,
+               C.EXCEP_TEL_A    excepTelA,
+               C.EXCEP_TEL_B    excepTelB,
+               C.EXCEP_MAIL_A    excepMailA,
+               C.EXCEP_MAIL_B    excepMailB,
+               C.DEVICE_DEP    deviceDep,
+               C.DEVICE_POSITION   devicePosition,
+               C.DEVICE_NAME    deviceName,
+               C.DEVICE_MOBILE    deviceMobile,
+               C.DEVICE_TEL    deviceTel,
+               C.DEVICE_MAIL    deviceMail,
+               C.IMPORT_DEP_A    importDepA,
+               C.IMPORT_POSITION_A   importPositionA,
+               C.IMPORT_NAME_A     importNameA,
+               C.IMPORT_MOBILE_A     importMobileA,
+               C.IMPORT_TEL_A     importTelA,
+               C.IMPORT_MAIL_A     importMailA,
+               C.PT_DEP_A    ptDepA,
+               C.PT_POSITION_A    ptPositionA,
+               C.PT_NAME_A    ptNameA,
+               C.PT_MOBILE_A    ptMobileA,
+               C.PT_TEL_A    ptTelA,
+               C.PT_MAIL_A    ptMailA,
+               C.MASS_DEP_A    massDepA,
+               C.MASS_POSITION_A   massPositionA,
+               C.MASS_NAME_A    massNameA,
+               C.MASS_MOBILE_A   massMobileA,
+               C.MASS_TEL_A    massTelA,
+               C.MASS_MAIL_A    massMailA,
+               C.DEVICE_DEP_A    deviceDepA,
+               C.DEVICE_POSITION_A   devicePositionA,
+               C.DEVICE_NAME_A    deviceNameA,
+               C.DEVICE_MOBILE_A    deviceMobileA,
+               C.DEVICE_TEL_A    deviceTelA,
+               C.DEVICE_MAIL_A    deviceMailA,
+               C.PACK_DEP_A    packDepA,
+               C.PACK_POSITION_A   packPositionA,
+               C.PACK_NAME_A   packNameA,
+               C.PACK_MOBILE_A    packMobileA,
+               C.PACK_TEL_A    packTelA,
+               C.PACK_MAIL_A    packMailA,
+               C.PACK_DEP_B   packDepB,
+               C.PACK_POSITION_B   packPositionB,
+               C.PACK_NAME_B   packNameB,
+               C.PACK_MOBILE_B   packMobileB,
+               C.PACK_TEL_B    packTelB,
+               C.PACK_MAIL_B     packMailB,
+               C.PT_LOGISTICS_DEP   ptLogisticsDep,
+               C.PT_LOGISTICS_NAME    ptLogisticsName,
+               C.PT_LOGISTICS_POSITION   ptLogisticsPosition,
+               C.PT_LOGISTICS_MOBILE    ptLogisticsMobile,
+               C.PT_LOGISTICS_TEL    ptLogisticsTel,
+               C.PT_LOGISTICS_MAIL    ptLogisticsMail,
+               C.PT_LOGISTICS_DEP_A    ptLogisticsDepA,
+               C.PT_LOGISTICS_NAME_A    ptLogisticsNameA,
+               C.PT_LOGISTICS_POSITION_A    ptLogisticsPositionA,
+               C.PT_LOGISTICS_MOBILE_A    ptLogisticsMobileA,
+               C.PT_LOGISTICS_TEL_A     ptLogisticsTelA,
+               C.PT_LOGISTICS_MAIL_A     ptLogisticsMailA,
+               C.MASS_LOGISTICS_DEP    massLogisticsDep,
+               C.MASS_LOGISTICS_POSITION    massLogisticsPosition,
+               C.MASS_LOGISTICS_NAME    massLogisticsName,
+               C.MASS_LOGISTICS_MOBILE    massLogisticsMobile,
+               C.MASS_LOGISTICS_TEL    massLogisticsTel,
+               C.MASS_LOGISTICS_MAIL    massLogisticsMail,
+               C.MASS_LOGISTICS_DEP_A    massLogisticsDepA,
+               C.MASS_LOGISTICS_POSITION_A   massLogisticsPositionA,
+               C.MASS_LOGISTICS_NAME_A    massLogisticsNameA,
+               C.MASS_LOGISTICS_MOBILE_A   massLogisticsMobileA,
+               C.MASS_LOGISTICS_TEL_A     massLogisticsTelA,
+               C.MASS_LOGISTICS_MAIL_A    massLogisticsMailA
+          FROM MM_PUB_SUPPLIER A
+          LEFT JOIN MM_PUB_DATA_DICT B
+          ON B.CODE_TYPE = 'PUB_SUP_STATUS'
+          AND B.CODE_VALUE = A.SUP_STATUS
+          LEFT JOIN MM_PUB_SUPPLIER_DETAIL C
+          ON C.SUPPLIER_NO = A.SUPPLIER_NO
+          LEFT JOIN MM_PUB_PART_UDA D
+          ON D.SUPPLIER_NO = A.SUPPLIER_NO
+          WHERE A.SUPPLIER_NO = #{supplierNo,jdbcType=VARCHAR}
+          ORDER BY 1
+	</select>
+	
+	<!-- 修改方法 -->
+	<update id="update" parameterType="com.hanthink.pub.model.PubSupplierModel">
+		UPDATE MM_PUB_SUPPLIER SET
+		SUP_FACTORY = #{supFactory,jdbcType=VARCHAR},
+        LAST_MODIFIED_TIME = sysdate
+		WHERE 1=1
+		AND SUP_FACTORY = #{supFactory}
+		AND SUPPLIER_NO = #{supplierNo}
+	</update>
+	
+</mapper>

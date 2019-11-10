@@ -1,0 +1,9 @@
+jco.client.lang=en
+jco.destination.peak_limit=10
+jco.client.client=280
+jco.client.user=Y_P
+jco.client.passwd=2Tb
+jco.client.sysnr=00
+jco.destination.pool_capacity=3
+jco.client.ashost=10.138.250.1
+

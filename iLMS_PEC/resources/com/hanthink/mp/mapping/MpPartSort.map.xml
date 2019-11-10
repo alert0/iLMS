@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.mp.model.MpPartSortModel">
+		
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="queryMpPartSortForPage" parameterType="com.hanthink.mp.model.MpPartSortModel" resultType="com.hanthink.mp.model.MpPartSortModel">
+	 SELECT a.PART_NO partNo
+		   ,b.PART_SHORT_NO partShortNo
+		   ,b.PART_NAME_CN partNameCn
+		   ,a.SUPPLIER_NO supplierNo
+		   ,a.SUP_FACTORY supFactory
+		 
+		   ,b.SUPPLIER_NAME supplierName
+		   ,a.UNLOAD_PORT unloadPort
+		   ,a.WORKCENTER workcenter
+		   ,a.GROUP_ID groupId
+		   ,a.LOGISTICS_ORDER logisticsOrder
+		 
+		   ,a.DR_SORT_ID_START drSortIdStart
+		   ,a.DR_SORT_ID_END drSortIdEnd
+		   ,a.LR_SORT_ID_START lrSortIdStart
+		   ,a.LR_SORT_ID_END lrSortIdEnd
+		   ,a.REAL_END_SORT_ID  realEndSortId
+		   ,a.ORDER_PACKAGE orderPackage
+		 
+		   ,a.ARRIVE_TIME arriveTimeStr
+		   ,a.LINE_SIDE_TIME lineSideTimeStr
+		   ,a.GROUP_QTY groupQty
+		   ,a.LINE_SIDE_SORT_ID lineSideSortId
+		   ,a.CAL_STATUS calStatus
+		   
+		   ,d.CODE_VALUE_NAME codeValueName
+		   FROM MM_MP_PART_SORT a
+		   LEFT JOIN MM_PUB_PART_UDA b 
+		   ON b.PART_NO = a.PART_NO
+		   <!-- i-LMS2019053001 mod by 赵明健 -->
+		   AND b.FACTORY_CODE = a.FACTORY_CODE
+		   LEFT JOIN MM_PUB_DATA_DICT d
+		   ON d.CODE_TYPE = 'MP_CAL_STATUS'
+		   AND d.CODE_VALUE = a.CAL_STATUS
+		   AND d.FACTORY_CODE = a.FACTORY_CODE
+		WHERE 1=1 
+		<if test="supplierNo!=null and supplierNo!='' ">
+		AND	a.SUPPLIER_NO = #{supplierNo}
+		</if>
+		<if test="supFactory!=null and supFactory!='' ">
+		AND	a.SUP_FACTORY = #{supFactory}
+		</if>
+		<if test="unloadPort!=null and unloadPort!='' ">
+		AND	a.UNLOAD_PORT = #{unloadPort}
+		</if>
+		<if test="partNo!=null and partNo!='' ">
+		AND	a.PART_NO LIKE CONCAT(#{partNo}, '%')
+		</if>
+		<if test="partShortNo!=null and partShortNo!='' ">
+		AND	b.PART_SHORT_NO = #{partShortNo}
+		</if>
+		<if test="logisticsOrder!=null and logisticsOrder!='' ">
+		AND	a.LOGISTICS_ORDER LIKE CONCAT(#{logisticsOrder}, '%')
+		</if>
+		<if test="groupId!=null and groupId!='' ">
+		AND	a.LINE_SIDE_SORT_ID LIKE CONCAT(#{groupId}, '%')
+		</if>
+		AND a.FACTORY_CODE = #{factoryCode}
+		UNION ALL
+		SELECT a.PART_NO partNo
+		,b.PART_SHORT_NO partShortNo
+		,b.PART_NAME_CN partNameCn
+		,a.SUPPLIER_NO supplierNo
+		,a.SUP_FACTORY supFactory
+	
+		,b.SUPPLIER_NAME supplierName
+		,a.UNLOAD_PORT unloadPort
+		,a.WORKCENTER workcenter
+		,a.GROUP_ID groupId
+		,a.LOGISTICS_ORDER logisticsOrder
+	
+		,a.DR_SORT_ID_START drSortIdStart
+		,a.DR_SORT_ID_END drSortIdEnd
+		,a.LR_SORT_ID_START lrSortIdStart
+		,a.LR_SORT_ID_END lrSortIdEnd
+		,a.REAL_END_SORT_ID  realEndSortId
+		,a.ORDER_PACKAGE orderPackage
+	
+		,a.ARRIVE_TIME arriveTimeStr
+		,a.LINE_SIDE_TIME lineSideTimeStr
+		,a.GROUP_QTY groupQty
+		,a.LINE_SIDE_SORT_ID lineSideSortId
+		,a.CAL_STATUS calStatus
+	
+	    ,d.CODE_VALUE_NAME codeValueName
+		FROM MM_MP_PART_SORT_TEMP a
+		LEFT JOIN MM_PUB_PART_UDA b
+		ON b.PART_NO = a.PART_NO
+		<!-- i-LMS2019053001 mod by 赵明健 -->
+		AND b.FACTORY_CODE = a.FACTORY_CODE
+		LEFT JOIN MM_PUB_DATA_DICT d
+		ON d.CODE_TYPE = 'MP_CAL_STATUS'
+	    AND d.CODE_VALUE = a.CAL_STATUS
+	    AND d.FACTORY_CODE = a.FACTORY_CODE
+		WHERE 1=1 
+		<if test="supplierNo!=null and supplierNo!='' ">
+		AND	a.SUPPLIER_NO LIKE CONCAT(#{supplierNo}, '%')
+		</if>
+		<if test="supFactory!=null and supFactory!='' ">
+		AND	a.SUP_FACTORY LIKE CONCAT(#{supFactory}, '%')
+		</if>
+		<if test="unloadPort!=null and unloadPort!='' ">
+		AND	a.UNLOAD_PORT LIKE CONCAT(#{unloadPort}, '%')
+		</if>
+		<if test="partNo!=null and partNo!='' ">
+		AND	a.PART_NO LIKE CONCAT(#{partNo}, '%')
+		</if>
+		<if test="partShortNo!=null and partShortNo!='' ">
+		AND	b.PART_SHORT_NO LIKE CONCAT(#{partShortNo}, '%')
+		</if>
+		<if test="logisticsOrder!=null and logisticsOrder!='' ">
+		AND	a.LOGISTICS_ORDER LIKE CONCAT(#{logisticsOrder}, '%')
+		</if>
+		<if test="groupId!=null and groupId!='' ">
+		AND	a.LINE_SIDE_SORT_ID LIKE CONCAT(#{groupId}, '%')
+		</if>
+		AND a.FACTORY_CODE = #{factoryCode}
+		ORDER BY 4,5,7,8,1,9
+	</select>
+	
+	<!-- 获取计算队列 -->
+	<select id="getUnloadPort" parameterType="java.util.Map" resultType="com.hanthink.base.model.DictVO">
+		SELECT DISTINCT UNLOAD_PORT valueKey, UNLOAD_PORT valueName FROM MM_MP_PART 
+	</select>
+	
+</mapper>

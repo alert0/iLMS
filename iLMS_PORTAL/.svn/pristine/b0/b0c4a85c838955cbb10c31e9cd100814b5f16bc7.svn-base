@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.sw.model.SwNonStandardModel">
+
+	<!-- 分页查询非标件 -->
+	<select id="queryNonStandardPage" parameterType="com.hanthink.sw.model.SwNonStandardModel"
+		resultType="com.hanthink.sw.model.SwNonStandardModel">
+			SELECT   A.ID         	id,
+		             A.ORDER_NO       orderNo,
+		             A.SALE_NO          saleNo,
+		             A.SALE_ROW_NO      saleRowNo,
+		             A.ORDER_NUM        orderNum,
+		             A.SUPPLIER_NO     supplierNo,
+		             SUP.SUPPLIER_NAME  supplierName,
+		             <!-- SUP.SUP_FACTORY    supFactory, -->
+		             PART.SUP_FACTORY   supFactory,
+		             A.PART_NO    			partNo,
+		             PART.PART_SHORT_NO   partShortNo,
+		             PART.PART_NAME_CN  	partNameCn,
+		             <!-- A.CHECK_RESULT    checkResult, -->
+		             DD.CODE_VALUE_NAME   checkResult,
+		             B.REMARK       	remark,
+		             B.CHECKER      	checker,
+		             U.FULLNAME_      checkerName,
+		             B.CHECK_TIME     		checkTime,
+		             PSTA.CODE_VALUE_NAME realStatus
+		             <!-- A.PIC_UPLOAD_STATUS  realStatus -->
+		        FROM MM_SW_NON_STANDARD A
+		        LEFT JOIN MM_SW_NON_STANDAR_CHECK B
+		          ON A.LAST_CHECK_ID = B.ID
+		        
+		        LEFT JOIN MM_PUB_SUPPLIER SUP
+		          ON A.SUPPLIER_NO = SUP.SUPPLIER_NO
+		        LEFT JOIN MM_PUB_PART_UDA PART
+		          ON A.PART_NO = PART.PART_NO
+		         AND A.FACTORY_CODE = PART.FACTORY_CODE
+		         
+		        LEFT JOIN SYS_USER U 
+                  ON B.CHECKER = U.ACCOUNT_
+              
+		        LEFT JOIN MM_PUB_DATA_DICT DD
+		          ON DD.CODE_TYPE = 'CHECK_RESULT'
+		         AND DD.FACTORY_CODE = #{factoryCode}
+		         AND DD.CODE_VALUE = B.CHECK_RESULT
+		        LEFT JOIN MM_PUB_DATA_DICT PSTA
+		         ON PSTA.CODE_TYPE = 'PIC_UPLOAD_STATUS'
+		         AND PSTA.FACTORY_CODE = #{factoryCode}
+		         AND PSTA.CODE_VALUE = A.PIC_UPLOAD_STATUS
+		       WHERE 1 = 1
+  		 	  <if test="saleNo != null and saleNo !='' ">
+  		 	   AND A.ORDER_NO = #{saleNo}
+  		 	  </if>
+  		 	  <if test="supplierNo != null and supplierNo !='' ">
+  		 	   AND SUP.SUPPLIER_NO = #{supplierNo}
+  		 	  </if>
+  		 	  <if test="partNo != null and partNo !='' ">
+  		 	   AND A.PART_NO = #{partNo}
+  		 	  </if>
+  		 	  <if test="partShortNo != null and partShortNo !='' ">
+  		 	   AND PART.PART_SHORT_NO = #{partShortNo}
+  		 	  </if>
+  		 	  <if test="checkResult != null and checkResult !='' ">
+  		 	   AND  B.CHECK_RESULT = #{checkResult}
+  		 	  </if>
+  		 	  <if test="realStatus != null and realStatus != '' ">
+  		 	   AND A.PIC_UPLOAD_STATUS = #{realStatus}
+  		 	  </if>
+
+  		 	  ORDER BY A.SALE_NO DESC ,A.SUPPLIER_NO ASC ,A.PART_NO ASC
+	</select>
+	
+	
+	<!--  实物上传相关处理********************************************************************-->
+	<!-- 获取检查记录表id -->
+	<select id="getSeqCheck" resultType="java.lang.String">
+	 SELECT SEQ_NON_STANDAR_CHECK.NEXTVAL checkId FROM DUAL
+	</select>
+	
+	<!-- 实物图片上传如果是未进行检查操作上传则删除上次上传的图片信息 -->
+	<delete id="deleteNonStandPic" parameterType="com.hanthink.sw.model.SwNonStandardModel">
+		DELETE FROM MM_SW_NON_STAND_PIC A
+		 WHERE A.SALE_NO = #{saleNo,jdbcType = VARCHAR}
+		   AND A.SALE_ROW_NO = #{saleRowNo,jdbcType = VARCHAR}
+		   AND A.PART_NO = #{partNo,jdbcType = VARCHAR}
+	</delete>
+	<!-- 实物图片上传如果是未进行检查操作则删除上次写入到检查记录表的数据 -->
+	<delete id="deleteNonStandCheck" parameterType="com.hanthink.sw.model.SwNonStandardModel">
+		DELETE FROM MM_SW_NON_STANDAR_CHECK A
+			 WHERE A.SALE_NO = #{saleNo,jdbcType = VARCHAR}
+			   AND A.SALE_ROW_NO = #{saleRowNo,jdbcType = VARCHAR}
+			   AND A.PART_NO = #{partNo,jdbcType = VARCHAR}
+			   AND A.CHECK_TIME IS NULL
+	</delete>
+	
+	<!-- 实物图片上传提交，销售单号，行号，零件号写入到检查记录表中 -->
+	<insert id="insertNonStandModel" parameterType="com.hanthink.sw.model.SwNonStandardModel">
+		INSERT INTO MM_SW_NON_STANDAR_CHECK
+		  (ID, SALE_NO, SALE_ROW_NO, PART_NO,CREATION_USER, CREATION_USER_IP,CREATION_TIME, DEAL_FLAG,DO_FLAG)
+		VALUES
+		  (#{checkId,jdbcType = VARCHAR}, 
+		  #{saleNo,jdbcType = VARCHAR}, 
+		  #{saleRowNo,jdbcType = VARCHAR}, 
+		  #{partNo,jdbcType = VARCHAR},
+		  #{creationUser,jdbcType = VARCHAR},
+		  #{creationUserIp},
+		  sysdate,
+		  '0',
+		  'I')
+	</insert>
+	
+	<!-- 实物图片上传提交，数据写入到图片关系表中 -->
+	<insert id="uploadSignProFile" parameterType="com.hanthink.sw.model.SwNonStandardModel">
+	INSERT INTO MM_SW_NON_STAND_PIC
+	  (SALE_NO, SALE_ROW_NO, PART_NO, CHECK_ID, PIC_ID,CREATION_TIME,PIC_TYPE,CREATION_USER,DEAL_FLAG,DO_FLAG)
+	VALUES
+	  (#{saleNo,jdbcType = VARCHAR}, 
+	  #{saleRowNo,jdbcType = VARCHAR}, 
+	  #{partNo,jdbcType = VARCHAR}, 
+	  #{checkId,jdbcType = VARCHAR}, 
+	  #{picId,jdbcType = VARCHAR},
+	  SYSDATE,
+	  0,
+	  #{creationUser,jdbcType = VARCHAR},
+	  '0',
+	  'I')
+	</insert>
+	
+	<!-- 实物图片上传提交，更新主表中实物上传状态为已上传 -->
+	<update id="updateNonStandard" parameterType="com.hanthink.sw.model.SwNonStandardModel">
+	UPDATE MM_SW_NON_STANDARD A SET 
+	 A.PIC_UPLOAD_STATUS = #{picUploadStatus},
+	 A.LAST_CHECK_ID = #{checkId} ,
+	 A.DEAL_FLAG = '0',
+	 A.DO_FLAG = 'U'
+		WHERE  A.SALE_NO = #{saleNo,jdbcType = VARCHAR}
+			   AND A.SALE_ROW_NO = #{saleRowNo,jdbcType = VARCHAR}
+			   AND A.PART_NO = #{partNo,jdbcType = VARCHAR}
+	</update>		
+	<!-- 实物上传相关业务结束 **************************************************************************-->
+	
+	
+	<!-- 根据对象获取图片id -->
+	<select id="getUploadPicIdByModel" parameterType="com.hanthink.sw.model.SwNonStandardModel"
+	resultType="com.hanthink.sw.model.SwNonStandardModel">
+		SELECT  A.PIC_ID       picId
+	      FROM MM_SW_NON_STAND_PIC A
+	     WHERE A.SALE_NO = #{saleNo,jdbcType = VARCHAR}
+	     AND A.SALE_ROW_NO = #{saleRowNo,jdbcType = VARCHAR}
+	     AND A.PART_NO = #{partNo}
+	     AND A.PIC_TYPE = 0
+	    AND A.PIC_ID IS NOT NULL
+	    AND A.CHECK_ID = (SELECT MAX(B.CHECK_ID) FROM MM_SW_NON_STAND_PIC B 
+	    					where B.SALE_NO = #{saleNo,jdbcType = VARCHAR}
+                               AND B.SALE_ROW_NO = #{saleRowNo,jdbcType = VARCHAR}
+                               AND B.PART_NO = #{partNo})
+    	ORDER BY A.CHECK_ID DESC 
+	</select>
+	
+	<!-- 根据id获取图片id -->
+	<select id="getUploadPicIdBy" parameterType="com.hanthink.sw.model.SwNonStandardModel"
+		resultType="com.hanthink.sw.model.SwNonStandardModel">
+		SELECT A.NON_STAND_ID		id,
+       		   A.PIC_ID				picId,
+       		   A.PIC_TYPE     		picType
+		  FROM MM_SW_NON_STAND_PIC A
+		 WHERE A.NON_STAND_ID = #{id}
+		   AND A.PIC_ID IS NOT NULL
+	</select>
+	
+	
+	<!--  检查相关逻辑处理**************************************************************-->
+	<!-- 检查提交，更新检查表信息 -->
+	<update id="submitFeedback" parameterType="com.hanthink.sw.model.SwNonStandardModel" >   
+	UPDATE MM_SW_NON_STANDAR_CHECK A
+	   SET A.CHECK_RESULT     = #{checkResult,jdbcType = VARCHAR},
+	       A.CHECKER          = #{checker,jdbcType = VARCHAR},
+	       A.CHECK_TIME       = #{checkTime,jdbcType = VARCHAR},
+	       A.CREATION_USER_IP = #{creationUserIp,jdbcType = VARCHAR}
+	 WHERE A.ID = (SELECT MAX(B.ID)
+	                 FROM MM_SW_NON_STANDAR_CHECK B
+	                WHERE B.SALE_NO = #{saleNo}
+	                  AND B.SALE_ROW_NO = #{saleRowNo}
+	                  AND B.PART_NO = #{partNo})
+	</update>
+	
+	<!-- 检查提交，反馈图片写入到图片关系表中 -->
+	<insert id="submitFeedbackPic" parameterType="com.hanthink.sw.model.SwNonStandardModel">
+		INSERT INTO MM_SW_NON_STAND_PIC
+		 (NON_STAND_ID,FEEDBACK_PIC) 
+		 VALUES( #{id,jdbcType=VARCHAR},
+		 		#{feedbackPic,jdbcType=VARCHAR})
+	</insert>
+	
+	<!-- 定制化信息下载 -->
+	<select id="queryNonStandDetail" parameterType="com.hanthink.sw.model.SwNonStandardModel"
+		resultType="com.hanthink.sw.model.SwNonStandardModel">
+			SELECT A.SALE_NO		saleNo,
+			       A.SALE_ROW_NO	saleRowNo,
+			       A.PART_NO		partNo,
+			       A.FEATURE		feature,
+			       A.FEATURE_TYPE	featureType,
+			       A.FEATURE_VALUE	featureValue,
+			       A.SORT_NO		sortNo,
+			       B.PART_SHORT_NO  partShortNo,
+			       B.PART_NAME_CN   partNameCn
+			  FROM MM_SW_NON_STANDARD_DETAIL A
+			   LEFT JOIN MM_PUB_PART_UDA B 
+         		ON A.PART_NO = B.PART_NO
+         	   AND B.FACTORY_CODE = #{factoryCode}
+			 WHERE A.SALE_NO = #{saleNo}
+ 			   AND A.SALE_ROW_NO = #{saleRowNo}
+			   AND A.PART_NO = #{partNo}
+			 ORDER BY A.SORT_NO ASC,A.FEATURE ASC
+	</select>
+	
+	
+	<!--  检查记录查看开始*************************************************-->
+	<select id="selectDetail" parameterType="com.hanthink.sw.model.SwNonStandardModel"
+		resultType="com.hanthink.sw.model.SwNonStandardModel">
+		SELECT A.ID					id,
+		       A.SALE_NO			saleNo,
+		       A.SALE_ROW_NO		saleRowNo,
+		       A.PART_NO			partNo,
+		       A.REMARK				remark,
+		       <!-- A.CHECK_RESULT		checkResult, -->
+		       B.CODE_VALUE_NAME	checkResult,
+		       A.CHECKER			checker,
+		       A.CHECK_TIME			checkTime,
+		       UDA.PART_SHORT_NO	partShortNo,
+       		   UDA.PART_NAME_CN		partNameCn,
+       		   A.CREATION_TIME		creationTime
+		  FROM MM_SW_NON_STANDAR_CHECK A
+		    LEFT JOIN MM_PUB_PART_UDA UDA
+       			ON A.PART_NO = UDA.PART_NO
+       			AND UDA.FACTORY_CODE = #{factoryCode}
+		  LEFT JOIN MM_PUB_DATA_DICT B
+			   ON B.FACTORY_CODE = #{factoryCode}
+			   AND B.CODE_TYPE = 'CHECK_RESULT'
+			   AND A.CHECK_RESULT = B.CODE_VALUE
+		  WHERE A.SALE_NO = #{saleNo,jdbcType = VARCHAR}
+		        AND A.SALE_ROW_NO = #{saleRowNo,jdbcType = VARCHAR}
+		        AND A.PART_NO = #{partNo,jdbcType = VARCHAR}
+		ORDER BY A.CREATION_TIME DESC
+	</select>
+	
+	<!-- 根据检查ID获取到该历史记录的实物图片 -->
+	<select id="getUploadPicIdByCheckId" parameterType="java.lang.String"
+		resultType="com.hanthink.sw.model.SwNonStandardModel">
+	SELECT 	   B.CHECK_ID		id,
+       		   B.PIC_ID		    picId,
+       		   B.PIC_TYPE		picType,
+       		   A.CHECK_RESULT 	checkResult,
+       		   A.REMARK         remark
+		  FROM MM_SW_NON_STANDAR_CHECK A  
+		  LEFT JOIN MM_SW_NON_STAND_PIC B 
+		   ON B.CHECK_ID = A.ID
+		 WHERE A.ID = #{checkId}
+		   AND B.PIC_ID IS NOT NULL
+	</select>
+	
+	<!-- 获取参数值 -->
+	<select id="getParamsByString" parameterType="java.util.Map" resultType = "java.lang.String">
+	SELECT A.PARAM_VAL paramVal FROM MM_PUB_SYS_PARAM A
+	 WHERE A.PARAM_CODE = #{paramsCode} 
+	 AND A.FACTORY_CODE = #{factoryCode}
+	</select>
+</mapper>

@@ -1,0 +1,15 @@
+jdk最低要求：JDK7
+1、修改文件
+   （1）src/hibernate.cfg.xml 修改数据库连接配置
+   （2）src/log4j.properties 修改日志文件保存路径和日志等级
+   （3）DATABASE/MESIF/Init/T_IF_PARAM.SQL 修改文件存储路径
+   （4）因JAVA32和64使用的SAP jar不同，需要替换SAP jar（目前是java32版本的）
+     a）WebRoot/WEB-INF/lib/sapjco3.dll
+     b）WebRoot/WEB-INF/lib/sapjco3.jar
+2、在MESIF用户下运行SQL
+   （1）创建MESIF用户
+   （2）运行DATABASE/MESIF/Table/*.SQL
+   （3）运行DATABASE/MESIF/Init/*.SQL
+3、导出war
+4、部署war
+5、将SAP的连接配置文件放到Tomcat根目录下

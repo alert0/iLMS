@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.sys.persistence.model.SysSignRight">
+	<resultMap id="SysSignRight" type="com.hotent.sys.persistence.model.SysSignRight">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="signId" column="sign_id_" jdbcType="VARCHAR"/>
+		<result property="rightId" column="right_id_" jdbcType="VARCHAR"/>
+		<result property="rightName" column="right_name_" jdbcType="VARCHAR"/>
+		<result property="type" column="type_" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.sys.persistence.model.SysSignRight">
+		INSERT INTO sys_sign_right
+		(id_,sign_id_,right_id_,right_name_,type_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{signId,jdbcType=VARCHAR}, #{rightId,jdbcType=VARCHAR}, #{rightName,jdbcType=VARCHAR}, #{type,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="SysSignRight">
+		SELECT * FROM sys_sign_right 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="SysSignRight">
+		SELECT * FROM sys_sign_right
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.sys.persistence.model.SysSignRight">
+		UPDATE sys_sign_right SET
+		sign_id_=#{signId,jdbcType=VARCHAR},
+		right_id_=#{rightId,jdbcType=VARCHAR},
+		right_name_=#{rightName,jdbcType=VARCHAR},
+		type_=#{type,jdbcType=VARCHAR}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_sign_right 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	
+</mapper>

@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.org.persistence.model.SysUserRel">
+	<resultMap id="SysUserRel" type="com.hotent.org.persistence.model.SysUserRel">
+		<id property="id" column="ID_" jdbcType="VARCHAR"/>
+		<result property="userId" column="USER_ID_" jdbcType="VARCHAR"/>
+		<result property="level" column="LEVEL_" jdbcType="VARCHAR"/>
+		<result property="parentId" column="PARENT_ID_" jdbcType="VARCHAR"/>
+		<result property="typeId" column="TYPE_ID_" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.org.persistence.model.SysUserRel">
+		INSERT INTO sys_user_rel
+		(ID_,USER_ID_,LEVEL_,PARENT_ID_,TYPE_ID_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{userId,jdbcType=VARCHAR},#{level,jdbcType=VARCHAR}, #{parentId,jdbcType=VARCHAR}, #{typeId,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="SysUserRel">
+		SELECT * FROM sys_user_rel 
+		WHERE 
+		ID_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="SysUserRel">
+		SELECT userRel.*,u.FULLNAME_ userName,u.account_ account  FROM sys_user_rel userRel  left join sys_user u on userRel.user_id_ = u.id_  
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+			<if test="typeId!=null">
+			 and userRel.TYPE_ID_ = #{typeId}
+			</if>
+			<if test="parentId!=null">
+				and userRel.PARENT_ID_ = #{parentId}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY u.ID_ DESC
+		</if>
+	</select>
+	
+	<select id="getByTypeId"  parameterType="java.util.Map" resultMap="SysUserRel">
+		SELECT userRel.*,u.FULLNAME_ userName,u.account_ account  FROM sys_user_rel userRel  left join sys_user u on userRel.user_id_ = u.id_  
+		where userRel.TYPE_ID_ = #{typeId}
+	</select>
+	
+	<select id="getByUserIdAndParentId"  parameterType="java.util.Map" resultMap="SysUserRel">
+		select * from sys_user_rel where type_id_ = #{typeId} and user_id_ = #{userId} and parent_id_ = #{parentId}
+	</select>
+	
+	<select id="getSuperUser"  parameterType="java.util.Map" resultMap="SysUserRel" >
+		select distinct ub.user_id_ userId ,u.fullname_ userName from sys_user_rel ua left join sys_user_rel ub on ub.id_  = ua.parent_id_ left join sys_user u on u.id_ = ub.user_id_ 
+		<where>
+			u.id_ is not null
+			<if test="@Ognl@isNotEmpty(userId)">
+				and ua.user_id_ = #{userId}
+			</if>
+			<if test="@Ognl@isNotEmpty(level)">
+				and ua.level_ = #{level}
+			</if>
+			<if test="@Ognl@isNotEmpty(typeId)">
+				and ua.type_id_ = #{typeId}
+			</if>
+		</where>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.org.persistence.model.SysUserRel">
+		UPDATE sys_user_rel SET
+		USER_ID_=#{userId,jdbcType=VARCHAR},
+		LEVEL_=#{level,jdbcType=VARCHAR},
+		PARENT_ID_=#{parentId,jdbcType=VARCHAR},
+		TYPE_ID_=#{typeId,jdbcType=VARCHAR}
+		WHERE
+		ID_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_user_rel 
+		WHERE
+		ID_=#{id}
+	</delete>
+	
+	
+</mapper>

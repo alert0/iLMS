@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.mp.model.MpVehPlanTempModel">
+		
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="queryMpVehPlanTempForPage" parameterType="com.hanthink.mp.model.MpVehPlanTempModel" resultType="com.hanthink.mp.model.MpVehPlanTempModel">
+			SELECT 
+		         A.SORT_ID  sortId,
+		         A.SORT_ID  sortIdStr,
+		         A.FACTORY_CODE factoryCode,
+		         A.CAR_TYPE  carType,
+		         A.ORDER_NO orderNo,
+		         TO_CHAR(A.WEON_TIME, 'YYYY-MM-DD HH24:MI:SS') weOnTimeStr,
+		         TO_CHAR(A.AFOFF_TIME, 'YYYY-MM-DD HH24:MI:SS')  afoffTimeStr,
+		         A.PRO_PHASE proPhase,
+		         D.CODE_VALUE_NAME codeValueNameD,
+		         NULL version,
+		         NULL writeTime,
+		         'W+3周计划' type
+		         FROM MM_MP_VEH_PLAN_TEMP  A
+		          LEFT JOIN MM_PUB_DATA_DICT D
+		         ON D.CODE_TYPE = 'PUB_PHASE'
+		         AND D.CODE_VALUE = A.PRO_PHASE
+		         AND D.FACTORY_CODE = A.FACTORY_CODE
+			   WHERE  1=1 
+		<if test="carType!=null and carType!='' ">
+		AND	A.CAR_TYPE = #{carType}
+		</if>
+		<if test="orderNo!=null and orderNo!='' ">
+		AND	A.ORDER_NO LIKE CONCAT(#{orderNo}, '%')
+		</if>
+		<if test="sortIdStrStart != null and sortIdStrStart != ''">
+		<![CDATA[ AND A.SORT_ID >= #{sortIdStrStart} ]]>
+		</if>
+        <if test="sortIdStrEnd != null and sortIdStrEnd != ''">
+        <![CDATA[ AND A.SORT_ID <= #{sortIdStrEnd} ]]>
+        </if>
+		<if test="afoffTimeStartStr != null and afoffTimeStartStr != ''">
+		<![CDATA[ AND A.AFOFF_TIME >= TO_DATE(#{afoffTimeStartStr},'yyyy-MM-dd HH24:mi:ss') ]]>
+		</if>
+        <if test="afoffTimeEndStr != null and afoffTimeEndStr != ''">
+        <![CDATA[ AND A.AFOFF_TIME <= TO_DATE(#{afoffTimeEndStr},'yyyy-MM-dd HH24:mi:ss') ]]>
+        </if>
+		AND A.FACTORY_CODE = #{factoryCode}
+		UNION ALL
+		SELECT E.SORT_ID sortId,
+		       E.SORT_ID sortIdStr,
+		       E.FACTORY_CODE factoryCode,
+		       E.CAR_TYPE carType,
+		       E.ORDER_NO orderNo,
+		       TO_CHAR(E.WEON_TIME, 'YYYY-MM-DD HH24:MI:SS') weOnTimeStr,
+		       TO_CHAR(E.AFOFF_TIME, 'YYYY-MM-DD HH24:MI:SS') afoffTimeStr,
+		       E.PRO_PHASE proPhase,
+		       G.CODE_VALUE_NAME codeValueNameD,
+		       NULL version,
+		       NULL writeTime,
+		       '新W+1,W+2计划' type
+		  FROM MM_MP_PRO_PLAN_TEMP E
+		  LEFT JOIN MM_PUB_DATA_DICT G
+		    ON G.CODE_TYPE = 'PUB_PHASE'
+		   AND G.CODE_VALUE = E.PRO_PHASE
+		   AND G.FACTORY_CODE = E.FACTORY_CODE
+		 WHERE 1 = 1
+		 AND E.VERSION IS NULL
+		<if test="carType!=null and carType!='' ">
+			AND	E.CAR_TYPE = #{carType}
+		</if>
+		<if test="orderNo!=null and orderNo!='' ">
+			AND	E.ORDER_NO LIKE CONCAT(#{orderNo}, '%')
+		</if>
+		<if test="sortIdStrStart != null and sortIdStrStart != ''">
+			<![CDATA[ AND E.SORT_ID >= #{sortIdStrStart} ]]>
+		</if>
+        <if test="sortIdStrEnd != null and sortIdStrEnd != ''">
+        	<![CDATA[ AND E.SORT_ID <= #{sortIdStrEnd} ]]>
+        </if>
+		<if test="afoffTimeStartStr != null and afoffTimeStartStr != ''">
+			<![CDATA[ AND E.AFOFF_TIME >= TO_DATE(#{afoffTimeStartStr},'yyyy-MM-dd HH24:mi:ss') ]]>
+		</if>
+        <if test="afoffTimeEndStr != null and afoffTimeEndStr != ''">
+        	<![CDATA[ AND E.AFOFF_TIME <= TO_DATE(#{afoffTimeEndStr},'yyyy-MM-dd HH24:mi:ss') ]]>
+        </if>
+		AND E.FACTORY_CODE = #{factoryCode}
+		UNION ALL
+		SELECT H.SORT_ID sortId,
+		       H.SORT_ID sortIdStr,
+		       H.FACTORY_CODE factoryCode,
+		       H.CAR_TYPE carType,
+		       H.ORDER_NO orderNo,
+		       TO_CHAR(H.WEON_TIME, 'YYYY-MM-DD HH24:MI:SS') weOnTimeStr,
+		       TO_CHAR(H.AFOFF_TIME, 'YYYY-MM-DD HH24:MI:SS') afoffTimeStr,
+		       H.PRO_PHASE proPhase,
+		       J.CODE_VALUE_NAME codeValueNameD,
+		       H.VERSION version,
+		       TO_CHAR(H.WRITE_TIME, 'YYYY-MM-DD HH24:MI:SS') writeTime,
+		       '旧W+1,W+2计划' type
+		  FROM MM_MP_PRO_PLAN_TEMP H
+		  LEFT JOIN MM_PUB_DATA_DICT J
+		    ON J.CODE_TYPE = 'PUB_PHASE'
+		   AND J.CODE_VALUE = H.PRO_PHASE
+		   AND J.FACTORY_CODE = H.FACTORY_CODE
+		 WHERE 1 = 1
+		 AND H.VERSION IS NOT NULL
+		<if test="carType!=null and carType!='' ">
+			AND	H.CAR_TYPE = #{carType}
+		</if>
+		<if test="orderNo!=null and orderNo!='' ">
+			AND	H.ORDER_NO LIKE CONCAT(#{orderNo}, '%')
+		</if>
+		<if test="sortIdStrStart != null and sortIdStrStart != ''">
+			<![CDATA[ AND H.SORT_ID >= #{sortIdStrStart} ]]>
+		</if>
+        <if test="sortIdStrEnd != null and sortIdStrEnd != ''">
+        	<![CDATA[ AND H.SORT_ID <= #{sortIdStrEnd} ]]>
+        </if>
+		<if test="afoffTimeStartStr != null and afoffTimeStartStr != ''">
+			<![CDATA[ AND H.AFOFF_TIME >= TO_DATE(#{afoffTimeStartStr},'yyyy-MM-dd HH24:mi:ss') ]]>
+		</if>
+        <if test="afoffTimeEndStr != null and afoffTimeEndStr != ''">
+        	<![CDATA[ AND H.AFOFF_TIME <= TO_DATE(#{afoffTimeEndStr},'yyyy-MM-dd HH24:mi:ss') ]]>
+        </if>
+		AND H.FACTORY_CODE = #{factoryCode}
+		ORDER BY type, sortId
+	</select>
+	
+	<parameterMap type="map" id="autoGetPlanMap">  
+		<parameter property="factoryCode" jdbcType="VARCHAR" mode="IN"/>   
+	</parameterMap> 
+	<!-- 每天12点自动获取计划 -->
+	<select id="autoGetPlan" parameterMap="autoGetPlanMap" statementType="CALLABLE">
+		{CALL PKG_MP_MAIN.USP_MP_GET_PLAN_TEMP(?)}
+	</select>
+	
+	<parameterMap type="map" id="autoConfirmMap">  
+		<parameter property="factoryCode" jdbcType="VARCHAR" mode="IN"/>   
+		<parameter property="outCode" jdbcType="VARCHAR" mode="OUT"/>   
+	</parameterMap> 
+	<!-- 每天16点自动确认计划 -->
+	<select id="autoConfirm" parameterMap="autoConfirmMap" statementType="CALLABLE">
+		{CALL PKG_MP_MAIN.USP_MP_AUTO_CONFRIM_PLAN(?, ?)}
+	</select>
+	
+	<!-- 记录操作日志表 -->
+	<insert id="insertOpeLog" parameterType="java.util.Map">
+		INSERT INTO MM_MP_AUTO_LOG
+			VALUES
+			  (#{factoryCode}, #{reason}, #{opeUser}, SYSDATE)
+	</insert>
+	
+	<parameterMap type="map" id="confirmVehPlanMap">  
+		<parameter property="factoryCode" jdbcType="VARCHAR" mode="IN"/>   
+		<parameter property="outCode" jdbcType="VARCHAR" mode="OUT"/>   
+	</parameterMap> 
+	<!-- 确认导入 -->
+	<select id="confirmVehPlan" parameterMap="confirmVehPlanMap" statementType="CALLABLE">
+		{CALL PKG_MP_MAIN.USP_MP_CONFRIM_PLAN(?, ?)}
+	</select>
+	
+	<!-- 查记录条数 -->
+	<select id="queryVehPlanTemp" parameterType="java.lang.String" resultType="java.lang.Integer">
+		SELECT COUNT(1)
+		  FROM MM_MP_VEH_PLAN_TEMP A
+		 WHERE A.FACTORY_CODE = #{factoryCode}
+	</select>
+	
+	<!-- 删除 -->
+	<delete id="deleteAllTempVehPlan" parameterType="java.lang.String">
+		DELETE FROM MM_MP_VEH_PLAN_TEMP A WHERE A.FACTORY_CODE = #{factoryCode}
+	</delete>
+
+</mapper>

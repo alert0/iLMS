@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html ng-app="myApp">
+<head>
+<title>X5手机平台</title>
+<meta charset="utf-8">
+<script src="../assets/js/importJs.js"></script>
+
+<script type="text/javascript">
+	var id = HtUtil.getParameter("id");
+	var myApp = angular.module("myApp", [ 'base', 'mobileDirective','ngSanitize']);
+	myApp.controller("myTaskCtrl", [ '$scope', 'baseService', '$sce',function(scope, baseService, $sce) {
+		scope.loadEmailContent = function(){
+			var param = {"id":id};
+			var url = __ctx + "/mail/mail/mail/getJson";
+			baseService.postForm(url,param).then(
+					function(data){
+						scope.email = data;
+					},function(){}
+				)
+		}
+		scope.loadEmailContent();
+		scope.download = function(file){
+			location.href = __ctx + "/mail/mail/mail/downLoadAttach?fileId="+file.id;
+		}
+		scope.replyEmailContent = function(){
+			location.href = "replyEmailContent.html?id="+id;
+		}
+	} ]);
+
+	$(function() {
+		$("a.item-inner").click(function() {
+			$.closePanel()
+		});
+	})
+</script>
+<style type="text/css">
+	.content{
+		background-color:#fff;
+	}
+</style>
+</head>
+<body ng-controller="myTaskCtrl">
+	<div class="page" id="taskToDo">
+		<header class="hkm-red-header bar bar-nav">
+		  <a class="icon icon-left pull-left back" href="javascript:history.go(-1);" external></a>
+		  <span class='title'>邮件详情</span>
+		</header>
+		<div class="content pull-to-refresh-content infinite-scroll">
+		  	 <div class="pull-to-refresh-layer">
+		        <div class="preloader"></div>
+		        <div class="pull-to-refresh-arrow"></div>
+		    </div>
+			<div class="email-detal-page">
+					<div class="content-list">
+					    <div class="content-padded neirong-title-box">
+						    <div class="row no-gutter">
+						      <div class="col-5">&nbsp;</div>
+						      <div class="col-90 title-font">{{email.subject}}</div>
+						    </div>
+					    </div>
+					    <!---->
+						  <div class="content-padded">
+						    <div class="row no-gutter">
+						      <div class="col-5">&nbsp;</div>
+						      <div class="col-90">
+						      	  <div class="email-neirong-laiyuan">
+						      	  	<div class="list-block media-list">
+									    <ul>
+									      <li>
+									        <div class="item-content">
+									          <div class="item-media"><img src="../assets/img/svg/default_avatar.svg" style='width: 1.8rem;'></div>
+									          <div class="item-inner">
+									            <div class="item-title-row">
+									              <div class="item-title md-font"><b>{{email.senderName}}</b></div>
+									              <div class="item-after neirong-time">{{email.sendDate|countEmailDate}} &nbsp;<i class="icon icon-down"></i></div>
+									            </div>
+									          </div>
+									        </div>
+									      </li>
+									    </ul>
+									  </div>
+						      	  </div>
+						      </div>
+						    </div>
+						  </div>
+						  <!---->
+						  <!---->
+						  <div class="content-padded email-neirong-textarea">
+						    <div class="row no-gutter">
+						      <div class="col-5">&nbsp;</div>
+						      <div class="col-90">
+						      	  <div class="email-neirong-text"  ng-bind-html="email.content">
+						      	  </div>
+						      	  <div ng-if="email.mailAttachments">
+						      	 	<h3>附件（{{email.mailAttachments.length}}个）</h3>
+									<div  ng-repeat="file in email.mailAttachments track by $index" style="font-size:15px;">
+										<font color="green">{{file.fileName}}</font>
+										<a href="#" ng-click="download(file)">下载此附件</a>
+						   			</div>
+						      	  </div>
+						      </div>
+						    </div>
+						  </div>
+						  <!---->
+					</div>
+					<!--footer-->
+					<footer class="email-footer">
+						Copyright &copy; 2017 HKML CO.,LTD
+					</footer>
+					<!--footer-->
+			</div>
+		      
+		</div>
+		
+	
+	</div>
+
+    <div class="respondEmailBtn" ng-click="replyEmailContent()"><i class="icon icon-message"></i></div>
+</body>
+</html>

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.sw.model.SwLogictiscOrderModel">
+
+<select id="queryLogistiscsOrderForPage" parameterType="com.hanthink.sw.model.SwLogictiscOrderModel" resultType="com.hanthink.sw.model.SwLogictiscOrderModel">
+	SELECT <!--订单号-->
+       MSO.PURCHASE_NO purchaseNo,
+       <!--物料编码-->
+       MSO.ORDER_NO orderNo,
+       <!--供应商代码-->
+       MSO.SUPPLIER_NO,
+       <!--订购日期-->
+       MSO.ORDER_DATE,
+       <!--要求到货日期-->
+       MSO.ARRIVE_DATE,
+       MSO.SUP_FACTORY,
+       <!--打印状态-->
+       MSO.PRINT_STATUS,
+       <!--打印时间-->
+       MSO.PRINT_TIME,
+       <!--仓库地址-->
+       MSO.DEPOT_NO,
+       <!--反馈状态-->
+       MSO.PREPARE_STATUS,
+       <!--反馈时间-->
+       MSO.PREPARE_TIME,
+       <!--订购人-->
+       MSO.REC_USER,
+       <!--联系方式-->
+       MSO.REC_TEL,
+       <!--供应商名称-->
+       MPS.SUPPLIER_NAME,
+       <!--资材名称-->
+       MPP.PART_NAME_CN,
+       <!--规格-->
+       MSODE.STANDARD_PACKAGE,
+       <!--订购数量-->
+       MSODE.ORDER_QTY,
+       <!--订购单位-->
+       MSODE.ORDER_UNIT,
+       <!--仓库地址-->
+       MSODE.DEPOT_NO,
+       <!--库存区分-->
+       MSODE.INV_TYPE,
+       <!--费用中心-->
+       MSODE.COST_CODE,
+       <!--成本中心-->
+       MSODE.COST_CENTER,
+       <!--计划交货日期-->
+       MSFZ.PLAN_TIME
+       FROM MM_SW_ORDER MSO
+       LEFT JOIN MM_PUB_SUPPLIER MPS
+       ON MSO.SUPPLIER_NO = MPS.SUPPLIER_NO
+       AND MSO.SUP_FACTORY = MPS.SUP_FACTORY
+       LEFT JOIN (
+           SELECT DISTINCT MOD.PURCHASE_NO,MOD.PART_NO FROM MM_SW_ORDER_DETAIL MOD
+           LEFT JOIN MM_SW_ORDER MSD
+           ON MSD.PURCHASE_NO = MOD.PURCHASE_NO
+           AND MSD.ORDER_TYPE = '14') MSOD
+       ON MSO.PURCHASE_NO = MSOD.PURCHASE_NO
+       LEFT JOIN MM_PUB_PART MPP
+       ON MSOD.PART_NO = MPP.PART_NO
+       LEFT JOIN MM_SW_ORDER_DETAIL MSODE
+       ON MSO.PURCHASE_NO = MSOD.PURCHASE_NO
+       LEFT JOIN MM_SW_FEEDBACK_ZC MSFZ
+       ON MSODE.PURCHASE_NO = MSFZ.PURCHASE_NO
+       AND MSODE.PURCHASE_ROWNO = MSFZ.PURCHASE_ROW_NO
+       AND MSFZ.FACTORY_CODE = 2000
+</select>
+
+</mapper>

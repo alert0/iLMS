@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.sw.model.SwDeliveryModel">
+      <!-- 发货数据管理界面，分页查询 -->
+      <select id="queryJisoDeliveryPage" parameterType="com.hanthink.sw.model.SwDeliveryModel" resultType="com.hanthink.sw.model.SwDeliveryModel">
+		SELECT A.DELIVERY_NO deliveryNo,
+			   B.SUPPLIER_NO supplierNo,
+			   B.SUP_FACTORY supFactory,
+		       C.SUPPLIER_NAME supplierName,
+		       B.ORDER_NO orderNo,
+		       A.PURCHASE_NO purchaseNo,
+		       B.ORDER_TYPE orderType,
+		       to_char(B.ORDER_DATE,'yyyy-MM-dd') orderDate,
+		       to_char(B.ARRIVE_DATE,'yyyy-MM-dd') arriveDate,
+		       B.DEPOT_NO depotNo,
+		       to_char(A.DELIVERY_TIME,'yyyy-MM-dd HH24:mm:ss') deliveryTime
+		  FROM MM_SW_DELIVERY A
+		  LEFT JOIN MM_SW_ORDER B
+		       ON A.PURCHASE_NO = B.PURCHASE_NO
+		  LEFT JOIN MM_PUB_SUPPLIER C ON B.SUPPLIER_NO=C.SUPPLIER_NO
+          WHERE 1=1 
+          <if test="supplierNo !=null and supplierNo !='' ">
+				  AND B.SUPPLIER_NO = #{supplierNo}
+		  </if>
+		  <if test="supFactory !=null and supFactory !='' ">
+				  AND B.SUP_FACTORY = #{supFactory}
+		  </if>
+		  <if test="orderNo !=null and orderNo !='' ">
+				  AND B.ORDER_NO like CONCAT(#{orderNo}, '%')
+		  </if>
+		  <if test="orderType !=null and orderType !='' ">
+				  AND B.ORDER_TYPE =#{orderType}
+		  </if>
+		  <if test="purchaseNo !=null and purchaseNo !='' ">
+				  AND A.PURCHASE_NO like CONCAT(#{purchaseNo}, '%')
+		  </if>
+		  <if test="deliveryTimeStart !=null and deliveryTimeStart!='' ">
+		  <![CDATA[ AND A.DELIVERY_TIME >= TO_DATE(#{deliveryTimeStart},'yyyy-MM-dd') ]]>
+		  </if>
+		  <if test="deliveryTimeEnd !=null and deliveryTimeEnd!='' ">
+		  <![CDATA[ AND A.DELIVERY_TIME <= TO_DATE(#{deliveryTimeEnd},'yyyy-MM-dd') + 1 ]]>
+		  </if>
+		  ORDER BY A.DELIVERY_TIME ASC
+      </select>
+      
+      <!-- 发货数据管理界面，明细查看功能-->
+      <select id="queryJisoDeliveryDetailPage" parameterType="com.hanthink.sw.model.SwDeliveryModel" resultType="com.hanthink.sw.model.SwDeliveryModel">
+		      SELECT    
+						D.PURCHASE_ROWNO 					purchaseRowno, 
+						B.PART_NO 							partNo,
+						E.PART_NAME_CN 						partName,
+						UDA.PART_SHORT_NO 					partShortNo,
+						D.STANDARD_PACKAGE 					standardPackage,
+						B.DELIVERY_QTY  					deliveryQty,
+						D.ORDER_QTY 						orderQty,
+						ceil(D.ORDER_QTY/
+						DECODE(D.STANDARD_PACKAGE, NULL, 1, 0, 1, D.STANDARD_PACKAGE)) boxNum
+						  FROM MM_SW_DELIVERY A
+						  INNER JOIN MM_SW_DELIVERY_DETAIL B
+						    ON A.DELIVERY_NO = B.DELIVERY_NO
+						  LEFT JOIN MM_SW_ORDER_DETAIL D
+						    ON  A.PURCHASE_NO = D.PURCHASE_NO
+						    AND B.DELIVERY_ROWNO = D.PURCHASE_ROWNO
+						  LEFT JOIN MM_PUB_PART E
+						    ON B.PART_NO = E.PART_NO
+						   AND A.FACTORY_CODE = E.FACTORY_CODE
+						  LEFT JOIN MM_PUB_PART_UDA UDA
+                			ON B.PART_NO = UDA.PART_NO
+                		   AND A.FACTORY_CODE = UDA.FACTORY_CODE
+					WHERE A.DELIVERY_NO = #{deliveryNo}
+					ORDER BY  B.DELIVERY_ROWNO ASC
+					
+      </select>
+      
+      <!-- 查询订单打印需要的数据 -->
+      <select id="queryDeliveryOrderDetailList" parameterType="com.hanthink.sw.model.SwDeliveryModel" resultType="com.hanthink.sw.model.SwDeliveryModel">
+			      SELECT B.PURCHASE_NO purchaseOrderno,
+			       B.ORDER_NO orderNo,
+			       B.ARRIVE_DATE arriveTime,
+			       F.UNLOAD_PORT  unloadPort,
+			       B.SUPPLIER_NO supplierNo,
+			       C.SUPPLIER_NAME supplierName,
+			       D.PART_NO partNo,
+			       D.PART_NAME_CN partName,
+			       D.PART_SHORT_NO partShortNo,
+			       E.STANDARD_PACKAGE standardPackage,
+			       E.ORDER_QTY orderQty,
+			       CEIL(E.ORDER_QTY / E.STANDARD_PACKAGE) boxNum
+			  FROM MM_SW_DELIVERY A
+			  INNER JOIN MM_SW_ORDER B
+			    ON A.PURCHASE_NO = B.PURCHASE_NO
+			  LEFT JOIN MM_SW_ORDER_DETAIL E
+			    ON B.PURCHASE_NO = E.PURCHASE_NO
+			  LEFT JOIN MM_PUB_SUPPLIER C
+			    ON B.SUPPLIER_NO = C.SUPPLIER_NO
+			  LEFT JOIN MM_PUB_PART D
+			    ON E.PART_NO = D.PART_NO
+			   AND A.FACTORY_CODE = D.FACTORY_CODE
+			  LEFT JOIN MM_SW_PICKUP_PLAN F
+			    ON B.ORDER_NO = F.ORDER_NO
+			  WHERE A.DELIVERY_NO = #{deliveryNo}
+      </select>
+      
+      <!-- 查询托盘打印需要数据 -->
+      <select id="deliveryOrderPrintTpLabel" parameterType="com.hanthink.sw.model.SwDeliveryModel" resultType="com.hanthink.sw.model.SwDeliveryModel">
+			SELECT F.SUPPLIER_NO   supplierNo,
+			       F.SUPPLIER_NAME supplierName,
+			       E.UNLOAD_PORT   unloadPort,
+			       B.ORDER_NO 	   orderNo,
+			       B.PURCHASE_NO   purchaseOrderno,
+			       E.ROUTE_CODE    routCode,
+			       A.DELIVERY_TIME deliveryTime,
+			       B.ARRIVE_DATE   arriveTime
+			  FROM MM_SW_DELIVERY A
+			  LEFT JOIN MM_SW_DELIVERY_DETAIL C
+			    ON A.DELIVERY_NO = C.DELIVERY_NO
+			  LEFT JOIN MM_SW_ORDER B
+			    ON A.PURCHASE_NO = B.PURCHASE_NO
+			  LEFT JOIN MM_SW_ORDER_DETAIL D
+			    ON B.PURCHASE_NO = D.PURCHASE_NO
+			  LEFT JOIN MM_SW_PICKUP_PLAN E
+			    ON B.ORDER_NO = E.ORDER_NO
+			  LEFT JOIN MM_PUB_SUPPLIER F
+			    ON B.SUPPLIER_NO = F.SUPPLIER_NO
+			 WHERE A.DELIVERY_NO = #{deliveryNo}
+      </select>
+      
+      <!-- 查询标签打印需要的数据 -->
+      
+<!--       <select id="queryDeliveryOrderPrintLabelList" parameterType="java.util.List" resultType="com.hanthink.sw.model.SwDeliveryModel">
+	      SELECT DISTINCT 
+	      	   A.PURCHASE_NO        purchaseNo,
+	           A.PURCHASE_ROWNO     purchaseRowNo,
+	    	   DECODE(A.STANDARD_PACKAGE, 0, 1, NULL, 1, A.STANDARD_PACKAGE) standardPackage,
+	           A.STANDARD_PACKAGE   requireNum,
+	           A.ORDER_ROWNO        purchaseRowNo,
+	           B.ORDER_NO           orderNo,
+	           A.PART_NO            partNo,
+	           D.PART_SHORT_NO      partShortNo,
+	           D.PART_NAME_CN       partName,
+	           B.SUPPLIER_NO        supplierNo,
+	           D.SUPPLIER_NAME      supplierName,
+	           C.UNLOAD_PORT        unloadPort,
+	           TO_CHAR(B.ORDER_DATE,
+	                   'YYYY-MM-DD')            orderDate,
+	           TO_CHAR(B.ARRIVE_DATE, 'YYYY-MM-DD') arriveDate,
+	           TO_CHAR(B.ARRIVE_DATE, 'YYYY-MM-DD') arriveTime,
+	           A.ORDER_QTY            orderQty,
+	           NVL(A.TOTAL_DELIV_QTY,0)    totalDelivQty,
+	           CEIL(A.ORDER_QTY /
+	                DECODE(A.STANDARD_PACKAGE, NULL, 1, 0, 1, A.STANDARD_PACKAGE)) boxesNum,
+	           TO_CHAR(B.ORDER_DATE, 'HH24:MI') orderTimeHhmi,
+	           TO_CHAR(B.ORDER_DATE, 'YYYY-MM-DD') orderTimeYmd,
+	           B.HMS_ORDER_NO        hmsOrder,
+	           B.ORDER_TYPE          orderType,
+	           B.SP_TYPE             spType,
+	           B.REC_ADDRESS         recAddress,
+	           B.REC_TEL             recTel,
+	           A.ORDER_UNIT          orderUnit,
+	           DECODE(A.ZK_FLAG, 0, '否', 1, '是') zkFlag,
+	           (CASE NVL(A.CURRENT_QTY,0)
+	           WHEN 0 THEN (A.ORDER_QTY - NVL(A.TOTAL_DELIV_QTY,0))
+	           ELSE NVL(A.CURRENT_QTY,0) END)  tempDelivQty,
+	           A.ORDER_ROWNO    orderRowNo,
+	           TO_CHAR(B.PREPARE_TIME, 'MM-DD HH24:MI') prepareProductSeqno,
+	           B.DELIVERY_STATUS       deliveryStatus
+	      FROM MM_SW_DELIVERY DV
+	      LEFT JOIN MM_SW_DELIVERY_DETAIL DVD
+	        ON DV.DELIVERY_NO = DVD.DELIVERY_NO
+	      LEFT JOIN MM_SW_ORDER_DETAIL A
+	        ON DV.PURCHASE_NO = A.PURCHASE_NO
+	      LEFT JOIN MM_SW_ORDER B
+	        ON A.PURCHASE_NO = B.PURCHASE_NO
+	      LEFT JOIN (SELECT G.PART_NO,
+	                    G.SUPPLIER_NO,
+	                    G.FACTORY_CODE,
+	                    G.WARE_CODE,
+	                    MIN(G.UNLOAD_PORT) UNLOAD_PORT
+	               FROM MM_INV_PART_LOCATION G
+	              GROUP BY G.PART_NO, G.SUPPLIER_NO, G.FACTORY_CODE, G.WARE_CODE) C
+	        ON A.PART_NO = C.PART_NO
+	       AND B.SUPPLIER_NO = C.SUPPLIER_NO
+	       AND B.DEPOT_NO = C.WARE_CODE
+	       AND B.FACTORY_CODE = C.FACTORY_CODE
+	      LEFT JOIN MM_PUB_PART_UDA D
+	        ON A.PART_NO = D.PART_NO
+	     WHERE 1 = 1
+	       AND DV.ORDER_NO = #{deliveryNo}
+	     ORDER BY A.PURCHASE_NO, A.PURCHASE_ROWNO
+      </select> -->
+      
+      <select id="queryDeliveryOrderPrintLabelList" parameterType="java.util.List" resultType="com.hanthink.sw.model.SwDeliveryModel">
+			      SELECT A.PURCHASE_NO purchaseNo,
+			       A.PURCHASE_ROWNO purchaseRowNo,
+			       DECODE(A.STANDARD_PACKAGE, 0, 1, NULL, 1, A.STANDARD_PACKAGE) standartPackage,
+			       DECODE(A.STANDARD_PACKAGE, 0, 1, NULL, 1, A.STANDARD_PACKAGE) standardPackage,
+			       A.STANDARD_PACKAGE requireNum,
+			       A.ORDER_ROWNO purchaseRowNo,
+			       B.ORDER_NO orderNo,
+			       A.PART_NO partNo,
+			       UDA.PART_SHORT_NO partShortNo,
+			       UDA.PART_NAME_CN partName,
+			       B.SUPPLIER_NO supplierNo,
+			       SUP.SUPPLIER_NAME supplierName,
+			       C.UNLOAD_PORT unloadPort,
+			       TO_CHAR(B.ORDER_DATE, 'YYYY-MM-DD') orderDate,
+			       TO_CHAR(B.ARRIVE_DATE, 'YYYY-MM-DD') arriveDate,
+			       TO_CHAR(B.ARRIVE_DATE, 'YYYY-MM-DD') arriveTime,
+			       A.ORDER_QTY orderQty,
+			       NVL(A.TOTAL_DELIV_QTY, 0) totalDelivQty,
+			       CEIL(A.ORDER_QTY /
+			            DECODE(A.STANDARD_PACKAGE, NULL, 1, 0, 1, A.STANDARD_PACKAGE)) boxesNum,
+			       TO_CHAR(B.ORDER_DATE, 'HH24:MI') orderTimeHhmi,
+			       TO_CHAR(B.ORDER_DATE, 'YYYY-MM-DD') orderTimeYmd,
+			       B.HMS_ORDER_NO hmsOrder,
+			       B.ORDER_TYPE orderType,
+			       B.SP_TYPE spType,
+			       B.REC_ADDRESS recAddress,
+			       B.REC_TEL recTel,
+			       A.ORDER_UNIT orderUnit,
+			       DECODE(A.ZK_FLAG, 0, '否', 1, '是') zkFlag,
+			       (CASE NVL(A.CURRENT_QTY, 0)
+			         WHEN 0 THEN
+			          (A.ORDER_QTY - NVL(A.TOTAL_DELIV_QTY, 0))
+			         ELSE
+			          NVL(A.CURRENT_QTY, 0)
+			       END) tempDelivQty,
+			       A.ORDER_ROWNO orderRowNo,
+			       TO_CHAR(B.PREPARE_TIME, 'MM-DD HH24:MI') prepareProductSeqno,
+			       B.DELIVERY_STATUS deliveryStatus
+			  FROM MM_SW_DELIVERY D 
+			  LEFT JOIN MM_SW_ORDER_DETAIL A
+			    ON D.PURCHASE_NO = A.PURCHASE_NO
+			  LEFT JOIN MM_SW_ORDER B
+			    ON A.PURCHASE_NO = B.PURCHASE_NO
+			  LEFT JOIN (SELECT G.PART_NO,
+			                    G.SUPPLIER_NO,
+			                    G.FACTORY_CODE,
+			                    G.WARE_CODE,
+			                    MIN(G.UNLOAD_PORT) UNLOAD_PORT
+			               FROM MM_INV_PART_LOCATION G
+			              GROUP BY G.PART_NO, G.SUPPLIER_NO, G.FACTORY_CODE, G.WARE_CODE) C
+			    ON A.PART_NO = C.PART_NO
+			   AND B.SUPPLIER_NO = C.SUPPLIER_NO
+			   AND B.DEPOT_NO = C.WARE_CODE
+			   AND B.FACTORY_CODE = C.FACTORY_CODE
+			  LEFT JOIN MM_PUB_PART_UDA UDA
+			    ON A.PART_NO = D.PART_NO
+			   AND D.FACTORY_CODE = UDA.FACTORY_CODE
+			  LEFT JOIN MM_PUB_SUPPLIER SUP
+			    ON B.SUPPLIER_NO = SUP.SUPPLIER_NO
+			 WHERE 1 = 1
+			   AND D.DELIVERY_NO = #{deliveryNo}
+			 ORDER BY A.PURCHASE_NO, A.PURCHASE_ROWNO
+      </select>
+	
+</mapper>

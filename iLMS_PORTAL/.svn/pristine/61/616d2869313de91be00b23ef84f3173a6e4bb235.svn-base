@@ -1,0 +1,96 @@
+<!doctype html>
+<html ng-app="myApp">
+<head>
+<title>工作台</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+<meta charset="utf-8">
+<script src="../assets/js/importJs.js"></script>
+<script type="text/javascript">
+$(function(){
+	var url = __ctx + "/mobile/bpm/workbBench.ht"
+	$.get(url, function(data){
+		  var work = data.rows;
+		  var div = $(".box").children().children();
+		  $.each(work, function(i){ 
+			  var chDiv = $(div[i]);
+			  chDiv.addClass(this.icon);
+			  chDiv.attr("onclick","locationHref('"+this.url+"')")
+			  var template = "<h4>"+this.name+"</h4>";
+			  chDiv.append(template)
+			  
+		 });    
+	});
+})
+function locationHref(url){
+	location.href = url;
+}
+var myApp = angular.module("myApp", ['base','mobileDirective']);
+myApp.controller("myHomeCtrl",['$scope','baseService','$sce', function(scope,baseService,$sce) {
+	$("a.item-inner").click(function(){
+		$.closePanel()
+	});
+}]);
+</script>
+
+</head>
+<body ng-controller="myHomeCtrl" class="body_foot">
+	<div class="page" id="taskToDo">
+		<header class="hkm-red-header bar bar-nav">
+		  <a class="icon icon-menu open-panel pull-left" href="#"></a>
+		  <span class='title'>工作台</span>
+		</header>
+		<div class="content pull-to-refresh-content infinite-scroll">
+		  	 <div class="pull-to-refresh-layer">
+		        <div class="preloader"></div>
+		        <div class="pull-to-refresh-arrow"></div>
+		    </div>
+			<div class="index-page">
+				     <div class="box">
+					    <div class="top">
+					        <div class="left icon-work">
+					           
+					        </div>
+					        <div class="center icon-work">
+					        
+					        </div>
+					        <div class="right icon-work">
+					        
+					        </div>
+					    </div>
+					    <div class="middle">
+					        <div class="left icon-work">
+					        
+					        </div>
+					        <div class="center icon-work">
+					        
+					        </div>
+					        <div class="right icon-work">
+					        
+					        </div>
+					    </div>
+					    <div class="bottom">
+					        <div class="left icon-work">
+					        
+					        </div>
+					        <div class="center icon-work"></div>
+					        <div class="right icon-work"></div>
+					    </div>
+					</div>
+			</div>
+		      
+		</div>
+		
+		 <div class="hot_foot clearfix">
+			<a href="../index.html" class="hot_foot_cell" external><span class="iconfont hot_foot_icon">&#xe601;</span><span class="hot_foot_word">首页</span></a>
+			<a href="##" class="hot_foot_cell current"><span class="iconfont hot_foot_icon">&#xe66b;</span><span class="hot_foot_word">工作台</span></a>
+			<!-- <a href="../im/session.html" class="hot_foot_cell" external><span class="iconfont hot_foot_icon">&#xe61c;</span><span class="hot_foot_word">消息</span></a> -->
+			<a href="contacts.html" class="hot_foot_cell" external><span class="iconfont hot_foot_icon">&#xe612;</span><span class="hot_foot_word">通讯录</span></a>
+			<a href="myCenter.html" class="hot_foot_cell" external><span class="iconfont hot_foot_icon">&#xe630;</span><span class="hot_foot_word">我的</span></a>
+		</div>
+	
+	</div>
+	<div index-page></div>
+	
+	<div class="panel-overlay"></div>
+</body>
+</html>

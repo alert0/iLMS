@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.sw.model.SwLongOrderModel">
+	
+	<!-- 长周期订单分页查询 -->
+	<select id="queryLongOrderPage" parameterType="com.hanthink.sw.model.SwLongOrderModel" resultType="com.hanthink.sw.model.SwLongOrderModel">
+		  SELECT   ORD.ID          		   id,
+		           ORD.VERSION             version,
+		           ORD.ORDER_NO            orderNo,
+		           ORD.CURRENT_MONTH       currentMonth,
+		           ORDETAIL.OBJ_MONTH           objMonth,
+		           ORDETAIL.ORDER_PERIOD        orderPeriod,
+		           ORDETAIL.FORECAST_PERIOD     forecastPeriod,
+		           ORDETAIL.FORECAST_FIRST      forecastFirst,
+		           DECODE(ORDETAIL.FORECAST_FIRST_NUM,0,'',ORDETAIL.FORECAST_FIRST_NUM)  forecastFirstNum,
+		           ORD.FORECAST_SECOND     forecastSecond,
+		           DECODE(ORDETAIL.FORECAST_SECOND_NUM,0,'',ORDETAIL.FORECAST_SECOND_NUM) forecastSecondNum,
+		           ORDETAIL.FORECAST_THIRD      forecastThird,
+		           DECODE(ORDETAIL.FORECAST_THIRD_NUM,0,'',ORDETAIL.FORECAST_THIRD_NUM)  forecastThirdNum,
+		           ORDETAIL.PART_NO        partNo,
+		           PART.PART_SHORT_NO      partShortNo,
+		           PART.PART_NAME_CN       partNameCn,
+		           ORDETAIL.CAR_TYPE       carType,
+		           ORDETAIL.SUPPLIER_NO    supplierNo,
+		           PART.SUP_FACTORY        supFactory,
+		           SUP.SUPPLIER_NAME       supplierName,
+		           ORDETAIL.REQUIRE_NUM    requireNum,
+		           ORDETAIL.Order_Require_Num orderRequireNum,
+		           ORDETAIL.PART_UNIT         partUnit,
+		           ORDETAIL.ORDER_NUM         orderNum,
+		           ORDETAIL.ORDER_BOX         orderBox,
+		           ORDETAIL.CURRENT_DELIV_QTY currentDelivQty,
+		           NVL(ORDETAIL.TOTAL_DELIV_QTY,0)   totalDelivQty,
+		           ORDETAIL.FEEDBACK_REMARK      feedbackRemark,
+		           PDD.CODE_VALUE_NAME      feedbackStatus,
+		           ORDETAIL.RECEIVE_QTY		receiveQty,
+		           CASE WHEN NVL(ORDETAIL.ORDER_NUM,0)-NVL(ORDETAIL.RECEIVE_QTY,0) > 0 THEN 
+	                   '未收齐'
+	                   WHEN NVL(ORDETAIL.ORDER_NUM,0)-NVL(ORDETAIL.RECEIVE_QTY,0) = 0 THEN
+	                     '全部收货'
+	                     END receiveStatus
+		      FROM MM_SW_LONG_ORDER ORD
+		      LEFT JOIN MM_SW_LONG_ORDER_DETAIL ORDETAIL
+		        ON ORD.VERSION = ORDETAIL.VERSION
+		       AND ORD.ORDER_NO = ORDETAIL.ORDER_NO
+		      LEFT JOIN MM_PUB_PART_UDA PART
+		        ON ORDETAIL.PART_NO = PART.PART_NO
+		        AND ORD.FACTORY_CODE = PART.FACTORY_CODE
+		        
+		      LEFT JOIN MM_PUB_SUPPLIER SUP
+		        ON ORDETAIL.SUPPLIER_NO = SUP.SUPPLIER_NO
+		        
+		      LEFT JOIN MM_PUB_DATA_DICT PDD
+			     ON ORDETAIL.FEEDBACK_STATUS = PDD.CODE_VALUE
+			     AND PDD.CODE_TYPE = 'SW_FEEDBACK_STATUS'
+			     AND ORD.FACTORY_CODE = PDD.FACTORY_CODE
+			     
+		     WHERE ORDETAIL.DEL_FLAG != 1 
+		       AND ORD.FACTORY_CODE = #{factoryCode}
+		     
+		  <!-- 数据权限 -->
+	      <if test="null != userType and '4'.toString() == userType">
+		      <if test="null != userId and ''!= userId">
+		      	AND part.SUP_FACTORY IN (SELECT V.VALUE_CODE FROM VIEW_SYS_USER_DATA_PERM V 
+		      		WHERE V.USER_ID = #{userId} AND V.TYPE_CODE = 'SW_SUP_FACTORY')
+		      </if>
+	      </if>
+	      
+    	  <if test="version != null and version != ''">
+    	  AND ORD.VERSION = #{version}
+    	  </if>
+    	  <if test="partNo != null and partNo != ''">
+    	  AND ORDETAIL.PART_NO  LIKE CONCAT (#{partNo} , '%') 
+    	  </if>
+    	  <if test="partShortNo != null and partShortNo != ''">
+    	  AND PART.PART_SHORT_NO = #{partShortNo}
+    	  </if>
+    	  <if test="objMonth != null and objMonth != ''">
+    	  AND ORD.OBJ_MONTH = #{objMonth}
+    	  </if>
+    	  <if test="currentMonth != null and currentMonth != ''">
+    	  AND ORD.CURRENT_MONTH = #{currentMonth}
+    	  </if>
+    	  <if test="orderNo != null and orderNo != ''">
+    	  AND ORD.ORDER_NO LIKE CONCAT( #{orderNo}, '%')
+    	  </if>
+    	   <if test="supplierNo != null and supplierNo != ''">
+    	  AND ORDETAIL.SUPPLIER_NO LIKE CONCAT (#{supplierNo} , '%') 
+    	  </if>
+    	  <if test="supFactory != null and supFactory != ''">
+    	  AND PART.SUP_FACTORY = #{supFactory}
+    	  </if>
+    	  
+<!--     	  <if test="receiveStatus != null and receiveStatus != '' and receiveStatus == 0" >
+    	  AND NVL(ORDETAIL.RECEIVE_QTY,0) = 0
+    	  </if> -->
+    	  <if test="receiveStatus != null and receiveStatus != '' and receiveStatus == 1" >
+    	  AND NVL(ORDETAIL.ORDER_NUM,0) - NVL(ORDETAIL.RECEIVE_QTY,0) > 0
+    	  </if>
+    	  <if test="receiveStatus != null and receiveStatus != '' and receiveStatus == 2" >
+    	  AND NVL(ORDETAIL.ORDER_NUM,0) - NVL(ORDETAIL.RECEIVE_QTY,0) = 0
+    	  </if>
+         ORDER BY ORD.VERSION DESC,ORD.ORDER_NO ASC,ORDETAIL.SUPPLIER_NO ,ORDETAIL.PART_NO
+	</select>
+	
+    <!-- 长周期订单选择导出-->
+	<select id="downloadLongOrderByChoose" parameterType="java.util.List" resultType="com.hanthink.sw.model.SwLongOrderModel">
+	
+		SELECT ORD.VERSION             version,
+		       ORD.ORDER_NO            orderNo,
+		       ORD.CURRENT_MONTH       currentMonth,
+		       ORDETAIL.OBJ_MONTH           objMonth,
+		       ORDETAIL.ORDER_PERIOD        orderPeriod,
+		       ORDETAIL.FORECAST_PERIOD     forecastPeriod,
+		       ORDETAIL.FORECAST_FIRST      forecastFirst,
+		       ORDETAIL.FORECAST_FIRST_NUM  forecastFirstNum,
+		       ORD.FORECAST_SECOND     forecastSecond,
+		       ORDETAIL.FORECAST_SECOND_NUM forecastSecondNum,
+		       ORDETAIL.FORECAST_THIRD      forecastThird,
+		       ORDETAIL.FORECAST_THIRD_NUM  forecastThirdNum,
+		       ORDETAIL.PART_NO        partNo,
+		       PART.PART_SHORT_NO      partShortNo,
+		       PART.PART_NAME_CN       partNameCn,
+		       ORDETAIL.CAR_TYPE       carType,
+		       ORDETAIL.SUPPLIER_NO    supplierNo,
+		       ORDETAIL.SUP_FACTORY    supFactory,
+		       SUP.SUPPLIER_NAME       supplierName,
+		       ORDETAIL.REQUIRE_NUM    requireNum,
+		       ORDETAIL.Order_Require_Num orderRequireNum,
+		       ORDETAIL.PART_UNIT         partUnit,
+		       ORDETAIL.ORDER_NUM         orderNum,
+		       ORDETAIL.ORDER_BOX         orderBox,
+		       ORDETAIL.CURRENT_DELIV_QTY currentDelivQty,
+		       ORDETAIL.TOTAL_DELIV_QTY   totalDelivQty,
+		       ORDETAIL.RECEIVE_QTY		receiveQty,
+		           CASE WHEN NVL(ORDETAIL.RECEIVE_QTY,0)=0 THEN
+	                 '未收货'
+	                 WHEN NVL(ORDETAIL.ORDER_NUM,0)-NVL(ORDETAIL.RECEIVE_QTY,0) > 0 THEN 
+	                   '部分收货'
+	                   WHEN NVL(ORDETAIL.ORDER_NUM,0)-NVL(ORDETAIL.RECEIVE_QTY,0) = 0 THEN
+	                     '全部收货'
+	                     END receiveStatus
+		  FROM MM_SW_LONG_ORDER ORD
+		  LEFT JOIN MM_SW_LONG_ORDER_DETAIL ORDETAIL
+		    ON ORD.VERSION = ORDETAIL.VERSION
+		   AND ORD.ORDER_NO = ORDETAIL.ORDER_NO
+		  LEFT JOIN MM_PUB_PART_UDA PART
+		    ON ORDETAIL.PART_NO = PART.PART_NO
+		   AND ORD.FACTORY_CODE = PART.FACTORY_CODE
+		  LEFT JOIN MM_PUB_SUPPLIER SUP
+		    ON ORDETAIL.SUPPLIER_NO = SUP.SUPPLIER_NO
+		 WHERE 1 = 1 
+		 
+	      AND ORD.FACTORY_CODE = #{factoryCode}
+    	  AND ORD.VERSION IN
+    	  <foreach collection="list" item="item" index="index" open="(" separator="," close=")">
+		    #{item.VERSION}
+		 </foreach>
+		  AND ORD.ORDER_NO IN 
+		  <foreach collection="list" item="item" index="index" open="(" separator="," close=")">
+		    #{item.ORDER_NO}
+		  </foreach>
+		  AND ORDETAIL.PART_NO IN 
+		  <foreach collection="list" item="item" index="index" open="(" separator="," close=")">
+		  #{item.PART_NO}
+		  </foreach>
+    	  ORDER BY ORD.VERSION DESC,ORD.ORDER_NO ASC,ORDETAIL.SUPPLIER_NO ,ORDETAIL.PART_NO
+	</select>
+	
+	<!-- 订单打印查询 -->
+	<select id="queryLongOrderDetailList" parameterType="com.hanthink.sw.model.SwLongOrderModel" resultType="com.hanthink.sw.model.SwLongOrderModel">
+			SELECT A.ORDER_NO						orderNo,
+			       B.SUPPLIER_NO					supplierNo,
+			       B.SUP_FACTORY					supFactory,
+			       C.SUPPLIER_NAME					supplierName,
+			       B.PART_NO						partNo,
+			       D.PART_SHORT_NO					partShortNo,
+			       D.PART_NAME_CN					partName,
+			       MAX(LOC.UNLOAD_PORT)				unloadPort,
+			       B.ORDER_NUM						orderQty,
+			       B.REQUIRE_NUM					standartPackage,
+			       CEIL(B.ORDER_NUM / B.REQUIRE_NUM) boxesNum
+			  FROM MM_SW_LONG_ORDER A
+			  LEFT JOIN MM_SW_LONG_ORDER_DETAIL B
+			    ON A.VERSION = B.VERSION
+			   AND A.ORDER_NO = B.ORDER_NO
+			  LEFT JOIN MM_PUB_SUPPLIER C
+			    ON B.SUPPLIER_NO = C.SUPPLIER_NO
+			  LEFT JOIN MM_PUB_PART_UDA D
+			    ON B.PART_NO = D.PART_NO
+			   AND A.FACTORY_CODE = D.FACTORY_CODE
+			   
+			  LEFT JOIN MM_INV_PART_LOCATION LOC
+			    ON B.PART_NO = LOC.PART_NO
+			   AND TRUNC(SYSDATE) BETWEEN TRUNC(LOC.EFF_START) AND TRUNC(LOC.EFF_END)
+			   WHERE A.ID = #{id}
+			 GROUP BY A.ORDER_NO,
+			          B.SUPPLIER_NO,
+			          B.SUP_FACTORY,
+			          C.SUPPLIER_NAME,
+			          B.PART_NO,
+			          D.PART_SHORT_NO,
+			          D.PART_NAME_CN,
+			          B.ORDER_NUM,
+			          B.REQUIRE_NUM
+	
+	</select>
+	
+	<!-- 标签打印查询 -->
+	<select id="queryLongOrderPrintLabelList" parameterType="com.hanthink.sw.model.SwLongOrderModel"
+		resultType="com.hanthink.sw.model.SwLongOrderModel">
+			SELECT C.SUPPLIER_NAME			supplierName,
+			       B.SUPPLIER_NO			supplierNo,
+			       D.PART_SHORT_NO			partShortNo,
+			       D.PART_NAME_CN			partName,
+			       B.PART_NO				partNo,
+			       B.REQUIRE_NUM			standartPackage
+			       
+			  FROM MM_SW_LONG_ORDER A
+			  LEFT JOIN MM_SW_LONG_ORDER_DETAIL B
+			    ON A.VERSION = B.VERSION
+			   AND A.ORDER_NO = B.ORDER_NO
+			  LEFT JOIN MM_PUB_SUPPLIER C 
+			       ON B.SUPPLIER_NO = C.SUPPLIER_NO
+			  LEFT JOIN MM_PUB_PART_UDA D
+			       ON B.PART_NO = D.PART_NO
+			      AND A.FACTORY_CODE = D.FACTORY_CODE
+  			   WHERE A.ID = #{id}
+	</select>
+	
+	<!-- 查询版本号 -->
+	<select id="getVersion" parameterType="java.util.Map" resultType="com.hanthink.sw.model.SwLongOrderModel">
+		SELECT DISTINCT A.VERSION value, A.VERSION label FROM MM_SW_LONG_ORDER A 
+		WHERE A.DEL_FLAG != 1 OR A.DEL_FLAG IS NULL ORDER BY A.VERSION DESC
+	</select>
+	
+	<!-- 反馈 -->
+	<update id="updateFeedbackLongOrder" parameterType="com.hanthink.sw.model.SwLongOrderModel">
+		UPDATE MM_SW_LONG_ORDER_DETAIL A SET 
+		A.FEEDBACK_STATUS = #{feedbackStatus,jdbcType = VARCHAR},
+		A.FEEDBACK_REMARK = #{feedbackRemark,jdbcType = VARCHAR} 
+		WHERE A.ORDER_NO = #{orderNo,jdbcType = VARCHAR}
+			AND A.VERSION = #{version,jdbcType = VARCHAR} 
+			AND A.PART_NO =#{partNo,jdbcType = VARCHAR}
+	</update>
+	
+	<!-- 删除长周期订单（修改删除标识） -->
+	<update id="deleteLongOrder" parameterType="com.hanthink.sw.model.SwLongOrderModel">
+	UPDATE MM_SW_LONG_ORDER_DETAIL A SET A.DEL_FLAG = 1 
+	WHERE A.VERSION = #{version,jdbcType = VARCHAR} 
+	</update>
+	
+	<!-- 删除长周期订单主表（修改删除标识） -->
+	<update id="deleteLong" parameterType="com.hanthink.sw.model.SwLongOrderModel">
+	UPDATE MM_SW_LONG_ORDER A SET A.DEL_FLAG = 1 
+	WHERE A.VERSION = #{version,jdbcType = VARCHAR} 
+	</update>
+	
+	<!-- 修改收货数量 -->
+	<update id="updateLongReceiveQty" parameterType="com.hanthink.sw.model.SwLongOrderModel">
+	UPDATE MM_SW_LONG_ORDER_DETAIL A SET 
+	A.RECEIVE_QTY = #{receiveQty,jdbcType = VARCHAR}
+	WHERE 
+		A.VERSION = #{version,jdbcType = VARCHAR} 
+	AND A.ORDER_NO = #{orderNo,jdbcType = VARCHAR}
+	AND A.PART_NO = #{partNo,jdbcType = VARCHAR}
+	</update>
+	
+	<!-- 获取长周期预测界面最新版本号 -->
+	<select id="getDefaultVersion" parameterType="java.util.Map" resultType="com.hanthink.sw.model.SwLongOrderModel">
+	select max(a.version) version from mm_sw_long_order a where a.factory_code = #{factoryCode}
+	</select>
+
+</mapper>

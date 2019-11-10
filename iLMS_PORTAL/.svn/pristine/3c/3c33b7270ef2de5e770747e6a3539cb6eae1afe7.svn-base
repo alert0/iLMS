@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html ng-app="myApp" >
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+<script type="text/javascript" src="../../../lib/angular/angular.min.js"></script>
+<script type="text/javascript" src="../../../lib/jquery/jquery.min.js"></script>
+<script type="text/javascript" src="../../service/BaseService.js"></script>
+
+<script type="text/javascript" src="../FormDirective.js"></script>
+</head>
+<body ng-controller="ctrl">
+<div >
+        
+        <input type="button" value="删除" ng-click="delSelect()" />
+        <table border="1">
+        	<thead>
+        		<tr>
+        			<td>
+        				<input type="checkbox"  ng-model="selectAll"  />全选
+        			</td>
+        			<td>用户名</td>
+        			<td>别名</td>
+        		</tr>
+        		<tr  ng-repeat="user in users  track by $index">
+        			<td>
+        				<input type="checkbox"  ng-model="user.select" ht-checked="selectAll" />
+        			</td>
+        			<td>{{user.name}}</td>
+        			<td>{{user.alias}}</td>
+        		</tr>
+        	</thead>
+        </table>
+		
+   </div>
+   <script>
+       var app=angular.module("myApp",["formDirective"]);
+		app.controller('ctrl', ['$scope',function($scope){
+			$scope.users=[{name:"张飞","alias":"翼德"},{name:"刘备","alias":"玄德"},{name:"关羽","alias":"云长"}];
+			$scope.delSelect=function(){
+				for(var i=$scope.users.length-1;i>=0;i--){
+					var user=$scope.users[i];
+					if(user.select){
+						$scope.users.splice(i, 1);
+					}
+					
+				}
+			}
+		}])
+    </script>
+
+</body>
+</html>

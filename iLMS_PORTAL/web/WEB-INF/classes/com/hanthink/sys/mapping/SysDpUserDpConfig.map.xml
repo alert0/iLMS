@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.sys.model.SysDpUserDpConfigModel">
+		
+	<!-- 查询系统用户数据信息 -->
+	<select id="querySysUserData" parameterType="java.util.Map" resultType="java.util.Map">
+		SELECT ID_ id, ACCOUNT_ account, FULLNAME_ fullname
+		FROM SYS_USER
+		WHERE 1 = 1
+		<if test="accountOrName!=null and accountOrName!='' ">
+		  AND (ACCOUNT_ LIKE '%' || #{accountOrName} || '%' OR FULLNAME_ LIKE '%' || #{accountOrName} || '%')
+		</if>
+		ORDER BY ACCOUNT_		 
+	</select>
+		
+	<!-- 根据用户ID查询该用户的数据角色信息 -->
+	<select id="queryUserDataRoleByUserId" parameterType="com.hanthink.sys.model.SysDpUserDpConfigModel" resultType="java.util.Map">
+		SELECT UR.USER_ID, UR.DATA_ROLE_ID,
+		  T.NAME_ DATA_ROLE_TYPE_NAME, R.DATA_ROLE_NAME, R.REMARK
+		FROM SYS_DP_USER_ROLE UR
+		LEFT JOIN SYS_DP_ROLE R ON UR.DATA_ROLE_ID = R.DATA_ROLE_ID
+		LEFT JOIN SYS_TYPE T ON T.TYPE_GROUP_KEY_ = 'SYS_DP_ROLE_TYPE' AND T.TYPE_KEY_ = R.DATA_ROLE_TYPE
+		WHERE UR.USER_ID = #{userId,jdbcType=VARCHAR}
+		<if test="dataRoleName!=null and dataRoleName!='' ">
+		  AND  R.DATA_ROLE_NAME LIKE '%' || #{dataRoleName} || '%'
+		</if>
+		<if test="dataRoleTypeName!=null and dataRoleTypeName!='' ">
+		  AND  T.NAME_ LIKE '%' || #{dataRoleTypeName} || '%'
+		</if>
+		ORDER BY R.DATA_ROLE_TYPE, R.SORT_NUM			 
+	</select>
+	
+	<!-- 根据用户ID查询该用户待添加的数据角色信息 -->
+	<select id="queryAddUserDataRoleByUserId" parameterType="com.hanthink.sys.model.SysDpUserDpConfigModel" resultType="java.util.Map">
+		SELECT R.DATA_ROLE_ID,
+		  T.NAME_ DATA_ROLE_TYPE_NAME, R.DATA_ROLE_NAME, R.REMARK
+		FROM SYS_DP_ROLE R 
+		LEFT JOIN SYS_TYPE T ON T.TYPE_GROUP_KEY_ = 'SYS_DP_ROLE_TYPE' AND T.TYPE_KEY_ = R.DATA_ROLE_TYPE
+		WHERE NOT EXISTS (SELECT 1 FROM SYS_DP_USER_ROLE WHERE USER_ID = #{userId} AND DATA_ROLE_ID = R.DATA_ROLE_ID)
+		<if test="dataRoleName!=null and dataRoleName!='' ">
+		  AND  R.DATA_ROLE_NAME LIKE '%' || #{dataRoleName} || '%'
+		</if>
+		<if test="dataRoleTypeName!=null and dataRoleTypeName!='' ">
+		  AND  T.NAME_ LIKE '%' || #{dataRoleTypeName} || '%'
+		</if>
+		ORDER BY R.DATA_ROLE_TYPE, R.SORT_NUM			 
+	</select>
+	
+	<!-- 根据用户ID查询该用户待添加的数据角色信息(非管理员,只能查询当前用户自身有的角色) -->
+	<select id="queryCurUserAddUserDataRoleByUserId" parameterType="com.hanthink.sys.model.SysDpUserDpConfigModel" resultType="java.util.Map">
+		SELECT R.DATA_ROLE_ID,
+		  T.NAME_ DATA_ROLE_TYPE_NAME, R.DATA_ROLE_NAME, R.REMARK
+		FROM SYS_DP_ROLE R 
+		LEFT JOIN SYS_TYPE T ON T.TYPE_GROUP_KEY_ = 'SYS_DP_ROLE_TYPE' AND T.TYPE_KEY_ = R.DATA_ROLE_TYPE
+		WHERE NOT EXISTS (SELECT 1 FROM SYS_DP_USER_ROLE WHERE USER_ID = #{userId} AND DATA_ROLE_ID = R.DATA_ROLE_ID)
+		  AND R.DATA_ROLE_ID IN (SELECT DATA_ROLE_ID FROM SYS_DP_USER_ROLE WHERE USER_ID = #{curLoginUserId} )
+		<if test="dataRoleName!=null and dataRoleName!='' ">
+		  AND  R.DATA_ROLE_NAME LIKE '%' || #{dataRoleName} || '%'
+		</if>
+		<if test="dataRoleTypeName!=null and dataRoleTypeName!='' ">
+		  AND  T.NAME_ LIKE '%' || #{dataRoleTypeName} || '%'
+		</if>
+		ORDER BY R.DATA_ROLE_TYPE, R.SORT_NUM			 
+	</select>
+	
+	<!-- 添加用户的数据角色信息 -->
+	<insert id="insert_addUserDpRole" parameterType="com.hanthink.sys.model.SysDpUserDpConfigModel">
+		INSERT INTO SYS_DP_USER_ROLE 
+		(USER_ID, DATA_ROLE_ID, CREATE_USER, CREATE_TIME)
+		VALUES 
+		(#{userId,jdbcType=VARCHAR}, #{dataRoleId,jdbcType=VARCHAR}, #{createBy,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP})
+	</insert>
+	
+	<!-- 删除用户的数据角色信息 -->
+	<delete id="deleteUserDataRole" parameterType="com.hanthink.sys.model.SysDpUserDpConfigModel">
+		DELETE FROM SYS_DP_USER_ROLE 
+		WHERE USER_ID = #{userId,jdbcType=VARCHAR} 
+		  AND DATA_ROLE_ID = #{dataRoleId,jdbcType=VARCHAR}
+	</delete>
+	
+</mapper>

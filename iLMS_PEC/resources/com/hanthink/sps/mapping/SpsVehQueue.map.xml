@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.sps.model.SpsVehQueueModel">
+	
+	<!-- SPS过点车序查询 -->
+	<select id="querySpsVehQueuePage" parameterType="com.hanthink.sps.model.SpsVehQueueModel"
+			resultType="com.hanthink.sps.model.SpsVehQueueModel">
+		SELECT T.PLAN_CODE planCode,
+			   C.PLAN_CODE_DESC planCodeDesc,
+			   T.ERP_ORDER_NO erpOrderNo,
+	           T.ORDER_NO orderNo,
+	           T.VIN vin,
+	           T.MODEL_CODE modelCode,
+	           T.PASS_TIME passTime,
+	           T.WC_SEQNO wcSeqno,
+	           T.PL_SEQNO plSeqno,
+	           D.CODE_VALUE_NAME execStatus,
+	           T.EXEC_TIME execTime
+	      FROM MM_SPS_VEH_QUEUE T
+	      INNER JOIN MM_PUB_PLAN_CODE C ON C.PLAN_CODE = T.PLAN_CODE
+	      LEFT JOIN MM_PUB_DATA_DICT D ON D.CODE_VALUE = T.EXEC_STATUS 
+	      	AND D.CODE_TYPE = 'PUB_EXEC_STATUS' AND D.FACTORY_CODE = C.FACTORY_CODE
+	      WHERE 1=1 AND C.FACTORY_CODE = #{factoryCode}
+      <if test="null != planCode and '' != planCode">
+      	AND T.PLAN_CODE = #{planCode}
+      </if>
+      <if test="null != erpOrderNo and ''!=erpOrderNo">
+		AND T.ERP_ORDER_NO LIKE CONCAT('%', #{erpOrderNo})    
+      </if>
+      <if test="null != vin and '' != vin">
+      	AND T.VIN LIKE CONCAT('%', #{vin})
+      </if>
+      <!-- 车间投入号 -->
+      <if test="null != wcSeqno and '' != wcSeqno">
+      	AND T.WC_SEQNO = #{wcSeqno}
+      </if>
+      <if test="null != passTime and '' != passTime">
+      	AND T.PASS_TIME &gt;= to_date(#{passTime}, 'yyyy-mm-dd hh24:mi:ss')
+      </if>
+      <if test="null != passTimeTo and '' != passTimeTo">
+      	AND T.PASS_TIME &lt;= to_date(#{passTimeTo}, 'yyyy-mm-dd hh24:mi:ss')
+      </if>
+      ORDER BY T.PASS_TIME DESC
+	</select>
+	
+	<!-- 加载sps信息点下拉框 -->
+	<select id="loadPlanCodeComboData" parameterType="com.hanthink.pub.model.PubPlanCodeModel" 
+			resultType="com.hanthink.pub.model.PubPlanCodeModel">
+		SELECT DISTINCT T.PLAN_CODE planCode,
+	           T.PLAN_CODE_DESC planCodeDesc
+	      FROM MM_PUB_PLAN_CODE T  
+	      WHERE T.FACTORY_CODE = #{factoryCode}
+		AND T.PLAN_CODE_TYPE = #{planCodeType}
+	</select>
+	
+	<!-- 加载票据模板下拉框 -->
+	<select id="loadSpsMouldComboData" parameterType="com.hanthink.sps.model.SpsVehQueueModel"
+		resultType="com.hanthink.pub.model.PubDataDictModel">
+		SELECT T.ID codeValue, T.MOULD_NAME codeValueName FROM MM_SPS_MOULD T
+	</select>
+	
+	<!-- 打印信息写入临时表 -->
+	<insert id="insertTestInsTemp" parameterType="java.util.List">
+		INSERT INTO MM_SPS_TEST_PRINT_IMP
+		  (ID, PLAN_CODE, ERP_ORDER_NO, UUID, MOULD_ID)
+		<foreach collection="list" item="item" index="index" separator=" UNION ALL ">
+			SELECT 
+				#{item.id,jdbcType=VARCHAR},
+				#{item.planCode,jdbcType=VARCHAR},
+				#{item.erpOrderNo,jdbcType=VARCHAR},
+				#{item.uuid,jdbcType=VARCHAR},
+				#{item.mouldId,jdbcType=VARCHAR}
+			FROM DUAL
+		</foreach>  
+	</insert>
+	
+	<!-- 检查导入临时表数据 -->
+	<parameterMap type="map" id="paramMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+	</parameterMap> 
+	<!-- 调用存储过程校验批量导出零件余量 -->
+	<select id="createSpsTestIns" parameterMap="paramMap" statementType="CALLABLE">
+		{CALL PKG_SPS.USP_SPS_CREATE_TEST_INS(?)}
+	</select>
+	
+	<!-- 查询SPS指示票试打印数据 -->
+	<select id="querySpsTestPrintInsNoList" parameterType="com.hanthink.sps.model.SpsVehQueueModel"
+		resultType="com.hanthink.sps.model.SpsInsModel">
+		SELECT T.INS_NO insNo FROM MM_SPS_TEST_PRINT_IMP T WHERE T.UUID = #{uuid}
+	</select>
+	
+	<select id="queryModelCode" parameterType="com.hanthink.sps.model.SpsVehQueueModel"
+		resultType="com.hanthink.sps.model.SpsMouldModel">
+		SELECT T.MOULD_CODE mouldCode FROM MM_SPS_MOULD T WHERE T.ID = #{mouldId}
+	</select>
+	
+	<!-- 查询分拣单最大位置号,判断是否分页打印 -->
+	<select id="queryMaxPlaceByModelCode" parameterType="com.hanthink.sps.model.SpsMouldModel"
+		resultType="com.hanthink.sps.model.SpsMouldModel">
+		SELECT T.PARAM_VAL mouldHeadPlace
+		  FROM MM_PUB_SYS_PARAM T
+		 WHERE T.PARAM_CODE = #{mouldCode}
+		   AND T.FACTORY_CODE = #{factoryCode}
+	</select>
+	
+</mapper>

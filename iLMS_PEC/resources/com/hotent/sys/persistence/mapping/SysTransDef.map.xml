@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd"> 
+<mapper namespace="com.hotent.sys.persistence.model.SysTransDef">
+	<resultMap id="SysTransDef" type="com.hotent.sys.persistence.model.SysTransDef">
+		<id property="id" column="ID_" jdbcType="VARCHAR"/>
+		<result property="name" column="NAME_" jdbcType="VARCHAR"/>
+		<result property="selectSql" column="SELECT_SQL_" jdbcType="VARCHAR"/>
+		<result property="updateSql" column="UPDATE_SQL_" jdbcType="VARCHAR"/>
+		<result property="state" column="STATE_" jdbcType="NUMERIC"/>
+		<result property="creatorId" column="CREATOR_ID_" jdbcType="NUMERIC"/>
+		<result property="creator" column="CREATOR_" jdbcType="VARCHAR"/>
+		<result property="createTime" column="CREATE_TIME_" jdbcType="DATE"/>
+		<result property="logContent" column="LOG_CONTENT_" jdbcType="VARCHAR"/>
+	</resultMap>
+
+	<insert id="create" parameterType="com.hotent.sys.persistence.model.SysTransDef">
+		INSERT INTO sys_trans_def
+		(ID_,NAME_,SELECT_SQL_,UPDATE_SQL_,STATE_,CREATOR_ID_,CREATOR_,CREATE_TIME_,LOG_CONTENT_)
+		VALUES
+		(#{id,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR}, #{selectSql,jdbcType=VARCHAR}, #{updateSql,jdbcType=VARCHAR}, #{state,jdbcType=NUMERIC}, #{creatorId,jdbcType=NUMERIC}, #{creator,jdbcType=VARCHAR}, #{createTime,jdbcType=DATE}, #{logContent,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="SysTransDef">
+		SELECT * FROM sys_trans_def
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select> 
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_trans_def 
+		WHERE
+		ID_=#{id}
+	</delete>
+	
+	<update id="update" parameterType="com.hotent.sys.persistence.model.SysTransDef">
+		UPDATE sys_trans_def SET
+		NAME_=#{name,jdbcType=VARCHAR},
+		SELECT_SQL_=#{selectSql,jdbcType=VARCHAR},
+		UPDATE_SQL_=#{updateSql,jdbcType=VARCHAR},
+		STATE_=#{state,jdbcType=NUMERIC},
+		CREATOR_ID_=#{creatorId,jdbcType=NUMERIC},
+		CREATOR_=#{creator,jdbcType=VARCHAR},
+		CREATE_TIME_=#{createTime,jdbcType=DATE},
+		LOG_CONTENT_=#{logContent,jdbcType=VARCHAR}
+		WHERE
+		ID_=#{id}
+	</update>
+		    
+	<select id="get" parameterType="java.lang.String" resultMap="SysTransDef">
+		SELECT * FROM sys_trans_def
+		WHERE
+		ID_=#{id}
+	</select>
+	
+	
+</mapper>

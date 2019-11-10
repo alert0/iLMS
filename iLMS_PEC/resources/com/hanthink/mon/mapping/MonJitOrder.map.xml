@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.mon.model.MonJitOrderModel">
+
+	<!-- 拉动单查询 -->
+	<select id="queryJitOrderPage"
+		parameterType="com.hanthink.mon.model.MonJitOrderModel"
+		resultType="com.hanthink.mon.model.MonJitOrderModel">
+		<!-- 物流单号 -->
+		select  distinct A.ORDER_NO orderNo,
+		<!-- 订单号 -->
+		A.PURCHASE_ORDERNO purchaseNo,
+		<!-- 订单创建时间 -->
+		A.CREATION_TIME   creationTime,
+		<!-- 缺少：是否急件 -->
+		<!-- 供应商代码 -->
+		A.SUPPLIER_NO supplierNo,
+		<!-- 供应商名称 -->
+		A.SUPPLIER_NAME supplierName,
+		<!-- 出货仓库 -->
+		A.SHIP_DEPOT shipDepot,
+		<!-- 打印状态 -->
+		A.PRINT_STATUS printStatus,
+		<!-- 打印时间 -->
+		A.PRINT_TIME printTime,
+		<!-- 缺少：计划备货批次 -->
+		
+		<!-- 缺少：实际备货批次 -->
+		
+		<!-- 最后备货时间 -->
+		A.PREPARE_TIME prepareTime,
+		<!-- 备货完成度 -->
+		A.PREPARE_STATUS prepareStatus,
+		<!-- 缺少：备货准时性 -->
+		
+		<!-- 计划出货批次 -->
+		A.DELIVERY_PRODUCT_SEQNO deliveryProductSeqNo,
+		<!-- 实际出货批次 -->
+		A.ACTUAL_DELI_PRODUCT_SEQNO actualDeliProductSeqNo,
+		<!-- 最后出货时间 -->
+		A.DELIVERY_TIME deliveryTime,
+		<!-- 出货完成度 -->
+		A.DELIVERY_STATUS deliveryStatus,
+		<!-- 缺少：出货准时性 -->
+
+        <!-- 计划收货批次 -->
+		A.ARRIVE_PRODUCT_SEQNO	arriceProductSeqNo,
+		<!-- 实际收货批次 -->	
+		A.ACTUAL_ARR_PRODUCT_SEQNO actualArrProductSeqNo ,
+		<!-- 最后收货时间 -->
+		A.ARRIVE_TIME arriveTime,
+		<!-- 收货完成度 -->
+		A.ARRIVE_STATUS arriveStatus
+		<!-- 缺少：收货准时性 -->
+		
+		from
+		MM_JIT_ORDER A
+		left join MM_JIT_ORDER_DETAIL AD
+		on
+		A.ORDER_NO=AD.ORDER_NO
+		where 1=1
+		<!-- 物流单号 模糊查询 -->
+		<if test="null != orderNo and '' != orderNo">
+			AND A.ORDER_NO LIKE '%' || #{orderNo} || '%'
+		</if>
+		<!-- 订单号 模糊查询 -->
+		<if test="null != purchaseNo and '' != purchaseNo">
+			AND A.PURCHASE_ORDERNO LIKE '%' || #{purchaseNo} || '%'
+		</if>
+		<!-- 供应商代码 模糊查询 -->
+		<if test="null != supplierNo and '' != supplierNo">
+			AND AD.SUPPLIER_NO LIKE '%' || #{supplierNo} || '%'
+		</if>
+		<!-- 缺少 车间 -->
+		<!--  <if test="null != xxxx and '' != xxxx">
+			AND xxxx = #{xxxx}
+		</if>-->
+		<!-- 出货仓库 模糊查询 -->
+		<if test="null != depotNo and '' != depotNo">
+			AND A.SHIP_DEPOT LIKE '%' || #{depotNo} || '%'
+		</if>
+		<!-- 创建日期从 -->
+		<if test="null != creationTime and '' != creationTime">
+			AND A.CREATION_TIME &gt; to_date(#{creationTime}, 'yyyy-mm-dd
+			hh24:mi:ss')
+		</if>
+		<!-- 创建日期至 -->
+		<if test="null != creationTimeTo and '' != creationTimeTo">
+			AND A.CREATION_TIME &lt; to_date(#{creationTimeTo}, 'yyyy-mm-dd
+			hh24:mi:ss')
+		</if>
+		<!-- 计划到货批次从 -->
+		<if test="null != arriceProductSeqNo and '' != arriceProductSeqNo">
+			AND A.ARRIVE_PRODUCT_SEQNO &gt; #{arriceProductSeqNo}
+		</if>
+		<!-- 计划到货批次至 -->
+        <if test="null != arriceProductSeqNoTo and '' != arriceProductSeqNoTo">
+            AND A.ARRIVE_PRODUCT_SEQNO &lt; #{arriceProductSeqNo}
+        </if>
+		<!-- 简号 -->
+		<if test="null != partShortNo and '' != partShortNo">
+			AND AD.PART_SHORT_NO = #{partShortNo}
+		</if>
+		<!-- 零件号 -->
+		<if test="null != partNo and '' != partNo">
+			AND AD.PART_NO = #{partNo}
+		</if>
+	</select>
+
+	<!-- 拉动单明细查询 -->
+	<select id="queryJitOrderDetailPage"
+		parameterType="com.hanthink.mon.model.MonJitOrderModel"
+		resultType="com.hanthink.mon.model.MonJitOrderModel">
+		SELECT        
+		<!-- 订单号 -->
+        A.PURCHASE_ORDERNO purchaseNo,
+		<!-- 订单行号 -->
+		AD.ORDER_ROWNO orderRowNo,
+		<!-- 供应商代码 -->
+		AD.SUPPLIER_NO supplierNo,
+		<!-- 供应商名称 -->
+		AD.SUPPLIER_NAME supplierName,
+		<!-- 零件号 -->
+		AD.PART_NO partNo,
+		<!-- 零件名称 -->
+		AD.PART_NAME partName,
+		<!-- 配送地址 -->
+		AD.LOCATION location,
+		<!-- 订单数量 -->
+		AD.REQUIRE_NUM requireNum,
+		<!-- 缺少：计划备货时间 -->
+		
+		<!-- 实际备货时间 -->
+		A.PREPARE_TIME prepareTime,
+		<!-- 实际备货数量 -->
+		AD.PREPARE_NUM prepareNum,
+		<!-- 备货完成度 -->
+		AD.PREPARE_STATUS prepareStatus,
+		<!-- 缺少： 备货准时性 -->
+	
+	    <!-- 缺少： 计划出货时间 -->
+	    
+	    <!-- 实际出货时间 -->
+	    A.DELIVERY_TIME deliveryTime,
+		<!-- 实际出货数量 -->
+		AD.DELIVERY_NUM deliveryNum,
+		<!-- 出货完成度 -->
+		AD.DELIVERY_STATUS deliveryStatus,
+		<!-- 出货准时性 缺失 -->
+		
+		<!-- 缺失：计划收货时间 -->
+		
+        <!-- 实际收货时间 -->
+		A.ARRIVE_TIME arriveTime,
+		<!-- 实际收货数量 -->
+		AD.ARRIVE_NUM arriveNum,
+		<!-- 收货完成度 -->
+		AD.ARRIVE_STATUS arriveStatus
+		<!-- 缺少：收货准时性 -->
+		
+		from
+		MM_JIT_ORDER_DETAIL AD
+		left join MM_JIT_ORDER A
+		on A.ORDER_NO=AD.ORDER_NO
+		where 1=1
+		and
+		AD.ORDER_NO=#{orderNo}
+	</select>
+
+</mapper>

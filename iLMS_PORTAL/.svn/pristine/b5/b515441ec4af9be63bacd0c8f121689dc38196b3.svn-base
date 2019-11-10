@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.pub.model.PubProPlanModel">
+
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="queryPubProPlanForPage" parameterType="com.hanthink.pub.model.PubProPlanModel"
+		resultType="com.hanthink.pub.model.PubProPlanModel">
+			SELECT A.FACTORY_CODE factoryCode,
+		       A.ORDER_NO orderNo,
+		       A.ORDER_TYPE orderTypeStr,
+		       TO_CHAR(A.WEON_TIME, 'YYYY-MM-DD HH24:MI:SS') weOnTimeStr,
+		       TO_CHAR(A.AFOFF_TIME, 'YYYY-MM-DD HH24:MI:SS') afOffTimeStr,
+		       A.SORT_ID sortId,
+		       A.MTOC mtoc,
+		       A.MODEL_CODE modelCode,
+		       A.PHASE phase,
+		       C.CODE_VALUE_NAME phaseStr
+		  FROM MM_PUB_PRO_PLAN A
+		  LEFT JOIN MM_PUB_DATA_DICT C
+		    ON C.CODE_TYPE = 'PUB_PHASE'
+		   AND A.PHASE = C.CODE_VALUE
+		   AND A.FACTORY_CODE = C.FACTORY_CODE
+		 WHERE 1 = 1 
+		<if test="factoryCode!=null and factoryCode!='' ">
+			AND A.FACTORY_CODE = #{factoryCode}
+		</if>
+		<if test="orderNo!=null and orderNo!='' ">
+			AND A.ORDER_NO = #{orderNo}
+		</if>
+		<if test="modelCode!=null and modelCode!='' ">
+			AND A.MODEL_CODE = #{modelCode}
+		</if>
+		<if test="phase!=null and phase!='' ">
+			AND A.PHASE = #{phase}
+		</if>
+		<if test="afoffTimeStartStr!=null and afoffTimeStartStr!='' ">
+			AND A.AFOFF_TIME &gt;= TO_DATE(#{afoffTimeStartStr}, 'YYYY-MM-DD')
+		</if>
+		<if test="afoffTimeEndStr!=null and afoffTimeEndStr!='' ">
+			AND A.AFOFF_TIME &lt;= TO_DATE(#{afoffTimeEndStr}, 'YYYY-MM-DD')
+		</if>
+		ORDER BY A.AFOFF_TIME
+	</select>
+
+</mapper>

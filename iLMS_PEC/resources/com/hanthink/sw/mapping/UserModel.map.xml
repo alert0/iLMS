@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hanthink.sw.model.SwUserModel">
+	<!-- 通过账号获取当前登录用户的类别和供应商代码 -->
+	<select id="getUserModel" parameterType="com.hanthink.sw.model.SwUserModel" resultType="com.hanthink.sw.model.SwUserModel">
+		SELECT A.USER_TYPE    userType,
+			   A.SUPPLIER_NO  supplierNo
+		FROM SYS_USER A WHERE A.ACCOUNT_ = #{account}
+	</select>
+	
+</mapper>

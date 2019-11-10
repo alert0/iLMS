@@ -1,0 +1,35 @@
+#Debug,info,warning,error
+
+log4j.rootLogger=INFO,systemOut,logRollingFile,errorRollingFile
+
+#Console: Debug-Error Log Config
+log4j.appender.systemOut=org.apache.log4j.ConsoleAppender
+log4j.appender.systemOut.layout=org.apache.log4j.PatternLayout
+log4j.appender.systemOut.layout.ConversionPattern=%d - %c -%-4r %-5p %x - %m%n
+log4j.appender.systemOut.Threshold=DEBUG
+log4j.appender.systemOut.ImmediateFlush=TRUE
+log4j.appender.systemOut.Target=System.out
+
+#File: Debug-Error Log Config
+log4j.appender.logRollingFile=org.apache.log4j.RollingFileAppender
+log4j.appender.logRollingFile.layout=org.apache.log4j.PatternLayout
+log4j.appender.logRollingFile.layout.ConversionPattern=%d - %c -%-4r %-5p %x - %m%n
+log4j.appender.logRollingFile.Threshold=DEBUG
+log4j.appender.logRollingFile.ImmediateFlush=TRUE
+log4j.appender.logRollingFile.Append=TRUE
+log4j.appender.logRollingFile.File=D:/logs/SmartWorkESB/LOG.log
+log4j.appender.logRollingFile.MaxFileSize=20MB
+log4j.appender.logRollingFile.MaxBackupIndex=30
+log4j.appender.logRollingFile.Encoding=UTF-8
+
+#File: Error Log Config
+log4j.appender.errorRollingFile=org.apache.log4j.RollingFileAppender
+log4j.appender.errorRollingFile.layout=org.apache.log4j.PatternLayout
+log4j.appender.errorRollingFile.layout.ConversionPattern=%d - %c -%-4r %-5p %x - %m%n
+log4j.appender.errorRollingFile.Threshold=ERROR
+log4j.appender.errorRollingFile.ImmediateFlush=TRUE
+log4j.appender.errorRollingFile.Append=TRUE
+log4j.appender.errorRollingFile.File=D:/logs/SmartWorkESB/ERROR.log
+log4j.appender.errorRollingFile.MaxFileSize=20MB
+log4j.appender.errorRollingFile.MaxBackupIndex=30
+log4j.appender.errorRollingFile.Encoding=UTF-8

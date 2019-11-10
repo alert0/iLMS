@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.sys.persistence.model.SysSeal">
+	<resultMap id="SysSeal" type="com.hotent.sys.persistence.model.SysSeal">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="sealName" column="seal_name_" jdbcType="VARCHAR"/>
+		<result property="belongName" column="belong_name_" jdbcType="VARCHAR"/>
+		<result property="sealPath" column="seal_path_" jdbcType="VARCHAR"/>
+		<result property="sealExt" column="seal_ext_" jdbcType="VARCHAR"/>
+		<result property="sealSize" column="seal_size_" jdbcType="VARCHAR"/>
+		<result property="sealStream" column="seal_stream_" jdbcType="CLOB"/>
+		<result property="sealDesc" column="seal_desc_" jdbcType="VARCHAR"/>
+		<result property="showImagePath" column="show_image_path_" jdbcType="VARCHAR"/>
+		<result property="type" column="type_" jdbcType="VARCHAR"/>
+		<result property="creator" column="creator_" jdbcType="VARCHAR"/>
+		<result property="createTime" column="create_time_" jdbcType="TIMESTAMP"/>
+		<result property="saveType" column="save_type_" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.sys.persistence.model.SysSeal">
+		INSERT INTO sys_seal
+		(id_,seal_name_,belong_name_,seal_path_,seal_ext_,seal_size_,seal_stream_,seal_desc_,show_image_path_,type_,creator_,create_time_,save_type_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{sealName,jdbcType=VARCHAR}, #{belongName,jdbcType=VARCHAR}, #{sealPath,jdbcType=VARCHAR}, #{sealExt,jdbcType=VARCHAR}, #{sealSize,jdbcType=VARCHAR}, #{sealStream,jdbcType=CLOB}, #{sealDesc,jdbcType=VARCHAR}, #{showImagePath,jdbcType=VARCHAR}, #{type,jdbcType=VARCHAR}, #{creator,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP}, #{saveType,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="SysSeal">
+		SELECT * FROM sys_seal 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="SysSeal">
+		SELECT * FROM sys_seal
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.sys.persistence.model.SysSeal">
+		UPDATE sys_seal SET
+		seal_name_=#{sealName,jdbcType=VARCHAR},
+		belong_name_=#{belongName,jdbcType=VARCHAR},
+		seal_path_=#{sealPath,jdbcType=VARCHAR},
+		seal_ext_=#{sealExt,jdbcType=VARCHAR},
+		seal_size_=#{sealSize,jdbcType=VARCHAR},
+		seal_stream_=#{sealStream,jdbcType=CLOB},
+		seal_desc_=#{sealDesc,jdbcType=VARCHAR},
+		show_image_path_=#{showImagePath,jdbcType=VARCHAR},
+		type_=#{type,jdbcType=VARCHAR},
+		creator_=#{creator,jdbcType=VARCHAR},
+		create_time_=#{createTime,jdbcType=TIMESTAMP},
+		save_type_=#{saveType,jdbcType=VARCHAR}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_seal 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	
+</mapper>

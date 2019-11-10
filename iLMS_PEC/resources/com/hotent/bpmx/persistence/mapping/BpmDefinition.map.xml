@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.bpmx.persistence.model.DefaultBpmDefinition">
+	<resultMap id="DefaultBpmDefinition" type="com.hotent.bpmx.persistence.model.DefaultBpmDefinition">
+		<id property="defId" column="def_id_" jdbcType="VARCHAR"/>
+		<result property="name" column="name_" jdbcType="VARCHAR"/>
+		<result property="defKey" column="def_key_" jdbcType="VARCHAR"/>
+		<result property="desc" column="desc_" jdbcType="VARCHAR"/>
+		<result property="typeId" column="type_id_" jdbcType="VARCHAR"/>
+		<result property="status" column="status_" jdbcType="VARCHAR"/>
+		<result property="testStatus" column="test_status_" jdbcType="VARCHAR"/>
+		<result property="bpmnDefId" column="bpmn_def_id_" jdbcType="VARCHAR"/>
+		<result property="designer" column="designer_" jdbcType="VARCHAR"/>
+		<result property="bpmnDeployId" column="bpmn_deploy_id_" jdbcType="VARCHAR"/>
+		<result property="version" column="version_" jdbcType="NUMERIC"/>
+		<result property="mainDefId" column="main_def_id_" jdbcType="VARCHAR"/>
+		<result property="isMain" column="is_main_" jdbcType="VARCHAR"/>
+		<result property="reason" column="reason_" jdbcType="VARCHAR"/>
+		<result property="createBy" column="create_by_" jdbcType="VARCHAR"/>
+		<result property="createTime" column="create_time_" jdbcType="TIMESTAMP"/>
+		<result property="createOrgId" column="create_org_id_" jdbcType="VARCHAR"/>
+		<result property="updateBy" column="update_by_" jdbcType="VARCHAR"/>
+		<result property="updateTime" column="update_time_" jdbcType="TIMESTAMP"/>
+		<result property="supportMobile" column="SUPPORT_MOBILE_" jdbcType="NUMERIC"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.bpmx.persistence.model.DefaultBpmDefinition">
+		INSERT INTO bpm_definition
+		(def_id_,name_,def_key_,desc_,type_id_,status_,test_status_,bpmn_def_id_,bpmn_deploy_id_,
+		version_,main_def_id_,is_main_,reason_,create_by_,create_time_,create_org_id_,update_by_,update_time_,designer_,SUPPORT_MOBILE_)
+		VALUES 
+		(#{defId,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR}, #{defKey,jdbcType=VARCHAR}, #{desc,jdbcType=VARCHAR}, 
+		#{typeId,jdbcType=VARCHAR}, #{status,jdbcType=VARCHAR}, #{testStatus,jdbcType=VARCHAR},  #{bpmnDefId,jdbcType=VARCHAR}, 
+		#{bpmnDeployId,jdbcType=VARCHAR}, #{version,jdbcType=NUMERIC}, #{mainDefId,jdbcType=VARCHAR}, #{isMain,jdbcType=VARCHAR},
+		 #{reason,jdbcType=VARCHAR}, #{createBy,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP}, #{createOrgId,jdbcType=VARCHAR},
+		  #{updateBy,jdbcType=VARCHAR}, #{updateTime,jdbcType=TIMESTAMP},#{designer,jdbcType=VARCHAR},#{supportMobile,jdbcType=NUMERIC})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="DefaultBpmDefinition">
+		SELECT * FROM bpm_definition 
+		WHERE 
+		def_id_=#{defId}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="DefaultBpmDefinition">
+		SELECT * FROM bpm_definition
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+			
+			<!-- 按用户授权过滤用户的流程 ：isNeedRight为空时不需要按权限查询，否则按流程的分管授权情况查询-->
+			<if test="isAdmin==0">
+			 	<choose>  
+			        <when test="defKeys!=null">  
+			            AND def_key_ in(${defKeys})  
+			        </when>
+			        <otherwise>  
+			            AND 1=0  
+			        </otherwise>  
+		        </choose>		
+			</if>
+			
+		</where>		
+		
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY create_time_ DESC
+		</if>
+	</select>
+	
+	<select id="queryByDefKey" parameterType="java.util.Map" resultMap="DefaultBpmDefinition">
+		SELECT * FROM bpm_definition
+		where 
+		def_key_ = #{defKey}
+		order by
+		version_
+	</select>
+
+	<select id="queryHistorys" parameterType="java.util.Map" resultMap="DefaultBpmDefinition">
+		SELECT * FROM bpm_definition
+		where 
+		def_key_ = #{defKey}
+		and 
+		is_main_ = 'N'
+		order by
+		version_
+	</select>
+	
+	
+	<select id="getMainByDefKey"  parameterType="java.lang.String" resultMap="DefaultBpmDefinition">
+		SELECT * FROM bpm_definition 
+		WHERE 
+		def_key_=#{defKey}
+		and
+		IS_MAIN_='Y'
+	</select>
+	<select id="getDefIdByBpmnDefId"  parameterType="java.lang.String" resultType="java.lang.String">
+		SELECT def_id_ FROM bpm_definition 
+		WHERE 
+		BPMN_DEF_ID_=#{bpmnDefId}
+	</select>
+	
+	<select id="getByBpmnDefId"  parameterType="java.lang.String" resultMap="DefaultBpmDefinition">
+		SELECT * FROM bpm_definition 
+		WHERE 
+		BPMN_DEF_ID_=#{bpmnDefId}
+	</select>
+	
+	<select id="getByBpmnDeployId"  parameterType="java.lang.String" resultMap="DefaultBpmDefinition">
+		SELECT * FROM bpm_definition 
+		WHERE 
+		BPMN_DEPLOY_ID_=#{bpmnDeployId}
+	</select>
+	
+	
+	<select id="getMaxVersion" parameterType="java.lang.String" resultType="java.lang.Integer">
+		select max(version_) from bpm_definition where def_key_= #{defKey}
+	</select>
+	
+	<update id="update" parameterType="com.hotent.bpmx.persistence.model.DefaultBpmDefinition">
+		UPDATE bpm_definition SET
+		name_=#{name,jdbcType=VARCHAR},
+		def_key_=#{defKey,jdbcType=VARCHAR},
+		desc_=#{desc,jdbcType=VARCHAR},
+		type_id_=#{typeId,jdbcType=VARCHAR},
+		status_=#{status,jdbcType=VARCHAR},
+		test_status_=#{testStatus,jdbcType=VARCHAR},
+		bpmn_def_id_=#{bpmnDefId,jdbcType=VARCHAR},
+		bpmn_deploy_id_=#{bpmnDeployId,jdbcType=VARCHAR},
+		version_=#{version,jdbcType=NUMERIC},
+		main_def_id_=#{mainDefId,jdbcType=VARCHAR},
+		is_main_=#{isMain,jdbcType=VARCHAR},
+		reason_=#{reason,jdbcType=VARCHAR},
+		create_by_=#{createBy,jdbcType=VARCHAR},
+		create_time_=#{createTime,jdbcType=TIMESTAMP},
+		create_org_id_=#{createOrgId,jdbcType=VARCHAR},
+		update_by_=#{updateBy,jdbcType=VARCHAR},
+		update_time_=#{updateTime,jdbcType=TIMESTAMP},
+		designer_=#{designer,jdbcType=VARCHAR},
+		SUPPORT_MOBILE_=#{supportMobile,jdbcType=NUMERIC}
+		WHERE
+		def_id_=#{defId}
+	</update>
+	
+	<update id="updateStatus">
+		UPDATE bpm_definition SET
+		status_=#{status,jdbcType=VARCHAR}
+		WHERE
+		def_id_=#{defId}
+	</update>
+	
+	<update id="updateNotMainVersion" parameterType="String"> 
+		UPDATE bpm_definition SET is_main_='N',main_def_id_=#{defId} where def_key_ in (
+  			select def_key_ from ( select def_key_ from bpm_definition where def_id_=#{def_id_}) tmp) and def_id_!=#{defId}
+	</update>
+	
+	<update id="updateToMainVersion" parameterType="String"> 
+		UPDATE bpm_definition SET is_main_='Y',main_def_id_='0' where  def_id_=#{def_id_}
+	</update>
+	
+	
+	<update id="updDefType">
+		UPDATE bpm_definition SET type_id_=#{typeId} where  def_id_ in <foreach collection="defList" index="index" item="defId" open="(" separator="," close=")"> 
+            		#{defId} 
+        		</foreach> 
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM bpm_definition 
+		WHERE
+		def_id_=#{defId}
+	</delete>
+	
+	<delete id="delByKey" parameterType="java.lang.String">
+		DELETE FROM bpm_definition  WHERE def_key_=#{defKey}
+	</delete>
+	
+	<select id="getByDefKey"  parameterType="java.lang.String" resultMap="DefaultBpmDefinition">
+		SELECT * FROM bpm_definition 
+		WHERE 
+		def_key_=#{defKey}
+	</select>
+	
+	<!-- 流程引擎 -->
+	<delete id="delActDeploy" parameterType="java.lang.String">
+		DELETE FROM act_re_deployment WHERE ID_
+		IN (SELECT DEPLOYMENT_ID_ FROM act_re_procdef WHERE KEY_=#{defKey})
+	</delete>
+	
+	
+	
+	<delete id="delActByteArray" parameterType="java.lang.String">
+		DELETE FROM act_ge_bytearray WHERE DEPLOYMENT_ID_
+		IN (SELECT DEPLOYMENT_ID_ FROM act_re_procdef WHERE KEY_=#{defKey})
+	</delete>
+	
+	<delete id="delActDef" parameterType="java.lang.String">
+		DELETE FROM act_re_procdef WHERE KEY_=#{defKey}
+	</delete>
+	
+	<delete id="delActTask" parameterType="java.lang.String">
+		DELETE FROM act_ru_task WHERE PROC_DEF_ID_=#{defId}
+	</delete>
+	
+	<delete id="delActDeployByDefId" parameterType="java.lang.String">
+		DELETE FROM act_re_deployment WHERE ID_  in 
+		(select t.bpmn_deploy_id_ from bpm_definition t where t.def_id_=#{defId} )
+	</delete>
+	
+	<delete id="delActDefByDefId" parameterType="java.lang.String">
+		DELETE FROM act_re_procdef  where ID_ in 
+		(select def.bpmn_def_id_ from bpm_definition def where def.def_id_=#{defId} )
+	</delete>
+	
+	<delete id="delActByteArrayByDefId" parameterType="java.lang.String">
+		DELETE FROM act_ge_bytearray WHERE DEPLOYMENT_ID_
+		IN (select t.bpmn_deploy_id_ from bpm_definition t where t.def_id_=#{defId})
+	</delete>
+	
+	<select id="getByCreateBy"  parameterType="java.lang.String" resultMap="DefaultBpmDefinition">
+		SELECT * FROM bpm_definition 
+		WHERE 
+			is_main_='Y'  AND create_by_=#{userId}
+	</select>
+	
+	<select id="queryListByMap" resultMap="DefaultBpmDefinition">
+		SELECT * FROM bpm_definition WHERE 
+			is_main_='Y'  and status_='deploy'
+			<if test="typeId!=null">
+				and type_id_=#{typeId}
+			</if>
+			<if test="name!=null">
+				and name_ like #{name}
+			</if>
+			order by create_time_ desc
+	</select>
+</mapper>

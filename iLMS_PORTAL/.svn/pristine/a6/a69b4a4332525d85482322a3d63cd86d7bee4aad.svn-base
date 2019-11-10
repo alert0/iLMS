@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.mp.model.MpAdjSupFeedbackModel">
+		
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="queryMpAdjSupFeedbackForPage" parameterType="com.hanthink.mp.model.MpAdjSupFeedbackModel" resultType="com.hanthink.mp.model.MpAdjSupFeedbackModel">
+		SELECT a.ID  id,
+		a.FACTORY_CODE factoryCode,
+	    a.PART_NO  partNo,
+	    b.PART_SHORT_NO  partShortNo,
+	    a.SUPPLIER_NO  supplierNo,
+	    a.SUP_FACTORY  supFactory,
+	    b.SUPPLIER_NAME  supplierName,
+	    a.DIFF_NUM  diffNum,
+	    a.IS_SUPPLY  isSupply,
+	    a.SUPPLY_REASON  supplyReason,
+	    TO_CHAR(a.FEEDBACK_TIME, 'YYYY-MM-DD HH24:MI:SS')  feedbackTimeStr,
+	    TO_CHAR(a.SUPPLY_DATE, 'YYYY-MM-DD')  supplyDateStr,
+	    b.PART_NAME_CN  partNameCn,
+	    d.CODE_VALUE_NAME codeValueName,
+	    e.STATUS_   status,
+	    f.CODE_VALUE_NAME codeValueNameF
+	    FROM  MM_MP_ADJ_SUP_FEEDBACK a
+	    LEFT JOIN MM_PUB_PART_UDA b 
+	    ON b.PART_NO = a.PART_NO
+	    LEFT JOIN MM_PUB_DATA_DICT d
+	      ON d.CODE_TYPE = 'PUB_TRUE_FALSE'
+	     AND d.CODE_VALUE = a.IS_SUPPLY
+	     AND d.FACTORY_CODE = a.FACTORY_CODE
+	    LEFT JOIN SYS_USER e
+	    ON e.SUPPLIER_NO = a.SUPPLIER_NO
+	    LEFT JOIN MM_PUB_DATA_DICT f
+	      ON f.CODE_TYPE = 'PUB_EFF_STATUS'
+	     AND f.CODE_VALUE = e.STATUS_
+		WHERE 1=1 
+		<if test="supplierNo!=null and supplierNo!='' ">
+		AND	a.SUPPLIER_NO = #{supplierNo}
+		</if>
+		<if test="supFactory!=null and supFactory!='' ">
+		AND	a.SUP_FACTORY = #{supFactory}
+		</if>
+		<if test="partNo!=null and partNo!='' ">
+		AND	a.PART_NO LIKE CONCAT(#{partNo}, '%')
+		</if>
+		<if test="status!=null and status!='' ">
+		AND	e.STATUS_ = #{status}
+		</if>
+		<if test="supplyDateStrStart != null and supplyDateStrStart != ''">
+		<![CDATA[ AND a.SUPPLY_DATE >= TO_DATE(#{supplyDateStrStart},'yyyy-MM-dd hh24:mi:ss') ]]>
+		</if>
+        <if test="supplyDateStrEnd != null and supplyDateStrEnd != ''">
+        <![CDATA[ AND a.SUPPLY_DATE <= TO_DATE(#{supplyDateStrEnd},'yyyy-MM-dd hh24:mi:ss') ]]>
+        </if>
+        <if test="isSupply!=null and isSupply!='' ">
+		AND	a.IS_SUPPLY = #{isSupply}
+		</if>
+		AND a.FACTORY_CODE = #{factoryCode}
+		ORDER BY a.SUPPLIER_NO,a.SUP_FACTORY,a.SUPPLY_DATE
+	</select>
+	
+	    <update id="getCommit" parameterType="com.hanthink.mp.model.MpAdjSupFeedbackModel">
+			UPDATE MM_MP_ADJ_SUP_FEEDBACK A SET
+			A.IS_SUPPLY=#{isSupply,jdbcType=NUMERIC},
+			A.SUPPLY_REASON=#{supplyReason,jdbcType=VARCHAR},
+			A.FEEDBACK_TIME=sysdate
+			WHERE 1=1
+			AND ID IN(
+			<foreach collection="aryIds" item="item" index="index" separator=" UNION ALL "> 
+	          SELECT #{item, jdbcType=VARCHAR} FROM DUAL
+	        </foreach>
+	        )
+		</update>
+		
+</mapper>

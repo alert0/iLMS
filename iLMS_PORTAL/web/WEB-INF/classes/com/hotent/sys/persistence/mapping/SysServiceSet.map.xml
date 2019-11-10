@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.sys.persistence.model.SysServiceSet">
+	<resultMap id="SysServiceSet" type="com.hotent.sys.persistence.model.SysServiceSet">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="alias" column="alias_" jdbcType="VARCHAR"/>
+		<result property="name" column="name_" jdbcType="VARCHAR"/>
+		<result property="url" column="url_" jdbcType="VARCHAR"/>
+		<result property="address" column="address_" jdbcType="VARCHAR"/>
+		<result property="methodName" column="method_name_" jdbcType="VARCHAR"/>
+		<result property="namespace" column="namespace_" jdbcType="VARCHAR"/>
+		<result property="soapAction" column="soap_action_" jdbcType="VARCHAR"/>
+		<result property="inputSet" column="input_set_" jdbcType="CLOB"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.sys.persistence.model.SysServiceSet">
+		INSERT INTO sys_service_set
+		(id_,alias_,name_,url_,address_,method_name_,namespace_,soap_action_,input_set_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{alias,jdbcType=VARCHAR},#{name,jdbcType=VARCHAR}, #{url,jdbcType=VARCHAR}, #{address,jdbcType=VARCHAR}, #{methodName,jdbcType=VARCHAR}, #{namespace,jdbcType=VARCHAR}, #{soapAction,jdbcType=VARCHAR}, #{inputSet,jdbcType=CLOB})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="SysServiceSet">
+		SELECT * FROM sys_service_set 
+		WHERE 
+		id_=#{id}
+	</select>
+	<select id="getByAlias"   parameterType="java.lang.String" resultMap="SysServiceSet">
+		SELECT * FROM sys_service_set 
+		WHERE 
+		alias_=#{alias}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="SysServiceSet">
+		SELECT * FROM sys_service_set
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.sys.persistence.model.SysServiceSet">
+		UPDATE sys_service_set SET
+		alias_=#{alias,jdbcType=VARCHAR},
+		name_=#{name,jdbcType=VARCHAR},
+		url_=#{url,jdbcType=VARCHAR},
+		address_=#{address,jdbcType=VARCHAR},
+		method_name_=#{methodName,jdbcType=VARCHAR},
+		namespace_=#{namespace,jdbcType=VARCHAR},
+		soap_action_=#{soapAction,jdbcType=VARCHAR},
+		input_set_=#{inputSet,jdbcType=CLOB}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_service_set 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	
+</mapper>

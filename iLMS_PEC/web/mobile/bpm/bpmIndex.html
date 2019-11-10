@@ -1,0 +1,43 @@
+<div class="panel panel-left panel-cover theme-dark" id='panel-left-demo'>
+  <div class="content-block myPanelContent">
+    <p class="myPanelTitle">Hello!<a class="panelIconMenu icon icon-menu close-panel pull-right" href="#"></a></p>
+    <p class="myPanelTime">
+    	今天是{{userMsg.date|selfFormateDate}}
+    </p>
+    <div class="myPanelPersonal list-block media-list">
+    <ul>
+      <li>
+        <a href="#" class="item-link item-content">
+          <div class="item-media"><img ng-src="{{userMsg.user.photo}}" style='width: 4rem;'></div>
+          <div class="item-inner">
+            <div class="item-title-row">
+              <!--<div class="item-title">标题</div>
+              <div class="item-after">$15</div>-->
+            </div>
+            <div class="item-subtitle">{{userMsg.user.fullname}}</div>
+            <div class="item-text">{{userMsg.org.name}}-{{userMsg.orgUserRel.relName}}</div>
+          </div>
+        </a>
+      </li>
+    </ul>
+  </div>
+	     <div class="list-block myPanelList">
+	   	 <ul>
+	      <li class="item-content">
+	        <div class="item-media"><i class="icon icon-card"></i></div>
+	         <a class="item-inner " href="{{pre_url}}workbench.html" external>
+	          <div class="item-title">工作台</div>
+	          <div class="item-after">Workbench</div>
+	        </a>
+	      </li>
+	      <li class="item-content">
+	        <div class="item-media"><i class="icon icon-me"></i></div>
+	        <a class="item-inner " href="{{pre_url}}myCenter.html" external>
+	          <div class="item-title">个人中心</div>
+	          <div class="item-after">Profiles</div>
+	        </a>
+	      </li>
+	    </ul>
+	    </div>
+	    <p class="myPanelFooter">&copy;2017 HOTENT EIP</p>
+  </div>

@@ -1,0 +1,462 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.mon.model.MonPickPlanModel">
+	
+	<!-- 查询取货单备货监控信息 -->
+	<select id="queryPickPreparePage" parameterType="java.util.Map" resultType="java.util.Map">
+		WITH TMP_ORDER AS(
+		  SELECT P.ORDER_NO, P.PURCHASE_NO, P.ROUTE_CODE, P.PLAN_PICKUP_TIME, 
+		    NVL(MAD.ERROR_DATE,30) ERROR_DATE,
+		    CEIL((P.PLAN_PICKUP_TIME - TRUNC(TO_DATE(#{curDateStr,jdbcType=VARCHAR},'YYYY-MM-DD')))*24*60/#{minTimeNum,jdbcType=NUMERIC}) GROUP_NO,  <!--分组序号,根据间隔时间计算120min -->
+		    NVL(O.PREPARE_STATUS, 0) PREPARE_STATUS, <!--备货状态 0未备货 1部分备货 2全部备货 -->
+		    NVL(O.PREPARE_COUNT, 0) PREPARE_COUNT,
+		    O.PREPARE_TIME ACTUAL_PREPARE_TIME,
+		    O.SUPPLIER_NO,
+		    O.DEPOT_NO,
+		    SUP.SUPPLIER_NAME
+		  FROM MM_SW_PICKUP_PLAN P
+		  LEFT JOIN MM_MON_ALLOW_DEVIATION MAD ON MAD.ROUTE_CODE = P.ROUTE_CODE 
+		  LEFT JOIN MM_SW_ORDER O ON O.ORDER_NO = P.ORDER_NO
+		  LEFT JOIN MM_PUB_SUPPLIER SUP ON SUP.SUPPLIER_NO = O.SUPPLIER_NO 
+		  WHERE P.PLAN_PICKUP_TIME BETWEEN TRUNC(TO_DATE(#{curDateStr,jdbcType=VARCHAR},'YYYY-MM-DD')) 
+		  					AND TRUNC(TO_DATE(#{curDateStr,jdbcType=VARCHAR},'YYYY-MM-DD') + 1) <!--实际取当前时间，测试用固定时间-->
+		  	<if test="supplierNo != null and '' != supplierNo">
+				AND O.SUPPLIER_NO LIKE '%' || #{supplierNo,jdbcType=VARCHAR} || '%'
+			</if>
+			<if test="supplierName != null and '' != supplierName">
+				AND SUP.SUPPLIER_NAME LIKE '%' || #{supplierName,jdbcType=VARCHAR} || '%'
+			</if>
+			<if test="depotNo != null and '' != depotNo">
+				AND O.DEPOT_NO LIKE '%' || #{depotNo,jdbcType=VARCHAR} || '%'
+			</if>
+		)
+		SELECT 
+		  
+		  <!--拼接需汇总的分组序号字段-->
+		  ${monSql}
+		  
+		  SUPPLIER_NO, SUPPLIER_NAME, DEPOT_NO
+		FROM (
+		  SELECT SUPPLIER_NO, SUPPLIER_NAME, DEPOT_NO, GROUP_NO,
+		    MIN(VIEW_PREPARE_STATUS) VIEW_PREPARE_STATUS,
+		    MIN(VIEW_ONTIME_STATUS) VIEW_ONTIME_STATUS
+		  FROM(
+		    SELECT A.*,
+		      CASE 
+		        WHEN A.PREPARE_STATUS = 0 THEN 10 <!--未备货-->
+		        WHEN A.PREPARE_STATUS = 1 THEN 20 <!--部分备货-->
+		        WHEN A.PREPARE_STATUS = 2 AND A.PREPARE_COUNT > 1 THEN 30 <!--多次备齐-->
+		        WHEN A.PREPARE_STATUS = 2 AND A.PREPARE_COUNT = 1 THEN 40 <!--一次备齐-->
+		      END AS VIEW_PREPARE_STATUS, <!--显示备货状态-->
+		      CASE 
+		        WHEN (A.ACTUAL_PREPARE_TIME IS NULL AND A.PLAN_PICKUP_TIME + A.ERROR_DATE/60/24 &lt; SYSDATE) 
+		          OR (A.ACTUAL_PREPARE_TIME IS NOT NULL AND A.PLAN_PICKUP_TIME + A.ERROR_DATE/60/24  &lt; A.ACTUAL_PREPARE_TIME) THEN 10 <!--延迟--> 
+		        WHEN A.ACTUAL_PREPARE_TIME IS NOT NULL AND A.ACTUAL_PREPARE_TIME &lt; A.PLAN_PICKUP_TIME - A.ERROR_DATE/60/24 THEN 20  <!--提前-->
+		        WHEN A.ACTUAL_PREPARE_TIME IS NOT NULL 
+		          AND A.ACTUAL_PREPARE_TIME BETWEEN A.PLAN_PICKUP_TIME - A.ERROR_DATE/60/24 AND A.PLAN_PICKUP_TIME + A.ERROR_DATE/60/24 THEN 30  <!--准时-->
+		        ELSE 40 <!--计划-->
+		      END AS VIEW_ONTIME_STATUS  <!--显示准时状态-->
+		    FROM TMP_ORDER A
+		  )
+		  GROUP BY SUPPLIER_NO, SUPPLIER_NAME, DEPOT_NO, GROUP_NO
+		) 
+		GROUP BY SUPPLIER_NO, SUPPLIER_NAME, DEPOT_NO 
+		ORDER BY SUPPLIER_NO,DEPOT_NO
+	</select>
+	
+	<!-- 查询取货单备货监控明细信息 -->
+	<select id="queryPickPrepareDetailPage" parameterType="java.util.Map" resultType="java.util.Map">
+		SELECT A.*,
+		  PRE.CODE_VALUE_NAME PREPARE_STATUS_NAME,
+		  ONT.CODE_VALUE_NAME ONTIME_STATUS_NAME
+		FROM(
+			SELECT 
+			  P.ORDER_NO,
+			  O.PURCHASE_NO,
+			  O.SUPPLIER_NO,
+			  SUP.SUPPLIER_NAME,
+			  O.DEPOT_NO,
+			  TO_CHAR(P.PLAN_PICKUP_TIME,'YYYY-MM-DD HH24:MI:SS') PLAN_PICKUPTIME_STR,
+			  TO_CHAR(O.PREPARE_TIME,'YYYY-MM-DD HH24:MI:SS') ACTUAL_PREPARE_TIME_STR,
+			  OD.PART_NO,
+			  PART.PART_NAME_CN,
+			  PART.PART_SHORT_NO,
+			  OD.ORDER_QTY - NVL(OD.CANCEL_NUM,0) ORDER_QTY,
+			  NVL(OD.PREPARE_NUM,0) PREPARE_NUM,
+			  CASE WHEN 0 = NVL(OD.PREPARE_NUM,0) THEN 0
+			    WHEN NVL(OD.PREPARE_NUM,0) > 0 AND NVL(OD.PREPARE_NUM,0) &lt; OD.ORDER_QTY - NVL(OD.CANCEL_NUM,0) THEN 1
+			    WHEN OD.ORDER_QTY - NVL(OD.CANCEL_NUM,0) &lt;= NVL(OD.PREPARE_NUM,0) THEN 2
+			  END PREPARE_STATUS,
+			  CASE 
+			    WHEN (O.PREPARE_TIME IS NULL AND P.PLAN_PICKUP_TIME &lt; (SYSDATE - NVL(MAD.ERROR_DATE,30)/60/24)) 
+			      OR (O.PREPARE_TIME IS NOT NULL AND (P.PLAN_PICKUP_TIME + NVL(MAD.ERROR_DATE,30)/60/24) &lt; O.PREPARE_TIME) THEN 10 <!--延迟 -->
+			    WHEN O.PREPARE_TIME IS NOT NULL AND O.PREPARE_TIME &lt; (P.PLAN_PICKUP_TIME - NVL(MAD.ERROR_DATE,30)/60/24) THEN 20  <!--提前 -->
+			    WHEN O.PREPARE_TIME IS NOT NULL 
+			      AND O.PREPARE_TIME BETWEEN (P.PLAN_PICKUP_TIME - NVL(MAD.ERROR_DATE,30)/60/24) 
+			      						AND (P.PLAN_PICKUP_TIME + NVL(MAD.ERROR_DATE,30)/60/24) THEN 30  <!--准时 -->
+			    ELSE 40 <!--计划 -->
+			  END AS ONTIME_STATUS  <!--显示准时状态 -->
+			FROM MM_SW_PICKUP_PLAN P
+			LEFT JOIN MM_SW_ORDER O ON O.ORDER_NO = P.ORDER_NO
+			LEFT JOIN MM_PUB_SUPPLIER SUP ON SUP.SUPPLIER_NO = O.SUPPLIER_NO 
+			LEFT JOIN MM_SW_ORDER_DETAIL OD ON OD.PURCHASE_NO = O.PURCHASE_NO
+			<!-- i-LMS2019053001 mod by dtp -->
+			LEFT JOIN MM_PUB_PART PART ON PART.PART_NO = OD.PART_NO AND PART.FACTORY_CODE = #{factoryCode}
+			LEFT JOIN MM_MON_ALLOW_DEVIATION MAD ON MAD.ROUTE_CODE = P.ROUTE_CODE 
+			WHERE P.PLAN_PICKUP_TIME BETWEEN TO_DATE(#{startDateTimeStr,jdbcType=VARCHAR},'YYYY-MM-DD HH24:MI:SS')
+			                         AND TO_DATE(#{endDateTimeStr,jdbcType=VARCHAR},'YYYY-MM-DD HH24:MI:SS')
+			<if test="supplierNo != null and '' != supplierNo">
+				AND O.SUPPLIER_NO = #{supplierNo,jdbcType=VARCHAR} 
+			</if>
+			<if test="depotNo != null and '' != depotNo">
+				AND O.DEPOT_NO = #{depotNo,jdbcType=VARCHAR} 
+			</if>
+		) A
+		LEFT JOIN MM_PUB_DATA_DICT PRE ON PRE.CODE_TYPE = 'PUB_PREPARE_STATUS' AND PRE.CODE_VALUE = A.PREPARE_STATUS 
+		LEFT JOIN MM_PUB_DATA_DICT ONT ON ONT.CODE_TYPE = 'MON_ONTIME_STATUS' AND ONT.CODE_VALUE = A.ONTIME_STATUS  
+		WHERE 1 = 1 
+		<if test="preStatus != null and '' != preStatus">
+			AND A.PREPARE_STATUS = #{preStatus,jdbcType=VARCHAR}
+		</if>
+		<if test="onTimeStatus != null and '' != onTimeStatus">
+			AND A.ONTIME_STATUS = #{onTimeStatus,jdbcType=VARCHAR}
+		</if>
+		ORDER BY A.PLAN_PICKUPTIME_STR DESC, A.ORDER_NO 
+	</select>
+
+	<!-- 查询收货监控数据 -->
+	<select id="queryPickReceivePage" parameterType="java.util.Map" resultType="java.util.Map">
+		WITH TMP_ORDER AS(
+		  SELECT P.ORDER_NO, P.PURCHASE_NO, P.ROUTE_CODE, P.PLAN_ARR_TIME, 
+		    NVL(MAD.ERROR_DATE,30) ERROR_DATE,
+		    CEIL((P.PLAN_ARR_TIME - TRUNC(TO_DATE(#{curDateStr,jdbcType=VARCHAR},'YYYY-MM-DD')))*24*60/#{minTimeNum,jdbcType=NUMERIC}) GROUP_NO,  <!--分组序号,根据间隔时间计算120min -->
+		    NVL(O.RECEIVE_STATUS, 0) RECEIVE_STATUS, <!--收货状态 0未收货 1部分收货 2全部收货 -->
+		    NVL(O.RECEIVE_COUNT, 0) RECEIVE_COUNT,
+		    O.RECEIVE_DATE ACTUAL_RECEIVE_DATE,
+		    O.SUPPLIER_NO,
+		    O.DEPOT_NO,
+		    SUP.SUPPLIER_NAME
+		  FROM MM_SW_PICKUP_PLAN P
+		  LEFT JOIN MM_MON_ALLOW_DEVIATION MAD ON MAD.ROUTE_CODE = P.ROUTE_CODE 
+		  LEFT JOIN MM_SW_ORDER O ON O.ORDER_NO = P.ORDER_NO
+		  LEFT JOIN MM_PUB_SUPPLIER SUP ON SUP.SUPPLIER_NO = O.SUPPLIER_NO 
+		  WHERE P.PLAN_ARR_TIME BETWEEN TRUNC(TO_DATE(#{curDateStr,jdbcType=VARCHAR},'YYYY-MM-DD')) 
+		  							AND TRUNC(TO_DATE(#{curDateStr,jdbcType=VARCHAR},'YYYY-MM-DD') + 1) <!--实际取当前时间，测试用固定时间 -->
+		  	<if test="supplierNo != null and '' != supplierNo">
+				AND O.SUPPLIER_NO LIKE '%' || #{supplierNo,jdbcType=VARCHAR} || '%'
+			</if>
+			<if test="supplierNameV != null and '' != supplierName">
+				AND SUP.SUPPLIER_NAME LIKE '%' || #{supplierName,jdbcType=VARCHAR} || '%'
+			</if>
+			<if test="depotNo != null and '' != depotNo">
+				AND O.DEPOT_NO LIKE '%' || #{depotNo,jdbcType=VARCHAR} || '%'
+			</if>
+		)
+		SELECT 
+		  
+		  <!--拼接需汇总的分组序号字段 -->
+		  ${monSql}
+		  
+		  SUPPLIER_NO, SUPPLIER_NAME, DEPOT_NO
+		FROM (
+		  SELECT SUPPLIER_NO, SUPPLIER_NAME, DEPOT_NO, GROUP_NO,
+		    MIN(VIEW_REC_STATUS) VIEW_REC_STATUS,
+		    MIN(VIEW_ONTIME_STATUS) VIEW_ONTIME_STATUS
+		  FROM(
+		    SELECT A.*,
+		      CASE 
+		        WHEN A.RECEIVE_STATUS = 0 THEN 10 <!--未备货 -->
+		        WHEN A.RECEIVE_STATUS = 1 THEN 20 <!--部分备货 -->
+		        WHEN A.RECEIVE_STATUS = 2 AND A.RECEIVE_COUNT > 1 THEN 30 <!--多次备齐 -->
+		        WHEN A.RECEIVE_STATUS = 2 AND A.RECEIVE_COUNT = 1 THEN 40 <!--一次备齐 -->
+		      END AS VIEW_REC_STATUS, <!--显示备货状态 -->
+		      CASE 
+		        WHEN (A.ACTUAL_RECEIVE_DATE IS NULL AND A.PLAN_ARR_TIME + A.ERROR_DATE/60/24 &lt; SYSDATE) 
+		          OR (A.ACTUAL_RECEIVE_DATE IS NOT NULL AND A.PLAN_ARR_TIME + A.ERROR_DATE/60/24  &lt; A.ACTUAL_RECEIVE_DATE) THEN 10 <!--延迟  -->
+		        WHEN A.ACTUAL_RECEIVE_DATE IS NOT NULL AND A.ACTUAL_RECEIVE_DATE &lt; A.PLAN_ARR_TIME - A.ERROR_DATE/60/24 THEN 20  <!--提前 -->
+		        WHEN A.ACTUAL_RECEIVE_DATE IS NOT NULL 
+		          AND A.ACTUAL_RECEIVE_DATE BETWEEN A.PLAN_ARR_TIME - A.ERROR_DATE/60/24 AND A.PLAN_ARR_TIME + A.ERROR_DATE/60/24 THEN 30  <!--准时 -->
+		        ELSE 40 <!--计划 -->
+		      END AS VIEW_ONTIME_STATUS  <!--显示准时状态 -->
+		    FROM TMP_ORDER A
+		  )
+		  GROUP BY SUPPLIER_NO, SUPPLIER_NAME, DEPOT_NO, GROUP_NO
+		) 
+		GROUP BY SUPPLIER_NO, SUPPLIER_NAME, DEPOT_NO 
+		ORDER BY SUPPLIER_NO,DEPOT_NO
+	</select>
+	
+	<!-- 查询收货监控明细数据 -->
+	<select id="queryPickReceiveDetailPage" parameterType="java.util.Map" resultType="java.util.Map">
+		SELECT A.*,
+		  PRE.CODE_VALUE_NAME RECEIVE_STATUS_NAME,
+		  ONT.CODE_VALUE_NAME ONTIME_STATUS_NAME
+		FROM(
+		  SELECT 
+		    P.ORDER_NO,
+		    O.PURCHASE_NO,
+		    O.SUPPLIER_NO,
+		    SUP.SUPPLIER_NAME,
+		    O.DEPOT_NO,
+		    TO_CHAR(P.PLAN_ARR_TIME,'YYYY-MM-DD HH24:MI:SS') PLAN_ARR_TIME_STR,
+		    TO_CHAR(OD.RECEIVE_DATE,'YYYY-MM-DD HH24:MI:SS') ACTUAL_ARR_TIME_STR,
+		    OD.PART_NO,
+		    PART.PART_NAME_CN,
+		    PART.PART_SHORT_NO,
+		    OD.ORDER_QTY - NVL(OD.CANCEL_NUM,0) ORDER_QTY,
+		    NVL(OD.TOTAL_REC_QTY,0) RECEIVE_NUM,
+		    NVL(OD.RECEIVE_STATUS,0) RECEIVE_STATUS,
+		    CASE 
+		      WHEN (OD.RECEIVE_DATE IS NULL AND P.PLAN_ARR_TIME &lt; (SYSDATE - NVL(MAD.ERROR_DATE,30)/60/24)) 
+		        OR (OD.RECEIVE_DATE IS NOT NULL AND (P.PLAN_ARR_TIME + NVL(MAD.ERROR_DATE,30)/60/24) &lt; OD.RECEIVE_DATE) THEN 10 <!--延迟  -->
+		      WHEN OD.RECEIVE_DATE IS NOT NULL AND OD.RECEIVE_DATE &lt; (P.PLAN_ARR_TIME - NVL(MAD.ERROR_DATE,30)/60/24) THEN 20  <!--提前 -->
+		      WHEN OD.RECEIVE_DATE IS NOT NULL 
+		        AND OD.RECEIVE_DATE BETWEEN (P.PLAN_ARR_TIME - NVL(MAD.ERROR_DATE,30)/60/24) AND (P.PLAN_ARR_TIME + NVL(MAD.ERROR_DATE,30)/60/24) THEN 30  <!--准时 -->
+		      ELSE 40 <!--计划 -->
+		    END AS ONTIME_STATUS  <!--显示准时状态 -->
+		  FROM MM_SW_PICKUP_PLAN P
+		  LEFT JOIN MM_SW_ORDER O ON O.ORDER_NO = P.ORDER_NO
+		  LEFT JOIN MM_PUB_SUPPLIER SUP ON SUP.SUPPLIER_NO = O.SUPPLIER_NO 
+		  LEFT JOIN MM_SW_ORDER_DETAIL OD ON OD.PURCHASE_NO = O.PURCHASE_NO
+		  <!-- i-LMS2019053001 mod by dtp -->
+		  LEFT JOIN MM_PUB_PART PART ON PART.PART_NO = OD.PART_NO AND PART.FACTORY_CODE = #{factoryCode}
+		  LEFT JOIN MM_MON_ALLOW_DEVIATION MAD ON MAD.ROUTE_CODE = P.ROUTE_CODE 
+		  WHERE P.PLAN_ARR_TIME BETWEEN TO_DATE(#{startDateTimeStr,jdbcType=VARCHAR},'YYYY-MM-DD HH24:MI:SS')
+		                           AND TO_DATE(#{endDateTimeStr,jdbcType=VARCHAR},'YYYY-MM-DD HH24:MI:SS')
+		    <if test="supplierNo != null and '' != supplierNo">
+				AND O.SUPPLIER_NO = #{supplierNo,jdbcType=VARCHAR} 
+			</if>
+			<if test="depotNo != null and '' != depotNo">
+				AND O.DEPOT_NO = #{depotNo,jdbcType=VARCHAR} 
+			</if>
+		) A
+		LEFT JOIN MM_PUB_DATA_DICT PRE ON PRE.CODE_TYPE = 'PUB_ARRIVE_STATUS' AND PRE.CODE_VALUE = A.RECEIVE_STATUS 
+		LEFT JOIN MM_PUB_DATA_DICT ONT ON ONT.CODE_TYPE = 'MON_ONTIME_STATUS' AND ONT.CODE_VALUE = A.ONTIME_STATUS   
+		WHERE 1 = 1
+		<if test="receiveStatus != null and '' != receiveStatus">
+			AND A.RECEIVE_STATUS = #{receiveStatus,jdbcType=VARCHAR}
+		</if>
+		<if test="onTimeStatus != null and '' != onTimeStatus">
+			AND A.ONTIME_STATUS = #{onTimeStatus,jdbcType=VARCHAR}
+		</if>
+		ORDER BY A.PLAN_ARR_TIME_STR DESC, A.ORDER_NO   
+	</select>
+	
+	<!-- 查询出货监控数据 -->
+	<select id="queryPickDeliveryPage" parameterType="java.util.Map" resultType="java.util.Map">
+		WITH TMP_ORDER AS(
+		  SELECT P.ORDER_NO, P.PURCHASE_NO, P.ROUTE_CODE, P.PLAN_PICKUP_TIME, 
+		    NVL(MAD.ERROR_DATE,30) ERROR_DATE,
+		    CEIL((P.PLAN_PICKUP_TIME - TRUNC(TO_DATE(#{curDateStr,jdbcType=VARCHAR},'YYYY-MM-DD')))*24*60/#{minTimeNum,jdbcType=NUMERIC}) GROUP_NO,  <!--分组序号,根据间隔时间计算120min -->
+		    0 DELIVERY_STATUS, <!--出货状态 0未出货 1部分出货 2全部出货 -->
+		    0 DELIVERY_COUNT,
+		    NULL ACTUAL_DELIVERY_TIME, <!--实际出货时间，暂无字段 -->
+		    O.SUPPLIER_NO,
+		    O.DEPOT_NO,
+		    SUP.SUPPLIER_NAME
+		  FROM MM_SW_PICKUP_PLAN P
+		  LEFT JOIN MM_MON_ALLOW_DEVIATION MAD ON MAD.ROUTE_CODE = P.ROUTE_CODE 
+		  LEFT JOIN MM_SW_ORDER O ON O.ORDER_NO = P.ORDER_NO
+		  LEFT JOIN MM_PUB_SUPPLIER SUP ON SUP.SUPPLIER_NO = O.SUPPLIER_NO 
+		  WHERE P.PLAN_PICKUP_TIME BETWEEN TRUNC(TO_DATE(#{curDateStr,jdbcType=VARCHAR},'YYYY-MM-DD')) 
+		  					AND TRUNC(TO_DATE(#{curDateStr,jdbcType=VARCHAR},'YYYY-MM-DD') + 1) <!--实际取当前时间，测试用固定时间-->
+		  	<if test="supplierNo != null and '' != supplierNo">
+				AND O.SUPPLIER_NO LIKE '%' || #{supplierNo,jdbcType=VARCHAR} || '%'
+			</if>
+			<if test="supplierNameV != null and '' != supplierName">
+				AND SUP.SUPPLIER_NAME LIKE '%' || #{supplierName,jdbcType=VARCHAR} || '%'
+			</if>
+			<if test="depotNo != null and '' != depotNo">
+				AND O.DEPOT_NO LIKE '%' || #{depotNo,jdbcType=VARCHAR} || '%'
+			</if>
+		)
+		SELECT 
+		  
+		  <!--拼接需汇总的分组序号字段-->
+		  ${monSql}
+		  
+		  SUPPLIER_NO, SUPPLIER_NAME, DEPOT_NO
+		FROM (
+		  SELECT SUPPLIER_NO, SUPPLIER_NAME, DEPOT_NO, GROUP_NO,
+		    MIN(VIEW_DELIVERY_STATUS) VIEW_DELIVERY_STATUS,
+		    MIN(VIEW_ONTIME_STATUS) VIEW_ONTIME_STATUS
+		  FROM(
+		    SELECT A.*,
+		      CASE 
+		        WHEN A.DELIVERY_STATUS = 0 THEN 10 <!--未出货-->
+		        WHEN A.DELIVERY_STATUS = 1 THEN 20 <!--部分出货-->
+		        WHEN A.DELIVERY_STATUS = 2 AND A.DELIVERY_COUNT > 1 THEN 30 <!--多次出齐-->
+		        WHEN A.DELIVERY_STATUS = 2 AND A.DELIVERY_COUNT = 1 THEN 40 <!--一次出齐-->
+		      END AS VIEW_DELIVERY_STATUS, <!--显示出货状态-->
+		      CASE 
+		        WHEN (A.ACTUAL_DELIVERY_TIME IS NULL AND A.PLAN_PICKUP_TIME + A.ERROR_DATE/60/24 &lt; SYSDATE) 
+		          OR (A.ACTUAL_DELIVERY_TIME IS NOT NULL AND A.PLAN_PICKUP_TIME + A.ERROR_DATE/60/24  &lt; A.ACTUAL_DELIVERY_TIME) THEN 10 <!--延迟--> 
+		        WHEN A.ACTUAL_DELIVERY_TIME IS NOT NULL AND A.ACTUAL_DELIVERY_TIME &lt; A.PLAN_PICKUP_TIME - A.ERROR_DATE/60/24 THEN 20  <!--提前-->
+		        WHEN A.ACTUAL_DELIVERY_TIME IS NOT NULL 
+		          AND A.ACTUAL_DELIVERY_TIME BETWEEN A.PLAN_PICKUP_TIME - A.ERROR_DATE/60/24 AND A.PLAN_PICKUP_TIME + A.ERROR_DATE/60/24 THEN 30  <!--准时-->
+		        ELSE 40 <!--计划-->
+		      END AS VIEW_ONTIME_STATUS  <!--显示准时状态-->
+		    FROM TMP_ORDER A
+		  )
+		  GROUP BY SUPPLIER_NO, SUPPLIER_NAME, DEPOT_NO, GROUP_NO
+		) 
+		GROUP BY SUPPLIER_NO, SUPPLIER_NAME, DEPOT_NO 
+		ORDER BY SUPPLIER_NO,DEPOT_NO
+	</select>
+	
+	<!-- 查询出货监控明细数据 -->
+	<select id="queryPickDeliveryDetailPage" parameterType="java.util.Map" resultType="java.util.Map">
+		SELECT A.*,
+		  PRE.CODE_VALUE_NAME DELIVERY_STATUS_NAME,
+		  ONT.CODE_VALUE_NAME ONTIME_STATUS_NAME
+		FROM(
+			SELECT 
+			  P.ORDER_NO,
+			  O.PURCHASE_NO,
+			  O.SUPPLIER_NO,
+			  SUP.SUPPLIER_NAME,
+			  O.DEPOT_NO,
+			  TO_CHAR(P.PLAN_PICKUP_TIME,'YYYY-MM-DD HH24:MI:SS') PLAN_PICKUPTIME_STR,
+			  TO_CHAR(NULL,'YYYY-MM-DD HH24:MI:SS') ACTUAL_DELIVERY_TIME_STR,
+			  OD.PART_NO,
+			  PART.PART_NAME_CN,
+			  PART.PART_SHORT_NO,
+			  OD.ORDER_QTY - NVL(OD.CANCEL_NUM,0) ORDER_QTY,
+			  0 DELIVERY_NUM,
+			  0 DELIVERY_STATUS,
+			  CASE 
+			    WHEN P.PLAN_PICKUP_TIME &lt; (SYSDATE - NVL(MAD.ERROR_DATE,30)/60/24) THEN 10 <!--延迟 -->
+			    ELSE 40 <!--计划 -->
+			  END AS ONTIME_STATUS  <!--显示准时状态 -->
+			FROM MM_SW_PICKUP_PLAN P
+			LEFT JOIN MM_SW_ORDER O ON O.ORDER_NO = P.ORDER_NO
+			LEFT JOIN MM_PUB_SUPPLIER SUP ON SUP.SUPPLIER_NO = O.SUPPLIER_NO 
+			LEFT JOIN MM_SW_ORDER_DETAIL OD ON OD.PURCHASE_NO = O.PURCHASE_NO
+			<!-- i-LMS2019053001 mod by dtp -->
+			LEFT JOIN MM_PUB_PART PART ON PART.PART_NO = OD.PART_NO AND PART.FACTORY_CODE = #{factoryCode}
+			LEFT JOIN MM_MON_ALLOW_DEVIATION MAD ON MAD.ROUTE_CODE = P.ROUTE_CODE 
+			WHERE P.PLAN_PICKUP_TIME BETWEEN TO_DATE(#{startDateTimeStr,jdbcType=VARCHAR},'YYYY-MM-DD HH24:MI:SS')
+			                         AND TO_DATE(#{endDateTimeStr,jdbcType=VARCHAR},'YYYY-MM-DD HH24:MI:SS')
+			<if test="supplierNo != null and '' != supplierNo">
+				AND O.SUPPLIER_NO = #{supplierNo,jdbcType=VARCHAR} 
+			</if>
+			<if test="depotNo != null and '' != depotNo">
+				AND O.DEPOT_NO = #{depotNo,jdbcType=VARCHAR} 
+			</if>
+		) A
+		LEFT JOIN MM_PUB_DATA_DICT PRE ON PRE.CODE_TYPE = 'PUB_DELIVERY_STATUS' AND PRE.CODE_VALUE = A.DELIVERY_STATUS 
+		LEFT JOIN MM_PUB_DATA_DICT ONT ON ONT.CODE_TYPE = 'MON_ONTIME_STATUS' AND ONT.CODE_VALUE = A.ONTIME_STATUS  
+		WHERE 1 = 1 
+		<if test="deliveryStatus != null and '' != deliveryStatus">
+			AND A.DELIVERY_STATUS = #{deliveryStatus,jdbcType=VARCHAR}
+		</if>
+		<if test="onTimeStatus != null and '' != onTimeStatus">
+			AND A.ONTIME_STATUS = #{onTimeStatus,jdbcType=VARCHAR}
+		</if>
+		ORDER BY A.PLAN_PICKUPTIME_STR DESC, A.ORDER_NO 
+	</select>
+	
+	<!-- ************************************** -->
+
+	<!--  查询取货单到货监控 -->
+	<select id="queryJitArrData" parameterType="java.util.Map" resultType="java.util.Map">
+	WITH AA AS
+ (SELECT A.SUPPLIER_NO SUPPLIER_NO, <!--  供应商编号-->
+         C.SUPPLIER_NAME SUPPLIER_NAME, <!--  供应商名称-->
+         B.DEPOT_NO DEPOT_NO, <!--  仓库编码-->
+         D.WARE_NAME WARE_NAME, <!--  仓库名-->
+         TO_CHAR(A.PLAN_PICKUP_TIME, 'YYYY-MM-DD HH24:mi:ss') PLAN_PICKUP_TIME, <!-- 计划取货时间-->
+         F.REC_NUMS REC_NUMS, <!-- 收货次数-->
+         F.REC_TIME REC_TIME, <!-- 收货时间-->
+         B.RECEIVE_STATUS RECEIVE_STATUS <!-- 收货状态-->
+    FROM MM_SW_PICKUP_PLAN A <!-- 取货计划-->
+    LEFT JOIN MM_SW_ORDER B <!-- 订单-->
+      ON A.ORDER_NO = B.ORDER_NO
+    LEFT JOIN MM_PUB_SUPPLIER C <!-- 供应商-->
+      ON A.SUPPLIER_NO = C.SUPPLIER_NO
+    LEFT JOIN MM_INV_WAREHOUSE D <!-- 仓库-->
+      ON B.DEPOT_NO = D.WARE_CODE
+    LEFT JOIN MM_INV_SW_REC E <!-- 收货单-->
+      ON A.PURCHASE_NO = E.PURCHASE_NO
+    LEFT JOIN (SELECT Y.PURCHASE_NO PURCHASE_NO,
+                     TO_CHAR(Y.REC_TIME, 'YYYY-MM-DD HH24:mi:ss') REC_TIME,
+                     MAX(Z.REC_NUMS) REC_NUMS
+                FROM MM_INV_SW_REC_DETAIL Z
+                LEFT JOIN MM_INV_SW_REC Y
+                  ON Z.REC_NO = Y.REC_NO
+               GROUP BY Y.PURCHASE_NO, REC_TIME) F <!-- 拿到收货时间和最大收获次数-->
+      ON A.PURCHASE_NO = F.PURCHASE_NO
+   WHERE 1 = 1
+     AND A.PLAN_PICKUP_TIME BETWEEN TRUNC(SYSDATE) + 0 / 24 AND
+         TRUNC(SYSDATE + 1) + 0 / 24
+         <if test="supplierNo != '' and '' != supplierNo">
+         AND A.SUPPLIER_NO like  supplierNo || '%'
+         </if>
+         
+         <if test="supplierName != '' and '' != supplierName">
+         AND C.SUPPLIER_NAME like  supplierName || '%'
+         </if>
+         
+         <if test="depotNo != '' and '' != depotNo">
+         AND B.DEPOT_NO like  depotNo || '%'
+         </if>
+         
+         <if test="wareName != '' and '' != wareName">
+         AND D.WARE_NAME like  wareName || '%'
+         </if>
+         )
+SELECT ${monArrSql}  SUPPLIER_NO,
+       SUPPLIER_NAME,
+       DEPOT_NO,
+       WARE_NAME (SELECT SUPPLIER_NO,
+                         SUPPLIER_NAME,
+                         DEPOT_NO,
+                         WARE_NAME,
+                         PLAN_PICKUP_TIME,
+                         MIN(VIEW_ARR_STATUS) VIEW_ARR_STATUS,
+                         MIN(VIEW_ONTIME_STATUS) VIEW_ONTIME_STATUS
+                    FROM (SELECT AA.*,
+                                 CASE
+                                   WHEN AA.RECEIVE_STATUS = 0 THEN
+                                    10 <!-- 未收货-->
+                                   WHEN AA.RECEIVE_STATUS = 1 THEN
+                                    20 <!--  部分收货-->
+                                   WHEN AA.RECEIVE_STATUS = 2 AND
+                                        AA.REC_NUMS > 1 THEN
+                                    30 <!--  多次收齐-->
+                                   WHEN AA.RECEIVE_STATUS = 2 AND
+                                        AA.REC_NUMS = 1 THEN
+                                    40 <!--  一次收齐-->
+                                 END AS VIEW_ARR_STATUS, <!-- 收货状态-->
+                                 CASE
+                                   WHEN (AA.REC_TIME IS NULL AND
+                                        AA.PLAN_PICKUP_TIME &lt;
+                                        TO_CHAR(SYSDATE,
+                                                 'YYYY-MM-DD HH24:MI:SS') OR
+                                        (AA.REC_TIME IS NOT NULL AND
+                                        AA.PLAN_PICKUP_TIME &lt; AA.REC_TIME)) THEN
+                                    10 <!-- 延迟收货-->
+                                   WHEN AA.REC_TIME IS NOT NULL AND
+                                        AA.REC_TIME &lt; AA.PLAN_PICKUP_TIME THEN
+                                    20 <!-- 提前收获-->
+                                   WHEN AA.REC_TIME IS NOT NULL AND
+                                        AA.PLAN_PICKUP_TIME = AA.REC_TIME THEN
+                                    30 <!-- 准时收货-->
+                                   ELSE
+                                    40 <!-- 未计划-->
+                                 END AS VIEW_ONTIME_STATUS <!-- 准时状态-->
+                            FROM AA)
+                   GROUP BY SUPPLIER_NO,
+                            SUPPLIER_NAME,
+                            DEPOT_NO,
+                            WARE_NAME,
+                            PLAN_PICKUP_TIME)     GROUP BY SUPPLIER_NO,
+       SUPPLIER_NAME,
+       DEPOT_NO,
+       WARE_NAME     ORDER BY SUPPLIER_NO,
+       SUPPLIER_NAME,
+       DEPOT_NO,
+       WARE_NAME
+	</select>
+
+</mapper>

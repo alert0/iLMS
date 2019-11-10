@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.biz.meeting.model.Meeting">
+	<resultMap id="Meeting" type="com.hotent.biz.meeting.model.Meeting">
+		<id property="id" column="ID_" jdbcType="VARCHAR"/>
+		<result property="meetingroomId" column="MEETINGROOM_ID_" jdbcType="VARCHAR"/>
+		<result property="meetingId" column="MEETING_ID_" jdbcType="VARCHAR"/>
+		<result property="meetingName" column="MEETING_NAME_" jdbcType="VARCHAR"/>
+		<result property="hostessName" column="HOSTESS_NAME_" jdbcType="VARCHAR"/>
+		<result property="appointmentTime" column="APPOINTMENT_TIME_" jdbcType="TIMESTAMP"/>
+		<result property="appointmentStatus" column="APPOINTMENT_STATUS_" jdbcType="NUMERIC"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.biz.meeting.model.Meeting">
+		INSERT INTO biz_meetingroom_appointment
+		(ID_,MEETINGROOM_ID_,MEETING_ID_,MEETING_NAME_,HOSTESS_NAME_,APPOINTMENT_TIME_,APPOINTMENT_STATUS_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{meetingroomId,jdbcType=VARCHAR}, #{meetingId,jdbcType=VARCHAR}, #{meetingName,jdbcType=VARCHAR}, #{hostessName,jdbcType=VARCHAR}, #{appointmentTime,jdbcType=TIMESTAMP}, #{appointmentStatus,jdbcType=NUMERIC})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="Meeting">
+		SELECT * FROM biz_meetingroom_appointment 
+		WHERE 
+		ID_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="Meeting">
+		SELECT * FROM biz_meetingroom_appointment
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY ID_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.biz.meeting.model.Meeting">
+		UPDATE biz_meetingroom_appointment SET
+		MEETINGROOM_ID_=#{meetingroomId,jdbcType=VARCHAR},
+		MEETING_ID_=#{meetingId,jdbcType=VARCHAR},
+		MEETING_NAME_=#{meetingName,jdbcType=VARCHAR},
+		HOSTESS_NAME_=#{hostessName,jdbcType=VARCHAR},
+		APPOINTMENT_TIME_=#{appointmentTime,jdbcType=TIMESTAMP},
+		APPOINTMENT_STATUS_=#{appointmentStatus,jdbcType=NUMERIC}
+		WHERE
+		ID_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM biz_meetingroom_appointment 
+		WHERE
+		ID_=#{id}
+	</delete>
+	 <sql id="getAllMyTask_Tables">
+	           SELECT task.*,
+	                inst.proc_def_name_ procDefName,
+	                inst.create_by_ creatorId,inst.CREATOR_ creator,
+	                inst.create_time_ createDate,
+	                inst.status_ instStatus,
+	                type.id_ typeId,
+	                due.due_time_ dueTaskTime,
+	                due.EXPIRATION_DATE_ dueExpDate,
+	                due.date_type_ dueDateType,
+	                due.status_ dueStatus 
+	           FROM BPM_TASK task
+	                LEFT JOIN BPM_PRO_INST inst ON task.proc_inst_id_ = inst.id_
+	                LEFT JOIN SYS_TYPE type ON type.id_ = inst.type_id_
+	                LEFT JOIN  (select *  from bpm_task_due_time where is_new_ =1 ) due ON task.TASK_ID_ = due.TASK_ID_ 
+	</sql>
+			<!-- 待参加会议 -->
+	<select id="getByNeedPendMeetingUserId" parameterType="java.util.Map" resultMap="com.hotent.bpmx.persistence.model.DefaultBpmTask.BpmTask">
+			 select distinct * from
+	    (<include refid="getAllMyTask_Tables"/>
+	    	where  task.assignee_id_= #{assignee} and task.status_!='TRANSFORMING' and (task.node_id_='task3' or task.node_id_='task2')
+	    UNION ALL
+	        <include refid="getAllMyTask_Tables"/>
+	        LEFT JOIN BPM_TASK_CANDIDATE c  ON task.id_ = c.task_id_ 
+				where  task.status_!='TRANSFORMING'  and  task.assignee_id_='0' and c.executor_ =#{assignee}  and c.type_='user'
+		 <foreach collection="groupMap" index="key" item="value" open="" separator=" " close=""> 
+       	   UNION ALL
+	        <include refid="getAllMyTask_Tables"/>
+			LEFT JOIN BPM_TASK_CANDIDATE c   ON task.id_ = c.task_id_
+				 where  task.status_!='TRANSFORMING' and task.assignee_id_='0' and c.executor_ in (${value}) and c.type_='${key}'
+        </foreach>
+        )
+          tmp
+			<where>
+				<if test="whereSql!=null">
+					${whereSql}
+				</if>
+			</where>
+			<if test="orderBySql ==null">
+				order by tmp.CREATE_TIME_ desc
+			</if>
+			<if test="orderBySql !=null">
+				order by ${orderBySql}
+			</if>
+		 
+	</select>
+	
+	<select id="getMyAllRequestByUserId" parameterType="java.util.Map"   resultType="java.util.Map">
+	       select  bpi.ID_  proInstId,bpi.PROC_DEF_ID_ ProcDefId,biz_hybd.*  from bpm_pro_inst bpi
+	          LEFT JOIN bpm_bus_link  bbl ON bpi.ID_ = bbl.proc_inst_id_ LEFT JOIN biz_hybd ON 
+	          bbl.businesskey_str_ = biz_hybd.ID_ 
+	          where bpi.create_by_=#{userId}  and bpi.PROC_DEF_KEY_='hylc' and bpi.STATUS_!='draft'	           
+	     <if test="whereSql!=null">
+			and	${whereSql}
+		</if>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			 order by create_time_ desc
+		</if>
+	</select>
+	<!-- 获取历史会议-->
+		<sql id="columns">
+	    wfInst.id_ "id",wfInst.subject_ "subject",wfInst.proc_def_id_ "procDefId",wfInst.bpmn_def_id_ "bpmnDefId",
+		wfInst.proc_def_key_ "procDefKey",wfInst.proc_def_name_ "procDefName",wfInst.biz_key_  "bizKey",wfInst.form_key_ "formKey",
+		wfInst.status_ "status",wfInst.end_time_ "endTime",wfInst.duration_ "duration",wfInst.result_type_ "resultType",
+		wfInst.bpmn_inst_id_ "bpmnInstId",wfInst.create_by_ "createBy",wfInst.creator_ "creator",wfInst.create_time_ "createTime",
+		wfInst.create_org_id_ "createOrgId",wfInst.update_by_ "updateBy",wfInst.update_time_ "updateTime",wfInst.is_formmal_ "isFormmal",
+		wfInst.parent_inst_id_ "parentInstId",wfInst.IS_FORBIDDEN_ "isForbidden",wfInst.DATA_MODE_ "dataMode",wfInst.SUPPORT_MOBILE_ "supportMobile",
+		wfInst.super_node_id_ "superNodeId"
+	</sql>
+	
+	
+	<select id="getHandledMeetingByUserId" parameterType="java.util.Map"  resultType="java.util.Map">
+		select DISTINCT
+		<include refid="columns" />,
+		biz_hybd.*
+		,opinion.auditor_ "auditor",opinion.auditor_name_ "auditorName", opinion.task_name_ "taskName",opinion.status_ "opinionStatus", opinion.task_key_ "taskKey"
+		,due.due_time_ "dueTaskTime", due.EXPIRATION_DATE_ "dueExpDate", due.date_type_ "dueDateType",due.status_ "dueStatus", (due.due_time_ - due.remaining_time_) "dueUseTaskTime",  due.task_id_ "taskId"
+		from bpm_pro_inst wfInst INNER JOIN bpm_check_opinion opinion on wfInst.id_=opinion.proc_inst_id_
+		LEFT JOIN bpm_bus_link  bbl ON wfInst.ID_ = bbl.proc_inst_id_
+		LEFT JOIN biz_hybd ON bbl.businesskey_str_ = biz_hybd.ID_
+	    LEFT JOIN (select *  from bpm_task_due_time  where is_new_ =1  ) due on due.task_id_ = opinion.task_id_
+		<![CDATA[ where wfInst.status_<>'draft' and opinion.auditor_=#{userId} ]]>
+		<if test="whereSql!=null">
+				and ${whereSql}
+		</if>
+ 
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			 order by wfInst.create_time_ desc
+		</if>
+		
+	</select>
+</mapper>

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd"> 
+<mapper namespace="com.hotent.sys.persistence.model.PersonScript">
+	<resultMap id="PersonScript" type="com.hotent.sys.persistence.model.PersonScript">
+		<id property="id" column="ID_" jdbcType="VARCHAR"/>
+		<result property="className" column="CLASS_NAME_" jdbcType="VARCHAR"/>
+		<result property="classInsName" column="CLASS_INS_NAME_" jdbcType="VARCHAR"/>
+		<result property="methodName" column="METHOD_NAME_" jdbcType="VARCHAR"/>
+		<result property="methodDesc" column="METHOD_DESC_" jdbcType="VARCHAR"/>
+		<result property="returnType" column="RETURN_TYPE_" jdbcType="VARCHAR"/>
+		<result property="argument" column="ARGUMENT_" jdbcType="CLOB"/>
+		<result property="enable" column="ENABLE_" jdbcType="NUMERIC"/>
+	</resultMap>
+
+	<sql id="columns">
+		ID_,CLASS_NAME_,CLASS_INS_NAME_,METHOD_NAME_,METHOD_DESC_,RETURN_TYPE_,ARGUMENT_,ENABLE_
+	</sql>
+
+	<insert id="create" parameterType="com.hotent.sys.persistence.model.PersonScript">
+		INSERT INTO SYS_MULTI_SCRIPT
+		(<include refid="columns"/>, TYPE_)
+		VALUES
+		(#{id,jdbcType=NUMERIC}, #{className,jdbcType=VARCHAR}, #{classInsName,jdbcType=VARCHAR}, #{methodName,jdbcType=VARCHAR}, #{methodDesc,jdbcType=VARCHAR}, #{returnType,jdbcType=VARCHAR}, #{argument,jdbcType=CLOB}, #{enable,jdbcType=NUMERIC}, 2)
+	</insert>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="PersonScript">
+		SELECT * FROM SYS_MULTI_SCRIPT
+		<where>
+			<if test="whereSql!=null">
+				${whereSql} AND TYPE_=2 
+			</if>
+			<if test="whereSql==null">
+				TYPE_=2 
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY ID_ DESC
+		</if>
+	</select>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="PersonScript">
+		SELECT * FROM SYS_MULTI_SCRIPT 
+		WHERE 
+		ID_=#{id}
+	</select>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM SYS_MULTI_SCRIPT 
+		WHERE
+		ID_=#{id}
+	</delete>
+	
+	<update id="update" parameterType="com.hotent.sys.persistence.model.PersonScript">
+		UPDATE SYS_MULTI_SCRIPT SET
+		CLASS_NAME_=#{className,jdbcType=VARCHAR},
+		CLASS_INS_NAME_=#{classInsName,jdbcType=VARCHAR},
+		METHOD_NAME_=#{methodName,jdbcType=VARCHAR},
+		METHOD_DESC_=#{methodDesc,jdbcType=VARCHAR},
+		RETURN_TYPE_=#{returnType,jdbcType=VARCHAR},
+		ARGUMENT_=#{argument,jdbcType=CLOB},
+		ENABLE_=#{enable,jdbcType=NUMERIC}
+		WHERE
+		ID_=#{id}
+	</update>
+</mapper>

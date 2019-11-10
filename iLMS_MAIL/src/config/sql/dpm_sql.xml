@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="dpm">
+
+	<typeAlias alias="DpmInsVO" type="com.hanthink.gps.dpm.vo.DpmInsVo" />
+	<typeAlias alias="map" type="java.util.Map" />
+	
+	<!-- 查询未审核不良品的数量和审核人账号 -->
+	<select id="select_getDpmUserMail" parameterClass="java.util.Map" resultClass="DpmInsVO">
+					SELECT  C.ACCOUNT_ 	account, 
+							COUNT(*) 	count, 
+							C.EMAIL_ 	mail
+					  FROM MM_DPM_INS A
+					  LEFT JOIN MM_DPM_DEPARTMENT B
+					    ON A.RESP_DEP = B.DEP_CODE
+					  LEFT JOIN SYS_USER C
+					    ON B.DEP_CHECKER = C.ACCOUNT_
+					  WHERE A.INS_STATUS = '1' 
+					  AND A.FACTORY_CODE = #factoryCode#
+					 GROUP BY C.ACCOUNT_, C.EMAIL_
+					
+	</select>
+	
+	<!-- 查询未提交不良品数量以及填写不良品信息人的邮箱 -->
+	<select id="select_getDpmNotSubmit" parameterClass="java.util.Map" resultClass="DpmInsVO">
+				SELECT A.CREATION_USER 		account, 
+					   B.EMAIL_ 			mail, 
+					   COUNT(*) 			count
+					  FROM MM_DPM_INS A
+					  LEFT JOIN SYS_USER B
+					    ON A.CREATION_USER = B.ACCOUNT_
+					 WHERE A.INS_STATUS = 0
+					 AND SYSDATE - A.CREATION_TIME > 1
+					 AND A.FACTORY_CODE = #factoryCode#
+					 GROUP BY A.CREATION_USER, B.EMAIL_
+	</select>
+
+</sqlMap>

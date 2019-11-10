@@ -1,0 +1,169 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="
+        http://www.springframework.org/schema/beans     
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+        http://www.springframework.org/schema/context 
+        http://www.springframework.org/schema/context/spring-context.xsd" >
+
+	<context:annotation-config />	
+	<context:component-scan base-package="com.hotent.bpmx.core" />
+	<context:component-scan base-package="com.hotent.bpmx.listener" />
+	<context:component-scan base-package="com.hotent.bpmx.persistence" />
+	<context:component-scan base-package="com.hotent.bpmx.plugin" />
+		
+	<bean id="bpmxEngineFactory" class="com.hotent.bpmx.core.factory.DefaultBpmxEngineFactory">
+		<property name="defaultEngineName" value="${bpmx.engine.name}"/>
+		<property name="bpmxEngines">
+			<list>
+				<ref bean="x5Engine"/>
+			</list>
+		</property>
+	</bean>
+	
+	<bean id="x5Engine" class="com.hotent.bpmx.core.engine.DefaultBpmxEngine"/>
+	
+	<bean id="bpmTaskService" class="com.hotent.bpmx.core.engine.task.service.DefaultBpmTaskService"/>
+	<!-- 代理服务 -->
+	<bean id="bpmAgentService" class="com.hotent.bpmx.core.engine.task.service.DefaultBpmAgentService"/>
+	<!-- 意见service -->
+	<bean id="bpmOpinionService" class="com.hotent.bpmx.core.engine.inst.DefaultBpmOpinionService"/>	
+	<!-- 跳转规则计算 -->
+	<bean id="jumpRuleCalc" class="com.hotent.bpmx.persistence.util.JumpRuleCalcImpl"></bean>
+	<!-- 会签人员计算 -->	
+	<bean id="actUserService" class="com.hotent.bpmx.activiti.ext.identity.ActUserService"></bean>
+	<!-- 会签完成判断 开始-->
+	<bean id="signComplete" class="com.hotent.bpmx.activiti.ext.sign.ActSignComplete">
+		<property name="bpmSignComplete" ref="bpmSignComplete"></property>
+	</bean>
+	<bean id="bpmSignComplete" class="com.hotent.bpmx.core.engine.task.service.SignCompleteImpl"></bean>
+	
+	<bean id="signActionHandlerContainer" class="com.hotent.bpmx.core.engine.execution.sign.handler.SignActionHandlerContainer">
+		<property name="actionHandlers">
+			<map>
+				<entry key="approve"  value-ref="approveSignActionHandler" />
+				<entry key="back" value-ref="backSignActionHandler" />
+				<entry key="backToStart" value-ref="backSignActionHandler" />
+				<entry key="backTo" value-ref="backSignActionHandler" />
+			</map>
+		</property>
+	</bean>
+	
+	<bean id="approveSignActionHandler" class="com.hotent.bpmx.core.engine.execution.sign.handler.ApproveSignActionHandler"></bean>
+	<bean id="backSignActionHandler" class="com.hotent.bpmx.core.engine.execution.sign.handler.BackSignActionHandler"></bean>
+	
+	<!-- 会签完成判断 结束-->
+	<!-- 用户抽取的服务类 -->
+	<bean id="bpmIdentityExtractService" class="com.hotent.bpmx.core.helper.identity.BpmIdentityExtractServiceImpl"/>
+	<!-- 流程定义处理类，用于操作流程的xml数据 -->
+	<bean id="bpmDefConditionService" class="com.hotent.bpmx.core.engine.def.impl.DefaultBpmDefConditionService"/>
+	
+	
+    <!--流程图颜色配置-->
+   	<bean id="flowStatusService" class="com.hotent.bpmx.core.engine.graph.DefaultFlowStatusService">
+   		<property name="statusColor" ref="statusColorMap"></property>
+   	</bean>
+   	<!--
+   	状态说明：pending:待审批，complete：完成,agree:同意,oppose:反对,back:驳回,backToStart:驳回到发起人,
+   	recover:撤销,recoverToStart:撤销到发起人,sign_pass:会签通过,sign_no_pass:会签不通过,
+   	manual_end:人工终止,submit:提交,resubmit:重新提交,suspend:挂起，signBackCancel：驳回取消(会签驳回取消)，其他任务因驳回而取消了
+   	用户可以修改状态对应的颜色值，修改图片的颜色。
+   	-->
+   	<bean id="statusColorMap" class="java.util.HashMap">  
+		<constructor-arg>  
+    		<map>
+   				<entry key="agree" value="#00FF00"></entry>
+   				<entry key="complete" value="#4A4A4A"></entry>
+   				<entry key="pending" value="#FF0000"></entry>
+   				<entry key="oppose" value="#0000FF"></entry>
+   				<entry key="back" value="#8A0902"></entry>
+   				<entry key="backToStart" value="#FFA500"></entry>
+   				<entry key="recover" value="#023B62"></entry>
+   				<entry key="recoverToStart" value="#F23B62"></entry>
+   				<entry key="sign_pass" value="#338848"></entry>
+   				<entry key="sign_no_pass" value="#82B7D7"></entry>
+   				<entry key="manual_end" value="#EEAF97"></entry>
+   				<entry key="submit" value="#F89800"></entry>
+   				<entry key="resubmit" value="#FFE76E"></entry>
+   				<entry key="suspend" value="#C33A1F"></entry>
+   				<entry key="signBackCancel" value="#CCCCCC" ></entry>
+   			</map>
+		</constructor-arg>  
+	</bean>  
+	
+	
+	<!-- 表单数据修改 -->
+	<bean id="dataObjectHandler" class="com.hotent.bpmx.core.engine.form.DefaultDataObjectHandler"></bean>
+	
+	
+	<bean id="bpmFormService" class="com.hotent.bpmx.core.engine.form.DefaultBpmFormService"></bean>
+	
+	<!-- 子表数据获取接口 -->
+	<bean id="boSubDataHandler" class="com.hotent.bpmx.core.engine.form.BoSubDataHandlerImpl"></bean>
+	
+	<!-- 流程定义更新 -->
+	<bean id="defXmlTransForm" class="com.hotent.bpmx.core.engine.def.DefXmlTransForm">
+		<property name="xmlUpdateList" ref="xmlUpdateList"></property>
+	</bean>
+	
+	 <bean id="xmlUpdateList" class="java.util.ArrayList">
+  		<constructor-arg>
+   			<list>
+    			<bean class="com.hotent.bpmx.core.engine.def.impl.update.BoDefXmlUpdate"></bean>
+    			<bean class="com.hotent.bpmx.core.engine.def.impl.update.GlobalFormDefXmlUpdate"></bean>
+    			<bean class="com.hotent.bpmx.core.engine.def.impl.update.InstFormDefXmlUpdate"></bean>
+    			<bean class="com.hotent.bpmx.core.engine.def.impl.update.NodeDefXmlUpdate"></bean>
+    			<bean class="com.hotent.bpmx.core.engine.def.impl.update.PluginsDefXmlUpdate"></bean>
+    			<bean class="com.hotent.bpmx.core.engine.def.impl.update.PropertiesDefXmlUpdate"></bean>
+    			<bean class="com.hotent.bpmx.core.engine.def.impl.update.VarDefXmlUpdate"></bean>
+    			<bean class="com.hotent.bpmx.core.engine.def.impl.update.MobileInstXmlUpdate"></bean>
+   			</list>
+  		</constructor-arg>
+ 	</bean>
+	
+	
+	<!-- 增加不同的操作处理器 -->
+	<!-- 任务同意处理器 -->
+	<bean id="taskActionAgreeHandler" class="com.hotent.bpmx.core.engine.task.handler.TaskActionApproveHandler"/>
+	<!-- 任务回退处理器 -->
+	<bean id="taskActionBackHandler" class="com.hotent.bpmx.core.engine.task.handler.TaskActionBackHandler"/>
+	<!-- 任务回退至发起人处理器-->
+	<bean id="taskActionBackToStartHandler" class="com.hotent.bpmx.core.engine.task.handler.TaskActionBackToStartHandler"/>
+	<!-- 流程流转-->
+	<bean id="taskActionTransHandler" class="com.hotent.bpmx.core.engine.task.handler.TaskActionTransHandler"/>
+	<!-- 流程沟通-->
+	<bean id="taskActionCommuHandler" class="com.hotent.bpmx.core.engine.task.handler.TaskActionCommuHandler"/>
+	<!-- 人员组织服务 -->
+	<bean id="defaultOrgEngine" class="com.hotent.org.api.impl.service.DefaultOrgService" autowire="byType"></bean>
+	
+	
+	<!-- 节点按钮 -->
+	<bean id="buttonsMap" class="java.util.HashMap">  
+		<constructor-arg>  
+    		<map>
+   				<entry key="NORMAL" value="agree,abandon,oppose,reject,backToStart,rejectToAnyNode,flowImage,approvalHistory,print,saveDraft,endProcess,lockUnlock,delegate,startCommu,startTrans,addSign,instanceTrans,taskDelay"></entry>
+   				<entry key="AGENT" value="agree,abandon,oppose,reject,backToStart,rejectToAnyNode,flowImage,approvalHistory,print,saveDraft,endProcess,lockUnlock,delegate,startCommu,startTrans,addSign"></entry>
+   				<entry key="DELIVERTO" value="agree,abandon,oppose,reject,backToStart,rejectToAnyNode,flowImage,approvalHistory,print,saveDraft,endProcess,lockUnlock,delegate,startCommu,startTrans,addSign"></entry>
+   				<entry key="TRANSFORMED" value="agreeTrans,opposeTrans,flowImage,approvalHistory,print"></entry>
+   				<entry key="TRANSFORMING" value="flowImage,approvalHistory,print"></entry>
+   				<entry key="COMMU" value="commu,flowImage,approvalHistory,print"></entry>
+   				<entry key="BACK" value="agree,abandon,oppose,reject,backToStart,rejectToAnyNode,flowImage,approvalHistory,print,saveDraft,endProcess,lockUnlock,delegate,startCommu,startTrans,addSign,instanceTrans,taskDelay"></entry>
+   				<entry key="ADDSIGN" value="agree,abandon,oppose,reject,backToStart,rejectToAnyNode,flowImage,approvalHistory,print,saveDraft,endProcess,lockUnlock,delegate,startCommu,startTrans,addSign,instanceTrans,taskDelay"></entry>
+   			</map>
+		</constructor-arg>  
+	</bean>  
+	
+	<bean id="skipRules" class="java.util.ArrayList">  
+		<constructor-arg>  
+    		<list>
+				<bean class="com.hotent.bpmx.core.engine.task.skip.AllSkipCondition"></bean>
+				<bean class="com.hotent.bpmx.core.engine.task.skip.SameUserSkipCondition"></bean>
+				<bean class="com.hotent.bpmx.core.engine.task.skip.ApproverSkipCondition"></bean>
+				<bean class="com.hotent.bpmx.core.engine.task.skip.EmptyUserSkipCondition"></bean>
+			</list>
+		</constructor-arg>  
+	</bean>  
+	
+</beans>

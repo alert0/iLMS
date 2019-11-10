@@ -1,0 +1,411 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.sw.model.SwAnnounceModel">
+
+	<!-- 公告发布管理分页查询数据 -->
+    <select id="queryJisoAnnouncePage" parameterType="com.hanthink.sw.model.SwAnnounceModel" resultType="com.hanthink.sw.model.SwAnnounceModel">
+               SELECT TT.NOTICE_ID noticeId,
+			       wm_concat(TT.GROUP_ID) groupIdsStr,
+			       MIN(TT.NOTICE_TITLE) noticeTitle,
+			       MIN(TT.NOTICE_CONTENT) noticeContent,
+			       MIN(TT.NOTICE_STATUS) noticeStatus,
+			       MIN(TT.CREATION_TIME) creationTime,
+			       MIN(TT.IS_FEEDBACK) isFeedback,
+			       CASE WHEN MIN(TT.IS_FEEDBACK) = 0 THEN '否'
+			       ELSE '是' END isFeedBackDesc,
+			       MIN(TT.IS_FILE_FEEDBACK) isFileFeedBack,
+			       MIN(TT.FILE_ID) fileId,
+			       MIN(TT.FILE_NAME) fileName,
+			       MIN(TT.FEEDBACK_FILE_ID) feedbackFileId,
+             	   MIN(TT.FEEDBACK_FILE_NAME) feedbackFileName,
+			       MIN(TT.FEEDBACK_DAY) feedbackDay,
+			       MIN(TT.PUBLISH_TIME) publishTime,
+			       MIN(TT.FULLNAME_) publishUser
+			       ,(SELECT COUNT(*) FROM MM_SW_NOTICE_VIEW VV WHERE VV.NOTICE_ID = TT.NOTICE_ID ) supplierSum
+			       ,CASE WHEN MIN(TT.IS_FEEDBACK) = 1 THEN 
+	                   (SELECT COUNT(*) FROM MM_SW_NOTICE_VIEW VV WHERE VV.NOTICE_ID = TT.NOTICE_ID AND VV.VIEW_STATUS = 3) 
+	                  ELSE
+	                    (SELECT COUNT(*) FROM MM_SW_NOTICE_VIEW VV WHERE VV.NOTICE_ID = TT.NOTICE_ID AND VV.VIEW_STATUS = 1) 
+	                  END supplierViewCount
+			       ,(SELECT COUNT(*) FROM MM_SW_NOTICE_VIEW VV WHERE VV.NOTICE_ID = TT.NOTICE_ID AND VV.VIEW_STATUS = 3) supplierFeedback
+			  FROM (SELECT T.*, U.FULLNAME_, S.GROUP_ID GROUP_ID
+			          FROM MM_SW_NOTICE T
+			          LEFT JOIN MM_SW_NOTICE_SUPGROUP S
+			            ON S.NOTICE_ID = T.NOTICE_ID
+			          LEFT JOIN SYS_USER U
+			            ON U.ACCOUNT_ = T.PUBLISH_USER
+			             WHERE 1=1
+			    <if test="noticeTitle !=null and noticeTitle !='' ">
+				  AND T.NOTICE_TITLE like CONCAT(#{noticeTitle}, '%')
+				</if>
+				<if test="creationTimeStart !=null and creationTimeStart !='' ">
+				<![CDATA[ AND T.CREATION_TIME >= TO_DATE(#{creationTimeStart},'yyyy-MM-dd HH24:mi:ss') ]]>
+				</if>
+				<if test="creationTimeEnd !=null and creationTimeEnd !='' ">
+				<![CDATA[ AND T.CREATION_TIME <= TO_DATE(#{creationTimeEnd},'yyyy-MM-dd HH24:mi:ss')+1 ]]>
+				</if>
+				<if test="null != publishTime and ''!= publishTime">
+					<![CDATA[ AND T.PUBLISH_TIME >= TO_DATE(#{publishTime},'yyyy-MM-dd HH24:mi:ss') ]]>
+				</if>
+				<if test="null != publishTimeEnd and publishTimeEnd !='' ">
+					<![CDATA[ AND T.PUBLISH_TIME <= TO_DATE(#{publishTimeEnd},'yyyy-MM-dd HH24:mi:ss')+1 ]]>
+				</if>
+			          
+			            ORDER BY T.CREATION_TIME DESC
+			            ) TT
+			 GROUP BY TT.NOTICE_ID
+    </select>
+    
+    <!-- 判断公告标题是否存在 -->
+    <select id="isTitleExists" parameterType="com.hanthink.sw.model.SwAnnounceModel" resultType="com.hanthink.sw.model.SwAnnounceModel">
+    		   SELECT  A.NOTICE_ID       noticeId,
+                       A.NOTICE_TITLE    noticeTitle,
+                       A.NOTICE_CONTENT  content,
+                       A.NOTICE_STATUS   noticeStatus,
+                       A.CREATION_TIME 	 creationTime,
+                       A.IS_FEEDBACK     isFeedback,
+                       A.FILE_NAME       fileName,
+                       A.PUBLISH_USER    publishUser,
+                       A.FEEDBACK_DAY    feedbackDay,
+                       A.PUBLISH_TIME 	 publishTime
+                  FROM MM_SW_NOTICE A
+                  WHERE A.NOTICE_TITLE = #{noticeTitle}
+    </select>
+    
+    <!-- 供应商反馈查看 -->
+    <select id="get" parameterType="java.lang.String" resultType="com.hanthink.sw.model.SwAnnounceModel">
+    			SELECT     A.NOTICE_ID		 noticeId, 
+    					   A.SUPPLIER_NO     supplierNo,
+					       B.SUPPLIER_NAME   supplierName,
+					       A.VIEW_STATUS     viewStatus,
+					       A.DOWNLOAD_STATUS downloadStatus,
+					       A.RETURN_MSG      returnMsg
+					  FROM MM_SW_NOTICE_VIEW A
+					  LEFT JOIN MM_PUB_SUPPLIER B
+					    ON A.SUPPLIER_NO = B.SUPPLIER_NO
+					WHERE A.NOTICE_ID = #{noticeId}
+    </select>
+    
+    <!-- 删除公告，从两张表中删除相关数据 -->
+    <delete id="remove" parameterType="java.lang.String">
+       		 DELETE FROM MM_SW_NOTICE WHERE NOTICE_ID = #{noticeId}
+    </delete>
+    <delete id="removeView" parameterType="java.lang.String">
+    		 DELETE FROM MM_SW_NOTICE_VIEW A WHERE A.NOTICE_ID= #{noticeId}
+    </delete>
+    
+    <!-- 获取自增id -->
+    <select id="getNoticId" parameterType="java.util.Map" resultType="com.hanthink.sw.model.SwAnnounceModel">
+    	SELECT SEQ_MM_SW_NOTICE.NEXTVAL noticeId FROM DUAL
+    </select>
+    <!-- 新增时把数据写入公告表 -->
+    <insert id="insertAnnounce" parameterType="com.hanthink.sw.model.SwAnnounceModel" useGeneratedKeys="true" 
+    				keyProperty="noticeId" keyColumn="NOTICE_ID">
+			 INSERT   INTO MM_SW_NOTICE
+					  (NOTICE_ID,
+					   FACTORY_CODE,
+					   NOTICE_TITLE,
+					   NOTICE_CONTENT,
+					   FILE_ID,
+					   FILE_NAME,
+					   FEEDBACK_FILE_ID,
+					   FEEDBACK_FILE_NAME,
+					   IS_FEEDBACK,
+					   IS_FILE_FEEDBACK,
+					   NOTICE_STATUS,
+					   FEEDBACK_DAY,
+					   CREATION_USER,
+                       CREATION_TIME)
+			     VALUES(#{noticeId,jdbcType = VARCHAR},
+			           #{factoryCode,jdbcType=VARCHAR},
+			           #{noticeTitle,jdbcType=VARCHAR},
+			           #{noticeContent,jdbcType=VARCHAR},
+			           #{fileId,jdbcType=VARCHAR},
+			           #{fileName,jdbcType=VARCHAR},
+			           #{feedbackFileId,jdbcType=VARCHAR},
+			           #{feedbackFileName,jdbcType=VARCHAR},
+			           #{isFeedback,jdbcType=VARCHAR},
+			           #{isFileFeedback,jdbcType=VARCHAR},
+			           #{noticeStatus,jdbcType=VARCHAR},
+			           #{feedbackDay,jdbcType=VARCHAR},
+			           #{creationUser,jdbcType=VARCHAR},
+			           SYSDATE)
+    </insert>
+    
+    <!-- 新增时把数据写入供应商与公告关系表 -->
+    <insert id="insertAnnGroup" parameterType="com.hanthink.sw.model.SwAnnounceModel">
+			INSERT INTO   MM_SW_NOTICE_SUPGROUP
+					       (NOTICE_ID, 
+					        GROUP_ID, 
+					        CREATION_USER, 
+					        CREATION_TIME)
+					 VALUES( #{noticeId,jdbcType=VARCHAR},
+							 #{groupId,jdbcType=VARCHAR},
+							 #{creationUser,jdbcType=VARCHAR},
+							 SYSDATE)
+    </insert>
+    
+    <!-- 点击修改公告，修改公告信息表中 数据 ,同时修改公告供应分组表信息（因要修改同一个公告id对应多个分组id所以用先删除在插入的方式达到修改表数据效果）-->
+    <update id="updateNotice" parameterType="com.hanthink.sw.model.SwAnnounceModel">
+         	 UPDATE MM_SW_NOTICE SET 
+				       NOTICE_TITLE = #{noticeTitle,jdbcType=VARCHAR},
+				       NOTICE_CONTENT =  #{noticeContent,jdbcType=VARCHAR},
+				       FILE_ID = #{fileId,jdbcType=VARCHAR},
+				       FILE_NAME = #{fileName,jdbcType=VARCHAR},
+				       FEEDBACK_FILE_ID = #{feedbackFileId,jdbcType=VARCHAR},
+				       FEEDBACK_FILE_NAME = #{feedbackFileName,jdbcType=VARCHAR},
+				       IS_FEEDBACK = #{isFeedback,jdbcType=VARCHAR},
+				       IS_FILE_FEEDBACK = #{isFileFeedback,jdbcType=VARCHAR},
+				       NOTICE_STATUS = #{noticeStatus,jdbcType=VARCHAR},
+				       LAST_MODIFIED_USER = #{creationUser,jdbcType=VARCHAR},
+				       FEEDBACK_DAY = #{feedbackDay ,jdbcType=VARCHAR},
+				       LAST_MODIFIED_TIME = SYSDATE
+				  WHERE NOTICE_ID= #{noticeId,jdbcType=VARCHAR}
+    </update>
+    <delete id="deleteNoticeSupGroup" parameterType="java.lang.String">
+    		DELETE FROM MM_SW_NOTICE_SUPGROUP Z WHERE Z.NOTICE_ID=#{noticeId}
+    </delete>
+    <insert id="insertNoticeSupGroup" parameterType="com.hanthink.sw.model.SwAnnounceModel">
+            INSERT INTO MM_SW_NOTICE_SUPGROUP(NOTICE_ID,GROUP_ID) 
+                                       VALUES( #{noticeId,jdbcType=VARCHAR},
+                                               #{groupId,jdbcType=VARCHAR})
+    </insert>
+    
+    <!-- 点击发布，修改公告状态为发布 -->
+    <update id="publishNotice" parameterType="com.hanthink.sw.model.SwAnnounceModel">
+    		UPDATE MM_SW_NOTICE A SET 
+    		 A.NOTICE_STATUS = #{noticeStatus,jdbcType=VARCHAR} ,
+    		 A.PUBLISH_USER = #{publishUser,jdbcType = VARCHAR},
+    		  A.PUBLISH_TIME = SYSDATE
+    		WHERE A.NOTICE_ID= #{noticeId,jdbcType=VARCHAR}
+    </update>
+    
+    <!-- 点击发布，将数据写入公告供应商查看记录表中 -->
+    <insert id="insertNoticeView" parameterType="com.hanthink.sw.model.SwAnnounceModel">
+			 INSERT INTO MM_SW_NOTICE_VIEW(NOTICE_ID,
+										   SUPPLIER_NO,
+										    VIEW_STATUS
+										   )
+							(SELECT  DISTINCT
+									A.NOTICE_ID     noticeId,
+							       	C.SUPPLIER_NO   supplierNo,
+							      	#{viewStatus,jdbcType = VARCHAR}
+							  FROM MM_SW_NOTICE A
+							  INNER JOIN MM_SW_NOTICE_SUPGROUP B
+							    ON A.NOTICE_ID = B.NOTICE_ID
+							  INNER JOIN MM_SW_SUP_GROUP_MEMBERS C
+							    ON B.GROUP_ID = C.GROUP_ID
+			WHERE A.NOTICE_ID = #{noticeId})
+    </insert>
+    
+    <!--公告发布管理界面， 供应商反馈查看 -->
+    <select id="queryJisoFeedbackPage" parameterType="com.hanthink.sw.model.SwAnnounceModel" resultType="com.hanthink.sw.model.SwAnnounceModel">
+		    SELECT B.SUPPLIER_NO     supplierNo,
+			       B.SUPPLIER_NAME   supplierName,
+			       D.CODE_VALUE_NAME viewStatus,
+			       E.CODE_VALUE_NAME downloadStatus,
+			       <!-- 新增供应商附件上传下载 -->
+			       A.FILE_ID         fileId,
+             	   A.FILE_NAME       fileName,
+			       A.RETURN_MSG      returnMsg
+			  FROM MM_SW_NOTICE_VIEW A
+			  LEFT JOIN MM_PUB_SUPPLIER B
+			    ON A.SUPPLIER_NO = B.SUPPLIER_NO
+			  LEFT JOIN MM_PUB_DATA_DICT D
+			    ON A.VIEW_STATUS = D.CODE_VALUE
+			   AND D.CODE_TYPE = 'SW_VIEW_STATUS'
+			  LEFT JOIN MM_PUB_DATA_DICT E
+			    ON A.DOWNLOAD_STATUS = E.CODE_VALUE
+			   AND E.CODE_TYPE = 'PUP_DOWNLOAD_STATUS'
+			    WHERE A.NOTICE_ID=#{noticeId}  
+			 <if test="viewStatus !=null and viewStatus !='' ">
+				 AND A.VIEW_STATUS = #{viewStatus}
+			</if>
+			<if test="null != downloadStatus and ''!=downloadStatus">
+				AND A.DOWNLOAD_STATUS = #{downloadStatus}
+			</if>
+			<if test="null != supplierNo and ''!= supplierNo">
+				AND B.SUPPLIER_NO = #{supplierNo}
+			</if>
+			
+    </select>
+    
+    <!-- 公告查看界面查询公告信息 -->
+    <select id="viewAnnounceJisoPage" parameterType="com.hanthink.sw.model.SwAnnounceModel" 
+    		resultType="com.hanthink.sw.model.SwAnnounceModel">
+		SELECT  DISTINCT B.NOTICE_ID noticeId,
+                B.SUPPLIER_NO 	 supplierNo,
+                SUP.SUPPLIER_NAME  supplierName,
+		        B.VIEW_STATUS    viewStatus,
+           		DD.CODE_VALUE_NAME viewStatusDesc,
+		       A.NOTICE_TITLE    noticeTitle,
+		       A.NOTICE_CONTENT  noticeContent,
+		       A.FILE_NAME       fileName,
+		       A.FILE_ID         fileId,
+		       A.IS_FILE_FEEDBACK isFileFeedback,
+		       A.FEEDBACK_FILE_ID feedbackFileId,
+           	   A.FEEDBACK_FILE_NAME feedbackFileName,
+		       B.FILE_ID         supFileId,
+           	   B.FILE_NAME       supFileName,
+           	   B.RETURN_MSG      returnMsg,
+		       SU.FULLNAME_   	 publishUser,
+		       A.PUBLISH_TIME    publishTime,
+		       A.NOTICE_END_TIME noticeEndTime,
+		       PD.CODE_VALUE_NAME isFeedback,
+		       B.IS_STICK         isStick,
+           	   B.STICK_NO         stickNo
+		  FROM MM_SW_NOTICE A
+		  INNER JOIN MM_SW_NOTICE_SUPGROUP C
+		    ON A.NOTICE_ID = C.NOTICE_ID
+		  INNER JOIN MM_SW_NOTICE_VIEW B
+		    ON A.NOTICE_ID = B.NOTICE_ID
+		  LEFT JOIN MM_PUB_DATA_DICT PD
+		    ON A.IS_FEEDBACK = PD.CODE_VALUE
+		   AND PD.CODE_TYPE = 'PUB_TRUE_FALSE'
+		  LEFT JOIN SYS_USER SU
+    		ON A.PUBLISH_USER = SU.ACCOUNT_
+    	  LEFT JOIN MM_PUB_DATA_DICT DD ON DD.CODE_VALUE = B.VIEW_STATUS 
+            AND DD.CODE_TYPE = 'SW_VIEW_STATUS'
+          LEFT JOIN MM_PUB_SUPPLIER SUP ON SUP.SUPPLIER_NO = B.SUPPLIER_NO
+		   WHERE A.NOTICE_STATUS = #{noticeStatus}
+		  <if test="supplierNo != null and supplierNo !='' ">
+		  AND B.SUPPLIER_NO = #{supplierNo}
+		  </if>
+		  <if test="null != viewStatus and ''!=viewStatus">
+		   AND B.VIEW_STATUS = #{viewStatus, jdbcType = VARCHAR}
+		  </if>
+		  <!-- 新增查询条件发布时间 -->
+		 <if test="null != publishTime and ''!= publishTime">
+			<![CDATA[ AND A.PUBLISH_TIME >= TO_DATE(#{publishTime},'yyyy-MM-dd HH24:mi:ss') ]]>
+		 </if>
+		 <if test="null != publishTimeEnd and publishTimeEnd !='' ">
+			<![CDATA[ AND A.PUBLISH_TIME <= TO_DATE(#{publishTimeEnd},'yyyy-MM-dd HH24:mi:ss')+1 ]]>
+		 </if>
+		   <!-- ORDER BY B.NOTICE_ID DESC -->
+		   ORDER BY A.PUBLISH_TIME DESC
+    </select>
+    
+    <!-- 根据当前登录用户账号，查询出未查看信息条数 -->
+    <select id="getListCount" parameterType="com.hanthink.sw.model.SwAnnounceModel" resultType="com.hanthink.sw.model.SwAnnounceModel">
+		    SELECT DISTINCT A.NOTICE_ID     noticeId,
+			       A.SUPPLIER_NO   supplierNo,
+			       A.NOTICE_STATUS noticeStatus
+			  FROM MM_SW_NOTICE_VIEW A
+			 INNER JOIN SYS_USER B
+			    ON A.SUPPLIER_NO = B.SUPPLIER_NO
+			 WHERE B.ACCOUNT_ = #{account}
+			    AND A.VIEW_STATUS = #{viewStatus}
+    </select>
+    
+    <!-- 公告查看界面反馈功能 -->
+    <update id="updateNoticeView" parameterType="com.hanthink.sw.model.SwAnnounceModel">
+            UPDATE MM_SW_NOTICE_VIEW A
+			    SET A.VIEW_STATUS = #{viewStatus,jdbcType=VARCHAR}, 
+			     A.VIEW_TIME = SYSDATE,
+				 A.RETURN_MSG = #{returnMsg,jdbcType=VARCHAR},
+				 A.FILE_ID = #{fileId, jdbcType=VARCHAR},
+				 A.FILE_NAME = #{fileName, jdbcType=VARCHAR},
+				 A.NOTICE_ID = #{noticeId,jdbcType=VARCHAR},
+				 A.FEEDBACK_STATUS = 1,
+         		 A.FEEDBACK_TIME = SYSDATE
+			  WHERE A.NOTICE_ID = #{noticeId}
+			    AND A.SUPPLIER_NO = #{supplierNo} 
+    </update>
+    
+        <!-- 公告查看界面查看后修改状态功能 -->
+<!--     <update id="updateNoticeView" parameterType="com.hanthink.sw.model.SwAnnounceModel">
+            UPDATE MM_SW_NOTICE_VIEW A
+			    SET A.VIEW_STATUS = #{viewStatus,jdbcType=VARCHAR}
+			        
+			  WHERE A.NOTICE_ID = #{noticeId}
+			    AND A.SUPPLIER_NO = #{supplierNo} 
+    </update> -->
+    
+    <!-- 公告查看界面反馈后判断查看状态是否全部为已查看，如果是则修改主表中反馈状态为已反馈 -->
+    <update id="updateFeedbackStatus"  parameterType="com.hanthink.sw.model.SwAnnounceModel">
+	    UPDATE MM_SW_NOTICE Z
+		   SET Z.FEEDBACK_STATUS =
+		       (SELECT CASE
+		                 WHEN 
+		                      (SELECT COUNT(*)
+		                         FROM MM_SW_NOTICE_VIEW B
+		                        WHERE B.NOTICE_ID = #{noticeId}
+		                          AND B.VIEW_STATUS = 0) = 0 THEN
+		                  '1'
+		                 ELSE
+		                  '0'
+		               END feedback
+		          FROM DUAL)
+	 	WHERE Z.NOTICE_ID = #{noticeId} AND Z.FACTORY_CODE = #{factoryCode}
+    </update>
+    
+    <!-- 公告查看界面，查看公告修改公告查看状态 -->
+    <update id="updateDetail" parameterType="com.hanthink.sw.model.SwAnnounceModel">
+		    UPDATE MM_SW_NOTICE_VIEW
+		   SET VIEW_STATUS = #{viewStatus},
+		   	   VIEW_TIME = SYSDATE
+		 WHERE NOTICE_ID = #{noticeId}
+		   AND SUPPLIER_NO = #{supplierNo}
+    </update>
+    
+    <!-- 文件上传，文件信息写入文件信息表中 -->
+    <select id="getFileId" parameterType="java.util.Map" resultType="com.hanthink.sw.model.FileInfoModel">
+    SELECT SEQ_MM_PUB_FILE_INFO.NEXTVAL fileId FROM DUAL
+    </select>
+    <insert id="insertFile" parameterType="com.hanthink.sw.model.FileInfoModel">
+		    INSERT INTO MM_PUB_FILE_INFO
+		  (FILE_ID,
+		   FILE_NAME,
+		   FILE_TYPE,
+		   FILE_FORMAT,
+		   SERVER_ID,
+		   REAL_PATH,
+		   FILE_SIZE,
+		   CREATION_TIME,
+		   CREATION_USER)
+		VALUES
+		  (#{fileId,jdbcType = VARCHAR},
+		   #{fileName,jdbcType = VARCHAR},
+		   #{fileType,jdbcType = VARCHAR},
+		   #{fileFormat,jdbcType = VARCHAR},
+		   #{serverId,jdbcType = VARCHAR},
+		   #{realPath,jdbcType = VARCHAR},
+		   SYSDATE,
+		   #{creationUser,jdbcType = VARCHAR});
+    </insert>
+    
+    <!-- 更新下载状态 -->
+    <update id="updateDownloadStatus" parameterType="com.hanthink.sw.model.SwAnnounceModel">
+		    UPDATE MM_SW_NOTICE_VIEW A
+		   SET DOWNLOAD_STATUS = #{downloadStatus,jdbcType=VARCHAR}
+		    ,A.DOWNLOAD_TIME = SYSDATE
+		 WHERE A.NOTICE_ID = #{noticeId}
+		   AND A.SUPPLIER_NO = #{supplierNo}
+    </update>
+	
+	<!-- 公告置顶 -->
+	<update id="upIndex" parameterType="com.hanthink.sw.model.SwAnnounceModel">
+		UPDATE MM_SW_NOTICE_VIEW NV
+			   SET NV.IS_STICK 		= #{isStick,jdbcType=VARCHAR}, 
+			   NV.STICK_NO 			= #{stickNo,jdbcType=VARCHAR}
+			 WHERE NV.NOTICE_ID 	= #{noticeId,jdbcType=VARCHAR}
+			   AND NV.SUPPLIER_NO 	= #{supplierNo,jdbcType=VARCHAR}
+	</update>
+	
+	<!-- 根据供应商代码查询该供应商是否有新的公告 -->
+	<select id="queryExistsNewAnnounce" parameterType="com.hanthink.sw.model.SwAnnounceModel"
+		resultType="com.hanthink.sw.model.SwAnnounceModel">
+		SELECT T.NOTICE_ID noticeId,
+		       V.SUPPLIER_NO supplierNo
+		FROM MM_SW_NOTICE T
+		INNER JOIN MM_SW_NOTICE_VIEW V ON V.NOTICE_ID = T.NOTICE_ID
+		WHERE T.NOTICE_STATUS = #{noticeStatus}
+		<if test="supplierNo != null and supplierNo !='' ">
+		  AND V.SUPPLIER_NO = #{supplierNo}
+		</if>
+		<!-- 统计未查看公告数量 -->
+		  AND (V.VIEW_STATUS = 0 OR V.VIEW_STATUS = 2)
+		<!-- AND T.PUBLISH_TIME > SYSDATE - #{publishTime, jdbcType=VARCHAR}  -->
+	</select>
+	
+</mapper>

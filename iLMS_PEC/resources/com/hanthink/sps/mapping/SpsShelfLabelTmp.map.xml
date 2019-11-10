@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.sps.model.SpsShelfLabelTmpModel">
+	
+	<!-- 批量导入数据到MM_SPS_SHELF_LABLE_IMP表 -->
+	<insert id="insertSpsShelfLabelTmp" parameterType="java.util.List">
+		INSERT INTO MM_SPS_SHELF_LABLE_IMP
+			  (ID, PART_NO, PART_SHORT_NO,
+			   PART_NAME, MODEL_CODE, SHELF_NO, 
+			   SHELF_NO_VIEW,
+			   MARK, IMP_UUID, CHECK_RESULT,
+			   IMPORT_STATUS)
+		<foreach collection="list" item="item" index="index" separator=" UNION ALL ">
+			SELECT #{item.id,jdbcType=VARCHAR}, #{item.partNo,jdbcType=VARCHAR}, #{item.partShortNo,jdbcType=VARCHAR},
+				#{item.partName,jdbcType=VARCHAR}, #{item.modelCode,jdbcType=VARCHAR}, #{item.shelfNo,jdbcType=VARCHAR},
+				#{item.shelfNoView,jdbcType=VARCHAR},
+				#{item.mark,jdbcType=VARCHAR}, #{item.impUuid,jdbcType=VARCHAR}, #{item.checkResult,jdbcType=VARCHAR},
+				#{item.importStatus,jdbcType=VARCHAR}
+			FROM DUAL
+		</foreach>
+	</insert>
+
+	<!-- 检查导入数据 -->
+	<parameterMap type="map" id="impCkParamMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="userName" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap>
+	<select id="checkImportData" parameterMap="impCkParamMap" statementType="CALLABLE">
+		{CALL PKG_PUB_CHECK.USP_MM_SPS_SHELF_LABEL_CHECK(?, ?, ?,  ?,?)}
+	</select>
+	
+	<!-- 查询导入数据 -->
+	<select id="querySpsShelfLabelPage" parameterType="com.hanthink.sps.model.SpsShelfLabelTmpModel" 
+			resultType="com.hanthink.sps.model.SpsShelfLabelTmpModel">
+		SELECT T.ID id,
+		       T.PART_NO partNo,
+		       T.PART_SHORT_NO partShortNo,
+		       T.PART_NAME partName,
+		       T.MODEL_CODE modelCode,
+		       T.SHELF_NO shelfNo,
+		       T.SHELF_NO_VIEW shelfNoView,
+		       T.MARK mark,
+		       T.IMP_UUID impUuid,
+		       DD.CODE_VALUE_NAME checkResult,
+		       T.CHECK_INFO checkInfo,
+		       D.CODE_VALUE_NAME importStatus
+		  FROM MM_SPS_SHELF_LABLE_IMP T
+		  LEFT JOIN MM_PUB_DATA_DICT D ON D.CODE_VALUE = T.IMPORT_STATUS AND D.CODE_TYPE = 'PUB_IMP_STATUS'
+             AND D.FACTORY_CODE = #{factoryCode}
+          LEFT JOIN MM_PUB_DATA_DICT DD ON DD.CODE_VALUE = T.CHECK_RESULT AND DD.CODE_TYPE = 'PUB_IMP_CK_RESULT'
+             AND DD.FACTORY_CODE = #{factoryCode}
+			WHERE T.IMP_UUID = #{impUuid}
+	</select>
+	
+	<!-- 获取货架标签打印信息 -->
+	<select id="querySpsShelfLabelList" resultType="com.hanthink.sps.model.SpsShelfLabelTmpModel">
+		SELECT 
+	            T.PART_NO partNo,
+	            T.PART_SHORT_NO partShortNo,
+	            nvl(T.PART_NAME, U.PART_NAME_CN) partName,
+	            T.MODEL_CODE modelCode,
+	            T.MARK mark,
+	            T.SHELF_NO_VIEW shelfNoView,
+	            T.SHELF_NO shelfNo
+	        FROM MM_SPS_SHELF_LABLE_IMP T
+	        <!-- i-LMS2019053001 mod by dtp -->
+	        LEFT JOIN MM_PUB_PART_UDA U ON U.PART_NO = T.PART_NO
+	      WHERE T.ID IN
+		<foreach collection="array" item="id" index="index" open="(" close=")" separator=",">
+			#{id}
+		</foreach>
+	</select>
+	
+	<!-- 根据uuid删除临时表数据 -->
+	<delete id="deleteImportTempDataByUUID" parameterType="java.lang.String">
+		DELETE FROM MM_SPS_SHELF_LABLE_IMP WHERE IMP_UUID = #{value,jdbcType=VARCHAR}
+	</delete>
+
+</mapper>

@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.mon.model.MonDeliveryOrderModel">
+
+	<!-- 取货单查询 -->
+	<select id="queryDeliveryOrderPage"
+		parameterType="com.hanthink.mon.model.MonDeliveryOrderModel"
+		resultType="com.hanthink.mon.model.MonDeliveryOrderModel">
+		select distinct
+		<!-- 物流单号 -->
+		A.ORDER_NO orderNo,
+		<!-- 订单号 -->
+		A.PURCHASE_NO purchaseNo,
+		<!-- 供应商代码 -->
+		A.SUPPLIER_NO supplierNo,
+		<!-- 仓库代码 -->
+		A.DEPOT_NO depotNo,
+		<!-- 计划备货时间  -->
+		P.PLAN_ASSEMBLE_TIME planAssembleTime,
+		<!-- 实际备货时间  -->
+		A.PREPARE_TIME prepareTime,
+		<!-- 备货完成度 -->
+		A.PREPARE_STATUS perpareStatus,
+		<!-- 备货准时性 缺少 -->
+		
+        <!-- 计划出货时间  缺少-->
+		
+		<!-- 实际出货时间  缺少-->
+		
+		<!-- 出货完成度 -->
+		A.DELIVERY_STATUS deliveryStatus,
+		<!-- 出货准时性 缺少 -->
+		
+		<!-- 计划收货时间 -->
+		P.PLAN_ARR_TIME planArrTime,
+		<!-- 实际收货时间 -->
+		A.RECEIVE_DATE receiveDate,
+		<!-- 收货完成度 -->
+		AD.RECEIVE_STATUS receiveStatus
+		<!-- 收货准时性 缺少 -->
+		
+		from MM_SW_ORDER A
+		left join
+		MM_SW_ORDER_DETAIL AD
+		on A. PURCHASE_NO = AD. PURCHASE_NO
+		left join
+		MM_SW_PICKUP_PLAN P
+		on A. PURCHASE_NO = P. PURCHASE_NO
+		left join
+		<!-- i-LMS2019053001 mod by dtp -->
+		MM_PUB_PART PT
+		on AD.PART_NO = PT.PART_NO and pt.factory_code = #{factoryCode}
+		where 1 = 1
+		<!-- 物流单号 模糊 -->
+		<if test="null != orderNo and '' != orderNo">
+			AND A.ORDER_NO LIKE '%' || #{orderNo} || '%'
+		</if>
+		<!-- 订单号 模糊 -->
+		<if test="null != purchaseNo and '' != purchaseNo">
+			AND A.PURCHASE_NO LIKE '%' || #{purchaseNo} || '%'
+		</if>
+		<!-- 供应商代码 模糊 -->
+		<if test="null != supplierNo and '' != supplierNo">
+			AND A.SUPPLIER_NO LIKE '%' || #{supplierNo} || '%'
+		</if>
+		<!-- 计划取货日期从 -->
+          <if test="null != planPickUpTime and '' != planPickUpTime">
+            AND P.PLAN_PICKUP_TIME &gt; to_date(#{planPickUpTime}, 'yyyy-mm-dd hh24:mi:ss')
+          </if>
+          <!-- 计划取货日期至 -->
+          <if test="null != planPickUpTimeTo and '' != planPickUpTimeTo">
+            AND P.PLAN_PICKUP_TIME &lt; to_date(#{planPickUpTimeTo}, 'yyyy-mm-dd hh24:mi:ss')
+          </if>
+		<!-- 计划收货日期从 -->
+		<if test="null != planArrTime and '' != planArrTime">
+            AND P.PLAN_ARR_TIME &gt; to_date(#{planArrTime}, 'yyyy-mm-dd hh24:mi:ss')
+          </if>
+          <!-- 计划收货日期至 -->
+          <if test="null != planArrTimeTo and '' != planArrTimeTo">
+            AND P.PLAN_ARR_TIME &lt; to_date(#{planArrTimeTo}, 'yyyy-mm-dd hh24:mi:ss')
+          </if>
+		<!-- 仓库代码 模糊 -->
+		<if test="null != depotNo and '' != depotNo">
+			AND A.DEPOT_NO LIKE '%' || #{depotNo} || '%'
+		</if>
+		<!-- 简号 -->
+		<if test="null != partShortNo and '' != partShortNo">
+			AND PT.PART_SHORT_NO = #{partShortNo}
+		</if>
+		<!-- 零件号 -->
+		<if test="null != partNo and '' != partNo">
+			AND PT.PART_NO = #{partNo}
+		</if>
+	</select>
+    
+    <!-- 取货明细查询 -->
+	<select id="queryDeliveryOrderDetailPage"
+		parameterType="com.hanthink.mon.model.MonDeliveryOrderModel"
+		resultType="com.hanthink.mon.model.MonDeliveryOrderModel">
+		select distinct
+		<!-- 采购订单号 -->
+		AD.PURCHASE_NO purchaseNo,
+		<!-- 采购订单行号 -->
+		AD.PURCHASE_ROWNO purchaseRowNo,
+		<!-- 零件号 -->
+		AD.PART_NO partNo,
+		<!-- 简号 -->
+		PT.PART_SHORT_NO partShortNo,
+		<!-- 零件名称 -->
+		PT.PART_NAME_CN partNameCn,
+		<!-- 订单数量 -->
+		AD.ORDER_QTY orderQty,
+		<!-- 计划备货时间  -->
+        P.PLAN_ASSEMBLE_TIME planAssembleTime,
+        <!-- 实际备货时间  -->
+        A.PREPARE_TIME prepareTime,
+        <!-- 备货完成度 -->
+        A.PREPARE_STATUS perpareStatus,
+        <!-- 备货准时性 缺少 -->
+        
+        <!-- 计划出货时间  缺少-->
+        
+        <!-- 实际出货时间  缺少-->
+        
+        <!-- 出货完成度 -->
+        A.DELIVERY_STATUS deliveryStatus,
+        <!-- 出货准时性 缺少 -->
+        
+        <!-- 计划收货时间 -->
+        P.PLAN_ARR_TIME planArrTime,
+        <!-- 实际收货时间 -->
+        A.RECEIVE_DATE receiveDate,
+        <!-- 收货完成度 -->
+        AD.RECEIVE_STATUS receiveStatus
+        <!-- 收货准时性 缺少 -->
+		from MM_SW_ORDER_DETAIL AD
+		left join MM_SW_ORDER A
+		on A.PURCHASE_NO = AD.PURCHASE_NO
+		<!-- i-LMS2019053001 mod by dtp -->
+		left join MM_PUB_PART PT
+		on AD.PART_NO = PT.PART_NO and pt.factory_code = #{factoryCode}
+		left join MM_SW_PICKUP_PLAN P
+        on A. PURCHASE_NO = P.PURCHASE_NO
+		where 1 = 1
+		and AD.PURCHASE_NO = #{purchaseNo}
+	</select>
+</mapper>

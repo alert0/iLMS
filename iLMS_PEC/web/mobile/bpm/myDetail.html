@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html ng-app="myApp">
+<head>
+<title>X5手机平台</title>
+<meta charset="utf-8">
+<script src="../assets/js/importJs.js"></script>
+
+<script type="text/javascript">
+importJs(validateJs);
+var myApp = angular.module("myApp", ['base','mobileDirective','formDirective']);
+myApp.controller("myTaskCtrl",['$scope','baseService','$sce', function(scope,baseService,$sce) {
+	scope.changePhoneAndEamil = function(){
+		if(scope.form.$invalid)return;
+		baseService.postForm(__ctx+"/org/user/updateUserPhoneAndEmail",{mobile:scope.userMsg.user.mobile,email:scope.userMsg.user.email}).then(
+		function(data){
+			if(data.result == 1){
+				$.alert("修改成功");
+			}else{
+				$.alert(data.message);
+			}
+		},
+		function(code){}
+		)
+	}
+	
+}]);
+
+$(function(){
+	$("a.item-inner").click(function(){
+		$.closePanel()
+	});
+})
+</script>
+</head>
+<body ng-controller="myTaskCtrl">
+<div class="page" id="taskToDo">
+ 	<header class="hkm-red-header bar bar-nav">
+		  <a class="icon icon-left pull-left" href="#" onclick="javascript:history.go(-1);"></a>
+		  <span class='title'>个人资料</span>
+		</header>
+			<div class="content infinite-scroll">
+			<div class="grzl-page">
+				 <div class="touxiang">
+				 	<img ng-src="{{userMsg.user.photo}}"/><br /><span>{{userMsg.user.fullname}}<br />{{userMsg.org.name}}-{{userMsg.orgUserRel.relName}}</span>
+				 </div>   
+				   <div class="list-block">
+				    <ul>
+				      <li class="item-content">
+				        <div class="item-inner">
+				          <div class="item-title">所属单位</div>
+				          <div class="item-after">{{userMsg.org.name}}</div>
+				        </div>
+				      </li>
+				      <li class="item-content">
+				        <div class="item-inner">
+				          <div class="item-title">任职岗位</div>
+				          <div class="item-after">{{userMsg.orgUserRel.relName}}</div>
+				        </div>
+				      </li>
+				      <form name="form" method="post"  ng-model="userMsg">
+				      <li class="item-content">
+				        <div class="item-inner">
+				          <div class="item-title">联系电话</div>
+				          <div class="item-after"><div class="item-input">
+					            <input type="phone" ng-model="userMsg.user.mobile" placeholder="手机号" ht-validate="{required:true,phonenumber:true}">
+					        </div></div>
+				        </div>
+				      </li>
+				      <li class="item-content">
+				        <div class="item-inner">
+				          <div class="item-title">常用邮箱</div>
+				          <div class="item-after">
+				          <div class="item-input">
+					            <input type="email" ng-model="userMsg.user.email"  placeholder="邮箱" ht-validate="{required:true,email:true}">
+					        </div></div>
+				        </div>
+				      </li>
+				      </form>
+				    </ul>
+				  </div>
+					<div class="call">
+						<a href="#" class="button button-big button-fill button-danger" ng-click="changePhoneAndEamil()">保存</a>
+					</div>
+					
+				
+			</div>
+		      
+		</div>
+	</div>
+	<div index-page></div>
+	<div class="panel-overlay"></div>
+</body>
+<script type="text/javascript">
+		$(document).ready(function () {
+		 　　$('body').height($('body')[0].clientHeight);
+		 });
+	</script>
+</html>

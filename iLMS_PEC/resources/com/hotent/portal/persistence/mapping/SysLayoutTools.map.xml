@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.portal.persistence.model.SysLayoutTools">
+	<resultMap id="SysLayoutTools" type="com.hotent.portal.persistence.model.SysLayoutTools">
+		<id property="id" column="ID_" jdbcType="VARCHAR"/>
+		<result property="layoutId" column="LAYOUT_ID_" jdbcType="VARCHAR"/>
+		<result property="toolsIds" column="TOOLS_IDS" jdbcType="CLOB"/>
+		<result property="toolsType" column="TOOLS_TYPE" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.portal.persistence.model.SysLayoutTools">
+		INSERT INTO sys_layout_tools
+		(ID_,LAYOUT_ID_,TOOLS_IDS,TOOLS_TYPE)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{layoutId,jdbcType=VARCHAR}, #{toolsIds,jdbcType=CLOB}, #{toolsType,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="SysLayoutTools">
+		SELECT * FROM sys_layout_tools 
+		WHERE 
+		ID_=#{id}
+	</select>
+	
+	<select id="getByLayoutIDAndType"   parameterType="java.util.Map" resultMap="SysLayoutTools">
+		SELECT * FROM sys_layout_tools 
+		WHERE 
+		LAYOUT_ID_=#{layoutId} AND TOOLS_TYPE = #{toolsType }
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="SysLayoutTools">
+		SELECT * FROM sys_layout_tools
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY ID_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.portal.persistence.model.SysLayoutTools">
+		UPDATE sys_layout_tools SET
+		LAYOUT_ID_=#{layoutId,jdbcType=VARCHAR},
+		TOOLS_IDS=#{toolsIds,jdbcType=CLOB},
+		TOOLS_TYPE=#{toolsType,jdbcType=VARCHAR}
+		WHERE
+		ID_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_layout_tools 
+		WHERE
+		ID_=#{id}
+	</delete>
+	
+	
+</mapper>

@@ -1,0 +1,34 @@
+
+DS101.SQL：发送模拟服务；发送返回直接数据
+DS102.SQL：发送模拟服务；发送返回xml
+DS103.SQL：发送模拟服务；发送返回json
+DS104.SQL：发送模拟RFC服务；
+DS105.SQL：发送模拟服务；发送无反写状态数据；发送返回直接数据
+
+DR201.SQL：webservice接收接口；接收直接数据
+DR202.SQL：webservice接口接口；接收xml
+DR203.SQL：webservice接收接口；接收json
+DR204.SQL：http接收接口；接收xml
+DR205.SQL：http接收接口；接收json
+
+DS201.SQL：发送直接数据，返回xml服务；调用DR201 webservice服务
+DS202.SQL：发送返回xml服务；调用DR202 webservice服务
+DS203.SQL：发送返回json服务；调用DR203 webservice服务
+DS204.SQL：发送返回xml服务，调用DR204 http服务
+DS205.SQL：发送返回json服务，调用DR205 http服务
+DS206.SQL：发送对方数据库服务
+
+DQ401.SQL：webservice接收接口；查询返回直接数据
+DQ402.SQL：webservice接收接口；查询返回xml
+DQ403.SQL：webservice接收接口；查询返回json
+DQ404.SQL：http接收接口；查询返回xml
+DQ405.SQL：http接收接口；查询返回json
+
+DS401.SQL：发送直接数据，返回xml服务；调用DQ401 webservice服务
+DS402.SQL：发送返回xml服务；调用DQ402 webservice服务
+DS403.SQL：发送返回json服务；调用DQ403 webservice服务
+DS404.SQL：发送返回xml服务；调用DQ404 http服务
+DS405.SQL：发送返回json服务；调用DQ405 http服务
+DS406.SQL：发送返回对方数据库服务
+
+

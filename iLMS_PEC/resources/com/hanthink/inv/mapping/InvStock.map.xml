@@ -1,0 +1,362 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.inv.model.InvStockModel">
+	<!-- 分页数据查询 -->
+	<select id="queryStockForPage" parameterType="com.hanthink.inv.model.InvStockModel" resultType="com.hanthink.inv.model.InvStockModel">
+		SELECT MIS.ID id,
+		       MIS.FACTORY_CODE factoryCode,
+		       MIS.WARE_CODE wareCode,
+		       MIW.WARE_NAME wareName,
+		       MIS.PART_NO partNo,
+		       MUA.PART_SHORT_NO partShortNo,
+		       MPP.PART_NAME_CN partName,
+		       MIP.LOCATION baseLocation,
+		       MIS.SAFE_STOCK minStock,
+		       MIS.MAX_STOCK maxStockNom,
+		       MPPD.STANDARD_PACKAGE standardPac,
+		       CEIL(MIS.SAFE_STOCK / NVL(MPPD.STANDARD_PACKAGE, 1)) safeStock,
+		       CEIL(MIS.MAX_STOCK / NVL(MPPD.STANDARD_PACKAGE, 1)) maxStock,
+		       MIS.STOCK realStock,
+		       CEIL(MIS.STOCK / NVL(MPPD.STANDARD_PACKAGE, 1)) stock,
+		       MIS.CREATION_USER creationUser,
+		       TO_CHAR(MIS.CREATION_TIME, 'yyyy-MM-dd hh24:mi:ss') creationTime,
+		       MIS.LAST_MODIFIED_USER lastModifiedUser,
+		       TO_CHAR(MIS.LAST_MODIFIED_TIME, 'yyyy-MM-dd hh24:mi:ss') lastModifiedTime,
+		       MIS.ADJ_REMARK adjRemark
+		  FROM MM_INV_STOCK MIS
+		  LEFT JOIN MM_PUB_PART MPP
+		    ON MIS.PART_NO = MPP.PART_NO
+		   AND MPP.FACTORY_CODE = #{factoryCode}
+		  LEFT JOIN MM_PUB_PART_UDA MUA
+		    ON MUA.PART_NO = MPP.PART_NO
+		   AND MUA.FACTORY_CODE = #{factoryCode}
+		  LEFT JOIN MM_INV_WAREHOUSE MIW
+		    ON MIS.WARE_CODE = MIW.WARE_CODE
+		   AND MIS.FACTORY_CODE = MIW.FACTORY_CODE
+		   AND MIW.FACTORY_CODE = #{factoryCode}
+		  LEFT JOIN MM_PUB_PART_SUPPLIER MPPS
+		    ON MPPS.PART_NO = MIS.PART_NO
+		   AND MPPS.FACTORY_CODE = MIS.FACTORY_CODE
+		   AND SYSDATE BETWEEN MPPS.EFF_START AND MPPS.EFF_END
+		  LEFT JOIN (SELECT A.FACTORY_CODE,
+		                    A.PART_NO,
+		                    A.WARE_CODE,
+		                    A.SUPPLIER_NO,
+		                    MIN(A.LOCATION) LOCATION
+		               FROM MM_INV_PART_LOCATION A
+		              WHERE SYSDATE BETWEEN A.EFF_START AND A.EFF_END
+		              GROUP BY A.FACTORY_CODE, A.PART_NO, A.WARE_CODE, A.SUPPLIER_NO) MIP
+		    ON MIP.FACTORY_CODE = #{factoryCode}
+		   AND MIS.PART_NO = MIP.PART_NO
+		   AND MIS.WARE_CODE = MIP.WARE_CODE
+		   AND MIP.SUPPLIER_NO = MPPS.SUPPLIER_NO
+		  LEFT JOIN MM_PKG_PROPOSAL MPPR
+		    ON MIS.PART_NO = MPPR.PART_NO
+		   AND MIS.FACTORY_CODE = MPPR.FACTORY_CODE
+		   AND MPPR.PROPOSAL_STATUS = 5
+		   AND TRUNC(SYSDATE) BETWEEN TRUNC(MPPR.EFF_START) AND TRUNC(MPPR.EFF_END)
+		  LEFT JOIN MM_PKG_PROPOSAL_DETAIL MPPD
+		    ON MPPR.ID = MPPD.PROPOSAL_ID
+		 WHERE MIS.FACTORY_CODE = #{factoryCode}
+      AND MIW.WARE_TYPE IN (
+               SELECT A.PARAM_VAL
+                 FROM MM_PUB_SYS_PARAM A
+                WHERE A.PARAM_GROUP = 'INV_STOCK_WARE_TYPE'
+                	  AND A.FACTORY_CODE = #{factoryCode}
+           )
+		<if test="wareCode != null and wareCode != ''">
+			AND MIS.WARE_CODE = #{wareCode}
+		</if>
+		<if test="partNo != null and partNo != ''">
+			AND MIS.PART_NO LIKE CONCAT(#{partNo},'%')
+		</if>
+		<if test="partShortNo != null and partShortNo != ''">
+			AND MUA.PART_SHORT_NO = #{partShortNo}
+		</if>
+		<if test="partName != null and partName != ''">
+			AND MPP.PART_NAME_CN  LIKE CONCAT(#{partName},'%')
+		</if>
+		<if test="stock != null and stock != ''">
+			AND CEIL(MIS.STOCK / NVL(MPPD.STANDARD_PACKAGE, 1)) = #{stock}
+		</if>
+		<if test="wareType != null and wareType != ''">
+			AND MIW.WARE_TYPE = #{wareType}
+		</if>
+		ORDER BY  MIS.WARE_CODE,MIS.PART_NO
+	</select>
+	<!-- 查询需要修改的数据 -->
+	<select id="queryStockById" parameterType="java.lang.String" resultType="com.hanthink.inv.model.InvStockModel">
+		SELECT WARE_CODE wareCode,
+			   PART_NO partNo,
+			   SAFE_STOCK safeStock
+		FROM MM_INV_STOCK
+		WHERE ID = #{id}
+	</select>
+	<!-- 修改数据 -->
+	<update id="updateForSafeStockNum" parameterType="com.hanthink.inv.model.InvStockModel">
+		UPDATE MM_INV_STOCK SET 
+			SAFE_STOCK = #{safeStock} * (SELECT NVL(MAX(MPPD.STANDARD_PACKAGE),1) FROM MM_PKG_PROPOSAL MPPR
+				         LEFT JOIN MM_PKG_PROPOSAL_DETAIL MPPD
+				         ON MPPR.ID = MPPD.PROPOSAL_ID
+				         WHERE MPPR.PART_NO = #{partNo}
+				         AND MPPR.FACTORY_CODE = #{factoryCode}
+				         AND MPPR.PROPOSAL_STATUS = 5
+				         AND TRUNC(SYSDATE) BETWEEN TRUNC(MPPR.EFF_START)
+				         AND TRUNC(MPPR.EFF_END)),
+			MAX_STOCK = #{maxStock} * (SELECT NVL(MAX(MPPD.STANDARD_PACKAGE),1) FROM MM_PKG_PROPOSAL MPPR
+				         LEFT JOIN MM_PKG_PROPOSAL_DETAIL MPPD
+				         ON MPPR.ID = MPPD.PROPOSAL_ID
+				         WHERE MPPR.PART_NO = #{partNo}
+				         AND MPPR.FACTORY_CODE = #{factoryCode}
+				         AND MPPR.PROPOSAL_STATUS = 5
+				         AND TRUNC(SYSDATE) BETWEEN TRUNC(MPPR.EFF_START)
+				         AND TRUNC(MPPR.EFF_END)),
+			LAST_MODIFIED_USER = #{lastModifiedUser},
+			LAST_MODIFIED_TIME = sysdate
+		WHERE FACTORY_CODE = #{factoryCode}
+			AND WARE_CODE = #{wareCode}
+			AND PART_NO = #{partNo}
+	</update>
+	<!-- 获取零件收容数 -->
+	<select id="queryStandPackageForPart" parameterType="com.hanthink.inv.model.InvDevelopModel" resultType="java.lang.Integer">
+		SELECT NVL(MPPD.STANDARD_PACKAGE,1)
+		  FROM MM_PKG_PROPOSAL MPP
+		  LEFT JOIN MM_PKG_PROPOSAL_DETAIL MPPD
+		    ON MPP.ID = MPPD.PROPOSAL_ID
+		 WHERE MPPD.FACTORY_CODE = #{factoryCode}
+		   AND MPP.PROPOSAL_STATUS = 5
+		   AND MPP.PART_NO = #{partNo}
+		   AND TRUNC(SYSDATE) BETWEEN TRUNC(MPP.EFF_START) AND TRUNC(MPP.EFF_END)
+	</select>
+	<!-- 批量修改库存数据 -->
+	<update id="batchUpdateStock" parameterType="java.util.Map">
+		<foreach collection="list" item="item" index="index" separator=";" open="begin" close=";end;">
+			UPDATE MM_INV_STOCK MIS
+				SET MIS.MAX_STOCK = #{maxStock} * (SELECT NVL(MAX(MPPD.STANDARD_PACKAGE),1) FROM MM_PKG_PROPOSAL MPPR
+		         LEFT JOIN MM_PKG_PROPOSAL_DETAIL MPPD
+		         ON MPPR.ID = MPPD.PROPOSAL_ID
+		         WHERE MPPR.PART_NO = #{item.partNo}
+		         AND MPPR.FACTORY_CODE = #{factoryCode}
+		         AND MPPR.PROPOSAL_STATUS = 5
+		         AND TRUNC(SYSDATE) BETWEEN TRUNC(MPPR.EFF_START)
+		         AND TRUNC(MPPR.EFF_END)),
+				 MIS.SAFE_STOCK = #{minStock} * (SELECT NVL(MAX(MPPD.STANDARD_PACKAGE),1) FROM MM_PKG_PROPOSAL MPPR
+		         LEFT JOIN MM_PKG_PROPOSAL_DETAIL MPPD
+		         ON MPPR.ID = MPPD.PROPOSAL_ID
+		         WHERE MPPR.PART_NO = #{item.partNo}
+		         AND MPPR.FACTORY_CODE = #{factoryCode}
+		         AND MPPR.PROPOSAL_STATUS = 5
+		         AND TRUNC(SYSDATE) BETWEEN TRUNC(MPPR.EFF_START)
+		         AND TRUNC(MPPR.EFF_END))
+			WHERE MIS.ID = #{item.id,jdbcType=VARCHAR}
+		</foreach>
+	</update>
+	
+	<insert id="insertToTempStock">
+		INSERT INTO MM_INV_STOCK_IMP
+			(ID,FACTORY_CODE,FROM_DEPOT_NO,TO_DEPOT_NO,PART_NO,MAX_STOCK,SAFE_STOCK,STOCK,CREATION_USER,CREATION_TIME,
+			 IMP_UUID,IMPORT_STATUS,OPE_TYPE,CHECK_RESULT,CHECK_INFO,ADJ_REMARK,INV_OUT_NO)
+		<foreach  collection="list" item="item" index="index" separator=" UNION ALL" >
+			SELECT #{item.id,jdbcType=VARCHAR},
+				 #{item.factoryCode,jdbcType=VARCHAR},
+				 #{item.fromDepotNo,jdbcType=VARCHAR},
+				 #{item.toDepotNo,jdbcType=VARCHAR},
+				 #{item.partNo,jdbcType=VARCHAR},
+				 #{item.maxStock,jdbcType=VARCHAR},
+				 #{item.minStock,jdbcType=VARCHAR},
+				 #{item.stock,jdbcType=VARCHAR},
+				 #{item.creationUser,jdbcType=VARCHAR},
+				 sysdate,
+				 #{item.uuid,jdbcType=VARCHAR},
+				 #{item.importStatus,jdbcType=VARCHAR},
+				 #{item.opeType,jdbcType=VARCHAR},
+				 #{item.checkResult,jdbcType=VARCHAR},
+				 #{item.checkInfo,jdbcType=VARCHAR},
+				 #{item.adjRemark,jdbcType=VARCHAR},
+				 #{item.invOutNo,jdbcType=VARCHAR}
+			FROM DUAL
+		</foreach>
+	</insert>
+	
+	<parameterMap type="map" id="impCkParamMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="userName" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap>
+	<select id="checkImportDataInformation" parameterMap="impCkParamMap" statementType="CALLABLE">
+		{CALL PKG_INV_CHECK.INV_STOCK_IMPORT_CHECK(?, ?, ?,  ?, ?)}
+	</select>
+	
+	<select id="queryStockImportFlag" parameterType="java.lang.String" resultType="java.lang.Boolean">
+		SELECT COUNT(1)
+		  FROM DUAL
+		 WHERE (SELECT COUNT(1) AS A
+		          FROM MM_INV_STOCK_IMP MIS
+		         WHERE MIS.IMP_UUID = #{uuid}) >
+		       (SELECT COUNT(1) AS B
+		          FROM MM_INV_STOCK_IMP MIS
+		         WHERE MIS.IMP_UUID = #{uuid}
+		           AND MIS.CHECK_RESULT = 1)
+	</select>
+	
+	<select id="queryStockForImport" parameterType="java.util.Map" resultType="com.hanthink.inv.model.InvStockModel">
+		SELECT MIS.From_Depot_No fromDepotNo,
+       		   MIS.To_Depot_No toDepotNo,
+			   MIS.PART_NO partNo,
+			   MIS.MAX_STOCK maxStock,
+			   MIS.SAFE_STOCK minStock,
+			   MIS.STOCK stock,
+			   MIS.IMPORT_STATUS importStatus,
+			   MIS.CHECK_RESULT checkResult,
+			   MIS.CHECK_INFO checkInfo,
+			   MPD.CODE_VALUE_NAME excelImportStatus,
+	           MPDP.CODE_VALUE_NAME excelCheckResult,
+	           MIS.ADJ_REMARK adjRemark
+			   FROM MM_INV_STOCK_IMP MIS
+			   LEFT JOIN MM_PUB_DATA_DICT MPD
+			    ON MPD.CODE_TYPE  = 'PUB_IMP_STATUS'
+			    AND MPD.CODE_VALUE = MIS.IMPORT_STATUS
+			    LEFT JOIN MM_PUB_DATA_DICT MPDP
+			    ON MPDP.CODE_TYPE  = 'PUB_IMP_CK_RESULT'
+			    AND MIS.CHECK_RESULT = MPDP.CODE_VALUE
+			WHERE MIS.IMP_UUID = #{uuid}
+			ORDER BY MIS.CHECK_RESULT,MIS.From_Depot_No,MIS.To_Depot_No,MIS.PART_NO
+	</select>
+	
+	<delete id="delStockImportByUUID" parameterType="java.lang.String">
+		DELETE FROM MM_INV_STOCK_IMP MIS WHERE MIS.IMP_UUID = #{uuid}
+	</delete>
+	
+	<insert id="insertTempStockToFormal" parameterType="java.util.Map">
+		INSERT INTO MM_INV_STOCK
+			(ID,FACTORY_CODE,WARE_CODE,PART_NO,SAFE_STOCK,MAX_STOCK,STOCK,CREATION_USER,CREATION_TIME,ADJ_REMARK)
+		SELECT SEQ_MM_INV_STOCK.NEXTVAL,
+		       MIS.FACTORY_CODE,
+		       MIS.TO_DEPOT_NO,
+		       MIS.PART_NO,
+		       MIS.SAFE_STOCK,
+		       MIS.MAX_STOCK,
+		       MIS.STOCK,
+		       #{creationUser},
+		       sysdate,
+		       MIS.ADJ_REMARK
+		  FROM MM_INV_STOCK_IMP MIS
+		  WHERE MIS.IMP_UUID = #{uuid}
+		  	AND MIS.IMPORT_STATUS = #{importStatus}
+		  	AND MIS.CHECK_RESULT = #{checkResult}
+		  	AND MIS.OPE_TYPE = 'I'
+	</insert>
+	
+	<select id="queryForStockUpdateList" parameterType="java.util.Map" resultType="com.hanthink.inv.model.InvStockModel">
+		SELECT MIS.TO_DEPOT_NO toDepotNo,
+			   MIS.FROM_DEPOT_NO fromDepotNo,
+			   MIS.PART_NO partNo,
+			   MIS.MAX_STOCK maxStock,
+			   MIS.SAFE_STOCK minStock,
+			   MIS.STOCK stock,
+			   MIS.IMPORT_STATUS importStatus,
+			   MIS.CHECK_RESULT checkResult,
+			   MIS.CHECK_INFO checkInfo,
+			   MIS.ADJ_REMARK adjRemark
+			   FROM MM_INV_STOCK_IMP MIS
+			WHERE MIS.IMP_UUID = #{uuid}
+			 AND  MIS.CHECK_RESULT = #{checkResult}
+			 AND  MIS.OPE_TYPE = 'U'
+			 AND  MIS.IMPORT_STATUS = #{importStatus}
+	</select>
+	
+	<update id="updateFormalStock">
+			UPDATE MM_INV_STOCK MIS
+				SET MIS.MAX_STOCK = #{maxStock},
+					MIS.SAFE_STOCK = #{minStock},
+					MIS.STOCK = MIS.STOCK+#{stock},
+					MIS.LAST_MODIFIED_USER = #{lastModifiedUser},
+					MIS.LAST_MODIFIED_TIME = SYSDATE,
+					MIS.ADJ_REMARK = #{adjRemark}
+			WHERE MIS.FACTORY_CODE = #{factoryCode}
+			  AND MIS.WARE_CODE = #{wareCode}
+			  AND MIS.PART_NO = #{partNo}
+	</update>
+	
+	<select id="calDiffFlag" parameterType="java.util.Map" resultType="com.hanthink.inv.model.InvStockModel">
+		SELECT A.FACTORY_CODE factoryCode,
+		       A.WARE_CODE wareCode,
+		       A.PART_NO partNo,
+		       NVL(B.STOCK,0) realStock,
+		       NVL(B.STOCK,0)+A.STOCK stock,
+		       A.STOCK diffStock,
+		       A.CREATION_USER creationUser,
+		       CASE WHEN NVL(B.STOCK,0) + A.STOCK &lt; 0
+		         THEN 0
+		       ELSE 1
+		       END AS diffFlag
+		  FROM MM_INV_STOCK_IMP A
+		  LEFT JOIN MM_INV_STOCK B
+		    ON A.FACTORY_CODE = B.FACTORY_CODE
+		    AND A.WARE_CODE = B.WARE_CODE
+		    AND A.PART_NO = B.PART_NO
+		WHERE A.IMP_UUID = #{uuid}
+      AND A.CHECK_RESULT = #{checkResult}
+      AND A.IMPORT_STATUS = #{importStatus}
+	</select>
+	
+	<update id="updateStockImprtStatus" parameterType="com.hanthink.inv.model.InvStockModel">
+		UPDATE MM_INV_STOCK_IMP MIS
+			SET MIS.IMPORT_STATUS = #{IMPORT_STATUS_YES}
+		WHERE MIS.CHECK_RESULT = #{checkResult}
+		  AND MIS.IMPORT_STATUS = #{importStatus}
+		  AND MIS.IMP_UUID = #{uuid}
+	</update>
+	
+	<insert id="insertToStockTakeHeader" parameterType="java.util.Map">
+		INSERT INTO MM_INV_STOCK_TAKE
+		(INS_NO,FACTOY_CODE,DEAL_FLAG,DEAL_TIME,CREATION_USER,CREATION_TIME)
+		VALUES
+		(#{insNo},#{factoryCode},0,null,#{creationUser},sysdate)
+	</insert>
+	
+	<insert id="insertToStockTakeBody">
+		INSERT INTO MM_INV_STOCK_TAKE_DETAIL
+			(INS_NO,WARE_CODE,PART_NO,SYS_STOCK,TAKE_STOCK,DIFF_STOCK)
+			<foreach  collection="list" item="item" index="index" separator=" UNION ALL" >
+				SELECT #{item.insNo},#{item.wareCode},#{item.partNo},
+					   #{item.realStock},#{item.stock},#{item.diffStock}
+				FROM DUAL
+			</foreach>
+	</insert>
+	
+	<insert id="insertToInvOut" parameterType="java.util.Map">
+		INSERT INTO MM_INV_OUT
+			(INV_OUT_NO,FACTORY_CODE,INS_NO,OUT_TIMES,OUT_TYPE,INS_TYPE,FROM_DEPOT_NO,TO_DEPOT_NO,CREATION_USER,NOTE)
+			SELECT MIS.INV_OUT_NO,
+		       MIS.FACTORY_CODE,
+		       MIS.INV_OUT_NO,
+		       '1',
+		       '1',
+		       'JIT',
+		       MIS.FROM_DEPOT_NO,
+		       MIS.TO_DEPOT_NO,
+		       MIS.CREATION_USER,
+		       MIS.ADJ_REMARK
+		  FROM MM_INV_STOCK_IMP MIS
+		WHERE MIS.IMP_UUID = #{uuid}
+			AND MIS.IMPORT_STATUS = #{importStatus}
+		  	AND MIS.CHECK_RESULT = #{checkResult}
+ 	</insert>
+ 	<insert id="insertToInvOutDetail" parameterType="java.util.Map">
+		INSERT INTO MM_INV_OUT_DETAIL
+			(INV_OUT_NO,OUT_TIMES,PART_NO,ORDER_QTY,REC_QTY,CREATION_TIME)
+			SELECT MIS.INV_OUT_NO,
+		       '1',
+		       MIS.PART_NO,
+		       MIS.STOCK,
+		       MIS.STOCK,
+		       MIS.CREATION_TIME
+		  FROM MM_INV_STOCK_IMP MIS
+		WHERE MIS.IMP_UUID = #{uuid}
+			AND MIS.IMPORT_STATUS = #{importStatus}
+		  	AND MIS.CHECK_RESULT = #{checkResult}
+ 	</insert>
+</mapper>

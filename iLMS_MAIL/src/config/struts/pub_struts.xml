@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts PUBLIC
+    "-//Apache Software Foundation//DTD Struts Configuration 2.0//EN"
+    "http://struts.apache.org/dtds/struts-2.0.dtd">
+<struts>
+	<package name="pub" namespace="/pub" extends="struts_sw">
+		<action name="develope-*" class="DevelopeAction" method="{1}"></action>
+		<action name="user-*" class="UserAction" method="{1}"></action>
+		<action name="role-*" class="RoleAction" method="{1}"></action>
+		<action name="logcompany-*" class="LogCompanyAction" method="{1}"></action>
+		<action name="dict-*" class="DataDictAction" method="{1}"></action>
+		<action name="supp-*" class="SuppGroupAction" method="{1}"></action>
+		<action name="message-*" class="MessageInfoManageAction" method="{1}"></action>
+		<action name="opeLog-*" class="OpeLogRecordAction" method="{1}"></action>
+		<action name="mmPrinter-*" class="PrinterAction" method="{1}"></action>
+		<action name="supManage-*" class="SupplierDataManageAction" method="{1}"></action>
+		
+		<action name="*" class="com.hanthink.gps.pub.web.BaseActionSupport">
+			<result>/pages/pub/{1}.jsp</result>
+		</action>
+	</package>
+</struts>

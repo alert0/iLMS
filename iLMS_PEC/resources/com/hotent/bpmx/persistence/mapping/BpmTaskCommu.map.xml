@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.bpmx.persistence.model.BpmTaskCommu">
+	<resultMap id="BpmTaskCommu" type="com.hotent.bpmx.persistence.model.BpmTaskCommu">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="instanceId" column="instance_id_" jdbcType="VARCHAR"/>
+		<result property="nodeName" column="node_name_" jdbcType="VARCHAR"/>
+		<result property="nodeId" column="node_id_" jdbcType="VARCHAR"/>
+		<result property="taskId" column="task_id_" jdbcType="VARCHAR"/>
+		<result property="senderId" column="sender_id_" jdbcType="VARCHAR"/>
+		<result property="sender" column="sender" jdbcType="VARCHAR"/>
+		<result property="createtime" column="createtime_" jdbcType="TIMESTAMP"/>
+		<result property="opinion" column="opinion_" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.bpmx.persistence.model.BpmTaskCommu">
+		INSERT INTO bpm_task_commu
+		(id_,instance_id_,node_name_,node_id_,task_id_,sender_id_,sender,createtime_,opinion_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{instanceId,jdbcType=VARCHAR}, #{nodeName,jdbcType=VARCHAR}, #{nodeId,jdbcType=VARCHAR}, #{taskId,jdbcType=VARCHAR}, #{senderId,jdbcType=VARCHAR}, #{sender,jdbcType=VARCHAR}, #{createtime,jdbcType=TIMESTAMP}, #{opinion,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="BpmTaskCommu">
+		SELECT * FROM bpm_task_commu 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="BpmTaskCommu">
+		SELECT * FROM bpm_task_commu
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.bpmx.persistence.model.BpmTaskCommu">
+		UPDATE bpm_task_commu SET
+		instance_id_=#{instanceId,jdbcType=VARCHAR},
+		node_name_=#{nodeName,jdbcType=VARCHAR},
+		node_id_=#{nodeId,jdbcType=VARCHAR},
+		task_id_=#{taskId,jdbcType=VARCHAR},
+		sender_id_=#{senderId,jdbcType=VARCHAR},
+		sender=#{sender,jdbcType=VARCHAR},
+		createtime_=#{createtime,jdbcType=TIMESTAMP},
+		opinion_=#{opinion,jdbcType=VARCHAR}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM bpm_task_commu 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	<select id="getByTaskId"   parameterType="java.lang.String" resultMap="BpmTaskCommu">
+		SELECT * FROM bpm_task_commu 
+		WHERE 
+		task_id_=#{taskId}
+	</select>
+	
+	
+</mapper>

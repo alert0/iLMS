@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Interface Sender="i-LMS" Receiver="i-LMS" Billtype="WorkCalendar_AD07">
+  <Entry>
+    <MATNR>HP1B-0Z9-00-001</MATNR>
+    <WERKS>1000</WERKS>
+    <BISMT/>
+    <MAKTC>左前门集控开关</MAKTC>
+    <MAKTE>WINDOW REGULATOR SWITCH,FR DOOR,LH</MAKTE>
+    <GROES>FASDF</GROES>
+    <SOBSL>AW</SOBSL>
+    <MEINS>PCS</MEINS>
+  </Entry>
+  <Entry>
+    <MATNR>8227003ARD0100</MATNR>
+    <WERKS>1000</WERKS>
+    <BISMT/>
+    <MAKTC>左前门集控开关</MAKTC>
+    <MAKTE>WINDOW REGULATOR SWITCH,FR DOOR,LH</MAKTE>
+    <GROES>FASDF</GROES>
+    <SOBSL>FW</SOBSL>
+    <MEINS>PCS</MEINS>
+  </Entry>
+</Interface>

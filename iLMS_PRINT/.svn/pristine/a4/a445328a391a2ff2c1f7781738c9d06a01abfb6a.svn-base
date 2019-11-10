@@ -1,0 +1,96 @@
+create table MES_PR_Printer(
+       printer_name varchar2(80) primary key,
+       description varchar2(255),
+       location varchar2(255),
+       ip varchar2(80),
+       port number(10),
+       vendor varchar2(255),
+       driver varchar2(255),
+       type varchar2(80),
+       owner varchar2(80),
+       active varchar2(80),
+       creation_time date,
+       last_modified_time date,
+       last_modified_user varchar2(80),
+       last_modified_ip varchar2(80)
+);
+create table MES_PR_Job(
+       job_name varchar2(80) primary key,
+       description varchar2(255),
+       print_type varchar2(80),
+       job_type varchar2(80),
+       copies number(10),
+       classes varchar2(80),
+       printer_name varchar2(80),
+       update_sql varchar2(1024),
+       creation_time date,
+       last_modified_time date,
+       last_modified_user varchar2(80),
+       last_modified_ip varchar2(80)
+);
+create table MES_PR_Job_Business(
+       business varchar2(80),
+       description VARCHAR2(255),
+       job_name varchar2(80),
+       print_interval NUMBER(10),
+       primary key(business, job_name),
+       active varchar2(80),
+       creation_time date,
+       last_modified_time date,
+       last_modified_user varchar2(80),
+       last_modified_ip varchar2(80)
+);
+create table MES_PR_Job_Queue(
+       job_no NUMBER(19) primary key,
+       business varchar2(80),
+       job_name varchar2(80),
+       print_type varchar2(80),
+       job_type varchar2(80),
+       classes varchar2(80),
+       status varchar2(80),
+       serial_number varchar2(80),
+       atrow_key NUMBER(19),
+       parameters varchar2(1024),
+       creation_time date,
+       last_modified_time date,
+       last_modified_user varchar2(80),
+       last_modified_ip varchar2(80)
+);
+
+--打印队列备份表
+create table MES_PR_Job_Queue_Bak(
+       job_no NUMBER(19) primary key,
+       business varchar2(80),
+       job_name varchar2(80),
+       print_type varchar2(80),
+       job_type varchar2(80),
+       classes varchar2(80),
+       status varchar2(80),
+       serial_number varchar2(80),
+       atrow_key NUMBER(19),
+       parameters varchar2(1024),
+       creation_time date,
+       last_modified_time date,
+       last_modified_user varchar2(80),
+       last_modified_ip varchar2(80),
+       backup_time date default sysdate
+);
+--定时器运行日志表
+create table mes_pr_timer_log(
+       id number(19) primary key,
+       source varchar2(80),
+       job_name varchar2(80),
+       job_group varchar2(80),
+       exception varchar2(2048),
+       process_time date
+);
+--操作异常日志表
+create table mes_pr_transaction_log(
+       id number(19) primary key,
+       trx_level varchar2(80),
+       category varchar2(80),
+       source varchar2(80),
+       trx_name varchar2(80),
+       entry_time date,
+       content varchar2(2048)
+);

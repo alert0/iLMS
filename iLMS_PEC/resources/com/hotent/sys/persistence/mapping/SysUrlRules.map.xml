@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.sys.persistence.model.SysUrlRules">
+	<resultMap id="SysUrlRules" type="com.hotent.sys.persistence.model.SysUrlRules">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="script" column="script_" jdbcType="CLOB"/>
+		<result property="enable" column="enable_" jdbcType="NUMERIC"/>
+		<result property="sysUrlId" column="sys_url_id_" jdbcType="VARCHAR"/>
+		<result property="descp" column="descp_" jdbcType="VARCHAR"/>
+		<result property="sort" column="sort_" jdbcType="NUMERIC"/>
+	</resultMap>
+	
+	<sql id="columns">
+		id_,script_,enable_,sys_url_id_,descp_,sort_
+	</sql>
+	
+	<insert id="create" parameterType="com.hotent.sys.persistence.model.SysUrlRules">
+		INSERT INTO sys_url_rules
+		(id_,script_,enable_,sys_url_id_,descp_,sort_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{script,jdbcType=CLOB}, #{enable,jdbcType=NUMERIC}, #{sysUrlId,jdbcType=VARCHAR}, #{descp,jdbcType=VARCHAR}, #{sort,jdbcType=NUMERIC})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="SysUrlRules">
+		SELECT * FROM sys_url_rules 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="SysUrlRules">
+		SELECT * FROM sys_url_rules
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.sys.persistence.model.SysUrlRules">
+		UPDATE sys_url_rules SET
+		script_=#{script,jdbcType=CLOB},
+		enable_=#{enable,jdbcType=NUMERIC},
+		sys_url_id_=#{sysUrlId,jdbcType=VARCHAR},
+		descp_=#{descp,jdbcType=VARCHAR},
+		sort_=#{sort,jdbcType=NUMERIC}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_url_rules 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	<select id="getByUrlPerId" resultMap="SysUrlRules">
+	    SELECT <include refid="columns"/>
+	    FROM sys_url_rules 
+	    WHERE SYS_URL_ID_=#{sysUrlId}
+	    order by SORT_ asc
+	</select>
+	<delete id="delRuelByPermId" parameterType="java.lang.String">
+		DELETE FROM sys_url_rules 
+		WHERE 
+		sys_url_id_ = #{permId}
+	</delete>
+	<select id="getAllByEnableAndPermId" resultMap="SysUrlRules">
+	    SELECT <include refid="columns"/>
+	    FROM sys_url_rules a
+	    WHERE a.enable_=#{enable} AND a.sys_url_id_=#{permId}
+	</select>
+
+
+</mapper>

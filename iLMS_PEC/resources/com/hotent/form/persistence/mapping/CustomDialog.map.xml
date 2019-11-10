@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.form.persistence.model.CustomDialog">
+	<resultMap id="CustomDialog" type="com.hotent.form.persistence.model.CustomDialog">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="name" column="name_" jdbcType="VARCHAR"/>
+		<result property="alias" column="alias_" jdbcType="VARCHAR"/>
+		<result property="style" column="style_" jdbcType="NUMERIC"/>
+		<result property="objName" column="obj_name_" jdbcType="VARCHAR"/>
+		<result property="needPage" column="need_page_" jdbcType="NUMERIC"/>
+		<result property="pageSize" column="page_size_" jdbcType="NUMERIC"/>
+		<result property="displayfield" column="displayfield_" jdbcType="CLOB"/>
+		<result property="conditionfield" column="conditionfield_" jdbcType="CLOB"/>
+		<result property="resultfield" column="resultfield_" jdbcType="CLOB"/>
+		<result property="sortfield" column="sortfield_" jdbcType="VARCHAR"/>
+		<result property="dsalias" column="dsalias_" jdbcType="VARCHAR"/>
+		<result property="isTable" column="is_table_" jdbcType="NUMERIC"/>
+		<result property="diySql" column="diy_sql_" jdbcType="VARCHAR"/>
+		<result property="sqlBuildType" column="sql_build_type_" jdbcType="NUMERIC"/>
+		<result property="width" column="width_" jdbcType="NUMERIC"/>
+		<result property="height" column="height_" jdbcType="NUMERIC"/>
+		<result property="selectNum" column="select_num_" jdbcType="NUMERIC"/>
+		<result property="system" column="system_" jdbcType="NUMERIC"/>
+		<result property="parentCheck" column="parent_check_" jdbcType="NUMERIC"/>
+		<result property="childrenCheck" column="children_check_" jdbcType="NUMERIC"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.form.persistence.model.CustomDialog">
+		INSERT INTO custom_dialog
+		(id_,name_,alias_,style_,obj_name_,need_page_,page_size_,displayfield_,conditionfield_,resultfield_,sortfield_,dsalias_,is_table_,diy_sql_,sql_build_type_,width_,height_,select_num_,system_,parent_check_,children_check_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR}, #{alias,jdbcType=VARCHAR}, #{style,jdbcType=NUMERIC}, #{objName,jdbcType=VARCHAR}, #{needPage,jdbcType=NUMERIC,javaType=Boolean}, #{pageSize,jdbcType=NUMERIC}, #{displayfield,jdbcType=CLOB}, #{conditionfield,jdbcType=CLOB}, #{resultfield,jdbcType=CLOB}, #{sortfield,jdbcType=CLOB}, #{dsalias,jdbcType=VARCHAR}, #{isTable,jdbcType=NUMERIC}, #{diySql,jdbcType=VARCHAR}, #{sqlBuildType,jdbcType=NUMERIC}, #{width,jdbcType=NUMERIC}, #{height,jdbcType=NUMERIC}, #{selectNum,jdbcType=NUMERIC},#{system,jdbcType=NUMERIC,javaType=Boolean},#{parentCheck,jdbcType=NUMERIC},#{childrenCheck,jdbcType=NUMERIC})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="CustomDialog">
+		SELECT * FROM custom_dialog 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="getByAlias"   parameterType="java.lang.String" resultMap="CustomDialog">
+		SELECT * FROM custom_dialog WHERE alias_= #{alias}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="CustomDialog">
+		SELECT * FROM custom_dialog
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.form.persistence.model.CustomDialog">
+		UPDATE custom_dialog SET
+		name_=#{name,jdbcType=VARCHAR},
+		alias_=#{alias,jdbcType=VARCHAR},
+		style_=#{style,jdbcType=NUMERIC},
+		obj_name_=#{objName,jdbcType=VARCHAR},
+		need_page_=#{needPage,jdbcType=NUMERIC,javaType=Boolean},
+		page_size_=#{pageSize,jdbcType=NUMERIC},
+		displayfield_=#{displayfield,jdbcType=CLOB},
+		conditionfield_=#{conditionfield,jdbcType=CLOB},
+		resultfield_=#{resultfield,jdbcType=CLOB},
+		sortfield_=#{sortfield,jdbcType=CLOB},
+		dsalias_=#{dsalias,jdbcType=VARCHAR},
+		is_table_=#{isTable,jdbcType=NUMERIC},
+		diy_sql_=#{diySql,jdbcType=VARCHAR},
+		sql_build_type_=#{sqlBuildType,jdbcType=NUMERIC},
+		width_=#{width,jdbcType=NUMERIC},
+		height_=#{height,jdbcType=NUMERIC},
+		select_num_=#{selectNum,jdbcType=NUMERIC},
+		system_=#{system,jdbcType=NUMERIC,javaType=Boolean},
+		parent_check_=#{parentCheck,jdbcType=NUMERIC},
+		children_check_=#{childrenCheck,jdbcType=NUMERIC}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM custom_dialog 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	
+</mapper>

@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.bpmx.persistence.model.DefaultBpmTask">
+	<resultMap id="BpmTask" type="com.hotent.bpmx.persistence.model.DefaultBpmTask">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="name" column="name_" jdbcType="VARCHAR"/>
+		<result property="subject" column="subject_" jdbcType="VARCHAR"/>
+		<result property="taskId" column="task_id_" jdbcType="VARCHAR"/>
+		<result property="execId" column="exec_id_" jdbcType="VARCHAR"/>
+		<result property="nodeId" column="node_id_" jdbcType="VARCHAR"/>
+		<result property="procInstId" column="proc_inst_id_" jdbcType="VARCHAR"/>
+		<result property="procDefId" column="proc_def_id_" jdbcType="VARCHAR"/>
+		<result property="procDefKey" column="proc_def_key_" jdbcType="VARCHAR"/>
+		<result property="procDefName" column="proc_def_name_" jdbcType="VARCHAR"/>
+		<result property="ownerId" column="owner_id_" jdbcType="VARCHAR"/>
+		<result property="assigneeId" column="assignee_id_" jdbcType="VARCHAR"/>
+		<result property="status" column="status_" jdbcType="VARCHAR"/>
+		<result property="priority" column="priority_" jdbcType="NUMERIC"/>
+		<result property="createTime" column="create_time_" jdbcType="TIMESTAMP"/>
+		<result property="dueTime" column="due_time_" jdbcType="TIMESTAMP"/>
+		<result property="suspendState" column="suspend_state_" jdbcType="NUMERIC"/>
+		<result property="parentId" column="parent_id_" jdbcType="VARCHAR"/>
+		<result property="bpmnInstId" column="BPMN_INST_ID_" jdbcType="VARCHAR"/>
+		<result property="bpmnDefId" column="BPMN_DEF_ID_" jdbcType="VARCHAR"/>
+		<result property="typeId" column="TYPE_ID_" jdbcType="VARCHAR"/>
+		<result property="supportMobile" column="SUPPORT_MOBILE_" jdbcType="NUMERIC"/>
+		
+	</resultMap>
+	
+	<resultMap id="BpmTaskExt" type="com.hotent.bpmx.persistence.model.DefaultBpmTask" extends="BpmTask">
+		<result property="transDate" column="transDate" jdbcType="TIMESTAMP"/>
+		<result property="createDate" column="createDate" jdbcType="TIMESTAMP"/>
+		<result property="creator" column="creator" jdbcType="VARCHAR"/>
+		<result property="dueDateType" column="dueDateType" jdbcType="VARCHAR"/>
+		<result property="dueExpDate" column="dueExpDate" jdbcType="TIMESTAMP"/>
+		<result property="dueTaskTime" column="dueTaskTime" jdbcType="NUMERIC"/>
+		<result property="dueStatus" column="dueStatus" jdbcType="NUMERIC"/>
+		<result property="instIsForbidden" column="instIsForbidden" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+ 
+	<insert id="create" parameterType="com.hotent.bpmx.persistence.model.DefaultBpmTask">
+		INSERT INTO bpm_task
+		(id_,name_,subject_,task_id_,exec_id_,node_id_,proc_inst_id_,proc_def_id_,
+		proc_def_key_,proc_def_name_,owner_id_,assignee_id_,status_,priority_,create_time_,
+		due_time_,suspend_state_,parent_id_,BPMN_INST_ID_,BPMN_DEF_ID_,TYPE_ID_,SUPPORT_MOBILE_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR}, #{subject,jdbcType=VARCHAR},
+		 #{taskId,jdbcType=VARCHAR}, #{execId,jdbcType=VARCHAR}, #{nodeId,jdbcType=VARCHAR}, 
+		 #{procInstId,jdbcType=VARCHAR}, #{procDefId,jdbcType=VARCHAR}, #{procDefKey,jdbcType=VARCHAR}, 
+		 #{procDefName,jdbcType=VARCHAR}, #{ownerId,jdbcType=VARCHAR}, #{assigneeId,jdbcType=VARCHAR}, 
+		 #{status,jdbcType=VARCHAR}, #{priority,jdbcType=NUMERIC}, #{createTime,jdbcType=TIMESTAMP}, 
+		 #{dueTime,jdbcType=TIMESTAMP}, #{suspendState,jdbcType=NUMERIC},#{parentId,jdbcType=VARCHAR},
+		 #{bpmnInstId,jdbcType=VARCHAR},#{bpmnDefId,jdbcType=VARCHAR},#{typeId,jdbcType=VARCHAR},#{supportMobile,jdbcType=NUMERIC})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="BpmTask">
+		SELECT * FROM bpm_task 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="BpmTaskExt">
+		select task.*,due.due_time_ "dueTaskTime", due.EXPIRATION_DATE_ "dueExpDate", due.date_type_ "dueDateType",due.status_ "dueStatus"  from bpm_task task left join (select *  from bpm_task_due_time where is_new_ =1 ) due on task.TASK_ID_ = due.TASK_ID_ 
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+			
+			<!-- 按用户授权过滤用户的流程 ：isAdmin为空时不需要按权限查询，否则按流程的分管授权情况查询-->
+			<if test="isAdmin==0">
+			 	<choose>  
+			        <when test="defKeys!=null">  
+			        	AND proc_def_key_ in (${defKeys})
+			        </when>
+			        <otherwise>  
+			            AND 1=0
+			        </otherwise>  
+		        </choose>		
+			</if>
+			
+		</where>
+		ORDER BY task.create_time_ DESC
+	</select>
+    <sql id="getAllMyTask_Tables">
+	           SELECT task.*,
+	                inst.proc_def_name_ procDefName,
+	                inst.create_by_ creatorId,inst.CREATOR_ creator,
+	                inst.create_time_ createDate,
+	                inst.status_ instStatus,
+	                inst.is_forbidden_ instIsForbidden,
+	                type.id_ typeId,
+	                due.due_time_ dueTaskTime,
+	                due.EXPIRATION_DATE_ dueExpDate,
+	                due.date_type_ dueDateType,
+	                due.status_ dueStatus 
+	           FROM BPM_TASK task
+	                LEFT JOIN BPM_PRO_INST inst ON task.proc_inst_id_ = inst.id_
+	                LEFT JOIN SYS_TYPE type ON type.id_ = inst.type_id_
+	                LEFT JOIN  (select *  from bpm_task_due_time where is_new_ =1 ) due ON task.TASK_ID_ = due.TASK_ID_ 
+	</sql>
+	
+	<!-- 待办事宜 未加入where -->
+	<select id="getByUserId" parameterType="java.util.Map" resultMap="BpmTaskExt">
+			 select * from
+	    (<include refid="getAllMyTask_Tables"/>
+	    	where  task.assignee_id_= #{assignee} and task.status_!='TRANSFORMING'
+	    UNION ALL
+	        <include refid="getAllMyTask_Tables"/>
+	        LEFT JOIN BPM_TASK_CANDIDATE c  ON task.id_ = c.task_id_ 
+				where  task.status_!='TRANSFORMING'  and  task.assignee_id_='0' and c.executor_ =#{assignee}  and c.type_='user'
+		 <foreach collection="groupMap" index="key" item="value" open="" separator=" " close=""> 
+       	   UNION ALL
+	        <include refid="getAllMyTask_Tables"/>
+			LEFT JOIN BPM_TASK_CANDIDATE c   ON task.id_ = c.task_id_
+				 where  task.status_!='TRANSFORMING' and task.assignee_id_='0' and c.executor_ in (${value}) and c.type_='${key}'
+        </foreach>
+        )
+          tmp
+			<where>
+				<if test="whereSql!=null">
+					${whereSql}
+				</if>
+			</where>
+			 group by tmp.id_, tmp.name_,tmp.subject_,tmp.proc_inst_id_,tmp.task_id_,tmp.exec_id_,tmp.node_id_,tmp.proc_def_id_,tmp.proc_def_key_,tmp.proc_def_key_,
+			tmp.proc_def_name_,tmp.owner_id_,tmp.assignee_id_,tmp.status_,tmp.priority_,tmp.create_time_,tmp.due_time_,tmp.suspend_state_,tmp.parent_id_,
+			tmp.bpmn_inst_id_,tmp.bpmn_def_id_,tmp.type_id_,tmp.support_mobile_,
+			procDefName,creatorId,creator,createDate, instStatus,typeId,dueTaskTime,dueExpDate,dueDateType, dueStatus
+			<if test="orderBySql ==null">
+				order by CREATE_TIME_ desc
+			</if>
+			<if test="orderBySql !=null">
+				order by ${orderBySql}
+			</if>
+		 
+	</select>
+	
+		<!-- 待参加会议 -->
+	<select id="getByNeedPendMeetingUserId" parameterType="java.util.Map" resultMap="BpmTaskExt">
+			 select distinct * from
+	    (<include refid="getAllMyTask_Tables"/>
+	    	where  task.assignee_id_= #{assignee} and task.status_!='TRANSFORMING' and (task.node_id_='task3' or task.node_id_='task2')
+	    UNION ALL
+	        <include refid="getAllMyTask_Tables"/>
+	        LEFT JOIN BPM_TASK_CANDIDATE c  ON task.id_ = c.task_id_ 
+				where  task.status_!='TRANSFORMING'  and  task.assignee_id_='0' and c.executor_ =#{assignee}  and c.type_='user'
+		 <foreach collection="groupMap" index="key" item="value" open="" separator=" " close=""> 
+       	   UNION ALL
+	        <include refid="getAllMyTask_Tables"/>
+			LEFT JOIN BPM_TASK_CANDIDATE c   ON task.id_ = c.task_id_
+				 where  task.status_!='TRANSFORMING' and task.assignee_id_='0' and c.executor_ in (${value}) and c.type_='${key}'
+        </foreach>
+        )
+          tmp
+			<where>
+				<if test="whereSql!=null">
+					${whereSql}
+				</if>
+			</where>
+			<if test="orderBySql ==null">
+				order by tmp.CREATE_TIME_ desc
+			</if>
+			<if test="orderBySql !=null">
+				order by ${orderBySql}
+			</if>
+		 
+	</select>
+	<select id="getByInstId" parameterType="java.util.Map" resultMap="BpmTask">
+		select * from BPM_TASK t where t.proc_inst_id_=#{instId} order by create_time_ desc
+	</select>
+
+	<select id="getByExeIdAndNodeId" parameterType="java.util.Map" resultMap="BpmTask">
+		select * from BPM_TASK t where t.exec_id_=#{instId} and node_id_ = #{nodeId} order by create_time_ desc
+	</select>	
+	
+	<select id="getByInstUser" parameterType="java.util.Map" resultMap="BpmTask">
+		select * from (
+			select * from BPM_TASK t where t.assignee_id_=#{assigneeId}  and t.proc_inst_id_=#{instId}
+			
+			union all 
+			
+			select t.* from BPM_TASK t ,BPM_TASK_CANDIDATE tc where t.id_=tc.task_id_ 
+				and  t.assignee_id_='0' and tc.executor_=#{assigneeId}  and tc.type_='user'
+				and t.proc_inst_id_=#{instId}
+		) tmp
+		order by create_time_ desc
+	</select>
+	
+	
+	<update id="update" parameterType="com.hotent.bpmx.persistence.model.DefaultBpmTask">
+		UPDATE bpm_task SET
+		name_=#{name,jdbcType=VARCHAR},
+		subject_=#{subject,jdbcType=VARCHAR},
+		task_id_=#{taskId,jdbcType=VARCHAR},
+		exec_id_=#{execId,jdbcType=VARCHAR},
+		node_id_=#{nodeId,jdbcType=VARCHAR},
+		proc_inst_id_=#{procInstId,jdbcType=VARCHAR},
+		proc_def_id_=#{procDefId,jdbcType=VARCHAR},
+		proc_def_key_=#{procDefKey,jdbcType=VARCHAR},
+		proc_def_name_=#{procDefName,jdbcType=VARCHAR},
+		owner_id_=#{ownerId,jdbcType=VARCHAR},
+		assignee_id_=#{assigneeId,jdbcType=VARCHAR},
+		status_=#{status,jdbcType=VARCHAR},
+		priority_=#{priority,jdbcType=NUMERIC},
+		create_time_=#{createTime,jdbcType=TIMESTAMP},
+		due_time_=#{dueTime,jdbcType=TIMESTAMP},
+		suspend_state_=#{suspendState,jdbcType=NUMERIC},
+		parent_id_=#{parentId,jdbcType=VARCHAR},
+		BPMN_INST_ID_=#{bpmnInstId,jdbcType=VARCHAR},
+		TYPE_ID_=#{typeId,jdbcType=VARCHAR}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM bpm_task 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	<select id="getByRelateTaskId"   parameterType="java.lang.String" resultMap="BpmTask">
+		SELECT * FROM bpm_task 
+		WHERE 
+		task_id_=#{taskId,jdbcType=VARCHAR}
+	</select>
+	
+	<delete id="removeByTaskId" parameterType="java.lang.String">
+		DELETE FROM bpm_task 
+		WHERE
+		task_id_=#{taskId,jdbcType=VARCHAR}
+	</delete>
+	
+	<delete id="delByParentId" parameterType="java.lang.String">
+		DELETE FROM bpm_task 
+		WHERE
+		parent_id_=#{parentId,jdbcType=VARCHAR}
+	</delete>
+	
+	<select id="getByBpmInstIdUserIdGroupList" resultMap="BpmTask">
+		select * from (
+		select t.* from bpm_task t  where t.proc_inst_id_=#{bpmnInstId} and  t.assignee_id_=#{userId}
+		union select t.* from bpm_task t left join bpm_task_candidate c on t.task_id_=c.task_id_ where t.assignee_id_='0'  and c.act_inst_id_=#{bpmnInstId} and c.executor_=#{userId}  and c.type_='user'
+		<foreach collection="groupList" index="index" item="group" open="" separator=" " close=""> 
+         union  select t.* from bpm_task t left join bpm_task_candidate c on t.task_id_=c.task_id_ where t.assignee_id_='0'  and c.act_inst_id_=#{bpmnInstId} and c.executor_=#{group.groupId} and c.type_=#{group.dimKey}
+        </foreach>
+        )tmp
+		order by create_time_ desc
+	</select>
+	
+	<select id="updateAssigneeById" parameterType="java.util.Map">
+		update bpm_task set assignee_id_=#{assigneeId} where id_=#{id}
+	</select>
+	
+	<select id="updateAssigneeOwnerId" parameterType="java.util.Map">
+		update bpm_task set assignee_id_=#{assigneeId} ,owner_id_=#{ownerId} where id_=#{id}
+	</select>
+	
+	<delete id="delByInstList" >
+		DELETE FROM  bpm_task where proc_inst_id_ in 
+			<foreach collection="list" index="index" item="instId" open="(" separator="," close=")"> 
+            #{instId} 
+        	</foreach> 
+	</delete>
+	
+	<select id="getByParentId" parameterType="java.lang.String" resultMap="BpmTask">
+		SELECT * FROM bpm_task 
+		WHERE
+		parent_id_=#{parentId,jdbcType=VARCHAR}
+	</select>
+	
+	<select id="getTransByUserId" parameterType="java.lang.String" resultMap="BpmTask">
+		select * from BPM_TASK t where t.assignee_id_=#{userId} and t.status_='TRANSFORMING' order by create_time_ desc
+	</select>
+	
+	<select id="getReminderTask"  resultMap="BpmTask">
+		select * from bpm_task a where exists (select 1 from bpm_task_reminder b where a.proc_def_id_=b.proc_def_id_ and a.node_id_=b.node_id_)	
+	</select>
+	
+	
+	<select id="getByInstList" parameterType="java.lang.String" resultMap="BpmTask">
+		SELECT * FROM bpm_task 
+		WHERE
+		proc_inst_id_ in 
+			<foreach collection="list" index="index" item="instId" open="(" separator="," close=")"> 
+            #{instId} 
+        	</foreach> 
+	</select>
+	
+	<select id="getMyTransTask" resultMap="BpmTaskExt">
+		SELECT a.*,b.create_time_ as transDate FROM bpm_task a,bpm_task_trans b
+		WHERE a.id_=b.task_id_ and a.status_='TRANSFORMING' and assignee_id_=#{userId}
+		<if test="defName!=null">
+			and a.proc_def_name_ like #{defName}
+		</if>
+		<if test="subject!=null">
+			and a.subject_ like #{subject}
+		</if>
+		<if test="transTimeStart!=null">
+			and b.create_time_ >=#{transTimeStart}
+		</if>
+		<if test="transTimeEnd_DG!=null">
+			and b.create_time_ &lt;=#{transTimeEnd_DG}
+		</if>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY b.create_time_ DESC
+		</if>
+	</select>
+	
+	<update id="updateTaskPriority" parameterType="java.util.Map" >
+		UPDATE bpm_task SET priority_= #{priority,jdbcType=NUMERIC} WHERE id_= #{taskId}
+	</update>
+	
+	<select id="getByExecuteAndNodeId">
+		SELECT * from bpm_task t ,act_ru_execution b
+		where t.EXEC_ID_ =b.ID_ and b.PARENT_ID_=#{executeId} and node_id_=#{nodeId};
+	</select>
+	
+</mapper>

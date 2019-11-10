@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	 xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+         http://www.springframework.org/schema/beans/spring-beans.xsd
+         http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd"
+	default-autowire="byName" default-lazy-init="false">
+	
+	<!-- <context:component-scan base-package="com.hotent.mini.ext" /> -->
+	<!-- <context:component-scan base-package="com.hotent.oa" /> -->
+	<!-- <context:component-scan base-package="com.hotent.mail" /> -->
+	<!-- <context:component-scan base-package="com.hotent.bpmx.webservice" /> -->
+	<!-- <context:component-scan base-package="com.hotent.restful" /> -->
+	<!-- <context:component-scan base-package="com.hotent.biz" /> -->
+	<!-- <context:component-scan base-package="com.hotent.mobile.weixin.impl" /> -->
+	<context:component-scan base-package="com.hanthink.base" />
+	<context:component-scan base-package="com.hanthink.demo" />
+	<context:component-scan base-package="com.hanthink.mp" />
+	<context:component-scan base-package="com.hanthink.sys" />
+	<context:component-scan base-package="com.hanthink.pub" />
+	<context:component-scan base-package="com.hanthink.dpm"/>
+	<context:component-scan base-package="com.hanthink.jiso" />
+	<context:component-scan base-package="com.hanthink.pup" />
+	<context:component-scan base-package="com.hanthink.inv" />
+	<context:component-scan base-package="com.hanthink.business"/>
+	<context:component-scan base-package="com.hanthink.pkg" />
+	<context:component-scan base-package="com.hanthink.jit"/>
+	<context:component-scan base-package="com.hanthink.sw"/>
+	<context:component-scan base-package="com.hanthink.sps"/>
+	<context:component-scan base-package="com.hanthink.mon"/>
+	<context:component-scan base-package="com.hanthink.jisi"/>
+	<bean id="loginContext" class="com.hotent.org.api.impl.context.DefaultLoginContext"></bean>
+	
+	<bean class="com.hotent.form.persistence.dao.impl.CustomDialogDaoImpl" />
+	<bean class="com.hotent.form.persistence.manager.impl.CustomDialogManagerImpl" />
+	<bean class="com.hotent.form.persistence.dao.impl.CombinateDialogDaoImpl" />
+	<bean class="com.hotent.form.persistence.manager.impl.CombinateDialogManagerImpl" />
+
+	
+	<bean id="contextUtil" class="com.hotent.sys.util.ContextUtil">
+		<property name="currentContext" ref="loginContext"></property>
+	</bean>
+    
+    <!-- 如果采用分布式则使用此方式 
+		https://code.google.com/p/xmemcached/wiki/Spring_Integration
+	-->
+	<!-- 
+	<bean id="iCache" class="com.hotent.base.core.cache.impl.MemcachedCache" > 
+		<property name="memcachedClient" ref="memcachedClient"></property> 
+	</bean> 
+	<bean name="memcachedClient" class="net.rubyeye.xmemcached.utils.XMemcachedClientFactoryBean"
+		 destroy-method="shutdown"> 
+		<property name="servers" value="${memcached.url}"></property> 
+	</bean>-->
+	
+	<!-- 缓存配置实现-->
+	<bean id="iCache" class="com.hotent.base.core.cache.impl.MemoryCache" ></bean>	 
+	
+	
+	 <!-- 脚本引擎 -->
+	<bean id="scriptEngine" class="com.hotent.base.core.engine.script.GroovyScriptEngine">
+		<property name="bindingInterface">
+			<list>
+				<value>com.hotent.base.core.engine.script.IScript</value>
+		    	<value>com.hotent.base.core.engine.script.IUserScript</value>
+				<value>com.hotent.base.manager.api.Manager</value>
+				<value>com.hotent.sys.api.model.IConditionScript</value>
+
+			</list>
+		</property>
+	</bean>
+	
+	
+	<!-- 短信接口空实现 -->
+	<!-- <bean id="shortMessage" class="com.hotent.base.core.sms.NoneMessageImpl"/>	 -->
+	
+	<!-- 
+	<bean id="scheduler" class="org.springframework.scheduling.quartz.SchedulerFactoryBean"
+		lazy-init="false" destroy-method="destroy">
+		<property name="autoStartup" value="true" />
+		<property name="waitForJobsToCompleteOnShutdown" value="false" />
+		<property name="dataSource" ref="dataSource_Default" />
+		
+		<property name="overwriteExistingJobs" value="true" />
+		<property name="startupDelay" value="60"></property>
+		<property name="jobFactory">  
+            <bean class="org.quartz.simpl.SimpleJobFactory"></bean>  
+        </property>  
+		<property name="quartzProperties">
+			<props>
+				<prop key="org.quartz.scheduler.instanceName">ClusteredScheduler</prop>
+				<prop key="org.quartz.scheduler.instanceId">AUTO</prop>
+				<prop key="org.quartz.scheduler.skipUpdateCheck">true</prop>
+				
+				<prop key="org.quartz.threadPool.class">org.quartz.simpl.SimpleThreadPool</prop>
+				<prop key="org.quartz.threadPool.threadCount">5</prop>
+				<prop key="org.quartz.threadPool.threadPriority">5</prop>
+				
+				<prop key="org.quartz.jobStore.class">org.quartz.impl.jdbcjobstore.JobStoreTX</prop>
+				<prop key="org.quartz.jobStore.driverDelegateClass">${quartz.jdbcjobstore}</prop>
+				<prop key="org.quartz.jobStore.misfireThreshold">60000</prop>
+				<prop key="org.quartz.jobStore.useProperties">false</prop>
+				<prop key="org.quartz.jobStore.tablePrefix">QRTZ_</prop>
+				
+				<prop key="org.quartz.jobStore.isClustered">true</prop>
+				<prop key="org.quartz.jobStore.clusterCheckinInterval">20000</prop>
+				
+				<prop key="org.quartz.scheduler.classLoadHelper.class">org.quartz.simpl.CascadingClassLoadHelper</prop> 
+				<prop key="org.quartz.jobStore.lockHandler.class">org.quartz.impl.jdbcjobstore.UpdateLockRowSemaphore</prop> 
+				<prop key="org.quartz.jobStore.lockHandler.updateLockRowSQL">UPDATE QRTZ_LOCKS SET LOCK_NAME = LOCK_NAME WHERE LOCK_NAME = ?</prop>
+			</props>
+		</property>
+	</bean>
+	 -->
+	
+	<bean id="schedulerService" class="com.hotent.base.core.scheduler.SchedulerService"></bean>
+	
+	<!-- 数据源导入拦截bean -->
+  	<bean id="dataSourceInitListener" class="com.hotent.mini.web.listener.DataSourceInitListener"></bean>
+  	
+	<!-- 
+		权限类型列表
+		用于流程授权
+	 -->
+	 <!--
+	<bean id="defaultObjectRightType" class="java.util.ArrayList">
+		<constructor-arg>
+			<list>
+				<ref bean="everyOnePermission"/>
+				<ref bean="usersPermission"/>
+				<ref bean="orgPermission"/>
+				<ref bean="posPermission"/>
+				<ref bean="rolePermission"/>
+			</list>
+		</constructor-arg>
+	</bean>
+	<bean id="formPermissionCalc" class="com.hotent.sys.api.permission.PermissionCalc" >
+		<property name="permissionList" ref="formPermissionCalcList" ></property>
+	</bean>
+	<bean id="formPermissionCalcList" class="java.util.ArrayList">
+	  <constructor-arg>
+	   <list>
+	   		<ref bean="everyOnePermission"/>
+			<ref bean="nonePermission"/>
+			<ref bean="scriptPermission"/>
+			<ref bean="usersPermission"/>
+			<ref bean="orgPermission"/>
+			<ref bean="posPermission"/>
+			<ref bean="rolePermission"/>
+	   </list>
+	  </constructor-arg>
+	</bean>
+	<bean id="everyOnePermission" class="com.hotent.sys.service.impl.permission.EveryOnePermission"></bean>
+	<bean id="nonePermission" class="com.hotent.sys.service.impl.permission.NonePermission"></bean>
+	<bean id="scriptPermission" class="com.hotent.sys.service.impl.permission.ScriptPermission"></bean>
+	<bean id="usersPermission" class="com.hotent.sys.service.impl.permission.UsersPermission"></bean>
+	<bean id="orgPermission" class="com.hotent.sys.service.impl.permission.OrgPermission"></bean>
+	<bean id="posPermission" class="com.hotent.sys.service.impl.permission.PosPermission"></bean>
+	<bean id="rolePermission" class="com.hotent.sys.service.impl.permission.RolePermission"></bean>
+  	-->
+  	
+  	<!-- 常量bean配置 -->
+  	<bean id="queryViewComVarList" class="java.util.ArrayList"><!-- 自定义SQL查询视图中用的常量 -->
+	  <constructor-arg>
+	   <list>
+	   		<ref bean="currentUserAccountVar"/>
+			<ref bean="currentUserIdVar"/>
+	   </list>
+	  </constructor-arg>
+	</bean>
+  	
+  	<bean id="currentUserAccountVar" class="com.hotent.sys.api.var.CurrentUserAccountVar"></bean>
+  	<bean id="currentUserIdVar" class="com.hotent.sys.api.var.CurrentUserIdVar"></bean>
+  	
+  	<bean id="authService" class="com.hotent.base.authimpl.AuthService"></bean>
+  	
+  	<!-- 登录认证信息缓存配置 -->
+	<bean class="com.hotent.base.core.cache.impl.AuthCache" > 
+		<property name="memcachedClient" ref="memcachedClient"></property> 
+	</bean> 
+	<bean name="memcachedClient" class="net.rubyeye.xmemcached.utils.XMemcachedClientFactoryBean"
+		 destroy-method="shutdown"> 
+		<property name="servers" value="${memcached.url}"></property> 
+	</bean>
+  	
+</beans>

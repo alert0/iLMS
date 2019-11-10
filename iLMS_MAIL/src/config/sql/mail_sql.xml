@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="mail">
+	<typeAlias alias="mailMsgGroupUserVo" type="com.hanthink.gps.mail.vo.MailMsgGroupUserVo" />
+	<typeAlias alias="mailMsgGroupVo" type="com.hanthink.gps.mail.vo.MailMsgGroupVo" />
+	<typeAlias alias="mailMsgTimerVo" type="com.hanthink.gps.mail.vo.MailMsgTimerVo" />
+	
+	
+	  <!-- 定时器查询 -->
+	<select id="queryMailTimerListDaoSql" parameterClass="mailMsgTimerVo" resultClass="mailMsgTimerVo">
+	select
+		ID id,
+	    TIMER_CODE  timerCode,
+		TIMER_NAME  timerName,
+		TIMER_PARAM  timerParam,
+		TIMER_GROUP  timerGroup,
+		RUN_CODE  runCode,
+		START_TIME  startTime,
+		LAST_RUN_TIME  lastRunTime,
+		NEXT_RUN_TIME  nextRunTime,
+		RUN_STATE  runState,
+		UPDATE_STATE  updateState
+	from MM_PUB_MSG_TIMER
+    where DEL_FLAG  ='0' AND APP_TYPE = #appType#
+	</select>
+	
+	  <!-- 定时器查询 -->
+	<update id="updateMailTimerSql"  parameterClass="mailMsgTimerVo" >
+		UPDATE MM_PUB_MSG_TIMER SET
+		  <isNotEmpty prepend="" property="updateState">
+		    UPDATE_STATE = #updateState#,
+		  </isNotEmpty> 
+		  <isNotEmpty prepend="" property="lastRunTime">
+			LAST_RUN_TIME = #lastRunTime#,
+		  </isNotEmpty> 
+		  <isNotEmpty prepend="" property="nextRunTime">
+			NEXT_RUN_TIME = #nextRunTime#,
+		  </isNotEmpty> 
+		  MODIFY_DATE = SYSDATE
+		WHERE ID = #id#
+	</update>
+	
+	<!-- 根据分组代码查询分组人员 -->
+	<select id="select_queryGroupUserByGroupCode" parameterClass="mailMsgGroupVo" 
+			resultClass="mailMsgGroupUserVo">
+		SELECT 
+	      U.ID AS id,
+	      U.GROUP_CODE AS groupCode,
+	      U.USER_ID AS userId,
+	      U.TIMER_CODE AS timerCode,
+	      U.DEL_FLAG AS delFlag,
+	      NVL(G.FULLNAME_, U.USER_CNAME) AS userCName,
+	      NVL(G.MOBILE_, U.MOBILE) AS mobile,
+	      NVL(G.EMAIL_, U.EMAIL) AS email
+	    FROM MM_PUB_MSG_GROUP_USER U
+	    LEFT OUTER JOIN SYS_USER G ON G.ACCOUNT_ = U.USER_ID
+		WHERE 1 = 1
+		  <isNotEmpty prepend="AND" property="groupCode">
+			U.GROUP_CODE = #groupCode#
+		  </isNotEmpty>
+		  <isNotEmpty prepend="AND" property="delFlag">
+			U.DEL_FLAG = #delFlag#
+		  </isNotEmpty>
+	
+	</select>
+	
+	<!-- 根据定时器ID查询其配置的邮件接收人信息 -->
+	<select id="select_queryTimerSendUserByTimerId" parameterClass="java.lang.Integer" 
+			resultClass="mailMsgGroupUserVo">
+		SELECT DISTINCT
+	      U.USER_ID AS userId,
+	      U.DEL_FLAG AS delFlag,
+	      U.SORT_ID sortId,
+	      NVL(G.FULLNAME_, U.USER_CNAME) AS userCName,
+	      NVL(G.MOBILE_, U.MOBILE) AS mobile,
+	      NVL(G.EMAIL_, U.EMAIL) AS email
+	    FROM MM_PUB_MSG_GROUP_USER U
+	    LEFT OUTER JOIN SYS_USER G ON G.ACCOUNT_ = U.USER_ID
+		WHERE U.GROUP_CODE IN (
+		   SELECT DISTINCT GROUP_CODE FROM MM_PUB_MSG_GROUP_TIMER WHERE TIMER_ID = #value#
+		 )
+		 AND U.DEL_FLAG = 0
+		 ORDER BY U.SORT_ID
+	</select>
+	
+	<!-- 查询抄送人员 -->
+	<select id="select_queryCSEmailUserInfo" parameterClass="mailMsgGroupUserVo" resultClass="mailMsgGroupUserVo">
+		SELECT DISTINCT
+	        U.USER_ID AS userId,
+	        U.DEL_FLAG AS delFlag,
+	        U.SORT_ID sortId,
+	        NVL(G.FULLNAME_, U.USER_CNAME) AS userCName,
+	        NVL(G.MOBILE_, U.MOBILE) AS mobile,
+	        NVL(G.EMAIL_, U.EMAIL) AS email
+	      FROM MM_PUB_MSG_GROUP_USER U
+	      LEFT OUTER JOIN SYS_USER G ON G.ACCOUNT_ = U.USER_ID
+	    WHERE U.GROUP_CODE = 'CS_GROUP'
+	     AND U.DEL_FLAG = 0
+	     ORDER BY U.SORT_ID
+	</select>
+	
+	<!-- 查询资材抄送人员 -->
+	<select id="select_queryZCCSEmailAddress" parameterClass="mailMsgGroupUserVo" resultClass="mailMsgGroupUserVo">
+		SELECT DISTINCT
+	        U.USER_ID AS userId,
+	        U.DEL_FLAG AS delFlag,
+	        U.SORT_ID sortId,
+	        NVL(G.FULLNAME_, U.USER_CNAME) AS userCName,
+	        NVL(G.MOBILE_, U.MOBILE) AS mobile,
+	        NVL(G.EMAIL_, U.EMAIL) AS email
+	      FROM MM_PUB_MSG_GROUP_USER U
+	      LEFT OUTER JOIN SYS_USER G ON G.ACCOUNT_ = U.USER_ID
+	    WHERE U.GROUP_CODE = 'ZC_GROUP'
+	     AND U.DEL_FLAG = 0
+	     ORDER BY U.SORT_ID
+	</select>
+	
+</sqlMap>
+
+

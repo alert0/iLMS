@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.dpm.model.DpmDepPersonModel">
+	<resultMap id="DpmDepPersonModel" type="com.hanthink.dpm.model.DpmDepPersonModel">
+		<id property="id" column="ID" jdbcType="NUMERIC" />
+		<result property="userId" column="USER_ID" jdbcType="VARCHAR" />
+		<result property="account" column="ACCOUNT" jdbcType="VARCHAR" />
+		<result property="depCode" column="DEP_CODE" jdbcType="VARCHAR"/>
+		<result property="defaultDiscoArea" column="DEFAULT_DISCO_AREA" jdbcType="VARCHAR"/>
+		
+		<!-- 责任组维护表-->
+		<result property="depName" column="DEP_NAME" jdbcType="VARCHAR"/>
+		<result property="depChecker" column="DEP_CHECKER" jdbcType="VARCHAR"/>
+		<result property="belongDep" column="BELONG_DEP" jdbcType="VARCHAR"/>
+		
+		<!-- 用户信息表，用户名 -->
+		<result property="fullname" column="FULLNAME" jdbcType="VARCHAR" />
+		<!-- 用户组织表，部门 -->
+		<result property="name" column="NAME" jdbcType="VARCHAR" />
+	</resultMap>
+
+    <!-- 新增部门人员 -->
+	<insert id="create" parameterType="com.hanthink.dpm.model.DpmDepPersonModel">
+		INSERT INTO MM_DPM_DEP_PERSON
+		(ID,
+		USER_ID, DEP_CODE, DEFAULT_DISCO_AREA,CREATION_USER)
+		VALUES
+		(SEQ_MM_DPM_DEP_PERSON.NEXTVAL, #{userId,jdbcType=VARCHAR},
+		#{depCode,jdbcType=VARCHAR}, #{defaultDiscoArea,jdbcType=VARCHAR},
+		#{createBy,jdbcType=VARCHAR} )
+	</insert>
+
+    <!-- 分页查询，显示列表数据 -->
+	<select id="queryDpmDepPersonForPage" parameterType="com.hanthink.dpm.model.DpmDepPersonModel" resultMap="DpmDepPersonModel">
+		SELECT 
+		A.ID id, 
+		B.ACCOUNT_ account,
+		B.FULLNAME_ fullname,
+		A.DEP_CODE depCode,
+		C.DEP_NAME depName,
+		C.BELONG_DEP belongDep,
+		C.DEP_CHECKER depChecker,
+		A.DEFAULT_DISCO_AREA defaultDiscoArea
+        FROM MM_DPM_DEP_PERSON A LEFT JOIN SYS_USER B ON A.USER_ID=B.ID_
+        LEFT JOIN MM_DPM_DEPARTMENT C ON A.DEP_CODE=C.DEP_CODE
+ 		WHERE 1=1 
+		<if test="account!=null">
+		AND	B.ACCOUNT LIKE CONCAT(#{account}, '%')
+		</if>
+		<if test="fullname!=null">
+		AND	B.FULLNAME LIKE CONCAT(#{fullname}, '%')
+		</if>
+		<if test="belongDep!=null">
+		AND	C.BELONG_DEP LIKE CONCAT(#{belongDep}, '%')
+		</if>
+		<if test="depCode!=null">
+		AND	A.DEP_CODE=#{depCode}
+		</if>
+		ORDER BY ID DESC 
+	</select>
+	
+	 <!-- 修改部门人员信息 -->
+	 <update id="update" parameterType="com.hanthink.dpm.model.DpmDepPersonModel">
+		UPDATE MM_DPM_DEP_PERSON SET
+		USER_ID = #{userId,jdbcType=VARCHAR},
+		DEP_CODE = #{depCode,jdbcType=VARCHAR},
+		DEFAULT_DISCO_AREA = #{defaultDiscoArea,jdbcType=VARCHAR},
+		LAST_MODIFIED_USER = #{updateBy,jdbcType=VARCHAR},
+		LAST_MODIFIED_TIME=sysdate
+		WHERE
+		ID = #{id}
+	</update>
+	
+	<!-- 通过ID获取该条数据明细 -->
+	<select id="get"   parameterType="java.lang.String" resultMap="DpmDepPersonModel">
+		SELECT 
+		A.ID id, 
+		B.ACCOUNT_ account,
+		B.FULLNAME_ fullname,
+		A.DEP_CODE depCode,
+		C.DEP_NAME depName,
+		C.BELONG_DEP belongDep,
+		C.DEP_CHECKER depChecker,
+		A.DEFAULT_DISCO_AREA defaultDiscoArea 
+        FROM MM_DPM_DEP_PERSON A LEFT JOIN SYS_USER B ON A.USER_ID=B.ID_
+        LEFT JOIN MM_DPM_DEPARTMENT C ON A.DEP_CODE=C.DEP_CODE
+		WHERE A.ID=#{id}
+	</select>
+
+     <!-- 根据ID删除数据 -->
+     <delete id="remove" parameterType="java.lang.String">
+		DELETE FROM MM_DPM_DEP_PERSON 
+		WHERE
+		ID = #{id}
+	</delete>
+	
+<!-- 	<select id="getByCode" parameterType="java.lang.String" resultMap="DpmDepPersonModel">
+	    SELECT * FROM MM_DPM_ITEM
+	    WHERE ITEM_CODE=#{itemCode}
+	</select> --> 
+</mapper>

@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.pub.model.PubPrPrinterModel">
+
+	<insert id="create" parameterType="com.hanthink.pub.model.PubPrPrinterModel">
+	   INSERT INTO MM_PR_PRINTER
+				  (ID,
+				   PRINTER_NAME,
+				   FACTORY,
+				   DESCRIPTION,
+				   LOCATION,
+				   IP,
+				   PORT,
+				   VENDOR,
+				   DRIVER,
+				   TYPE,
+				   OWNER,
+				   PRINTER_GROUP,
+				   ACTIVE,
+				   CREATION_TIME,
+				   CREATION_USER
+				   )
+				VALUES
+				  (SEQ_MM_PR_PRINTER.NEXTVAL,
+				   #{printerName,jdbcType=VARCHAR},
+				   #{factory,jdbcType=VARCHAR},
+				   #{description,jdbcType=VARCHAR},
+				   #{location,jdbcType=VARCHAR},
+				   #{ip,jdbcType=VARCHAR},
+				   #{port,jdbcType=VARCHAR},
+				   #{vendor,jdbcType=VARCHAR},
+				   #{driver,jdbcType=VARCHAR},
+				   #{type,jdbcType=VARCHAR},
+				   #{owner,jdbcType=VARCHAR},
+				   #{printerGroup,jdbcType=VARCHAR},
+				   #{active,jdbcType=VARCHAR},
+				   sysdate,
+				   #{creationUser,jdbcType=VARCHAR}
+				   )
+	 </insert>
+
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="queryPubPrPrinterForPage" parameterType="com.hanthink.pub.model.PubPrPrinterModel" resultType="com.hanthink.pub.model.PubPrPrinterModel">
+	        SELECT T.PRINTER_NAME        printerName,
+			       T.DESCRIPTION         description,
+			       T.LOCATION            location,
+			       T.IP                  ip,
+			       T.PORT                port,
+			       T.VENDOR              vendor,
+			       T.PRINTER_GROUP      printerGroup,
+			       A.CODE_VALUE_NAME    codeValueNameA,
+			       T.DRIVER              driver,
+			       T.TYPE                type,
+			       T.OWNER               owner,
+			       T.ACTIVE              active,
+			       B.CODE_VALUE_NAME    codeValueNameB,
+			       T.ID                 id,
+			       T.FACTORY            factory
+			  FROM MM_PR_PRINTER T
+			  LEFT JOIN MM_PUB_DATA_DICT A
+			    ON T.PRINTER_GROUP = A.CODE_VALUE
+			   AND A.CODE_TYPE = 'PR_OWN_GROUP'
+			   AND T.FACTORY = A.FACTORY_CODE
+			  LEFT JOIN MM_PUB_DATA_DICT B
+			    ON T.ACTIVE = B.CODE_VALUE
+			   AND B.CODE_TYPE = 'PUB_IS_ENABLE'
+			   AND T.FACTORY = B.FACTORY_CODE
+			 WHERE 1 = 1
+			   AND T.FACTORY = #{factory}
+			<if test="printerGroup!=null and printerGroup!='' ">
+			AND	T.PRINTER_GROUP LIKE CONCAT(#{printerGroup}, '%')
+			</if>
+			<if test="printerName!=null and printerName!='' ">
+			AND	T.PRINTER_NAME LIKE CONCAT(#{printerName}, '%')
+			</if>
+			<if test="description!=null and description!='' ">
+			AND	T.DESCRIPTION LIKE CONCAT(#{description}, '%')
+			</if>
+			<if test="active!=null and active!='' ">
+			AND	T.ACTIVE LIKE CONCAT(#{active}, '%')
+			</if>
+			ORDER BY T.ID   
+	</select>
+	
+	<!-- 修改方法 -->
+	<update id="update" parameterType="com.hanthink.pub.model.PubPrPrinterModel">
+	    UPDATE MM_PR_PRINTER
+		   SET PRINTER_NAME = #{printerName,jdbcType=VARCHAR},
+		       FACTORY =  #{factory,jdbcType=VARCHAR},
+		       DESCRIPTION = #{description,jdbcType=VARCHAR},
+		       LOCATION = #{location,jdbcType=VARCHAR},
+		       IP =  #{ip,jdbcType=VARCHAR},
+		       PORT =  #{port,jdbcType=NUMERIC},
+		       VENDOR =  #{vendor,jdbcType=VARCHAR},
+		       DRIVER = #{driver,jdbcType=VARCHAR},
+		       TYPE = #{type,jdbcType=VARCHAR},
+		       OWNER =  #{owner,jdbcType=VARCHAR},
+		       PRINTER_GROUP = #{printerGroup,jdbcType=VARCHAR},
+		       ACTIVE = #{active,jdbcType=VARCHAR},
+		       LAST_MODIFIED_USER = #{lastModifiedUser,jdbcType=VARCHAR},
+		       LAST_MODIFIED_TIME = sysdate,
+		       LAST_MODIFIED_IP = #{lastModifiedIp,jdbcType=VARCHAR}
+		 WHERE ID = #{id}
+	</update>
+	
+	<!-- 删除方法 -->
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM MM_PR_PRINTER 
+		WHERE 1=1
+		AND ID=#{id}
+	</delete>
+	
+	<!-- 单条/批量数据删除 -->
+	<delete id="deleteByIds" parameterType="java.lang.String">
+		DELETE FROM MM_PR_PRINTER
+		WHERE ID IN
+		<foreach item="aryIds" collection="array" open="(" separator="," close=")">
+			#{aryIds,jdbcType=VARCHAR}
+		</foreach>
+	</delete>
+	
+</mapper>

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.sys.persistence.model.SysObjLog">
+	<resultMap id="SysObjLog" type="com.hotent.sys.persistence.model.SysObjLog">
+		<id property="id" column="ID_" jdbcType="VARCHAR"/>
+		<result property="operatorId" column="OPERATOR_ID_" jdbcType="VARCHAR"/>
+		<result property="operator" column="OPERATOR_" jdbcType="VARCHAR"/>
+		<result property="createTime" column="CREATE_TIME_" jdbcType="TIMESTAMP"/>
+		<result property="name" column="NAME_" jdbcType="VARCHAR"/>
+		<result property="content" column="CONTENT_" jdbcType="CLOB"/>
+		<result property="objType" column="OBJ_TYPE_" jdbcType="VARCHAR"/>
+		<result property="param" column="PARAM_" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.sys.persistence.model.SysObjLog">
+		INSERT INTO sys_obj_log
+		(ID_,OPERATOR_ID_,OPERATOR_,CREATE_TIME_,NAME_,CONTENT_,OBJ_TYPE_,PARAM_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{operatorId,jdbcType=VARCHAR}, #{operator,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP}, #{name,jdbcType=VARCHAR}, #{content,jdbcType=CLOB}, #{objType,jdbcType=VARCHAR}, #{param,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="SysObjLog">
+		SELECT * FROM sys_obj_log 
+		WHERE 
+		ID_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="SysObjLog">
+		SELECT * FROM sys_obj_log
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY ID_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.sys.persistence.model.SysObjLog">
+		UPDATE sys_obj_log SET
+		OPERATOR_ID_=#{operatorId,jdbcType=VARCHAR},
+		OPERATOR_=#{operator,jdbcType=VARCHAR},
+		CREATE_TIME_=#{createTime,jdbcType=TIMESTAMP},
+		NAME_=#{name,jdbcType=VARCHAR},
+		CONTENT_=#{content,jdbcType=CLOB},
+		OBJ_TYPE_=#{objType,jdbcType=VARCHAR},
+		PARAM_=#{param,jdbcType=VARCHAR}
+		WHERE
+		ID_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_obj_log 
+		WHERE
+		ID_=#{id}
+	</delete>
+	
+	
+</mapper>

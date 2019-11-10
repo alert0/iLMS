@@ -1,0 +1,120 @@
+package com.hanthink.jiso.controller;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.ibatis.session.RowBounds;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.hanthink.jiso.manager.JisoNetDemandManager;
+import com.hanthink.jiso.model.JisoNetDemandModel;
+import com.hanthink.util.excel.ExcelUtil;
+import com.hotent.base.core.web.GenericController;
+import com.hotent.base.db.mybatis.domain.DefaultPage;
+import com.hotent.base.db.mybatis.domain.PageJson;
+import com.hotent.base.db.mybatis.domain.PageList;
+import com.hotent.org.api.model.IUser;
+import com.hotent.sys.util.ContextUtil;
+import com.hotent.sys.util.SysPropertyUtil;
+
+/**
+ * 
+ * ClassName: JisoNetDemandController 
+ * @Description: 厂外同步零件下线计划
+ * @author luoxianqin
+ * @date 2019年4月3日
+ */
+@Controller
+@RequestMapping("/jiso/netDemand")
+public class JisoNetDemandController extends GenericController{
+
+	@Resource 
+	private JisoNetDemandManager manager;
+	
+	private static Logger log = LoggerFactory.getLogger(JisoNetDemandController.class);
+	
+	/**
+	 * 
+	 * @Description: 分页查询厂外同步净需求数据
+	 * @param @param request
+	 * @param @param response
+	 * @param @param model
+	 * @param @return   
+	 * @return PageJson  
+	 * @throws  
+	 * @author luoxq
+	 * @date 2019年4月4日 上午10:16:20
+	 */
+	@RequestMapping("queryJisoNetDemandPage")
+	public @ResponseBody PageJson queryJisoNetDemandPage(HttpServletRequest request,HttpServletResponse response, 
+			@ModelAttribute("model") JisoNetDemandModel model) {
+		IUser user = ContextUtil.getCurrentUser();
+		if (IUser.USER_TYPE_SUPP.equals(user.getUserType())) {
+			model.setSupplierNo(user.getSupplierNo());
+		}
+		model.setUserId(user.getUserId());
+		model.setUserType(user.getUserType());
+		DefaultPage page=new DefaultPage(new RowBounds(getQueryFilter(request).getPage().getStartIndex(), 
+				getQueryFilter(request).getPage().getPageSize()));
+		PageList<JisoNetDemandModel> pageList = manager.queryJisoNetDemandPage(model, page);
+		return new PageJson(pageList);
+		
+	}
+	
+	/**
+	 * 
+	 * @Description: 同步零件下线计划导出
+	 * @param @param request
+	 * @param @param response
+	 * @param @param model
+	 * @param @throws Exception   
+	 * @return void  
+	 * @throws  
+	 * @author luoxq
+	 * @date 2019年4月4日 上午10:28:30
+	 */
+	@RequestMapping("downloadJisoNetDemandModel")
+	public void downloadSwSupplierGroupModel(HttpServletRequest request,HttpServletResponse response, JisoNetDemandModel model)throws Exception{
+		try {
+	    IUser user = ContextUtil.getCurrentUser();
+	    model.setSupplierNo(user.getSupplierNo());
+	    model.setUserId(user.getUserId());
+	    model.setUserType(user.getUserType());
+		String exportFileName = "同步零件下线计划导出" + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+		List<JisoNetDemandModel> list =  manager.queryJisoNetDemandByKey(model);
+		/**
+		 * 如果查询记录超过10000条则报错
+		 */
+		if(0 == list.size()){
+			ExcelUtil.exportNoDataError(request, response);
+			return;
+		}
+		int sysMaxNum = SysPropertyUtil.getIntByAlias("EXCEL_EXPORT_MAX_SIZE", 10000); //获取系统所允许的最大导出数量
+		if(list.size() > sysMaxNum){
+			ExcelUtil.exportNumError(sysMaxNum, request, response);
+			return;
+		}
+		
+		String[] headers = {"零件组代码","零件号", "简号","零件名称","供应商代码","出货地代码","到货仓库","数量","下线时间"};
+		String[] columns = {"partgroupNo","partNo", "partShortNo","partNameCn","supplierNo","supFactory","arrDepot","requireNum","offlineTime"};
+		int[] widths = {80,140,80,150,80,80,80,80,130};
+		ExcelUtil.exportExcel(ExcelUtil.EXCEL_XLSX, request, response, exportFileName, list, headers, widths, columns);
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.error(e.toString());
+//			ExcelUtil.exportException(e, request, response);
+			throw new Exception("系统错误,请联系管理员");
+		}
+	}
+	
+}

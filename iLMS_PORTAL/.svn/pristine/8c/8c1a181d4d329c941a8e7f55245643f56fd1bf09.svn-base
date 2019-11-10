@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.sw.model.SwAccountBillModel">
+		<!-- 发票对账管理，分页查询功能 -->
+		<select id="queryJisoAccountBillPage" parameterType="com.hanthink.sw.model.SwAccountBillModel" resultType="com.hanthink.sw.model.SwAccountBillModel">
+			  SELECT A.BILL_NO           billNo,
+		             A.DEDUCT_MONEY      deductMoney,
+		             A.SUPPLIER_NO       supplierNo,
+		             A.DEDUCT_MONEY_DESC deductMoneyDesc,
+		             A.TAX_EXCLUDED      taxExcluded,
+		             A.YEAR_ADJUST       yearAdjust,
+		             A.TAX_INCLUSIVE     taxInclusive,
+		             A.YEAR_ADJUST_DESC  yearAdjustDesc,
+		             A.TOTAL_TAX         totalTax,
+		             A.MOULD_AMOUNT      mouldAmount,
+		             A.CURRENCY_TYPE     currencyType,
+		             A.MOULD_AMOUNT_DESC mouldAmountDesc,
+		             <!-- to_char(A.REBATE, '99999999999999999999.999') rebate, -->
+		             A.REBATE            rebate,
+		             DD.CODE_VALUE_NAME  payTerm,
+		             <!-- A.PAY_TERM          payTerm, -->
+		             A.REBATE_DESC       rebateDesc,
+		             to_char(A.MAKE_DATE, 'yyyy-mm-dd')      makeDate,
+		             PD.CODE_VALUE_NAME 	submitStatus,
+		             nvl(AB.invoiceAmount ,'0')      totalInvoice,
+		             ACS.CODE_VALUE_NAME             accountStatus
+		        FROM MM_SW_ACCOUNT_BILL A
+		         LEFT JOIN (select z.bill_no billNo, sum(Z.INVOICE_AMOUNT) invoiceAmount
+		               from MM_SW_ACCOUNT_INVOICE  z
+		               group by z.bill_no) AB
+		          ON A.BILL_NO = AB.BILLNO
+		         LEFT JOIN MM_PUB_DATA_DICT PD
+				    ON PD.FACTORY_CODE = #{factoryCode}
+				   AND PD.CODE_TYPE = 'PUB_TRUE_FALSE'
+				   AND A.SUBMIT_STATUS = PD.CODE_VALUE
+				 LEFT JOIN MM_PUB_DATA_DICT DD
+	               ON DD.FACTORY_CODE = #{factoryCode}
+	               AND DD.CODE_TYPE = 'SW_PAY_TERM'
+	               AND A.PAY_TERM = DD.CODE_VALUE
+	             LEFT JOIN MM_PUB_DATA_DICT ACS
+	               ON ACS.FACTORY_CODE = #{factoryCode}
+	               AND ACS.CODE_TYPE = 'ACCOUNT_STATUS'
+	               AND A.ACCOUNT_STATUS = ACS.CODE_VALUE
+			    WHERE A.FACTORY_CODE = #{factoryCode}
+				
+		  <if test="makeDateStart !=null and makeDateStart !='' ">
+		  <![CDATA[ AND A.MAKE_DATE >= TO_DATE(#{makeDateStart},'yyyy-MM-dd') ]]>
+		  </if>
+		  <if test="makeDateEnd !=null and makeDateEnd !='' ">
+		  <![CDATA[ AND A.MAKE_DATE <= TO_DATE(#{makeDateEnd},'yyyy-MM-dd') ]]>
+		  </if>
+		  <if test="supplierNo !=null and supplierNo !='' ">
+				  AND A.SUPPLIER_NO = #{supplierNo}
+		  </if>
+		  <if test="billNo !=null and billNo !='' ">
+				  AND A.BILL_NO = #{billNo}
+		  </if>
+		  ORDER BY A.PAY_TERM DESC , A.SUBMIT_STATUS ASC
+		</select>
+		
+		<!-- 发票对账（物流），分页查询功能 -->
+		<select id="queryJisoAccountBillSearchPage" parameterType="com.hanthink.sw.model.SwAccountBillModel" resultType="com.hanthink.sw.model.SwAccountBillModel">
+			  SELECT sb.BILL_NO billNo,
+			         sbd.BILL_ROW_NO billRowNo,
+			         sbd.PURCHASE_NO purchaseNo,
+			         sbd.PURCHASE_ROW_NO purchaseRowNo,
+			         sbd.PART_NO partNo,
+			         ppu.PART_SHORT_NO partShortNo,
+			         ppu.PART_NAME_CN partNameCn,
+			         sbd.REC_NUM recNum,
+			         sbd.PART_UNIT partUnit
+			  FROM MM_SW_ACCOUNT_BILL sb
+			  LEFT JOIN
+			      MM_SW_ACCOUNT_BILL_DETAIL sbd
+			  ON  
+			      sb.BILL_NO = sbd.BILL_NO
+			  LEFT JOIN 
+			  	  MM_PUB_PART_UDA ppu
+			  ON 
+			  	  sbd.PART_NO = ppu.PART_NO
+			  WHERE sb.FACTORY_CODE = #{factoryCode}
+				
+		  <if test="billNo !=null and billNo !='' ">
+		  		  AND sb.BILL_NO LIKE CONCAT(#{billNo},'%')
+		  </if>
+		  <if test="supplierNo !=null and supplierNo !='' ">
+		  		  AND sb.SUPPLIER_NO = #{supplierNo}
+		  </if>
+		  <if test="partNo !=null and partNo !='' ">
+				  AND sbd.PART_NO LIKE CONCAT(#{partNo},'%')
+		  </if>
+		  <if test="partShortNo !=null and partShortNo !='' ">
+				 AND ppu.PART_SHORT_NO = #{partShortNo}
+		  </if>
+		  <if test="partNameCn !=null and partNameCn !='' ">
+				 AND ppu.PART_NAME_CN LIKE CONCAT(#{partNameCn},'%')
+		  </if>
+		  ORDER BY sb.BILL_NO, sbd.BILL_ROW_NO, sbd.PURCHASE_NO, sbd.PURCHASE_ROW_NO
+		</select>
+		
+		<!-- 发票对账管理，明细查看 -->
+		<select id="queryJisoAccountBillDetailPage" parameterType="com.hanthink.sw.model.SwAccountBillModel" resultType="com.hanthink.sw.model.SwAccountBillModel">
+			SELECT A.BILL_NO            billNo,
+				   B.BILL_ROW_NO        billRowNo,
+			       B.PURCHASE_NO        purchaseNo,
+			       B.PURCHASE_ROW_NO    purchaseRowNo,
+			       B.REC_VOUCHER_YEAR   recVoucherYear,
+			       B.REC_VOUCHER_BILLNO recVoucherBillno,
+			       B.REC_VOUCHER_ROWNO  recVoucherRowno,
+			       
+			       <!-- to_char(B.REC_DATE, '99999999999999999999.999')  recDate, -->
+			       B.REC_DATE           recDate,
+			       B.LOAN_FLAG          loanFlag,
+			       B.PRICE_STATUS       priceStatus,
+			       
+			       to_char(B.EVA_PRICE, '99999999999999999990.999')  evaPrice,
+			       <!-- B.EVA_PRICE          evaPrice, -->
+			       
+			       <!-- to_char(B.OFFICIAL_PRICE, '99999999999999999999.999')   officialPrice, -->
+			       B.OFFICIAL_PRICE     officialPrice,
+			       
+			       <!-- to_char(B.ADJUST_DIFF_PRICE, '99999999999999999999.999')  adjustDiffPrice, -->
+			       B.ADJUST_DIFF_PRICE  adjustDiffPrice,
+			       B.EVA_PRICE_PERCENT  evaPricePercent,
+			       
+			       to_char(B.EVA_SETTLE_PRICE, '99999999999999999990.999')   evaSettlePrice,
+			       <!-- B.EVA_SETTLE_PRICE   evaSettlePrice, -->
+			       B.ERP_FACTORY_CODE   erpFactoryCode,
+			       B.PART_NO            partNo,
+			       B.SUPPLIER_NO        supplierNo,
+			       B.Rec_Num            recNum,
+			       
+			       to_char(B.PAY_AMOUNT, '99999999999999999990.999')  payAmount,
+			       <!-- B.PAY_AMOUNT         payAmount, -->
+			       B.TAX_RATE           taxRate,
+			       B.TAX_AMOUNT         taxAmount,
+			       B.CURRENCY_TYPE      currencyType,
+			       B.PART_UNIT          partUnit
+			  FROM MM_SW_ACCOUNT_BILL A
+			  LEFT JOIN MM_SW_ACCOUNT_BILL_DETAIL B
+			    ON A.BILL_NO = B.BILL_NO
+			 WHERE A.BILL_NO = #{billNo} AND
+			 A.FACTORY_CODE = #{factoryCode}
+			 <if test="purchaseNo !=null and purchaseNo !='' ">
+				  AND B.PURCHASE_NO like CONCAT(#{purchaseNo}, '%')
+		  	 </if>
+		  	 <if test="recVoucherBillno !=null and recVoucherBillno !='' ">
+				  AND B.REC_VOUCHER_BILLNO like CONCAT(#{recVoucherBillno}, '%')
+		  	 </if>
+		  	 <if test="partNo !=null and partNo !='' ">
+				  AND B.PART_NO like CONCAT(#{partNo}, '%')
+		  	 </if>
+		</select>
+		
+		<!-- 根据对账单号，发票号，发票代码判断发票是否已存在 -->
+		<select id="getCountBill" parameterType="com.hanthink.sw.model.SwAccountBillModel" resultType="java.lang.Integer">
+			SELECT COUNT(*)
+			  FROM MM_SW_ACCOUNT_INVOICE A
+			 WHERE A.BILL_NO = #{billNo, jdbcType = VARCHAR}
+			   AND A.INVOICE_NO = #{invoiceNo, jdbcType = VARCHAR}
+			   AND A.INVOICE_CODE = #{invoiceCode, jdbcType = VARCHAR}
+			   
+		</select>
+		
+		<!-- 发票对账管理，反馈功能 -->
+		<insert id="billFeedback" parameterType="com.hanthink.sw.model.SwAccountBillModel">
+				  INSERT INTO MM_SW_ACCOUNT_INVOICE A
+				  (A.BILL_NO,
+				   A.INVOICE_NO,
+				   A.INVOICE_CODE,
+				   A.INVOICE_AMOUNT,
+				   A.TAX_AMOUNT,
+				   A.INVOICE_DATE,
+				   A.CHECK_CODE,
+				   A.INVOICE_NET_PRICE,
+				   A.DO_FLAG)
+				VALUES
+				  (#{billNo, jdbcType = VARCHAR},
+				   #{invoiceNo, jdbcType = VARCHAR},
+				   #{invoiceCode, jdbcType = VARCHAR},
+				   #{invoiceAmount, jdbcType = VARCHAR},
+				   #{taxAmount, jdbcType = VARCHAR},
+				   to_date(#{invoiceDate}, 'yyyy-MM-DD'),
+				   #{checkCode,jdbcType = VARCHAR},
+				   #{invoiceNetPrice,jdbcType = VARCHAR},
+				   'I')
+				   <!-- #{invoiceDate,  jdbcType = DATE}) -->
+		</insert>
+
+		<!-- 查询发票反馈情况 -->
+		<select id="queryJisoAccountInvoicePage" parameterType="com.hanthink.sw.model.SwAccountBillModel" 
+			resultType="com.hanthink.sw.model.SwAccountBillModel">
+				SELECT SAI.BILL_NO        billNo,
+				       SAI.INVOICE_NO     invoiceNo,
+				       SAI.INVOICE_CODE   invoiceCode,
+				       SAI.INVOICE_AMOUNT invoiceAmount,
+				       SAI.TAX_AMOUNT     taxAmount,
+				       TO_CHAR(SAI.INVOICE_DATE, 'yyyy-mm-dd') invoiceDate
+				  FROM MM_SW_ACCOUNT_INVOICE SAI
+				 WHERE SAI.BILL_NO = #{billNo}
+		</select>
+		
+		<!-- 发票反馈提交后修改提交状态 -->
+		<update id="updateSubmitStatus" parameterType="java.util.Map">
+		 UPDATE MM_SW_ACCOUNT_BILL A SET A.SUBMIT_STATUS = #{submitStatusYes} WHERE A.BILL_NO IN
+		 <foreach collection="billNoArr" item="billNo" index="index" open="(" separator="," close=")">
+		     	 #{billNo}
+		  </foreach>
+		</update>
+		
+		<!--  发票反馈导出-->
+		<select id="downloadSwAccountBillInvoiceModel" parameterType="com.hanthink.sw.model.SwAccountBillModel" 
+			resultType="com.hanthink.sw.model.SwAccountBillModel">
+		select a.bill_no			billNo,
+		       a.invoice_no			invoiceNo,
+		       a.invoice_code		invoiceCode,
+		       a.invoice_amount		invoiceAmount,
+		       a.tax_amount			taxAmount,
+		       to_char(a.invoice_date,'yyyy-mm-dd')		invoiceDate
+		  from mm_sw_account_invoice a
+		 where a.bill_no in
+		 <foreach collection="billNoArr" item="billNo" index="index" open="(" separator="," close=")">
+		     #{billNo}
+		  </foreach>
+		</select>
+		
+</mapper>

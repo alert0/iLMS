@@ -1,0 +1,585 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.mon.model.MonJITModel">
+
+
+	<select id="queryJITPage"
+		parameterType="com.hanthink.mon.model.MonJITModel"
+		resultType="com.hanthink.mon.model.MonJITModel">
+		SELECT SUP_FACTORY supFactory,
+		SUPPLIER_NAME supplierName,
+		WM_CONCAT(RESULT) result
+		FROM (SELECT B.SUP_FACTORY,
+		B.SUPPLIER_NAME,
+		D.CODE_VALUE_NAME || '*' || B.DELIVERY_COUNT || '*' ||
+		(A.CURR_BATCH_NO - B.DELIVERY_BATCH_NO) RESULT
+		FROM MM_MON_KB A
+		LEFT
+		JOIN MM_JIT_ORDER B
+		ON (A.CURR_BATCH_NO = B.DELIVERY_BATCH_NO OR
+		A.CURR_BATCH_NO - 1 = B.DELIVERY_BATCH_NO OR
+		A.CURR_BATCH_NO - 2 =
+		B.DELIVERY_BATCH_NO OR
+		A.CURR_BATCH_NO - 3 = B.DELIVERY_BATCH_NO OR
+		A.CURR_BATCH_NO + 1 = B.DELIVERY_BATCH_NO OR
+		A.CURR_BATCH_NO + 2 =
+		B.DELIVERY_BATCH_NO OR
+		A.CURR_BATCH_NO + 3 = B.DELIVERY_BATCH_NO)
+		LEFT
+		JOIN MM_JIT_ORDER_DETAIL C
+		ON B.ORDER_NO = C.ORDER_NO
+		LEFT JOIN
+		MM_PUB_DATA_DICT D
+		ON B.DELIVERY_STATUS = D.CODE_VALUE
+		AND D. CODE_TYPE
+		= 'PUB_DELIVERY_STATUS'
+		WHERE 1 = 1
+		<if test="workCenter != null and '' != workCenter">
+			AND A.WORKCENTER = #{workCenter}
+		</if>
+		)
+		GROUP BY SUP_FACTORY, SUPPLIER_NAME
+
+	</select>
+
+	<!-- 查询拉动备货监控，返回参数：出货地，供应商，备货状态*备货次数*看板批次范围*备货的准时性 -->
+	<select id="queryJITPreparePage"
+		parameterType="com.hanthink.mon.model.MonJITModel"
+		resultType="com.hanthink.mon.model.MonJITModel">
+		<!-- WITH AA AS (SELECT PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(T.PLAN_CODE,
+		T.ACTUAL_PRE_PRODUCT_SEQNO) ACTUALPRE,
+		PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(T.PLAN_CODE,
+		T.DISPATCH_PRODUCT_SEQNO) PLANPRE,
+
+		(CASE
+		WHEN
+		PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(T.PLAN_CODE,
+		T.ACTUAL_PRE_PRODUCT_SEQNO) -
+		PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(T.PLAN_CODE,
+		T.DISPATCH_PRODUCT_SEQNO) > 0 THEN
+		'1'
+		WHEN
+		PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(T.PLAN_CODE,
+		T.ACTUAL_PRE_PRODUCT_SEQNO) -
+		PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(T.PLAN_CODE,
+		T.DISPATCH_PRODUCT_SEQNO) < 0 THEN
+		'-1'
+		WHEN
+		PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(T.PLAN_CODE,
+		T.ACTUAL_PRE_PRODUCT_SEQNO) -
+		PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(T.PLAN_CODE,
+		T.DISPATCH_PRODUCT_SEQNO) > 0 THEN
+		'0' ELSE 'N'
+		END) SUB,
+		PREPARE_COUNT ,
+		ORDER_NO ,
+		SUP_FACTORY,
+		SUPPLIER_NAME,
+		PREPARE_STATUS,
+		SUBSTR(PLAN_CODE,0,2) FACTROY
+		FROM MM_JIT_ORDER T ) ,
+		BB AS (SELECT
+		CODE_TYPE,CODE_VALUE,CODE_VALUE_NAME,FACTORY_CODE FROM
+		MM_PUB_DATA_DICT M WHERE M.CODE_TYPE = 'ACTUAL_PLAN_SUB'),
+		CC AS
+		(SELECT CODE_TYPE,CODE_VALUE,CODE_VALUE_NAME,FACTORY_CODE FROM
+		MM_PUB_DATA_DICT G WHERE G.CODE_TYPE = 'PUB_PREPARE_STATUS')
+		SELECT
+		SUP_FACTORY supFactory,
+		SUPPLIER_NAME supplierName,
+		WM_CONCAT(RESULT)
+		result
+		FROM (
+		SELECT B.SUP_FACTORY,
+		B.SUPPLIER_NAME,
+		D.CODE_VALUE_NAME ||
+		'*' || B.PREPARE_COUNT || '*' ||
+		(A.CURR_BATCH_NO - B.ACTUALPRE) || '*'
+		|| (E.CODE_VALUE_NAME) RESULT
+		FROM MM_MON_KB A
+		LEFT JOIN AA B
+		ON
+		(A.CURR_BATCH_NO = B.ACTUALPRE OR
+		A.CURR_BATCH_NO - 1 = B.ACTUALPRE OR
+		A.CURR_BATCH_NO - 2 = B.ACTUALPRE OR
+		A.CURR_BATCH_NO - 3 = B.ACTUALPRE
+		OR
+		A.CURR_BATCH_NO + 1 = B.ACTUALPRE OR
+		A.CURR_BATCH_NO + 2 =
+		B.ACTUALPRE OR
+		A.CURR_BATCH_NO + 3 = B.ACTUALPRE)
+		LEFT JOIN
+		MM_JIT_ORDER_DETAIL C
+		ON B.ORDER_NO = C.ORDER_NO
+		LEFT JOIN CC D
+		ON
+		B.PREPARE_STATUS = D.CODE_VALUE
+		AND B.FACTROY = D.FACTORY_CODE
+		LEFT JOIN
+		BB E
+		ON B.SUB = E.CODE_VALUE
+		AND B.FACTROY = E.FACTORY_CODE
+		WHERE 1 = 1
+		<if test="workCenter != null and '' != workCenter">
+			AND A.WORKCENTER = #{workCenter}
+		</if>
+		)
+		GROUP BY SUP_FACTORY, SUPPLIER_NAME -->
+	</select>
+
+	<!-- 查询拉动收货监控，返回参数：出货地，供应商，收货状态*收货次数*看板批次范围*收货的准时性 -->
+	<select id="queryJITDeliPage"
+		parameterType="com.hanthink.mon.model.MonJITModel"
+		resultType="com.hanthink.mon.model.MonJITModel">
+		<!-- WITH AA AS (SELECT PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(T.PLAN_CODE,
+		T.ACTUAL_DELI_PRODUCT_SEQNO) ACTUALDELI,
+		PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(T.PLAN_CODE,
+		T.DELIVERY_PRODUCT_SEQNO) PLANDELI,
+
+
+		(CASE
+		WHEN
+		PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(T.PLAN_CODE,
+		T.ACTUAL_DELI_PRODUCT_SEQNO) -
+		PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(T.PLAN_CODE,
+		T.DELIVERY_PRODUCT_SEQNO) > 0 THEN
+		'1'
+		WHEN
+		PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(T.PLAN_CODE,
+		T.ACTUAL_DELI_PRODUCT_SEQNO) -
+		PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(T.PLAN_CODE,
+		T.DELIVERY_PRODUCT_SEQNO) < 0 THEN
+		'-1'
+		WHEN
+		PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(T.PLAN_CODE,
+		T.ACTUAL_DELI_PRODUCT_SEQNO) -
+		PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(T.PLAN_CODE,
+		T.DELIVERY_PRODUCT_SEQNO) > 0 THEN
+		'0' ELSE 'N'
+		END) SUB,
+		DELIVERY_COUNT
+		,
+		ORDER_NO ,
+		SUP_FACTORY,
+		SUPPLIER_NAME,
+		DELIVERY_STATUS,
+		SUBSTR(PLAN_CODE,0,2) FACTROY
+		FROM MM_JIT_ORDER T ) ,
+		BB AS (SELECT
+		CODE_TYPE,CODE_VALUE,CODE_VALUE_NAME,FACTORY_CODE FROM
+		MM_PUB_DATA_DICT M WHERE M.CODE_TYPE = 'ACTUAL_PLAN_SUB'),
+		CC AS
+		(SELECT CODE_TYPE,CODE_VALUE,CODE_VALUE_NAME,FACTORY_CODE FROM
+		MM_PUB_DATA_DICT G WHERE G.CODE_TYPE = 'PUB_DELIVERY_STATUS')
+		SELECT
+		SUP_FACTORY supFactory,
+		SUPPLIER_NAME supplierName,
+		WM_CONCAT(RESULT)
+		result
+		FROM (
+		SELECT B.SUP_FACTORY,
+		B.SUPPLIER_NAME,
+		D.CODE_VALUE_NAME ||
+		'*' || B.DELIVERY_COUNT || '*' ||
+		(A.CURR_BATCH_NO - B.ACTUALDELI) ||
+		'*' || (E.CODE_VALUE_NAME) RESULT
+		FROM MM_MON_KB A
+		LEFT JOIN AA B
+		ON
+		(A.CURR_BATCH_NO = B.ACTUALDELI OR
+		A.CURR_BATCH_NO - 1 = B.ACTUALDELI
+		OR
+		A.CURR_BATCH_NO - 2 = B.ACTUALDELI OR
+		A.CURR_BATCH_NO - 3 =
+		B.ACTUALDELI OR
+		A.CURR_BATCH_NO + 1 = B.ACTUALDELI OR
+		A.CURR_BATCH_NO +
+		2 = B.ACTUALDELI OR
+		A.CURR_BATCH_NO + 3 = B.ACTUALDELI)
+		LEFT JOIN
+		MM_JIT_ORDER_DETAIL C
+		ON B.ORDER_NO = C.ORDER_NO
+		LEFT JOIN CC D
+		ON
+		B.DELIVERY_STATUS = D.CODE_VALUE
+		AND B.FACTROY = D.FACTORY_CODE
+		LEFT
+		JOIN BB E
+		ON B.SUB = E.CODE_VALUE
+		AND B.FACTROY = E.FACTORY_CODE
+		WHERE 1
+		= 1
+		<if test="workCenter != null and '' != workCenter">
+			AND A.WORKCENTER = #{workCenter}
+		</if>
+		)
+		GROUP BY SUP_FACTORY, SUPPLIER_NAME -->
+	</select>
+
+	<!-- ************************************************ -->
+	<!-- 查询拉动到货监控 -->
+	<select id="queryJitArrData" parameterType="java.util.Map" resultType="java.util.Map">
+		WITH TMP_ORDER AS(
+		  SELECT 
+		    A.SUP_FACTORY,
+		    A.SUPPLIER_NO,
+		    A.SUPPLIER_NAME,
+		    A.ORDER_NO,
+		    PKG_PUB.USF_GET_BATCHSEQ_BY_PRODSEQNO(A.PLAN_CODE, A.ARRIVE_PRODUCT_SEQNO) PLAN_ARR_BATCHSEQNO, <!-- 计划到货批次流水-->
+		    PKG_PUB.USF_GET_BATCHSEQ_BY_PRODSEQNO(A.PLAN_CODE, A.ACTUAL_ARR_PRODUCT_SEQNO) ACTUAL_ARR_BATCHSEQNO, <!--实际到货批次流水-->
+		    A.ARRIVE_STATUS, <!-- 到货状态 0未收货 1部分 2全部-->
+		    A.ARRIVE_COUNT
+		  FROM MM_JIT_ORDER  A 
+  		  LEFT JOIN MM_PUB_PLAN_CODE B ON B.PLAN_CODE = A.PLAN_CODE
+		  WHERE ARRIVE_PRODUCT_SEQNO BETWEEN #{startProductSeqNo} AND #{endProductSeqNo} <!-- 根据当前批次流水和配置的监控批次范围计算 -->
+		    <if test="workCenter != null and '' != workCenter">
+				AND B.WORKCENTER = #{workCenter}  
+			</if>
+		    <if test="supFactory != null and '' != supFactory">
+				AND A.SUP_FACTORY LIKE #{supFactory} || '%' 
+			</if>
+			<if test="supplierName != null and '' != supplierName">
+				AND A.SUPPLIER_NAME LIKE #{supplierName} || '%' 
+			</if>
+			<if test="supplierNo != null and '' != supplierNo">
+				AND A.SUPPLIER_NO = #{supplierNo} 
+			</if>
+		)
+		SELECT 
+		  
+		  <!-- 拼接需汇总的批次范围的字段-->
+		  ${monArrSql}
+		  
+		  SUP_FACTORY, SUPPLIER_NO, SUPPLIERNO_SUPFACTORY,SUPPLIER_NAME
+		FROM (
+		  SELECT 
+		    SUP_FACTORY, SUPPLIER_NO, 
+		    (SUPPLIER_NO || SUP_FACTORY) as SUPPLIERNO_SUPFACTORY,
+		    SUPPLIER_NAME, PLAN_ARR_BATCHSEQNO,
+		    MIN(VIEW_ARR_STATUS) VIEW_ARR_STATUS,
+		    MIN(VIEW_ONTIME_STATUS) VIEW_ONTIME_STATUS
+		  FROM (
+		    SELECT 
+		      A.*,
+		      CASE 
+		        WHEN ARRIVE_STATUS = 0 THEN 10 <!-- 未收货-->
+		        WHEN ARRIVE_STATUS = 1 THEN 20 <!-- 部分收货-->
+		        WHEN ARRIVE_STATUS = 2 AND ARRIVE_COUNT > 1 THEN 30 <!-- 多次收齐-->
+		        WHEN ARRIVE_STATUS = 2 AND ARRIVE_COUNT = 1 THEN 40 <!-- 一次收齐-->
+		      END AS VIEW_ARR_STATUS, <!-- 显示收货状态-->
+		      CASE 
+		        WHEN (ACTUAL_ARR_BATCHSEQNO IS NULL AND PLAN_ARR_BATCHSEQNO &lt; #{curBatchSeqNo}) <!--  -->
+		          OR (ACTUAL_ARR_BATCHSEQNO IS NOT NULL AND PLAN_ARR_BATCHSEQNO &lt; ACTUAL_ARR_BATCHSEQNO) THEN 10 <!-- 延迟 需传入当前批次流水 -->
+		        WHEN ACTUAL_ARR_BATCHSEQNO IS NOT NULL AND ACTUAL_ARR_BATCHSEQNO &lt; PLAN_ARR_BATCHSEQNO THEN 20  <!-- 提前 -->
+		        WHEN ACTUAL_ARR_BATCHSEQNO IS NOT NULL AND ACTUAL_ARR_BATCHSEQNO = PLAN_ARR_BATCHSEQNO THEN 30  <!-- 准时 -->
+		        ELSE 40 <!-- 计划-->
+		      END AS VIEW_ONTIME_STATUS  <!-- 显示准时状态 -->
+		    FROM TMP_ORDER A
+		  ) 
+		  GROUP BY SUP_FACTORY, SUPPLIER_NO,SUPPLIER_NAME, PLAN_ARR_BATCHSEQNO
+		)
+		GROUP BY SUP_FACTORY, SUPPLIER_NO, SUPPLIERNO_SUPFACTORY, SUPPLIER_NAME 
+		ORDER BY SUP_FACTORY
+	</select>
+
+	<!-- 查询看板批次信息 -->
+	<select id="queryKbBatch" parameterType="java.util.Map" resultType="java.util.Map">
+	    SELECT * FROM MM_MON_KB
+			 WHERE FACTORY_CODE = #{factoryCode}
+			   AND WORKCENTER = #{workCenter}
+			   AND IS_EDIT = 0
+	</select>
+	
+	<!-- 查询拉动收货监控明细 -->
+	<select id="queryJitArriveDetailPage" parameterType="java.util.Map" resultType="java.util.Map">
+		SELECT * FROM (
+		    SELECT 
+			  A.*,
+			  CASE 
+			    WHEN (ACTUAL_ARR_BATCHSEQNO IS NULL AND PLAN_ARR_BATCHSEQNO &lt; #{curBatchSeqNo}) <!--  -->
+			      OR (ACTUAL_ARR_BATCHSEQNO IS NOT NULL AND PLAN_ARR_BATCHSEQNO &lt; ACTUAL_ARR_BATCHSEQNO) THEN '10' <!--延迟 需传入当前批次流水-->
+			    WHEN ACTUAL_ARR_BATCHSEQNO IS NOT NULL AND ACTUAL_ARR_BATCHSEQNO &lt; PLAN_ARR_BATCHSEQNO THEN '20'  <!--提前-->
+			    WHEN ACTUAL_ARR_BATCHSEQNO IS NOT NULL AND ACTUAL_ARR_BATCHSEQNO = PLAN_ARR_BATCHSEQNO THEN '30'  <!--准时-->
+			    ELSE '40' <!--计划-->
+			  END AS ONTIME_STATUS  <!--显示准时状态-->
+			FROM (
+			  SELECT 
+			    O.ORDER_NO,
+			    O.SUPPLIER_NO,
+			    O.SUP_FACTORY,
+			    O.SUPPLIER_NAME,
+			    O.ARR_DEPOT,
+			    O.SHIP_DEPOT,
+			    PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(O.PLAN_CODE, O.ARRIVE_PRODUCT_SEQNO) PLAN_ARRIVE_BATCHNO,
+			    PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(O.PLAN_CODE, O.ACTUAL_ARR_PRODUCT_SEQNO) ACTUAL_ARRIVE_BATCHNO,
+			    PKG_PUB.USF_GET_BATCHSEQ_BY_PRODSEQNO(O.PLAN_CODE, O.ARRIVE_PRODUCT_SEQNO) PLAN_ARR_BATCHSEQNO, <!--计划到货批次流水-->
+			    PKG_PUB.USF_GET_BATCHSEQ_BY_PRODSEQNO(O.PLAN_CODE, O.ACTUAL_ARR_PRODUCT_SEQNO) ACTUAL_ARR_BATCHSEQNO, <!--实际到货批次流水-->
+			    OD.PART_NO,
+			    OD.PART_SHORT_NO,
+			    OD.PART_NAME,
+			    OD.REQUIRE_NUM,
+			    OD.LOCATION,
+			    OD.ARRIVE_NUM,
+			    TO_CHAR(OD.ARRIVE_STATUS) ARRIVE_STATUS,
+			    OD.ARRIVE_COUNT,
+			    OD.ORDER_ROWNO
+			  FROM MM_JIT_ORDER O
+			  LEFT JOIN MM_JIT_ORDER_DETAIL OD ON OD.ORDER_NO = O.ORDER_NO
+			  LEFT JOIN MM_PUB_PLAN_CODE P ON P.PLAN_CODE = O.PLAN_CODE
+			  WHERE O.ARRIVE_PRODUCT_SEQNO BETWEEN #{startProductSeqNo} AND #{endProductSeqNo} 
+			        AND P.WORKCENTER = #{workCenter}
+			    <if test="supFactory != null and '' != supFactory">
+					AND O.SUP_FACTORY = #{supFactory}
+				</if>
+				<if test="supplierNo != null and '' != supplierNo">
+					AND O.SUPPLIER_NO = #{supplierNo}
+				</if>
+			)A 
+		)
+		WHERE 1 = 1
+		<if test="arrStatus != null and '' != arrStatus">
+			AND ARRIVE_STATUS = #{arrStatus}
+		</if>
+		<if test="onTimeStatus != null and '' != onTimeStatus">
+			AND ONTIME_STATUS = #{onTimeStatus}
+		</if>
+		ORDER BY ORDER_NO, ORDER_ROWNO
+	</select>
+
+	<!-- 拉动监控出货查询 -->
+	<select id="queryJitMonDelivery" parameterType="java.util.Map" resultType="java.util.Map">
+		WITH TMP_ORDER AS(
+		  SELECT 
+		    A.SUP_FACTORY,
+		    A.SUPPLIER_NAME,
+		    A.ORDER_NO,
+		    PKG_PUB.USF_GET_BATCHSEQ_BY_PRODSEQNO(A.PLAN_CODE, A.DELIVERY_PRODUCT_SEQNO) PLAN_DELIVERY_BATCHSEQNO, <!-- 计划发货批次流水-->
+		    PKG_PUB.USF_GET_BATCHSEQ_BY_PRODSEQNO(A.PLAN_CODE, A.ACTUAL_DELI_PRODUCT_SEQNO) ACTUAL_DELIVERY_BATCHSEQNO, <!--实际发货批次流水-->
+		    A.DELIVERY_STATUS, <!-- 发货状态 0未收货 1部分 2全部-->
+		    A.DELIVERY_COUNT
+		  FROM MM_JIT_ORDER  A 
+  		  LEFT JOIN MM_PUB_PLAN_CODE B ON B.PLAN_CODE = A.PLAN_CODE
+		  WHERE DELIVERY_PRODUCT_SEQNO BETWEEN #{startProductSeqNo} AND #{endProductSeqNo} <!-- 根据当前批次流水和配置的监控批次范围计算 -->
+		    <if test="workCenter != null and '' != workCenter">
+				AND B.WORKCENTER = #{workCenter}  
+			</if>
+		    <if test="supFactory != null and '' != supFactory">
+				AND A.SUP_FACTORY LIKE #{supFactory} || '%' 
+			</if>
+			<if test="supplierName != null and '' != supplierName">
+				AND A.SUPPLIER_NAME LIKE #{supplierName} || '%' 
+			</if>
+		)
+		SELECT 
+		  
+		  <!-- 拼接需汇总的批次范围的字段-->
+		  ${monDeliverySql}
+		  
+		  SUP_FACTORY, SUPPLIER_NAME
+		FROM (
+		  SELECT 
+		    SUP_FACTORY, SUPPLIER_NAME, PLAN_DELIVERY_BATCHSEQNO,
+		    MIN(VIEW_DELIVERY_STATUS) VIEW_DELIVERY_STATUS,
+		    MIN(VIEW_ONTIME_STATUS) VIEW_ONTIME_STATUS
+		  FROM (
+		    SELECT 
+		      A.*,
+		      CASE 
+		        WHEN DELIVERY_STATUS = 0 THEN 10 <!-- 发货货-->
+		        WHEN DELIVERY_STATUS = 1 THEN 20 <!-- 部分发货-->
+		        WHEN DELIVERY_STATUS = 2 AND DELIVERY_COUNT > 1 THEN 30 <!-- 多次发货-->
+		        WHEN DELIVERY_STATUS = 2 AND DELIVERY_COUNT = 1 THEN 40 <!-- 一次发齐-->
+		      END AS VIEW_DELIVERY_STATUS, <!-- 显示发货状态-->
+		      CASE 
+		        WHEN (ACTUAL_DELIVERY_BATCHSEQNO IS NULL AND PLAN_DELIVERY_BATCHSEQNO &lt; #{curBatchSeqNo}) <!--  -->
+		          OR (ACTUAL_DELIVERY_BATCHSEQNO IS NOT NULL AND PLAN_DELIVERY_BATCHSEQNO &lt; ACTUAL_DELIVERY_BATCHSEQNO) THEN 10 <!-- 延迟  需传入当前批次流水 -->
+		        WHEN ACTUAL_DELIVERY_BATCHSEQNO IS NOT NULL AND ACTUAL_DELIVERY_BATCHSEQNO &lt; PLAN_DELIVERY_BATCHSEQNO THEN 20  <!-- 提前 -->
+		        WHEN ACTUAL_DELIVERY_BATCHSEQNO IS NOT NULL AND ACTUAL_DELIVERY_BATCHSEQNO = PLAN_DELIVERY_BATCHSEQNO THEN 30  <!-- 准时 -->
+		        ELSE 40 <!-- 计划 -->
+		      END AS VIEW_ONTIME_STATUS  <!-- 显示准时状态  -->
+		    FROM TMP_ORDER A
+		  ) 
+		  GROUP BY SUP_FACTORY, SUPPLIER_NAME, PLAN_DELIVERY_BATCHSEQNO
+		)
+		GROUP BY SUP_FACTORY, SUPPLIER_NAME 
+		ORDER BY SUP_FACTORY
+	</select>
+	
+	<!-- 拉动监控出货明细查询 -->
+	<select id="queryJitMonDeliveryDetail" parameterType="java.util.Map" resultType="java.util.Map">
+		SELECT * FROM (
+		    SELECT 
+			  A.*,
+			  CASE 
+			    WHEN (ACTUAL_DELIVERY_BATCHSEQNO IS NULL AND PLAN_DELIVERY_BATCHSEQNO &lt; #{curBatchSeqNo}) <!--  -->
+			      OR (ACTUAL_DELIVERY_BATCHSEQNO IS NOT NULL AND PLAN_DELIVERY_BATCHSEQNO &lt; ACTUAL_DELIVERY_BATCHSEQNO) THEN '10' <!--延迟 需传入当前批次流水-->
+			    WHEN ACTUAL_DELIVERY_BATCHSEQNO IS NOT NULL AND ACTUAL_DELIVERY_BATCHSEQNO &lt; PLAN_DELIVERY_BATCHSEQNO THEN '20'  <!--提前-->
+			    WHEN ACTUAL_DELIVERY_BATCHSEQNO IS NOT NULL AND ACTUAL_DELIVERY_BATCHSEQNO = PLAN_DELIVERY_BATCHSEQNO THEN '30'  <!--准时-->
+			    ELSE '40' <!--计划-->
+			  END AS ONTIME_STATUS  <!--显示准时状态-->
+			FROM (
+			  SELECT 
+			    O.ORDER_NO,
+			    O.SUPPLIER_NO,
+			    O.SUP_FACTORY,
+			    O.SUPPLIER_NAME,
+			    O.ARR_DEPOT,
+			    O.SHIP_DEPOT,
+			    PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(O.PLAN_CODE, O.DELIVERY_PRODUCT_SEQNO) PLAN_DELIVERY_BATCHNO,
+			    PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(O.PLAN_CODE, OD.ACTUAL_DELI_PRODUCT_SEQNO) ACTUAL_DELIVERY_BATCHNO,
+			    PKG_PUB.USF_GET_BATCHSEQ_BY_PRODSEQNO(O.PLAN_CODE, O.DELIVERY_PRODUCT_SEQNO) PLAN_DELIVERY_BATCHSEQNO, <!--计划发货批次流水-->
+			    PKG_PUB.USF_GET_BATCHSEQ_BY_PRODSEQNO(O.PLAN_CODE, OD.ACTUAL_DELI_PRODUCT_SEQNO) ACTUAL_DELIVERY_BATCHSEQNO, <!--实际发货批次流水-->
+			    OD.PART_NO,
+			    OD.PART_SHORT_NO,
+			    OD.PART_NAME,
+			    OD.REQUIRE_NUM,
+			    OD.LOCATION,
+			    OD.DELIVERY_NUM,
+			    TO_CHAR(OD.DELIVERY_STATUS) DELIVERY_STATUS,
+			    OD.DELIVERY_COUNT,
+			    OD.ORDER_ROWNO
+			  FROM MM_JIT_ORDER O
+			  LEFT JOIN MM_JIT_ORDER_DETAIL OD ON OD.ORDER_NO = O.ORDER_NO
+			  LEFT JOIN MM_PUB_PLAN_CODE P ON P.PLAN_CODE = O.PLAN_CODE
+			  WHERE O.DELIVERY_PRODUCT_SEQNO BETWEEN #{startProductSeqNo} AND #{endProductSeqNo} 
+			        AND P.WORKCENTER = #{workCenter}
+			    <if test="supFactory != null and '' != supFactory">
+					AND O.SUP_FACTORY = #{supFactory}
+				</if>
+			)A 
+		)
+		WHERE 1 = 1
+		<if test="deliveryStatus != null and '' != deliveryStatus">
+			AND DELIVERY_STATUS = #{deliveryStatus}
+		</if>
+		<if test="onTimeStatus != null and '' != onTimeStatus">
+			AND ONTIME_STATUS = #{onTimeStatus}
+		</if>
+		ORDER BY ORDER_NO, ORDER_ROWNO
+	</select>
+	
+	<!-- 拉动监控备货查询 -->
+	<select id="queryJitMonPrepare" parameterType="java.util.Map" resultType="java.util.Map">
+		WITH TMP_ORDER AS(
+		  SELECT 
+		    A.SUP_FACTORY,
+		    A.SUPPLIER_NAME,
+		    A.ORDER_NO,
+		    PKG_PUB.USF_GET_BATCHSEQ_BY_PRODSEQNO(A.PLAN_CODE, A.S_PREPARE_PRODUCT_SEQNO) PLAN_PRE_BATCHSEQNO_S, <!-- 计划开始备件批次流水-->
+		    PKG_PUB.USF_GET_BATCHSEQ_BY_PRODSEQNO(A.PLAN_CODE, A.E_PREPARE_PRODUCT_SEQNO) PLAN_PRE_BATCHSEQNO_E, <!-- 计划结束备件批次流水-->
+		    PKG_PUB.USF_GET_BATCHSEQ_BY_PRODSEQNO(A.PLAN_CODE, A.ACTUAL_PRE_PRODUCT_SEQNO) ACTUAL_PRE_BATCHSEQNO, <!--实际备件批次流水-->
+		    A.PREPARE_STATUS, <!-- 备件状态 0未收货 1部分 2全部-->
+		    A.PREPARE_COUNT
+		  FROM MM_JIT_ORDER  A 
+  		  LEFT JOIN MM_PUB_PLAN_CODE B ON B.PLAN_CODE = A.PLAN_CODE
+		  WHERE (
+		      S_PREPARE_PRODUCT_SEQNO BETWEEN #{startProductSeqNo} AND #{endProductSeqNo} 
+		       OR E_PREPARE_PRODUCT_SEQNO BETWEEN #{startProductSeqNo} AND #{endProductSeqNo}  <!-- 根据当前批次流水和配置的监控批次范围计算 -->
+		    )
+		    <if test="workCenter != null and '' != workCenter">
+				AND B.WORKCENTER = #{workCenter}  
+			</if>
+		    <if test="supFactory != null and '' != supFactory">
+				AND A.SUP_FACTORY LIKE #{supFactory} || '%' 
+			</if>
+			<if test="supplierName != null and '' != supplierName">
+				AND A.SUPPLIER_NAME LIKE #{supplierName} || '%' 
+			</if>
+		)
+		SELECT 
+		  
+		  <!-- 拼接需汇总的批次范围的字段-->
+		  ${monPrepareSql}
+		  
+		  SUP_FACTORY, SUPPLIER_NAME
+		FROM (
+		  SELECT 
+		    SUP_FACTORY, SUPPLIER_NAME, PLAN_PRE_BATCHSEQNO_S,
+		    MIN(VIEW_PRE_STATUS) VIEW_PRE_STATUS,
+		    MIN(VIEW_ONTIME_STATUS) VIEW_ONTIME_STATUS
+		  FROM (
+		    SELECT 
+		      A.*,
+		      CASE 
+		        WHEN PREPARE_STATUS = 0 THEN 10 <!-- 未备货-->
+		        WHEN PREPARE_STATUS = 1 THEN 20 <!-- 部分备货-->
+		        WHEN PREPARE_STATUS = 2 AND PREPARE_COUNT > 1 THEN 30 <!-- 多次备货-->
+		        WHEN PREPARE_STATUS = 2 AND PREPARE_COUNT = 1 THEN 40 <!-- 一次备齐-->
+		      END AS VIEW_PRE_STATUS, <!-- 显示备货状态-->
+		      CASE 
+		        WHEN (ACTUAL_PRE_BATCHSEQNO IS NULL AND PLAN_PRE_BATCHSEQNO_E &lt; #{curBatchSeqNo}) <!--  -->
+		          OR (ACTUAL_PRE_BATCHSEQNO IS NOT NULL AND PLAN_PRE_BATCHSEQNO_E &lt; ACTUAL_PRE_BATCHSEQNO) THEN 10 <!-- 延迟  需传入当前批次流水 -->
+		        WHEN ACTUAL_PRE_BATCHSEQNO IS NOT NULL AND ACTUAL_PRE_BATCHSEQNO &lt; PLAN_PRE_BATCHSEQNO_S THEN 20  <!-- 提前 -->
+		        WHEN ACTUAL_PRE_BATCHSEQNO IS NOT NULL 
+		          AND PLAN_PRE_BATCHSEQNO_S &lt;= ACTUAL_PRE_BATCHSEQNO 
+		          AND ACTUAL_PRE_BATCHSEQNO &lt;= PLAN_PRE_BATCHSEQNO_E THEN 30  <!-- 准时 -->
+		        ELSE 40 <!-- 计划  -->
+		      END AS VIEW_ONTIME_STATUS  <!-- 显示准时状态  -->
+		    FROM TMP_ORDER A
+		  ) 
+		  GROUP BY SUP_FACTORY, SUPPLIER_NAME, PLAN_PRE_BATCHSEQNO_S
+		)
+		GROUP BY SUP_FACTORY, SUPPLIER_NAME 
+		ORDER BY SUP_FACTORY
+	</select>
+	
+	<!-- 拉动监控备货明细查询 -->
+	<select id="queryJitMonPrepareDetail" parameterType="java.util.Map" resultType="java.util.Map">
+		SELECT * FROM (
+		    SELECT 
+			  A.*,
+			  CASE 
+			    WHEN (ACTUAL_PRE_BATCHSEQNO IS NULL AND PLAN_PRE_BATCHNO_E &lt; #{curBatchSeqNo}) <!--  -->
+			      OR (ACTUAL_PRE_BATCHSEQNO IS NOT NULL AND PLAN_PRE_BATCHNO_E &lt; ACTUAL_PRE_BATCHSEQNO) THEN '10' <!--延迟 需传入当前批次流水-->
+			    WHEN ACTUAL_PRE_BATCHSEQNO IS NOT NULL AND ACTUAL_PRE_BATCHSEQNO &lt; PLAN_PRE_BATCHNO_S THEN '20'  <!--提前-->
+			    WHEN ACTUAL_PRE_BATCHSEQNO IS NOT NULL 
+			      AND PLAN_PRE_BATCHNO_S &lt;= ACTUAL_PRE_BATCHSEQNO 
+			      AND ACTUAL_PRE_BATCHSEQNO &lt;= PLAN_PRE_BATCHNO_E THEN '30'  <!--准时-->
+			    ELSE '40' <!--计划-->
+			  END AS ONTIME_STATUS  <!--显示准时状态-->
+			FROM (
+			  SELECT 
+			    O.ORDER_NO,
+			    O.SUPPLIER_NO,
+			    O.SUP_FACTORY,
+			    O.SUPPLIER_NAME,
+			    O.ARR_DEPOT,
+			    O.SHIP_DEPOT,
+			    PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(O.PLAN_CODE, O.S_PREPARE_PRODUCT_SEQNO) PLAN_PRE_BATCHNO_S,
+			    PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(O.PLAN_CODE, O.E_PREPARE_PRODUCT_SEQNO) PLAN_PRE_BATCHNO_E,
+			    PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(O.PLAN_CODE, OD.ACTUAL_PRE_PRODUCT_SEQNO) ACTUAL_PRE_BATCHNO,
+			    PKG_PUB.USF_GET_BATCHSEQ_BY_PRODSEQNO(O.PLAN_CODE, O.S_PREPARE_PRODUCT_SEQNO) PLAN_PRE_BATCHSEQNO_S, <!--计划开始备件批次流水-->
+			    PKG_PUB.USF_GET_BATCHSEQ_BY_PRODSEQNO(O.PLAN_CODE, O.E_PREPARE_PRODUCT_SEQNO) PLAN_PRE_BATCHSEQNO_E, <!--计划结束备件批次流水-->
+			    PKG_PUB.USF_GET_BATCHSEQ_BY_PRODSEQNO(O.PLAN_CODE, OD.ACTUAL_PRE_PRODUCT_SEQNO) ACTUAL_PRE_BATCHSEQNO, <!-- 实际发货批次流水-->
+			    OD.PART_NO,
+			    OD.PART_SHORT_NO,
+			    OD.PART_NAME,
+			    OD.REQUIRE_NUM,
+			    OD.LOCATION,
+			    OD.PREPARE_NUM,
+			    TO_CHAR(OD.PREPARE_STATUS) PREPARE_STATUS,
+			    OD.PREPARE_COUNT,
+			    OD.ORDER_ROWNO
+			  FROM MM_JIT_ORDER O
+			  LEFT JOIN MM_JIT_ORDER_DETAIL OD ON OD.ORDER_NO = O.ORDER_NO
+			  LEFT JOIN MM_PUB_PLAN_CODE P ON P.PLAN_CODE = O.PLAN_CODE
+			  WHERE (
+			  	O.S_PREPARE_PRODUCT_SEQNO BETWEEN #{startProductSeqNo} AND #{endProductSeqNo} 
+		          OR O.E_PREPARE_PRODUCT_SEQNO BETWEEN #{startProductSeqNo} AND #{endProductSeqNo}  <!-- 根据当前批次流水和配置的监控批次范围计算 -->
+			  ) AND P.WORKCENTER = #{workCenter}
+			    <if test="supFactory != null and '' != supFactory">
+					AND O.SUP_FACTORY = #{supFactory}
+				</if>
+			)A 
+		)
+		WHERE 1 = 1
+		<if test="prepareStatus != null and '' != prepareStatus">
+			AND PREPARE_STATUS = #{prepareStatus}
+		</if>
+		<if test="onTimeStatus != null and '' != onTimeStatus">
+			AND ONTIME_STATUS = #{onTimeStatus}
+		</if>
+		ORDER BY ORDER_NO, ORDER_ROWNO
+	</select>
+
+</mapper>

@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.jiso.model.JisoInsModel">
+	
+	<!-- 查询厂外同步指示票 -->
+	<select id="queryJisoInsPage" parameterType="com.hanthink.jiso.model.JisoInsModel"
+			resultType="com.hanthink.jiso.model.JisoInsModel">
+		SELECT T.INS_NO insNo,
+		       T.PARTGROUP_NAME partgroupName,
+		       T.PARTGROUP_NO partgroupNo,
+		       T.INS_SUPFACTORY_SEQNO insSupfactorySeqno,
+		       T.SUPPLIER_NO supplierNo,
+		       T.SUP_FACTORY supFactory,
+		       T.ARR_DEPOT arrDepot,
+		       T.LOCATION location,
+		       PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(T.PLAN_CODE,
+		                                              T.PREPARE_PRODUCT_SEQNO) prepareProductSeqno,
+		       PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(T.PLAN_CODE,
+		                                              T.DISPATCH_PRODUCT_SEQNO) dispatchProductSeqno,
+		       PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(T.PLAN_CODE,
+		                                              T.DELIVERY_PRODUCT_SEQNO) deliveryProductSeqno,
+		       PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(T.PLAN_CODE,
+		                                              T.ARRIVE_PRODUCT_SEQNO) arriveProductSeqno,
+		       PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(T.PLAN_CODE,
+		                                              T.DISTRI_PRODUCT_SEQNO) distriProductSeqno,
+		       T.CAR_BATCH carBatch,
+		       T.ROUTE_CODE routeCode,
+		       T.DISTRI_PERSON distriPerson,
+		       D.CODE_VALUE_NAME printStatus,
+		       to_char(T.PRINT_TIME, 'yyyy-mm-dd hh24:mi:ss') printTime,
+		       DD.CODE_VALUE_NAME isManuDeal,
+		       U.FULLNAME_ manuReqUser,
+		       to_char(T.MANU_REQ_TIME, 'yyyy-mm-dd hh24:mi:ss') manuReqTime,
+		       to_char(T.CREATION_TIME, 'yyyy-mm-dd hh24:mi:ss') creationTime,
+		       
+		       T.PLAN_CODE planCode,
+		       T.INS_PARTGROUP_SEQNO insPartgroupSeqno,
+		       T.SUPPLIER_NAME supplierName,
+		       T.ROUTE_DESC routeDesc,
+		       T.MANU_REQ_IP manuReqIp,
+		       T.ORDER_NO orderNo,
+		       T.CAR_BATCH_SEQNO carBatchSeqno
+		  FROM MM_JISO_INS T
+		  LEFT JOIN MM_PUB_PLAN_CODE C ON C.PLAN_CODE = T.PLAN_CODE
+		  LEFT JOIN MM_PUB_DATA_DICT D ON D.CODE_VALUE = T.PRINT_STATUS AND D.CODE_TYPE = 'PUB_PRINT_STATUS' AND D.FACTORY_CODE = C.FACTORY_CODE
+		  LEFT JOIN MM_PUB_DATA_DICT DD ON DD.CODE_VALUE = T.IS_MANU_DEAL AND DD.CODE_TYPE = 'PUB_TRUE_FALSE' AND DD.FACTORY_CODE = C.FACTORY_CODE
+		  LEFT JOIN SYS_USER U ON U.ACCOUNT_ = T.MANU_REQ_USER
+		 WHERE 1 = 1 AND C.FACTORY_CODE = #{factoryCode}
+		<!--  数据权限, 2 供应商, 4 GBL -->
+	      <if test="null != userType and '2'.toString() == userType">
+		      <if test="null != userId and ''!= userId">
+		      	AND T.SUPPLIER_NO = #{supplierNoAuth}
+		      	AND T.SUP_FACTORY IN (SELECT V.VALUE_CODE FROM VIEW_SYS_USER_DATA_PERM V 
+		      		WHERE V.USER_ID = #{userId} AND V.TYPE_CODE = 'JISO_SUP_FACTORY')
+		      </if>
+	      </if>
+	      <if test="null != userType and '4'.toString() == userType">
+		      <if test="null != userId and ''!= userId">
+		      	AND T.SUP_FACTORY IN (SELECT V.VALUE_CODE FROM VIEW_SYS_USER_DATA_PERM V 
+		      		WHERE V.USER_ID = #{userId} AND V.TYPE_CODE = 'JISO_SUP_FACTORY')
+		      </if>
+	      </if>
+	   <if test="null != supplierNo and ''!= supplierNo">
+			AND T.SUPPLIER_NO = #{supplierNo}	   
+	   </if>	
+	   <if test="null != supFactory and '' != supFactory">
+	   		AND T.SUP_FACTORY LIKE '%' || #{supFactory} || '%'
+	   </if>
+	   <if test="null != insNo and '' != insNo">
+	   	    AND T.INS_NO LIKE CONCAT ('%', #{insNo})
+	   </if>
+	   <if test="null != creationTime and '' != creationTime">
+	   		AND T.CREATION_TIME &gt;= to_date(#{creationTime}, 'yyyy-mm-dd hh24:mi:ss')
+	   </if>
+	   <if test="null != creationTimeTo and '' != creationTimeTo">
+	   		AND T.CREATION_TIME &lt;= to_date(#{creationTimeTo}, 'yyyy-mm-dd hh24:mi:ss') + 1
+	   </if>
+	   <if test="null != printStatus and '' != printStatus">
+	   		AND T.PRINT_STATUS = #{printStatus}
+	   </if>
+	   <if test="null != partgroupNo and '' != partgroupNo">
+	   		AND T.PARTGROUP_NO LIKE '%' || #{partgroupNo} || '%' 
+	   </if>
+	   <if test="null != arriveBatchFrom and '' != arriveBatchFrom">
+	   		AND T.ARRIVE_BATCH_NO &gt;= #{arriveBatchFrom}
+	   </if>
+	   <if test="null != arriveBatchTo and '' != arriveBatchTo">
+	   		AND T.ARRIVE_BATCH_NO &lt;= #{arriveBatchTo}
+	   </if>
+	   ORDER BY T.CREATION_TIME ASC
+	</select>
+	
+	<!-- 根据指示票号查询厂外同步指示票明细  -->
+	<select id="queryJisoInsDetailPageByInsNo" parameterType="com.hanthink.jiso.model.JisoInsModel"
+			resultType="com.hanthink.jiso.model.JisoInsModel">
+		SELECT T.INS_NO insNo,
+		       T.ORDER_NO orderNo,
+		       T.PART_NO partNo,
+		       T.REQUIRE_NUM requireNum,
+		       T.PART_SHORT_NO partShortNo,
+		       T.PART_NAME partName,
+		       T.PART_MARK partMark,
+		       T.VIN vin,
+		       T.MODEL_CODE modelCode,
+		       T.PHASE phase,
+		       T.PASS_TIME passTime,
+		       T.WC_SEQNO wcSeqno,
+		       T.PL_SEQNO plSeqno,
+		       T.KB_PRODUCT_SEQNO kbProductSeqno,
+		       T.CREATION_TIME creationTime
+		  FROM MM_JISO_INS_DETAIL T	
+		  WHERE 1=1
+		  AND T.INS_NO = #{insNo}
+		  ORDER BY T.PASS_TIME, T.PART_NO ASC
+	</select>
+	
+	<!-- 厂外同步指示票明细 导出-->
+	<select id="getDownloadJisoInsDetail" parameterType="com.hanthink.jiso.model.JisoInsModel"
+			resultType="com.hanthink.jiso.model.JisoInsModel">
+		 SELECT T.INS_NO insNo,
+               T.PARTGROUP_NAME partgroupName,
+               PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(T.PLAN_CODE,
+                                                  T.DELIVERY_PRODUCT_SEQNO) deliveryProductSeqno,
+               PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(T.PLAN_CODE,
+		                                              T.ARRIVE_PRODUCT_SEQNO) arriveProductSeqno,
+               I.ORDER_NO orderNo,
+               I.PART_NO partNo,
+               I.REQUIRE_NUM requireNum,
+               I.PART_SHORT_NO partShortNo,
+               I.PART_NAME partName,
+               I.PART_MARK partMark,
+               I.VIN vin,
+               I.MODEL_CODE modelCode,
+               I.PHASE phase,
+               I.PASS_TIME passTime,
+               I.WC_SEQNO wcSeqno,
+               I.PL_SEQNO plSeqno,
+               I.CREATION_TIME creationTime
+          FROM MM_JISO_INS T 
+          INNER JOIN MM_PUB_PLAN_CODE C ON C.PLAN_CODE = T.PLAN_CODE AND C.FACTORY_CODE = #{factoryCode}
+          LEFT JOIN MM_JISO_INS_DETAIL I ON I.INS_NO = T.INS_NO
+          WHERE 1=1
+          <!-- 数据权限 -->
+	      <if test="null != userType and '2'.toString() == userType">
+		      <if test="null != userId and ''!= userId">
+		      	AND T.SUPPLIER_NO = #{supplierNoAuth}
+		      	AND T.SUP_FACTORY IN (SELECT V.VALUE_CODE FROM VIEW_SYS_USER_DATA_PERM V 
+		      		WHERE V.USER_ID = #{userId} AND V.TYPE_CODE = 'JISO_SUP_FACTORY')
+		      </if>
+	      </if>
+	      <if test="null != supplierNo and ''!= supplierNo">
+			AND T.SUPPLIER_NO = #{supplierNo}	   
+		  </if>	 
+	      <if test="null != supFactory and '' != supFactory">
+	   		AND T.SUP_FACTORY LIKE '%' || #{supFactory} || '%'
+		   </if>
+		   <if test="null != insNo and '' != insNo">
+		   	    AND T.INS_NO LIKE CONCAT ('%', #{insNo})
+		   </if>
+		   <if test="null != creationTime and '' != creationTime">
+		   		AND T.CREATION_TIME &gt;= to_date(#{creationTime}, 'yyyy-mm-dd hh24:mi:ss')
+		   </if>
+		   <if test="null != creationTimeTo and '' != creationTimeTo">
+		   		AND T.CREATION_TIME &lt;= to_date(#{creationTimeTo}, 'yyyy-mm-dd hh24:mi:ss') + 1
+		   </if>
+		   <if test="null != printStatus and '' != printStatus">
+		   		AND T.PRINT_STATUS = #{printStatus}
+		   </if>
+		   <if test="null != partgroupNo and '' != partgroupNo">
+		   		AND T.PARTGROUP_NO LIKE '%' || #{partgroupNo} || '%' 
+		   </if>
+		   <if test="null != arriveBatchFrom and '' != arriveBatchFrom">
+		   		AND T.ARRIVE_BATCH_NO &gt;= #{arriveBatchFrom}
+		   </if>
+		   <if test="null != arriveBatchTo and '' != arriveBatchTo">
+		   		AND T.ARRIVE_BATCH_NO &lt;= #{arriveBatchTo}
+		   </if>
+		   ORDER BY T.INS_NO, T.PARTGROUP_NO, I.PASS_TIME, I.PART_NO ASC
+	</select>
+	
+	<!-- 查询厂外同步指示票明细(指示票打印)
+	<select id="queryJisoInsDetailList" parameterType="java.util.List" 
+			resultType="com.hanthink.jiso.model.JisoInsModel">
+		SELECT T.INS_NO insNo,
+             T.ARR_DEPOT arrDepot,
+             T.SUP_FACTORY supFactory,
+             T.SUPPLIER_NO supplierNo,
+             T.SUPPLIER_NAME supplierName,
+             T.DISTRI_PERSON distriPerson,
+             T.LOCATION location,
+             T.PARTGROUP_NAME partgroupName,
+             to_char(T.ARRIVE_TIME, 'yyyy-mm-dd hh24:mi:ss') arriveTime,
+             I.WC_SEQNO wcSeqno,
+             I.PART_SHORT_NO partShortNo,
+             I.PART_MARK partMark,
+             T.PARTGROUP_NAME partgroupName 
+          FROM MM_JISO_INS T 
+          LEFT JOIN MM_JISO_INS_DETAIL I ON I.INS_NO = T.INS_NO
+          WHERE 1=1
+	        AND T.INS_NO IN
+        <foreach collection="list" item="item" index="index" open="(" separator="," close=")">
+	     	 #{item.insNo}
+	    </foreach>
+	</select> -->
+	
+	<!-- 指示票打印 -->
+	<select id="queryJisoInsDetailList_by_model" parameterType="com.hanthink.jiso.model.JisoInsModel" 
+			resultType="com.hanthink.jiso.model.JisoInsModel">
+		SELECT T.INS_NO insNo,
+		     (I.SALE_NO || '(' || I.SALE_ROWNO || ')' ) AS saleNo,
+             T.ARR_DEPOT arrDepot,
+             T.SUP_FACTORY supFactory,
+             T.SUPPLIER_NO supplierNo,
+             T.SUPPLIER_NAME supplierName,
+             T.DISTRI_PERSON distriPerson,
+             T.LOCATION location,
+             T.PARTGROUP_NAME partgroupName,
+             to_char(T.ARRIVE_TIME, 'yyyy-mm-dd hh24:mi:ss') arriveTime,
+             I.WC_SEQNO wcSeqno,
+             I.PART_SHORT_NO partShortNo,
+             I.PART_NO partNo,
+             I.PART_MARK partMark,
+             I.REMARK_FLAG remarkFlag
+          FROM MM_JISO_INS T 
+          LEFT JOIN MM_JISO_INS_DETAIL I ON I.INS_NO = T.INS_NO
+          WHERE 1=1
+	      AND T.INS_NO = #{insNo}
+	      ORDER BY I.PASS_TIME ASC
+	</select>
+	
+	<!-- 更新打印状态(list) error -->
+	<update id="updatePrintStatus" parameterType="java.util.List">
+		<foreach collection="list" item="item" index="index" open="(" separator="," close=")">
+			UPDATE	MM_JISO_INS T
+				<set>
+					T.PRINT_STATUS = 1,
+					T.PRINT_TIME = SYSDATE,
+					T.PRINT_USER = #{item.printUser, jdbcType=VARCHAR},
+					T.PRINT_USER_IP = #{item.printUserIp, jdbcType=VARCHAR}
+				</set>
+				<where>
+					T.INS_NO = #{item.insNo}  AND T.PRINT_STATUS = 0
+				</where>
+		</foreach>
+	</update>
+	
+	<!-- 更新打印状态(model) -->
+	<update id="updatePrintStatusModel" parameterType="com.hanthink.jiso.model.JisoInsModel">
+		UPDATE MM_JISO_INS T SET 
+			T.PRINT_STATUS = 1,
+			T.PRINT_TIME = SYSDATE,
+			T.PRINT_USER = #{printUser, jdbcType=VARCHAR},
+			T.PRINT_USER_IP = #{printUserIp, jdbcType=VARCHAR}
+		WHERE T.INS_NO = #{insNo}  AND T.PRINT_STATUS = 0
+	</update>	
+	
+</mapper>

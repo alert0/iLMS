@@ -1,0 +1,167 @@
+package com.hanthink.mp.controller;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.ibatis.session.RowBounds;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.hanthink.mp.manager.MpOrderBomManager;
+import com.hanthink.mp.model.MpOrderBomModel;
+import com.hanthink.util.excel.ExcelUtil;
+import com.hotent.base.api.model.ResultMessage;
+import com.hotent.base.core.web.GenericController;
+import com.hotent.base.db.mybatis.domain.DefaultPage;
+import com.hotent.base.db.mybatis.domain.PageJson;
+import com.hotent.base.db.mybatis.domain.PageList;
+import com.hotent.sys.persistence.dao.SysTypeDao;
+import com.hotent.sys.util.ContextUtil;
+import com.hotent.sys.util.SysPropertyUtil;
+
+/**
+ * <pre>
+ * 描述：w+1,w+2生产计划 控制器类
+ * 构建组：x5-bpmx-platform
+ * 作者:linzhuo
+ * 邮箱:zhuo.lin@hotent.com
+ * 日期:2018-09-10 10:39:09
+ * 版权：汉思信息技术有限公司
+ * </pre>
+ */
+@Controller
+@RequestMapping("/mp/mpOrderBom")
+public class MpOrderBomController extends GenericController {
+
+	private static Logger log = LoggerFactory
+			.getLogger(MpOrderBomController.class);
+
+	@Resource
+	MpOrderBomManager mpOrderBomManager;
+
+	@Resource
+	SysTypeDao sysTypeDao;
+
+	/**
+	 * 分页查询订单BOM数据
+	 * 
+	 * @param request
+	 * @param reponse
+	 * @param model
+	 * @return
+	 */
+	@RequestMapping("curdlistJson")
+	public @ResponseBody
+	PageJson curdlistJson(HttpServletRequest request,
+			HttpServletResponse reponse, MpOrderBomModel model) {
+		try {
+			DefaultPage p = new DefaultPage(new RowBounds(getQueryFilter(
+					request).getPage().getStartIndex(), getQueryFilter(request)
+					.getPage().getPageSize()));
+			model.setFactoryCode(ContextUtil.getCurrentUser()
+					.getCurFactoryCode());
+			List<MpOrderBomModel> pageList = (PageList<MpOrderBomModel>) mpOrderBomManager
+					.queryMpOrderBomForPage(model, p);
+			return new PageJson(pageList);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+
+	/**
+	 * 导出订购单车BOM数据
+	 * 
+	 * @param request
+	 * @param response
+	 * @param model
+	 */
+	@RequestMapping("downloadMpOrderBomModel")
+	public void downloadMpOrderBomModel(HttpServletRequest request,
+			HttpServletResponse response, MpOrderBomModel model) {
+		try {
+			model.setFactoryCode(ContextUtil.getCurrentUser()
+					.getCurFactoryCode());
+			// 查询需要转换的的数据字典
+			// List<DictVO> workcenterList =
+			// sysTypeDao.queryPubDataDictByCodeType("PUB_WORKCENTER");
+			// for(DictVO d: workcenterList){
+			// if (d.getValueName() != null &&
+			// d.getValueName().equals(model.getWorkcenter())) {
+			// model.setWorkcenter(d.getValueKey());
+			// }
+			// }
+			List<MpOrderBomModel> list = mpOrderBomManager
+					.queryMpOrderBomByKey(model);
+			/**
+			 * 如果查询记录超过10000条则报错
+			 */
+			if (0 == list.size()) {
+				ExcelUtil.exportNoDataError(request, response);
+				return;
+			}
+			int sysMaxNum = SysPropertyUtil.getIntByAlias(
+					"EXCEL_EXPORT_MAX_SIZE", 100000); // 获取系统所允许的最大导出数量
+			if (list.size() > sysMaxNum) {
+				ExcelUtil.exportNumError(sysMaxNum, request, response);
+				return;
+			}
+
+			String[] headers = { "生产单号", "车型", "整车物料号", "组件物料行号", "零件号", "零件名称", "车间",
+					"工位", "用量", "用量单位", "采购类型" };
+			String[] columns = { "orderNo", "modelCode", "vehiclePartNo", "partRowNo",
+					"partNo", "partNameCn", "workcenter", "stationCode", "num",
+					"usageAmountUnit", "purchaseType" };
+			int[] widths = { 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80 };
+			SimpleDateFormat df = new SimpleDateFormat("yyyyMMddHHmmss");// 设置日期格式
+			ExcelUtil.exportExcel(ExcelUtil.EXCEL_XLSX, request, response,
+					"订购单车BOM" + df.format(new Date()), list, headers, widths,
+					columns);
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.error(e.toString());
+			ExcelUtil.exportException(e, request, response);
+		}
+
+	}
+
+	/**
+	 * 获取本次计算订购单车BOM数据
+	 * 
+	 * @param request
+	 * @param response
+	 * @throws Exception
+	 */
+	@RequestMapping("genOrderBom")
+	public void genOrderBom(HttpServletRequest request,
+			HttpServletResponse response) throws Exception {
+		ResultMessage message = null;
+		try {
+			/**
+			 * 根据当前登录人获取到工厂信息
+			 */
+			Integer count = mpOrderBomManager.genOrderBom(ContextUtil
+					.getCurrentUser().getCurFactoryCode(), ContextUtil
+					.getCurrentUser().getAccount());
+			if (0 == count) {
+				message = new ResultMessage(ResultMessage.SUCCESS,
+						"获取订购单车BOM成功");
+			} else {
+				message = new ResultMessage(ResultMessage.FAIL, "获取订购单车BOM失败");
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			message = new ResultMessage(ResultMessage.FAIL, "获取订购单车BOM失败");
+		}
+		writeResultMessage(response.getWriter(), message);
+	}
+
+}

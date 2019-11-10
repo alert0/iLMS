@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.pup.model.PupLockPlanModel">
+	<!-- 条件分页查询 -->
+	<select id="queryLockPlanModelsForPage" parameterType="com.hanthink.pup.model.PupLockPlanModel" resultType="com.hanthink.pup.model.PupLockPlanModel">
+		SELECT mplp.ID id,
+			   mplp.FACTORY_CODE factoryCode,
+			   mplp.AREA area,
+			   mplp.UNLOAD_PLACE unloadPlace,
+			   mplp.UNLOAD_PORT unloadPort,
+			   mplp.PICKUP_TYPE pickupType,
+			   mplp.CAR_TYPE carType,
+			   mplp.ROUTE_CODE routeCode,
+			   mplp.TOTAL_NO totalNo,
+			   mplp.MERGE_NO mergeNo,
+			   mplp.TODAY_NO todayNo,
+			   mplp.WORKDAY workday,
+			   To_CHAR(mplp.PICK_DATE,'yyyy-MM-dd') pickDate,
+			   To_CHAR(mplp.PICK_DATE,'hh24:mi:ss') pickTime,
+			   To_CHAR(mplp.ARRIVE_DATE,'yyyy-MM-dd') arriveDate,
+			   To_CHAR(mplp.ARRIVE_DATE,'hh24:mi:ss') arriveTime,
+			   To_CHAR(mplp.ASSEMBLE_DATE,'yyyy-MM-dd') assembleDate,
+			   To_CHAR(mplp.ASSEMBLE_DATE,'hh24:mi:ss') assembleTime,
+			   mplp.CREATION_USER creationUser,
+			   mplp.CREATION_TIME creationTime,
+			   mplp.LAST_MODIFIED_USER lastModifiedUser,
+			   mplp.LAST_MODIFIED_TIME lastModifiedTime
+		FROM MM_PUP_LOCK_PLAN mplp
+		WHERE mplp.FACTORY_CODE = #{factoryCode}
+		<if test="routeCode != null and routeCode != ''">
+			AND mplp.ROUTE_CODE = #{routeCode}
+		</if>
+		<if test="carType != null and carType != ''">
+			AND mplp.CAR_TYPE = #{carType}
+		</if>
+		<if test="pickDateStart != null and pickDateStart != ''">
+			AND mplp.PICK_DATE >= TO_DATE(#{pickDateStart},'yyyy-MM-dd hh24:mi:ss')
+		</if>
+		<if test="pickDateEnd != null and pickDateEnd != ''">
+			AND mplp.PICK_DATE <![CDATA[<=]]> TO_DATE(#{pickDateEnd},'yyyy-MM-dd hh24:mi:ss')
+		</if>
+		ORDER BY mplp.CREATION_TIME,mplp.ROUTE_CODE,mplp.TOTAL_NO desc
+	</select>
+	<!-- 批量删除数据 -->
+	<delete id="deleteLockPlanByIds" parameterType="java.lang.String">
+		DELETE FROM MM_PUP_LOCK_PLAN
+		WHERE ID IN
+		<foreach item="ids" collection="array" open="(" separator="," close=")">
+			#{ids}
+		</foreach>
+	</delete>
+	<!-- 删除旧版本数据 -->
+	<delete id="deleteLockPlan" parameterType="java.lang.String">
+		DELETE FROM MM_PUP_LOCK_PLAN WHERE FACTORY_CODE = #{factoryCode}
+	</delete>
+	<!-- 导入Excel数据 -->
+	<insert id="insertExcelDataToTale">
+		INSERT INTO MM_PUP_LOCK_PLAN
+		(ID,FACTORY_CODE,AREA,UNLOAD_PLACE,PICKUP_TYPE,CAR_TYPE,ROUTE_CODE,TOTAL_NO,MERGE_NO,TODAY_NO,WORKDAY,UNLOAD_PORT,
+			PICK_DATE,ARRIVE_DATE,ASSEMBLE_DATE,CREATION_USER,CREATION_TIME,LAST_MODIFIED_USER,LAST_MODIFIED_TIME)
+		<foreach  collection="list" item="item" index="index" separator=" UNION ALL" >
+			SELECT PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_PUP_LOCK_PLAN'),
+				   #{item.factoryCode,jdbcType=VARCHAR},
+				   #{item.area,jdbcType=VARCHAR},
+				   #{item.unloadPlace,jdbcType=VARCHAR},
+				   #{item.pickupType,jdbcType=VARCHAR},
+				   #{item.carType,jdbcType=VARCHAR},
+				   #{item.routeCode,jdbcType=VARCHAR},
+				   #{item.totalNo,jdbcType=VARCHAR},
+				   #{item.mergeNo,jdbcType=VARCHAR},
+				   #{item.todayNo,jdbcType=VARCHAR},
+				   #{item.workday,jdbcType=VARCHAR},
+				   #{item.unloadPort,jdbcType=VARCHAR},
+				   TO_DATE(#{item.pickDate,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss'),
+				   TO_DATE(#{item.arriveDate,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss'),
+				   TO_DATE(#{item.assembleDate,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss'),
+				   #{item.creationUser,jdbcType=VARCHAR},
+				   TO_DATE(#{item.creationTime,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss'),
+				   #{item.lastModifiedUser,jdbcType=VARCHAR},
+				   TO_DATE(#{item.lastModifiedTime,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss')
+			FROM DUAL
+		</foreach>
+	</insert>
+</mapper>

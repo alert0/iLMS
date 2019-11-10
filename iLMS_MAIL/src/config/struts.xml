@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts PUBLIC
+        "-//Apache Software Foundation//DTD Struts Configuration 2.0//EN"
+        "http://struts.apache.org/dtds/struts-2.0.dtd">
+<struts>
+  <constant name="struts.multipart.maxSize" value="1000000000" />
+  <constant name="struts.i18n.encoding" value="UTF-8"/>
+  <constant name="struts.custom.i18n.resources" value="messageResource"/>
+  <package name="struts_sw" namespace="/" extends="json-default">
+  <interceptors>
+      <interceptor name="appException" class="com.hanthink.gps.util.interceptor.AppExceptionInterceptor" />
+      <interceptor name="authorization" class="com.hanthink.gps.util.interceptor.AuthorizationInterceptor"/>
+	      <interceptor-stack name="user" >
+	        <interceptor-ref name="appException" />
+	        <interceptor-ref name="authorization" />
+            <interceptor-ref name="defaultStack"/>
+          </interceptor-stack>
+	      <interceptor-stack name="guest" >
+	        <interceptor-ref name="appException" />
+            <interceptor-ref name="defaultStack"/>
+          </interceptor-stack>
+	    </interceptors>
+	<default-interceptor-ref name="user"/>
+	
+	<global-results>
+          <result name="error" type="redirect">error.action</result>
+          <result name="login" type="redirect">/login.jsp</result>
+    </global-results>
+    
+    <action name="index-*" class="com.hanthink.gps.pub.web.IndexAction" method="{1}">
+        <result name="index">/comm/jsp/index.jsp</result>
+        <result name="unregist">/pages/pub/pub_supplier_out_rigest.jsp</result>
+    </action>
+    <action name="comm-*" class="CommAction" method="{1}">
+			<interceptor-ref name="guest"></interceptor-ref>
+    </action>
+  </package>
+  
+  <package name="login" namespace="/" extends="struts_sw">
+     <action name="login-*" class="loginAction" method="{1}">
+            <interceptor-ref name="guest"></interceptor-ref>
+            <result name="input">login.jsp</result>
+            <result name="unregist">/pages/pub/pub_supplier_out_rigest.jsp</result>
+            <result name="factory">factory.jsp</result>
+            <result name="success" type="redirectAction">index-init.action</result>
+      </action>
+      <action name="error">
+            <interceptor-ref name="guest"></interceptor-ref>
+            <result>/comm/jsp/error.jsp</result>
+      </action>
+  </package>
+  
+  <include file="struts/pub_struts.xml" />
+  <include file="struts/email_struts.xml" />
+</struts>

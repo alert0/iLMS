@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:jaxws="http://cxf.apache.org/jaxws"
+	xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap12" xmlns:jaxrs="http://cxf.apache.org/jaxrs"
+	xmlns:cxf="http://cxf.apache.org/core"
+	xsi:schemaLocation="http://cxf.apache.org/core 
+	                    http://cxf.apache.org/schemas/core.xsd 
+	                    http://www.springframework.org/schema/beans 
+	                    http://www.springframework.org/schema/beans/spring-beans.xsd
+						http://cxf.apache.org/jaxws 
+						http://cxf.apache.org/schemas/jaxws.xsd
+						http://cxf.apache.org/jaxrs    
+						http://cxf.apache.org/schemas/jaxrs.xsd
+						">
+	<import resource="classpath:META-INF/cxf/cxf.xml" />
+	<import resource="classpath:META-INF/cxf/cxf-servlet.xml" />
+	<!-- 流程web服务类
+	<bean id="FlowServiceImpl" class="com.hotent.bpmx.webservice.impl.FlowServiceImpl" />
+	<jaxws:endpoint id="FlowService" implementor="#FlowServiceImpl"
+		implementorClass="com.hotent.bpmx.webservice.impl.FlowServiceImpl"
+		address="/FlowService">
+
+	</jaxws:endpoint>
+
+	<bean id="ProcessServiceImpl" class="com.hotent.bpmx.webservice.impl.ProcessServiceImpl" />
+	<jaxws:endpoint id="ProcessService" implementor="#ProcessServiceImpl"
+		implementorClass="com.hotent.bpmx.webservice.impl.ProcessServiceImpl"
+		address="/ProcessService">
+
+	</jaxws:endpoint>
+
+	<jaxws:endpoint id="helloWorld"
+		implementor="com.hotent.mini.ext.service.impl.ServiceTestImpl"
+		address="/helloWorld">
+	</jaxws:endpoint> -->
+</beans>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html ng-app="processInfoApp">
+<head>
+<meta charset="UTF-8">
+<title>流程实例</title>
+<script src="../assets/js/importJs.js"></script>
+<script type="text/javascript">
+var FORM_TYPE_ = 'mobile';
+
+importCss(flowAryCss);
+importJs(flowInstAryJs);
+
+
+</script>
+
+</head>
+<body ng-controller="processInfoCtrl" class="page">
+<header class="bar bar-nav">
+	<a class="icon icon-left pull-left back"></a>
+	<span class='title'>流程明细</span>
+	<a class="icon icon-close pull-right close-panel" ></a>
+</header>
+<div id="formHtml" class="content" ht-bind-html="formHtml"></div>
+<nav class="bar bar-tab" id="">
+	<a href="#" class="tab-item active" ng-click="showOpinion()">
+		<i class="fa fa-history"></i>
+		<span>审批历史</span>
+	</a>
+	<a href="#" class="tab-item active" ng-click="showFlowPic()">
+		<i class="fa fa-photo"></i>
+		<span class="am-navbar-label">流程图</span>
+	</a>
+</nav>
+</body>
+</html>

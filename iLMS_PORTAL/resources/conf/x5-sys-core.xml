@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+       http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+       http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd
+">
+
+	<import resource="x5-base-core.xml" />
+	<import resource="x5-base-db.xml" />
+
+	<!-- <import resource="x5-sys-jms.xml"/> -->
+
+
+	<context:component-scan base-package="com.hotent.sys" use-default-filters="true">
+		<context:exclude-filter type="regex" expression="com\.hotent\.sys\.jms.*"/>
+		<context:exclude-filter type="regex" expression="com\.hotent\.sys\.template.*"/>
+	</context:component-scan>
+	<context:component-scan base-package="com.hotent.base"  use-default-filters="true">
+		<context:exclude-filter type="regex" expression="com\.hotent\.base\.core\.engine.*"/>
+	</context:component-scan>
+
+	<!-- 文件模版引擎配置 -->
+	<!-- <bean id="freemarkerConfiguration"
+		class="org.springframework.ui.freemarker.FreeMarkerConfigurationFactoryBean">
+		<property name="templateLoaderPath" value="classpath:template/" />
+		<property name="defaultEncoding" value="UTF-8" />
+	</bean> -->
+
+	<!-- freemaker引擎 -->
+	<!-- <bean id="freemarkEngine" class="com.hotent.base.core.engine.freemark.FreemarkEngine">
+		<property name="configuration" ref="freemarkerConfiguration" />
+	</bean> -->
+
+	<!-- SqlBuilder -->
+	<bean id="mySqlSqlBuilder" class="com.hotent.sys.persistence.sqlbuilder.MySqlSqlBuilder"></bean>
+	<bean id="oracleSqlBuilder" class="com.hotent.sys.persistence.sqlbuilder.OracleSqlBuilder"></bean>
+	<bean id="sqlServerSqlBuilder" class="com.hotent.sys.persistence.sqlbuilder.SqlServerSqlBuilder"></bean>
+
+	<bean id="sqlBuilderService"
+		class="com.hotent.sys.persistence.sqlbuilder.service.SqlBuilderService">
+		<property name="builderMap">
+			<map>
+				<entry key="mysql" value-ref="mySqlSqlBuilder" />
+				<entry key="oracle" value-ref="oracleSqlBuilder" />
+				<entry key="mssql" value-ref="sqlServerSqlBuilder" />
+				<entry key="mssql2008" value-ref="sqlServerSqlBuilder" />
+			</map>
+		</property>
+	</bean>
+	
+	
+
+	<!-- <bean id="jmsHandList" class="java.util.ArrayList">
+		<constructor-arg>
+			<list>
+				<bean class="com.hotent.sys.jms.handler.InnerHandler"></bean>
+				<bean class="com.hotent.sys.jms.handler.MailHandler"></bean>
+				<bean class="com.hotent.sys.jms.handler.SmsHandler"></bean>
+				<bean class="com.hotent.sys.jms.handler.VoiceHandler"></bean>
+			</list>
+		</constructor-arg>
+	</bean> -->
+
+	<!-- 数据源工具类 -->
+	<bean id="dynamicDatasource" class="com.hotent.sys.persistence.util.DynamicDatasource"></bean>
+	
+	<!-- 实体新增修改时处理entity -->
+	<bean id="entityEventListener" class="com.hotent.sys.entity.listener.EntityEventListener"></bean>
+	
+</beans>

@@ -1,0 +1,10 @@
+#for tests only
+#Tue Nov 08 15:53:44 CST 2011
+jco.client.lang=en
+jco.destination.peak_limit=100
+jco.client.client=800
+jco.client.passwd=2Tb
+jco.client.user=Y_P
+jco.client.sysnr=00
+jco.destination.pool_capacity=10
+jco.client.ashost=10.138.250.1

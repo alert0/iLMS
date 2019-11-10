@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:noNamespaceSchemaLocation="codegen.xsd">
+	<variables>
+		<variable name="developer" value="luoxq" />
+		<variable name="email" value="xianqin.luo@hanthink.com"/>
+		<variable name="company" value="汉思信息技术有限公司" />
+	</variables>
+	
+	<templates>
+		<template id="entity" path="entity.ftl"/>
+		<!-- 
+		<template id="mapping"  path="mapping.ftl"/>
+		<template id="controllerNG"  path="controllerNg.ftl"/>
+		<template id="manager"  path="manager.ftl"/>
+		<template id="managerImpl"  path="managerImpl.ftl"/>
+		<template id="dao" path="dao.ftl"/>
+		<template id="daoImpl" path="daoImpl.ftl"/>
+		<template id="daoTest"  path="daoTest.ftl"/>
+		<template id="baseTest"  path="baseTest.ftl"/>
+		<template id="managerTest"  path="managerTest.ftl"/>
+		<template id="get"  path="get.jsp"/>
+		<template id="edit"  path="edit.jsp"/>
+		<template id="list"  path="list.jsp"/>
+		<template id="controller"  path="controller.ftl"/>
+		
+		<template id="getNg"  path="getNg.jsp"/>
+		<template id="ngEdit"  path="ngEdit.ftl"/>
+		<template id="listJs"  path="listJs.jsp"/>
+		<template id="getController"  path="getController.js"/>
+		<template id="editController"  path="editController.js"/> -->
+	</templates>
+	
+	<files baseDir="D:\MyEclipse\myeclipse_space\iLMS_PMC" >
+	
+		<file refTemplate="entity" filename="{class}.java" dir="src\com\hanthink\sw\model"  sub="true" override="true"/>
+	<!--
+		<file refTemplate="mapping" filename="{class}.map.xml" dir="resources\com\hanthink\jiso.mapping"  sub="true"  override="true"/>
+		<file refTemplate="controllerNG" filename="{class}Controller.java" dir="\src\com\hanthink\jit\controller"  override="true"/>
+		<file refTemplate="manager" filename="{class}Manager.java" dir="src\com\hanthink\jit\manager" sub="false"  override="true"/>
+		<file refTemplate="managerImpl" filename="{class}ManagerImpl.java" dir="src\com\hanthink\jit\manager\impl" sub="false"  override="true"/>
+		<file refTemplate="dao" filename="{class}Dao.java" dir="src\com\hanthink\jit\dao" sub="true"  override="true"/>
+		<file refTemplate="daoImpl" filename="{class}DaoImpl.java" dir="src\com\hanthink\jit\dao\impl" sub="true"  override="true"/>
+
+		<file refTemplate="ngEdit" filename="{classVar}Edit.jsp" dir="web\WEB-INF\view\{system}\{package}\{classVar}"   override="true"/>
+		<file refTemplate="listJs" filename="{classVar}List.jsp" dir="web\WEB-INF\view\{system}\{package}\{classVar}"  override="true"/>
+		<file refTemplate="getNg" filename="{classVar}Get.jsp" dir="web\WEB-INF\view\{system}\{package}\{classVar}" override="true"/>
+		<file refTemplate="getController" filename="{classVar}GetController.js" dir="web\js\{system}\{package}\{classVar}" override="true"/>
+		<file refTemplate="editController" filename="{classVar}EditController.js" dir="web\js\{system}\{package}\{classVar}" override="true"/>
+	-->	 
+	</files>
+	
+	<table tableName="MM_PUB_SUPPLIER">
+		<variable name="class" value="SwSupplierMsg_COD"/>
+		<variable name="package" value="sw" />
+	</table>
+	
+</config>

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.sys.persistence.model.SysOfficeFile">
+	<resultMap id="SysOfficeFile" type="com.hotent.sys.persistence.model.SysOfficeFile">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="fileName" column="file_name_" jdbcType="VARCHAR"/>
+		<result property="filePath" column="file_path_" jdbcType="VARCHAR"/>
+		<result property="fileExt" column="file_ext_" jdbcType="VARCHAR"/>
+		<result property="fileSize" column="file_size_" jdbcType="NUMERIC"/>
+		<result property="fileStream" column="file_stream_" jdbcType="BLOB"/>
+		<result property="description" column="description_" jdbcType="VARCHAR"/>
+		<result property="type" column="type_" jdbcType="VARCHAR"/>
+		<result property="createBy" column="create_by_" jdbcType="VARCHAR"/>
+		<result property="createTime" column="create_time_" jdbcType="TIMESTAMP"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.sys.persistence.model.SysOfficeFile">
+		INSERT INTO sys_office_file
+		(id_,file_name_,file_path_,file_ext_,file_size_,file_stream_,description_,type_,create_by_,create_time_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{fileName,jdbcType=VARCHAR}, #{filePath,jdbcType=VARCHAR}, #{fileExt,jdbcType=VARCHAR}, #{fileSize,jdbcType=VARCHAR}, #{fileStream,jdbcType=BLOB}, #{description,jdbcType=VARCHAR}, #{type,jdbcType=VARCHAR}, #{createBy,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="SysOfficeFile">
+		SELECT * FROM sys_office_file 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="SysOfficeFile">
+		SELECT * FROM sys_office_file
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.sys.persistence.model.SysOfficeFile">
+		UPDATE sys_office_file SET
+		file_name_=#{fileName,jdbcType=VARCHAR},
+		file_path_=#{filePath,jdbcType=VARCHAR},
+		file_ext_=#{fileExt,jdbcType=VARCHAR},
+		file_size_=#{fileSize,jdbcType=VARCHAR},
+		file_stream_=#{fileStream,jdbcType=BLOB},
+		description_=#{description,jdbcType=VARCHAR},
+		type_=#{type,jdbcType=VARCHAR},
+		create_by_=#{createBy,jdbcType=VARCHAR},
+		create_time_=#{createTime,jdbcType=TIMESTAMP}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_office_file 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	
+</mapper>

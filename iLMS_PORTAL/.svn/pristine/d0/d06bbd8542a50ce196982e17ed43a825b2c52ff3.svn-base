@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context" 
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+       http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+       http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd"> 	
+	<!--加入bpmx plugin-->	
+	
+	<bean id="userQueryPluginHelper" class="com.hotent.bpmx.plugin.task.userassign.UserQueryPluginHelperImpl"/>
+	
+	
+	<!-- 人员条件检查用户可以修改这个接口实现-->
+	<bean id="userConditionCheck" class="com.hotent.bpmx.plugin.task.userassign.UserConditionCheck" ></bean>
+	
+	<!-- ## 插件bean声明 -->
+	<!-- #### 流程插件开始 -->
+	<!-- 用户分配插件 -->
+	<bean id="userAssignPluginContext" class="com.hotent.bpmx.plugin.task.userassign.context.UserAssignPluginContext" scope="prototype" autowire="byType"></bean>	
+	<bean id="userAssignPlugin" class="com.hotent.bpmx.plugin.task.userassign.plugin.UserAssignPlugin" autowire="default"></bean>	
+	<bean id="userQueryPlugin" class="com.hotent.bpmx.plugin.task.userassign.plugin.UserQueryPlugin" autowire="default"></bean>
+	
+	<!-- #### 流程插件结束-->
+
+	<!-- 按照人员脚本查找用户 -->
+	<bean id="hrScriptPluginContext" class="com.hotent.bpmx.plugin.usercalc.hrScript.context.HrScriptPluginContext" scope="prototype" autowire="byType"/>
+	<bean id="hrScriptPlugin" class="com.hotent.bpmx.plugin.usercalc.hrScript.runtime.HrScriptPlugin" autowire="default"/>
+
+	<!-- 按照脚本查找用户 -->
+	<bean id="scriptPluginContext" class="com.hotent.bpmx.plugin.usercalc.script.context.ScriptPluginContext" scope="prototype" autowire="byType"/>
+	<bean id="scriptPlugin" class="com.hotent.bpmx.plugin.usercalc.script.runtime.ScriptPlugin" autowire="default"/>
+	
+
+
+	<!-- 用户插件 -->
+	<bean id="cusersPluginContext" class="com.hotent.bpmx.plugin.usercalc.cusers.context.CusersPluginContext" scope="prototype" autowire="byType"/>
+	<bean id="cusersPlugin" class="com.hotent.bpmx.plugin.usercalc.cusers.runtime.CusersPlugin" autowire="default"/>
+
+ 
+ 
+	<!--指定节点 -->
+	<bean id="sameNodePluginContext" class="com.hotent.bpmx.plugin.usercalc.samenode.context.SameNodePluginContext" scope="prototype" autowire="byType"/>
+	<bean id="sameNodePlugin" class="com.hotent.bpmx.plugin.usercalc.samenode.runtime.SameNodePlugin" autowire="default"/>
+	
+	
+	
+	<!-- #### 流程实例执行人 -->
+	<bean id="approverPluginContext" class="com.hotent.bpmx.plugin.usercalc.approver.context.ApproverPluginContext" scope="prototype" autowire="byType"></bean>
+	<bean id="approverPlugin" class="com.hotent.bpmx.plugin.usercalc.approver.runtime.ApproverPlugin" autowire="default"></bean>
+	
+	<!-- 通知插件 -->
+	<bean id="taskNotifyPluginContext" class="com.hotent.bpmx.plugin.task.tasknotify.context.TaskNotifyPluginContext" scope="prototype" autowire="byType"></bean>
+	<bean id="taskNotifyPlugin" class="com.hotent.bpmx.plugin.task.tasknotify.plugin.TaskNotifyPlugin" autowire="default">
+	</bean>
+	<bean id="procNotifyPluginContext" class="com.hotent.bpmx.plugin.execution.procnotify.context.ProcNotifyPluginContext" scope="prototype" autowire="byType"></bean>
+	<bean id="procNotifyPlugin" class="com.hotent.bpmx.plugin.execution.procnotify.plugin.ProcNotifyPlugin" autowire="default"></bean>	
+	
+	<bean id="notifyHelper" class="com.hotent.bpmx.plugin.task.tasknotify.helper.NotifyHelper" autowire="default"></bean>
+	
+	<!-- 抄送插件 -->
+	<bean id="taskCopyToPluginContext" class="com.hotent.bpmx.plugin.task.taskcopyto.context.TaskCopyToPluginContext" scope="prototype" autowire="byType"></bean>
+	<bean id="taskCopyToPlugin" class="com.hotent.bpmx.plugin.task.taskcopyto.plugin.TaskCopyToPlugin" autowire="default"></bean>
+	
+	
+	<!-- 脚本节点插件 -->
+	<bean id="scriptNodePluginContext" class="com.hotent.bpmx.plugin.execution.script.context.ScriptNodePluginContext" scope="prototype" autowire="byType"></bean>
+	<bean id="scriptNodePlugin" class="com.hotent.bpmx.plugin.execution.script.plugin.ScriptNodePlugin" autowire="default"></bean>
+	<!-- 消息节点插件 -->
+	<bean id="messagePluginContext" class="com.hotent.bpmx.plugin.execution.message.context.MessagePluginContext" scope="prototype" autowire="byType"></bean>
+	<bean id="messagePlugin" class="com.hotent.bpmx.plugin.execution.message.plugin.MessagePlugin" autowire="default"></bean>
+	<!-- webService 节点 -->
+	<bean id="webServicePluginContext" class="com.hotent.bpmx.plugin.execution.webservice.context.WebServicePluginContext" scope="prototype" autowire="byType"></bean>
+	<bean id="webServicePlugin" class="com.hotent.bpmx.plugin.execution.webservice.plugin.WebServiceTaskPlugin" autowire="default"></bean>
+	<!-- 催办插件-->
+	<bean id="remindersPluginContext" class="com.hotent.bpmx.plugin.task.reminders.context.RemindersPluginContext" autowire="default"></bean>
+	<bean id="remindersPlugin" class="com.hotent.bpmx.plugin.task.reminders.plugin.RemindersPlugin" autowire="default"></bean>
+	 <!-- 节点restful 插件 -->
+	 <bean id="restFulsPluginContext" class="com.hotent.bpmx.plugin.task.restful.context.RestFulsPluginContext" scope="prototype" autowire="byType"></bean>
+	 <bean id="restFulsPlugin" class="com.hotent.bpmx.plugin.task.restful.plugin.RestfulInvokePlugin" autowire="default"></bean>
+	  <!-- 全局restful 插件 -->
+	 <bean id="globalRestFulsPluginContext" class="com.hotent.bpmx.plugin.execution.globalRestful.context.GlobalRestFulsPluginContext" scope="prototype" autowire="byType"></bean>
+	 <bean id="globalRestfulPlugin" class="com.hotent.bpmx.plugin.execution.globalRestful.plugin.GlobalRestfulInvokePlugin" autowire="default"></bean>
+	
+	<!-- 用户插件声明 -->
+	<bean id="nodeUserPluginList" class="java.util.ArrayList">
+		<constructor-arg index="0">
+			<list>
+			<!-- 用户 -->
+		 	<ref bean="cusersPluginContext" />
+		 	
+		 	<!-- 查找用户组 -->
+            <!--<ref bean="groupRelPluginContext" />-->
+		 	<!-- 人员脚本 -->
+		 	<ref bean="hrScriptPluginContext" /> 
+		 	
+		 	<!-- 脚本 -->
+		 	<ref bean="scriptPluginContext" /> 
+		 	
+		 	<!-- 相同节点的执行人 -->
+		 	<ref bean="sameNodePluginContext" /> 
+		 	<!-- 流程实例审批人 -->
+		 	<ref bean="approverPluginContext" /> 
+			</list>
+		</constructor-arg>
+	</bean>
+	
+	<bean id="pluginContextContainer" class="com.hotent.bpmx.core.engine.def.impl.handler.PluginContextContainer">
+		<property name="pluginList" ref="autoTaskPluginList"></property>
+	</bean>
+	
+	<!-- 自动任务支持的列表 -->
+	<bean id="autoTaskPluginList" class="java.util.ArrayList">
+  		<constructor-arg>
+		   <list>
+		  		<ref bean="messagePluginContext"/>
+		  		<ref bean="scriptNodePluginContext"/>
+		  		<ref bean="webServicePluginContext"/>
+		  		<!-- <ref bean="globalRestFulsPluginContext"/> -->
+		   </list>
+  		</constructor-arg>
+ 	</bean>
+	
+	
+</beans>

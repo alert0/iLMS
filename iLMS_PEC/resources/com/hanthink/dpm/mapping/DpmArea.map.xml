@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.dpm.model.DpmAreaModel">
+	<resultMap id="DpmAreaModel" type="com.hanthink.dpm.model.DpmAreaModel">
+		<id property="id" column="ID" jdbcType="NUMERIC" />
+		<result property="factoryCode" column="FACTORY_CODE" jdbcType="VARCHAR" />
+		<result property="workcenter" column="WORKCENTER" jdbcType="VARCHAR" />
+		<result property="areaCode" column="AREA_CODE" jdbcType="VARCHAR" />
+		<result property="areaName" column="AREA_NAME" jdbcType="VARCHAR" />
+		<result property="areaDesc" column="AREA_DESC" jdbcType="VARCHAR" />
+		
+		<!-- 仓库表 -->
+		<result property="wareCode" column="WARE_CODE" jdbcType="VARCHAR" />
+		<result property="wareName" column="WARE_NAME" jdbcType="VARCHAR" />
+		
+		<!-- 数据字典 -->
+		<result property="workcenterName" column="CODE_VALUE_NAME" jdbcType="VARCHAR"/>
+		
+	</resultMap>
+
+	<insert id="create" parameterType="com.hanthink.dpm.model.DpmAreaModel">
+		INSERT INTO MM_DPM_AREA
+		(ID,
+		FACTORY_CODE, 
+		WORKCENTER, 
+		AREA_CODE, 
+		AREA_NAME,
+		AREA_DESC,
+		WARE_CODE,
+		CREATION_USER
+		)
+		VALUES
+		(SEQ_MM_DPM_AREA.NEXTVAL, 
+		#{factoryCode,jdbcType=VARCHAR},
+		#{workcenter,jdbcType=VARCHAR},
+		#{areaCode,jdbcType=VARCHAR},
+		#{areaName,jdbcType=VARCHAR},
+		#{areaDesc,jdbcType=VARCHAR},
+		#{wareCode,jdbcType=VARCHAR},
+		#{creationUser,jdbcType=VARCHAR}
+		 )
+	</insert>
+
+
+	<select id="queryDpmAreaForPage" parameterType="com.hanthink.dpm.model.DpmAreaModel" resultMap="DpmAreaModel">
+        SELECT A.ID id,
+           <!-- C.CODE_VALUE_NAME workcenter, -->
+           A.WORKCENTER      workcenter,
+           A.AREA_CODE areaCode,
+           A.AREA_NAME areaName,
+           A.AREA_DESC areaDesc,
+           B.WARE_CODE wareCode,
+		   B.WARE_CODE || '('|| B.WARE_NAME || ')'  wareName
+		  FROM MM_DPM_AREA A LEFT JOIN MM_INV_WAREHOUSE B ON A.WARE_CODE=B.WARE_CODE 
+		  LEFT JOIN MM_PUB_DATA_DICT C ON 
+		  		A.WORKCENTER=C.CODE_VALUE 
+		  	AND C.CODE_TYPE='PUB_WORKCENTER' 
+		  	AND C.FACTORY_CODE = #{factoryCode}
+		WHERE A.FACTORY_CODE = #{factoryCode}
+	 		<if test="areaCode!=null and areaCode!='' " >
+				AND A.AREA_CODE LIKE CONCAT( #{areaCode}, '%')
+			</if> 
+			<if test="workcenter !=null and workcenter !=''">
+				AND A.WORKCENTER = #{workcenter}
+			</if>
+			<if test="areaName !=null and areaName !='' ">
+				AND A.AREA_NAME like CONCAT(CONCAT('%',#{areaName}), '%')
+			</if>
+		ORDER BY A.ID DESC
+	</select>
+	
+	<!-- 获取新增界面车间，填充下拉框 -->
+	<select id="getUnloadWorkcenter" parameterType="java.util.Map" resultType="com.hanthink.base.model.DictVO">
+	     select CODE_VALUE valueKey,CODE_VALUE_NAME valueName from MM_PUB_DATA_DICT
+	     WHERE CODE_TYPE='PUB_WORKCENTER' 
+		 <if test="factoryCode!=null">
+				AND FACTORY_CODE=#{factoryCode}
+		 </if> 
+	</select>
+	
+	<!-- 获取发现区域代码，填充下拉框 -->
+	<select id="getUnloadCode" parameterType="java.util.Map" resultType="com.hanthink.base.model.DictVO">
+	     select DISTINCT A.AREA_CODE valueKey,A.AREA_NAME valueName from MM_DPM_AREA A WHERE A.FACTORY_CODE = #{factoryCode}
+	</select>
+	
+	<!-- 获取仓库代码，填充下拉框 -->
+	<select id="getUnloadWareCode" parameterType="java.util.Map" resultType="com.hanthink.base.model.DictVO">
+	     select DISTINCT A.WARE_CODE valueKey,A.WARE_NAME valueName from MM_INV_WAREHOUSE A WHERE A.FACTORY_CODE = #{factoryCode}
+	      AND A.WARE_CODE IS NOT NULL
+	</select>
+	
+	<update id="update" parameterType="com.hanthink.dpm.model.DpmAreaModel">
+		UPDATE MM_DPM_AREA SET
+		AREA_NAME = #{areaName,jdbcType=VARCHAR},
+		AREA_DESC = #{areaDesc,jdbcType=VARCHAR},
+		WORKCENTER = #{workcenter,jdbcType=VARCHAR},
+		WARE_CODE = #{wareCode,jdbcType=VARCHAR},
+		LAST_MODIFIED_USER = #{lastModifiedUser,jdbcType=VARCHAR},
+		LAST_MODIFIED_TIME=sysdate
+		WHERE
+		ID = #{id}
+	</update>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="DpmAreaModel">
+        SELECT A.ID id,
+           C.CODE_VALUE workcenter,
+           C.CODE_VALUE_NAME workcenterName,
+           A.AREA_CODE areaCode,
+           A.AREA_NAME areaName,
+           A.AREA_DESC areaDesc,
+           B.WARE_CODE wareCode,
+		   B.WARE_NAME wareName
+		  FROM MM_DPM_AREA A LEFT JOIN MM_INV_WAREHOUSE B ON A.WARE_CODE=B.WARE_CODE 
+		  LEFT JOIN MM_PUB_DATA_DICT C ON A.WORKCENTER=C.CODE_VALUE AND C.CODE_TYPE='PUB_WORKCENTER'
+		WHERE A.ID = #{id}
+		
+	</select>
+
+     <delete id="remove" parameterType="java.lang.String">
+		DELETE FROM MM_DPM_AREA
+		WHERE
+		ID = #{id}
+	</delete>
+	
+	<select id="getByCode" parameterType="java.lang.String" resultMap="DpmAreaModel">
+	    SELECT * FROM MM_DPM_AREA
+	    WHERE AREA_CODE=#{areaCode}
+	</select>
+	
+	<!-- 新增界面输入仓库带出仓库名称 -->
+ 	<select id="getWareNameByCode" parameterType="java.lang.String" resultType="com.hanthink.dpm.model.DpmAreaModel">
+	    SELECT WARE_NAME AS wareName FROM MM_INV_WAREHOUSE WHERE WARE_CODE=#{wareCode}
+	</select> 
+</mapper>

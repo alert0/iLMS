@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.sys.api.model.SysCallLog">
+	<resultMap id="SysCallLog" type="com.hotent.sys.api.model.SysCallLog">
+		<id property="id" column="ID_" jdbcType="VARCHAR"/>
+		<result property="procDefId" column="PROC_DEF_ID_" jdbcType="VARCHAR"/>
+		<result property="procDefKey" column="PROC_DEF_KEY_" jdbcType="VARCHAR"/>
+		<result property="taskId" column="TASK_ID_" jdbcType="VARCHAR"/>
+		<result property="supInstId" column="SUP_INST_ID_" jdbcType="VARCHAR"/>
+		<result property="procInstId" column="PROC_INST_ID_" jdbcType="VARCHAR"/>
+		<result property="taskKey" column="TASK_KEY_" jdbcType="VARCHAR"/>
+		<result property="taskName" column="TASK_NAME_" jdbcType="VARCHAR"/>
+		<result property="userId" column="USER_ID_" jdbcType="VARCHAR"/>
+		<result property="eventType" column="EVENT_TYPE_" jdbcType="VARCHAR"/>
+		<result property="url" column="URL_" jdbcType="VARCHAR"/>
+		<result property="desc" column="DESC_" jdbcType="VARCHAR"/>
+		<result property="invokeMode" column="INVOKE_MODE_" jdbcType="NUMERIC"/>
+		<result property="isSuccess" column="IS_SUCCESS_" jdbcType="NUMERIC"/>
+		<result property="response" column="RESPONSE_" jdbcType="CLOB"/>
+		<result property="callTime" column="CALL_TIME_" jdbcType="TIMESTAMP"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.sys.api.model.SysCallLog">
+		INSERT INTO sys_call_log
+		(ID_,PROC_DEF_ID_,PROC_DEF_KEY_,TASK_ID_,SUP_INST_ID_,PROC_INST_ID_,TASK_KEY_,TASK_NAME_,USER_ID_,EVENT_TYPE_,URL_,DESC_,INVOKE_MODE_,IS_SUCCESS_,RESPONSE_,CALL_TIME_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{procDefId,jdbcType=VARCHAR}, #{procDefKey,jdbcType=VARCHAR}, #{taskId,jdbcType=VARCHAR}, #{supInstId,jdbcType=VARCHAR}, #{procInstId,jdbcType=VARCHAR}, #{taskKey,jdbcType=VARCHAR}, #{taskName,jdbcType=VARCHAR}, #{userId,jdbcType=VARCHAR}, #{eventType,jdbcType=VARCHAR}, #{url,jdbcType=VARCHAR}, #{desc,jdbcType=VARCHAR}, #{invokeMode,jdbcType=NUMERIC}, #{isSuccess,jdbcType=NUMERIC}, #{response,jdbcType=CLOB}, #{callTime,jdbcType=TIMESTAMP})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="SysCallLog">
+		SELECT * FROM sys_call_log 
+		WHERE 
+		ID_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="SysCallLog">
+		SELECT * FROM sys_call_log
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY ID_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.sys.api.model.SysCallLog">
+		UPDATE sys_call_log SET
+		PROC_DEF_ID_=#{procDefId,jdbcType=VARCHAR},
+		PROC_DEF_KEY_=#{procDefKey,jdbcType=VARCHAR},
+		TASK_ID_=#{taskId,jdbcType=VARCHAR},
+		SUP_INST_ID_=#{supInstId,jdbcType=VARCHAR},
+		PROC_INST_ID_=#{procInstId,jdbcType=VARCHAR},
+		TASK_KEY_=#{taskKey,jdbcType=VARCHAR},
+		TASK_NAME_=#{taskName,jdbcType=VARCHAR},
+		USER_ID_=#{userId,jdbcType=VARCHAR},
+		EVENT_TYPE_=#{eventType,jdbcType=VARCHAR},
+		URL_=#{url,jdbcType=VARCHAR},
+		DESC_=#{desc,jdbcType=VARCHAR},
+		INVOKE_MODE_=#{invokeMode,jdbcType=NUMERIC},
+		IS_SUCCESS_=#{isSuccess,jdbcType=NUMERIC},
+		RESPONSE_=#{response,jdbcType=CLOB},
+		CALL_TIME_=#{callTime,jdbcType=TIMESTAMP}
+		WHERE
+		ID_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_call_log 
+		WHERE
+		ID_=#{id}
+	</delete>
+	
+	
+</mapper>

@@ -1,0 +1,487 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.pup.model.PupDcsModel">
+
+	<!-- DCS订单分页查询 -->
+	<select id="queryPupDcsForPage" parameterType="com.hanthink.pup.model.PupDcsModel"
+		resultType="com.hanthink.pup.model.PupDcsModel">
+		SELECT A.FACTORY_CODE factoryCode,
+		       A.ROUTE_CODE routeCode,
+		       A.PLAN_SHEET_NO planSheetNo,
+		       TO_CHAR(A.PLAN_START_TIME, 'YYYY-MM-DD HH24:MI:SS') planStartTime,
+		       TO_CHAR(A.PLAN_ARRIVE_TIME, 'YYYY-MM-DD HH24:MI:SS') planArriveTime,
+		       A.PLAN_TYPE planType,
+		       A.PICK_TYPE pickType,
+		       B.CODE_VALUE_NAME pickTypeStr,
+		       A.CAR_NUM carNum,
+		       A.TAKE_CAR takeCar,
+		       A.REMARK remark,
+		       A.ROUTE_NAME routeName,
+		       TO_CHAR(A.WORKDAY, 'YYYY-MM-DD') workDayStr,
+		       A.STATUS status,
+		       A.EXCUTE_STATUS excuteStatus,
+		       C.CODE_VALUE_NAME statusStr,
+		       D.CODE_VALUE_NAME excuteStatusStr,
+		       A.PLATE_NUM plateNum,
+		       A.RET_EMPTY_PLATFORM retEmptyPlatform
+		  FROM MM_PUP_DCS_PICK_PLAN A
+		  LEFT JOIN MM_PUB_DATA_DICT B
+		    ON A.PICK_TYPE = B.CODE_VALUE
+		   AND B.CODE_TYPE = 'PUP_MERGE_TYPE'
+		   <!-- i-LMS20190603 mod by 林卓 -->
+		   AND B.FACTORY_CODE = A.FACTORY_CODE
+		  LEFT JOIN MM_PUB_DATA_DICT C
+		    ON A.STATUS = C.CODE_VALUE
+		   AND C.CODE_TYPE = 'PUB_PRINT_STATUS'
+		   <!-- i-LMS20190603 mod by 林卓 -->
+		   AND C.FACTORY_CODE = A.FACTORY_CODE
+		  LEFT JOIN MM_PUB_DATA_DICT D
+		    ON A.EXCUTE_STATUS = D.CODE_VALUE
+		   AND D.CODE_TYPE = 'PUP_TASK_STATUS'
+		    <!-- i-LMS20190603 mod by 林卓 -->
+		   AND D.FACTORY_CODE = A.FACTORY_CODE
+		 WHERE A.FACTORY_CODE = #{factoryCode}
+		 <if test="planSheetNo!=null and planSheetNo!='' ">
+			 AND A.PLAN_SHEET_NO LIKE CONCAT(#{planSheetNo}, '%')
+		 </if>
+		 <if test="routeCode!=null and routeCode!='' ">
+			 AND A.ROUTE_CODE = #{routeCode}
+		 </if>	
+		 <if test="workDayStart!=null and workDayStart!='' ">
+			 AND A.WORKDAY &gt;= TO_DATE(#{workDayStart}, 'YYYY-MM-DD')
+		 </if>	
+		 <if test="workDayEnd!=null and workDayEnd!='' ">
+			 AND A.WORKDAY &lt;= TO_DATE(#{workDayEnd}, 'YYYY-MM-DD')
+		 </if>
+		 <if test="status!=null and status!='' ">
+			 AND A.STATUS = #{status}
+		 </if>
+		 ORDER BY A.PLAN_START_TIME
+	</select>
+	
+	<!-- 检查导入临时表数据 -->
+	<parameterMap type="map" id="genDcsMap">  
+		<parameter property="opeId" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="factoryCode" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="workDayStart" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="workDayEnd" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="outCode" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<!-- 校验导入的封条号数据 -->
+	<select id="genDcs" parameterMap="genDcsMap" statementType="CALLABLE">
+		{CALL PKG_PUP_MAIN.USP_DCS_PLAN_TO_TEMP(?, ?, ?, ?, ?)}
+	</select>
+	
+	<!-- 根据UUID删除临时表数据 -->
+	<delete id="deleteDcsByUUID" parameterType="java.lang.String">
+		DELETE FROM MM_PUP_DCS_DATA_IMP A WHERE A.IMP_UUID = #{uuid}
+	</delete>
+	
+	<!-- 导入临时数据 -->
+	<insert id="insertImportTempData" parameterType="com.hanthink.pup.model.PupDcsModelImport">
+		INSERT INTO MM_PUP_DCS_DATA_IMP
+		  (FACTORY_CODE,
+		   PICKUP_TYPE,
+		   AREA,
+		   UNLOAD_PORT,
+		   CAR_TYPE,
+		   ROUTE_CODE,
+		   TOTAL_NO,
+		   MERGE_NO,
+		   SUPPLIER_NO,
+		   SUP_FACTORY,
+		   SUPPLIER_NAME,
+		   ORDER_NO,
+		   PURCHASE_NO,
+		   WORKDAY,
+		   TODAY_NO,
+		   PICK_DATE,
+		   ARRIVE_DATE,
+		   ASSEMBLE_DATE,
+		   WWL_MANAGER,
+		   NWL_MANAGER,
+		   ORDER_USE,
+		   IMP_UUID,
+		   CHECK_RESULT,
+		   CHECK_INFO,
+		   IMPORT_STATUS,
+		   OPE_TYPE)
+		<foreach collection="list" item="item" index="index" separator=" UNION ALL ">
+			SELECT 
+		   		#{item.factoryCode, jdbcType=VARCHAR},
+		   		#{item.pickType, jdbcType=VARCHAR},
+		   		#{item.area, jdbcType=VARCHAR},
+		   		#{item.unloadPort, jdbcType=VARCHAR},
+		   		#{item.carType, jdbcType=VARCHAR},
+		   	 	#{item.routeCode, jdbcType=VARCHAR},
+		   	 	#{item.totalNo, jdbcType=VARCHAR},
+		   	 	#{item.mergeNo, jdbcType=VARCHAR},
+		   	 	#{item.supplierNo, jdbcType=VARCHAR},
+		   	 	#{item.supFactory, jdbcType=VARCHAR},
+		   	 	#{item.supplierName, jdbcType=VARCHAR},
+		   	 	#{item.orderNo, jdbcType=VARCHAR},
+		   	 	#{item.purchaseNo, jdbcType=VARCHAR},
+		   	 	#{item.workDay, jdbcType=VARCHAR},
+		   	 	#{item.todayNo, jdbcType=VARCHAR},
+		   	 	TO_DATE(#{item.pickTime, jdbcType=VARCHAR}, 'YYYY-MM-DD HH24:MI:SS'),
+		   	 	TO_DATE(#{item.arriveTime, jdbcType=VARCHAR}, 'YYYY-MM-DD HH24:MI:SS'),
+		   	 	TO_DATE(#{item.assembleTime, jdbcType=VARCHAR}, 'YYYY-MM-DD HH24:MI:SS'),
+		   	 	#{item.wwlManager, jdbcType=VARCHAR},
+		   	 	#{item.nwlManager, jdbcType=VARCHAR},
+		   	 	#{item.orderUse, jdbcType=VARCHAR},
+		   	 	#{item.uuid, jdbcType=VARCHAR},
+		   	 	'1',
+		   	 	'',
+		   	 	'0',
+		   	 	'I'
+			FROM DUAL
+    	</foreach>
+	</insert>
+	
+	<!-- 检查导入临时表数据 -->
+	<parameterMap type="map" id="impCkParamMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="factoryCode" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="userName" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<!-- 校验导入的数据 -->
+	<select id="checkImportData" parameterMap="impCkParamMap" statementType="CALLABLE">
+		{CALL PKG_PUP_CHECK.USP_PUP_DCS_CHECK(?, ?, ?, ?,  ?,?)}
+	</select>
+
+	<!-- 查询临时表中的数据是否可以导入 -->
+	<select id="queryIsImportFlag" parameterType="java.lang.String" resultType="java.lang.String">
+		WITH TEMPA AS
+		 (SELECT COUNT(1) s
+		    FROM MM_PUP_DCS_DATA_IMP A
+		   WHERE A.CHECK_RESULT = 0
+		     AND A.IMP_UUID = #{VALUE})
+		SELECT CASE
+		         WHEN A.S > 0 THEN
+		          0
+		         ELSE
+		          1
+		       END AS FLAG
+		  FROM TEMPA A
+	</select>
+	
+	<!-- 查询导入的临时表数据 -->
+	<select id="queryPupDcsImportTempData" parameterType="java.util.Map" resultType="com.hanthink.pup.model.PupDcsModelImport">
+		SELECT A.FACTORY_CODE factoryCode,
+		       A.PICKUP_TYPE pickType,
+		       A.AREA area,
+		       A.UNLOAD_PORT unloadPort,
+		       A.CAR_TYPE carType,
+		       A.ROUTE_CODE routeCode,
+		       A.TOTAL_NO totalNo,
+		       A.MERGE_NO mergeNo,
+		       A.SUPPLIER_NO supplierNo,
+		       A.SUP_FACTORY supFactory,
+		       A.SUPPLIER_NAME supplierName,
+		       A.ORDER_NO orderNo,
+		       A.PURCHASE_NO purchaseNo,
+		       A.WORKDAY workDay,
+		       A.TODAY_NO todayNo,
+		       TO_CHAR(A.PICK_DATE, 'YYYY-MM-DD') pickDate,
+		       TO_CHAR(A.PICK_DATE, 'HH24:MI:SS') pickTime,
+		       TO_CHAR(A.ARRIVE_DATE, 'YYYY-MM-DD') arriveDate,
+		       TO_CHAR(A.ARRIVE_DATE, 'HH24:MI:SS') arriveTime,
+		       TO_CHAR(A.ASSEMBLE_DATE, 'YYYY-MM-DD') assembleDate,
+		       TO_CHAR(A.ASSEMBLE_DATE, 'HH24:MI:SS') assembleTime,
+		       A.WWL_MANAGER wwlManager,
+		       A.NWL_MANAGER nwlManager,
+		       A.ORDER_USE orderUse,
+		       A.CHECK_INFO checkInfo,
+		       D.CODE_VALUE_NAME checkResult,
+		       E.CODE_VALUE_NAME importStatus
+		  FROM MM_PUP_DCS_DATA_IMP A
+		  LEFT JOIN MM_PUB_DATA_DICT D
+		    ON A.CHECK_RESULT = D.CODE_VALUE
+		   AND D.CODE_TYPE = 'PUB_IMP_CK_RESULT'
+		  LEFT JOIN MM_PUB_DATA_DICT E
+		    ON A.IMPORT_STATUS = E.CODE_VALUE
+		   AND E.CODE_TYPE = 'PUB_IMP_STATUS'
+		 WHERE A.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		 ORDER BY A.CHECK_RESULT, A.PICK_DATE, A.ORDER_NO
+	</select>
+	
+	<!-- 检查导入临时表数据 -->
+	<parameterMap type="map" id="importGenDcsParamMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeUser" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="factoryCode" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="outCode" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<!-- 校验导入的数据 -->
+	<select id="importGenDcs" parameterMap="importGenDcsParamMap" statementType="CALLABLE">
+		{CALL PKG_PUP_MAIN.USP_DCS_IMPORT_PLAN_TO_TEMP(?, ?, ?, ?)}
+	</select>
+	
+	<!-- 校验导入的数据 -->
+	<select id="queryDcsForListToPrint" parameterType="com.hanthink.pup.model.PupDcsModel" resultType="com.hanthink.pup.model.PupDcsModel">
+		SELECT A.PLAN_SHEET_NO planSheetNo,
+		       A.FACTORY_CODE factoryCode,
+		       A.ROUTE_CODE routeCode,
+		       A.ROUTE_NAME routeName,
+		       TO_CHAR(A.PLAN_START_TIME, 'YYYY/MM/DD HH24:MI:SS') planStartTime,
+		       TO_CHAR(A.PLAN_ARRIVE_TIME, 'YYYY/MM/DD HH24:MI:SS') planArriveTime,
+		       A.TAKE_CAR takeCar,
+		       CASE
+		         WHEN INSTR(A.TAKE_CAR, '飞翼') > 0 THEN
+		          0
+		         WHEN INSTR(A.TAKE_CAR, '厢车') > 0 THEN
+		          1
+		         ELSE
+		          2
+		       END takeCarType,
+		       TO_CHAR(SYSDATE, 'YYYY/MM/DD') || ' ' ||
+		       DECODE(TO_CHAR(A.WORKDAY, 'D'),
+		              1,
+		              '星期日',
+		              2,
+		              '星期一',
+		              3,
+		              '星期二',
+		              4,
+		              '星期三',
+		              5,
+		              '星期四',
+		              6,
+		              '星期五',
+		              7,
+		              '星期六') workDay,
+		       COUNT(DISTINCT B.SUPPLIER_NO) supPickNum,
+		       A.STATUS status
+		  FROM MM_PUP_DCS_PICK_PLAN A
+		  LEFT JOIN MM_PUP_DCS_PICK_PLAN_DETAIL B
+		    ON A.PLAN_SHEET_NO = B.PLAN_SHEET_NO
+		 WHERE A.FACTORY_CODE = #{factoryCode} 
+		 <if test="planSheetNoArr!=null and planSheetNoArr!='' ">
+		    AND A.PLAN_SHEET_NO IN
+			<foreach collection="planSheetNoArr" item="planSheetNo" index="index"
+				open="(" separator="," close=")">
+				#{planSheetNo}
+			</foreach>
+		</if>
+		 GROUP BY A.PLAN_SHEET_NO,
+		          A.FACTORY_CODE,
+		          A.ROUTE_CODE,
+		          A.ROUTE_NAME,
+		          A.PLAN_START_TIME,
+		          A.PLAN_ARRIVE_TIME,
+		          A.TAKE_CAR,
+		          A.WORKDAY,
+		          A.STATUS
+	</select>
+	
+	
+	<!-- 查询DCS明细数据 -->
+	<select id="queryDcsDetailForList" parameterType="com.hanthink.pup.model.PupDcsModel" resultType="com.hanthink.pup.model.PupDcsModel">
+		SELECT DISTINCT B.PLAN_SHEET_NO planSheetNo,
+                        A.SUPPLIER_NO supplierNo,
+                        C.SUPPLIER_NAME supplierName,
+                        TO_CHAR(A.PICK_TIME, 'YYYY-MM-DD HH24:MI:SS') planPickDate,
+                        B.TAKE_CAR takeCar,
+                        CASE
+				         WHEN INSTR(B.TAKE_CAR, '飞翼') > 0 THEN
+				          0
+				         WHEN INSTR(B.TAKE_CAR, '厢车') > 0 THEN
+				          1
+				         ELSE
+				          2
+				       END takeCarType
+          FROM MM_PUP_DCS_PICK_PLAN_DETAIL A
+          LEFT JOIN MM_PUP_DCS_PICK_PLAN B
+            ON A.PLAN_SHEET_NO = B.PLAN_SHEET_NO
+          LEFT JOIN MM_PUB_SUPPLIER C
+            ON A.SUPPLIER_NO = C.SUPPLIER_NO
+         WHERE B.FACTORY_CODE = #{factoryCode}
+         <if test="planSheetNo!=null and planSheetNo!='' ">
+		    AND A.PLAN_SHEET_NO = #{planSheetNo}
+		 </if>
+		 <if test="planSheetNoArr!=null and planSheetNoArr!='' ">
+		    AND A.PLAN_SHEET_NO IN
+			<foreach collection="planSheetNoArr" item="planSheetNo" index="index"
+				open="(" separator="," close=")">
+				#{planSheetNo}
+			</foreach>
+		 </if>
+		 <if test="status!=null and status!='' ">
+		    AND B.STATUS = #{status}
+		 </if>
+	</select>
+	
+	<!-- 查询所有的未使用的封条号数据 -->
+	<select id="querySealForList" parameterType="com.hanthink.pup.model.PupDcsModel" resultType="com.hanthink.pup.model.PupDcsModel">
+		SELECT C.SEAL_NO sealNo, 
+				#{sessionNo, jdbcType=VARCHAR} sessionNo,
+				#{factoryCode, jdbcType=VARCHAR} factoryCode,
+				#{createUser, jdbcType=VARCHAR} createUser
+		  FROM (SELECT A.SEAL_NO
+		          FROM MM_PUP_DCS_SEAL A
+		         WHERE A.FACTORY_CODE = #{factoryCode}
+		           AND A.DEAL_FLAG = 0
+		           AND NOT EXISTS (SELECT 1
+		                  FROM MM_PUP_DCS_SEAL_TEMP B
+		                 WHERE B.SEAL_NO = A.SEAL_NO)
+		         ORDER BY TO_NUMBER(A.SEAL_NO)) C
+		 WHERE ROWNUM &lt;= #{sealNum}
+		 ORDER BY TO_NUMBER(C.SEAL_NO)
+	</select>
+	
+	<!-- 查询DCS订单信息 -->
+	<select id="queryOrderForList" parameterType="com.hanthink.pup.model.PupDcsModel" resultType="com.hanthink.pup.model.PupDcsModel">
+		SELECT DISTINCT A.ORDER_DEPOT orderDepot, A.ORDER_NO orderNo
+		  FROM MM_PUP_DCS_PICK_PLAN_DETAIL A
+		  LEFT JOIN MM_PUP_DCS_PICK_PLAN B
+		    ON A.PLAN_SHEET_NO = B.PLAN_SHEET_NO
+		 WHERE B.FACTORY_CODE = #{factoryCode}
+		   AND A.PLAN_SHEET_NO = #{planSheetNo}
+		   AND A.SUPPLIER_NO = #{supplierNo}
+		   AND A.PICK_TIME = TO_DATE(#{planPickDate}, 'YYYY-MM-DD HH24:MI:SS')
+	</select>
+	
+	<!-- 写入DCS封条号到临时表 -->
+	<insert id="insertSealTemp" parameterType="java.util.List">
+		INSERT INTO MM_PUP_DCS_SEAL_TEMP
+  			(SEAL_NO, SESSION_NO, PLAN_SHEET_NO, FACTORY_CODE, CREATION_USER, CREATION_TIME)
+		 <foreach collection="list" item="item" index="index" separator=" UNION ALL ">
+			SELECT 
+		   		#{item.sealNo, jdbcType=VARCHAR},
+		   		#{item.sessionNo, jdbcType=VARCHAR},
+		   		#{item.planSheetNo, jdbcType=VARCHAR},
+		   		#{item.factoryCode, jdbcType=VARCHAR},
+		   	 	#{item.createUser, jdbcType=VARCHAR},
+		   	 	SYSDATE
+			FROM DUAL
+    	</foreach>
+	</insert>
+	
+	<!-- 更新DCS封条号状态 -->
+	<update id="updateSealStatus" parameterType="java.util.List">
+		UPDATE MM_PUP_DCS_SEAL A SET A.DEAL_FLAG = '1' 
+		WHERE A.SEAL_NO IN
+		<foreach collection="list" item="item" index="index"
+			open="(" separator="," close=")">
+			#{item.sealNo, jdbcType=VARCHAR}
+		</foreach>
+	</update>
+	
+	<!-- 更新DCS打印状态状态 -->
+	<update id="updateDcsPrintStatus" parameterType="com.hanthink.pup.model.PupDcsModel">
+		UPDATE MM_PUP_DCS_PICK_PLAN A
+		   SET A.STATUS = '1'
+		 WHERE A.FACTORY_CODE = #{factoryCode}
+		 <if test="planSheetNoArr!=null and planSheetNoArr!='' ">
+		    AND A.PLAN_SHEET_NO IN
+			<foreach collection="planSheetNoArr" item="item" index="index"
+				open="(" separator="," close=")">
+				#{item, jdbcType=VARCHAR}
+			</foreach>
+		 </if>
+	</update>
+	
+	<!-- 更新DCS执行状态 -->
+	<update id="updateDcsExecuteStatus" parameterType="com.hanthink.pup.model.PupDcsModel">
+		UPDATE MM_PUP_DCS_PICK_PLAN A
+		   SET A.EXCUTE_STATUS = '1'
+		 WHERE A.FACTORY_CODE = #{factoryCode}
+		 <if test="planSheetNo != null and planSheetNo != ''">
+		 	AND A.PLAN_SHEET_NO = #{planSheetNo, jdbcType=VARCHAR}
+		 </if>
+	</update>
+	
+	<!-- 查询该DCS任务对应的车牌号 -->
+	<select id="queryPlateNumByPlanSheetNo" parameterType="com.hanthink.pup.model.PupDcsModel" resultType="java.lang.String">
+		SELECT A.PLATE_NUM plateNum
+		  FROM MM_PUP_DCS_PICK_PLAN A
+		 WHERE A.FACTORY_CODE = #{factoryCode}
+		   AND A.PLAN_SHEET_NO = #{planSheetNo}
+		   AND A.PLATE_NUM IS NULL
+	</select>
+	
+	<!-- 更新DCS任务的车牌号 -->
+	<update id="updaetDcsPlateNum" parameterType="com.hanthink.pup.model.PupDcsModel">
+		UPDATE MM_PUP_DCS_PICK_PLAN A
+		   SET A.PLATE_NUM = #{plateNum}
+		 WHERE A.FACTORY_CODE = #{factoryCode}
+		   AND A.PLAN_SHEET_NO = #{planSheetNo}
+	</update>
+	
+	<!-- 查询所有已使用的封条号数据 -->
+	<select id="queryPrintedSeals" parameterType="com.hanthink.pup.model.PupDcsModel" resultType="com.hanthink.pup.model.PupDcsModel">
+		SELECT A.SEAL_NO       sealNo,
+		       A.SESSION_NO    sessionNo,
+		       A.FACTORY_CODE  factoryCode,
+		       A.CREATION_USER creationUser
+		  FROM MM_PUP_DCS_SEAL_TEMP A
+		 WHERE A.PLAN_SHEET_NO = #{planSheetNo}
+		   AND A.FACTORY_CODE = #{factoryCode}
+		   AND ROWNUM &lt;= #{sealNum}
+		 ORDER BY TO_NUMBER(A.SEAL_NO)
+	</select>
+	
+	<!-- DCS订单明细分页查询 -->
+	<select id="queryPupDcsDetailForPage" parameterType="com.hanthink.pup.model.PupDcsModel"
+		resultType="com.hanthink.pup.model.PupDcsModel">
+		SELECT A.FACTORY_CODE factoryCode,
+		       A.ROUTE_CODE routeCode,
+		       A.PLAN_SHEET_NO planSheetNo,
+		       TO_CHAR(A.PLAN_START_TIME, 'YYYY-MM-DD HH24:MI:SS') planStartTime,
+		       TO_CHAR(A.PLAN_ARRIVE_TIME, 'YYYY-MM-DD HH24:MI:SS') planArriveTime,
+		       A.PLAN_TYPE planType,
+		       A.PICK_TYPE pickType,
+		       B.CODE_VALUE_NAME pickTypeStr,
+		       A.CAR_NUM carNum,
+		       A.TAKE_CAR takeCar,
+		       A.REMARK remark,
+		       A.ROUTE_NAME routeName,
+		       TO_CHAR(A.WORKDAY, 'YYYY-MM-DD') workDayStr,
+		       A.STATUS status,
+		       A.EXCUTE_STATUS excuteStatus,
+		       C.CODE_VALUE_NAME statusStr,
+		       D.CODE_VALUE_NAME excuteStatusStr,
+		       A.PLATE_NUM plateNum,
+		       A.RET_EMPTY_PLATFORM retEmptyPlatform,
+		       F.ORDER_NO orderNo
+		  FROM MM_PUP_DCS_PICK_PLAN A
+		  LEFT JOIN MM_PUP_DCS_PICK_PLAN_DETAIL F
+		    ON A.PLAN_SHEET_NO = F.PLAN_SHEET_NO
+		  LEFT JOIN MM_PUB_DATA_DICT B
+		    ON A.PICK_TYPE = B.CODE_VALUE
+		   AND B.CODE_TYPE = 'PUP_MERGE_TYPE'
+		   <!-- i-LMS20190603 mod by 林卓 -->
+		   AND B.FACTORY_CODE = A.FACTORY_CODE
+		  LEFT JOIN MM_PUB_DATA_DICT C
+		    ON A.STATUS = C.CODE_VALUE
+		   AND C.CODE_TYPE = 'PUB_PRINT_STATUS'
+		   <!-- i-LMS20190603 mod by 林卓 -->
+		   AND C.FACTORY_CODE = A.FACTORY_CODE
+		  LEFT JOIN MM_PUB_DATA_DICT D
+		    ON A.EXCUTE_STATUS = D.CODE_VALUE
+		   AND D.CODE_TYPE = 'PUP_TASK_STATUS'
+		   <!-- i-LMS20190603 mod by 林卓 -->
+		   AND D.FACTORY_CODE = A.FACTORY_CODE
+		 WHERE A.FACTORY_CODE = #{factoryCode}
+		 <if test="planSheetNo!=null and planSheetNo!='' ">
+			 AND A.PLAN_SHEET_NO LIKE CONCAT(#{planSheetNo}, '%')
+		 </if>
+		 <if test="routeCode!=null and routeCode!='' ">
+			 AND A.ROUTE_CODE = #{routeCode}
+		 </if>	
+		 <if test="workDayStart!=null and workDayStart!='' ">
+			 AND A.WORKDAY &gt;= TO_DATE(#{workDayStart}, 'YYYY-MM-DD')
+		 </if>	
+		 <if test="workDayEnd!=null and workDayEnd!='' ">
+			 AND A.WORKDAY &lt;= TO_DATE(#{workDayEnd}, 'YYYY-MM-DD')
+		 </if>
+		 <if test="status!=null and status!='' ">
+			 AND A.STATUS = #{status}
+		 </if>
+		 ORDER BY A.PLAN_START_TIME
+	</select>
+
+</mapper>

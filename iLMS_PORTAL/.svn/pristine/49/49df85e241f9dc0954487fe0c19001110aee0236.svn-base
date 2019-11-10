@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.jiso.jisoSupKB">
+	
+	<!-- 查询厂外同步出货地切换看板数据-->
+	<select id="queryJisoSupKB" parameterType="java.util.Map" 
+			resultType="java.util.Map">
+		SELECT * 
+			FROM (
+			  SELECT 
+			    TO_CHAR(SYSDATE, 'yyyy-mm-dd hh24:mi') CUR_TIME,
+			    PLAN_CODE,
+			    PARTGROUP_NO,
+			    PARTGROUP_NAME,
+			    SUPPLIER_NO || '-' || SUP_FACTORY || ',' || ORDER_NO || ',' || DEAL_FLAG || ',' ||  to_char(DELIVERY_TIME, 'yyyy-mm-dd hh24:mi') as PO_INFO,
+			    po_col_no
+			  FROM(
+			    SELECT  
+			      T.PLAN_CODE,
+			      T.PARTGROUP_NO,
+			      G.PARTGROUP_NAME,
+			      T.SUPPLIER_NO,
+			      T.SUP_FACTORY,
+			      T.ROUTE_CODE,
+			      T.ORDER_NO,
+			      T.ORDER_SEQNO,
+			      T2.MAX_ORDER_SEQNO,
+			      OO.DELIVERY_TIME,
+			      CASE WHEN D.DEAL_FLAG IS NULL THEN 0 <!-- 未切换出货地 -->
+			        WHEN D.DEAL_FLAG = 0 AND T.ORDER_SEQNO >= T2.MAX_ORDER_SEQNO THEN 1  <!-- 切换出货地 -->
+			        WHEN D.DEAL_FLAG = 0 AND T.ORDER_SEQNO &lt; T2.MAX_ORDER_SEQNO THEN 3  <!-- 未派车处理 -->
+			        WHEN D.DEAL_FLAG = 1 THEN 2  <!-- 已派车处理 -->
+			      END DEAL_FLAG,
+			      row_number() over(partition by T.PLAN_CODE, T.PARTGROUP_NO order by T.ORDER_SEQNO asc) as po_col_no
+			    FROM MM_JISO_ORDER_SUP_KB T
+			    JOIN (
+			      SELECT PLAN_CODE, PARTGROUP_NO, MAX(ORDER_SEQNO) MAX_ORDER_SEQNO
+			      FROM MM_JISO_ORDER_SUP_KB 
+			      GROUP BY PLAN_CODE, PARTGROUP_NO
+			    ) T2 ON T.PLAN_CODE = T2.PLAN_CODE 
+			      AND T.PARTGROUP_NO = T2.PARTGROUP_NO
+			      AND T.ORDER_SEQNO > (T2.MAX_ORDER_SEQNO - #{batchNum,jdbcType=NUMERIC})  <!-- 传入的查询批次数量 -->
+			    LEFT JOIN MM_JISO_PARTGROUP G ON G.PLAN_CODE = T.PLAN_CODE 
+			      AND G.PARTGROUP_NO = T.PARTGROUP_NO 
+			    LEFT JOIN MM_JISO_ORDER_SUP_KB_DEAL D ON D.PLAN_CODE = T.PLAN_CODE 
+			      AND D.PARTGROUP_NO = T.PARTGROUP_NO 
+			      AND D.ORDER_NO = T.ORDER_NO
+			      
+			      LEFT JOIN MM_JISO_ORDER OO ON OO.ORDER_NO = T.ORDER_NO
+			  )
+			)
+			pivot(max(PO_INFO)
+			   for po_col_no 
+			 <!-- in(1 po1, 2 po2) -->
+			 in( ${columnSql} )  <!-- 拼接的动态列字段 -->
+			)		
+	</select>
+	
+	<!-- 出货地切换看板-派车处理 -->
+	<update id="updateDealData" parameterType="java.util.Map">
+		UPDATE MM_JISO_ORDER_SUP_KB_DEAL SET 
+		  DEAL_FLAG = 1,
+		  DEAL_TIME = SYSDATE,
+		  DEAL_USER = #{DEAL_USER},
+		  DEAL_IP = #{DEAL_IP},
+		  LICENSE_PLATE_NUM = #{VEH_PLATE_NUM}
+		WHERE ORDER_NO = #{ORDER_NO}
+		  AND PARTGROUP_NO = #{PARTGROUP_NO}
+		  AND PLAN_CODE = #{PLAN_CODE}
+	</update>
+ 
+</mapper>

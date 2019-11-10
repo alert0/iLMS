@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.form.persistence.model.BpmFormRight">
+	<resultMap id="BpmFormRight" type="com.hotent.form.persistence.model.BpmFormRight">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="formKey" column="form_key_" jdbcType="VARCHAR"/>
+		<result property="flowKey" column="flow_key_" jdbcType="VARCHAR"/>
+		<result property="nodeId" column="node_id_" jdbcType="VARCHAR"/>
+		<result property="parentFlowKey" column="parent_flow_key_" jdbcType="VARCHAR"/>
+		<result property="permission" column="permission_" jdbcType="CLOB"/>
+		<result property="permissionType" column="permission_type_" jdbcType="NUMERIC"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.form.persistence.model.BpmFormRight">
+		INSERT INTO BPM_FORM_RIGHT
+		(id_,form_key_,flow_key_,node_id_,parent_flow_key_,permission_,permission_type_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{formKey,jdbcType=VARCHAR}, #{flowKey,jdbcType=VARCHAR}, #{nodeId,jdbcType=VARCHAR}, 
+		#{parentFlowKey,jdbcType=VARCHAR}, #{permission,jdbcType=CLOB},#{permissionType,jdbcType=NUMERIC})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="BpmFormRight">
+		SELECT * FROM BPM_FORM_RIGHT 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="BpmFormRight">
+		SELECT * FROM BPM_FORM_RIGHT
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<select id="getAllByFlowKey" parameterType="java.lang.String" resultMap="BpmFormRight">
+		SELECT * FROM BPM_FORM_RIGHT WHERE flow_key_ = #{flowKey,jdbcType=VARCHAR}
+	</select>
+	
+	<update id="update" parameterType="com.hotent.form.persistence.model.BpmFormRight">
+		UPDATE BPM_FORM_RIGHT SET
+		form_key_=#{formKey,jdbcType=VARCHAR},
+		flow_key_=#{flowKey,jdbcType=VARCHAR},
+		node_id_=#{nodeId,jdbcType=VARCHAR},
+		parent_flow_key_=#{parentFlowKey,jdbcType=VARCHAR},
+		permission_=#{permission,jdbcType=CLOB},
+		permission_type_=#{permissionType,jdbcType=NUMERIC}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM BPM_FORM_RIGHT 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	
+	<select id="getByFlowKey"    resultMap="BpmFormRight">
+		SELECT * FROM BPM_FORM_RIGHT 
+		WHERE   flow_key_=#{flowKey}
+		and (node_id_ IS NULL OR node_id_ ='')
+		and permission_type_=#{permissionType}
+		<if test="@Ognl@isNotEmpty(parentFlowKey)">and parent_flow_key_=#{parentFlowKey,jdbcType=VARCHAR} </if>
+		<if test="@Ognl@isEmpty(parentFlowKey)">and (parent_flow_key_ is null or parent_flow_key_='') </if>
+	</select>
+	
+	<select id="getByFormKey"   resultMap="BpmFormRight">
+		SELECT * FROM BPM_FORM_RIGHT 
+		WHERE   form_key_=#{formKey}
+		and permission_type_=#{type}
+		and (flow_key_ is null or flow_key_='')
+	</select>
+	
+	<select id="getByFlowNodeId"    resultMap="BpmFormRight">
+		SELECT * FROM BPM_FORM_RIGHT 
+		WHERE   flow_key_=#{flowKey}
+		<if test="@Ognl@isNotEmpty(nodeId)">
+		and node_id_=#{nodeId}
+		</if>
+		<if test="@Ognl@isEmpty(nodeId)">
+		and (node_id_ IS NULL OR node_id_ ='')
+		</if>
+		<if test="@Ognl@isNotEmpty(permissionType)">
+		and permission_type_=#{permissionType}
+		</if>
+		<if test="@Ognl@isNotEmpty(parentFlowKey)">and parent_flow_key_=#{parentFlowKey,jdbcType=VARCHAR} </if>
+		<if test="@Ognl@isEmpty(parentFlowKey)">and (parent_flow_key_ is null or parent_flow_key_='') </if>
+	</select>
+	
+	
+	<delete id="removeByFlowKey" parameterType="java.lang.String">
+		DELETE FROM BPM_FORM_RIGHT 
+		WHERE   flow_key_=#{flowKey}
+		and permission_type_=#{permissionType}
+		<if test="@Ognl@isNotEmpty(parentFlowKey)">and parent_flow_key_=#{parentFlowKey,jdbcType=VARCHAR} </if>
+		<if test="@Ognl@isEmpty(parentFlowKey)">and (parent_flow_key_ is null or parent_flow_key_='') </if>
+	</delete>
+	
+	
+	<delete id="removeByFlowNode" parameterType="java.lang.String">
+		delete FROM BPM_FORM_RIGHT 
+		WHERE   flow_key_=#{flowKey}
+		<if test="@Ognl@isEmpty(nodeId)">
+		and (node_id_  is null or node_id_ ='' )
+		</if>
+		<if test="@Ognl@isNotEmpty(nodeId)">
+		and node_id_=#{nodeId}
+		</if>
+		<if test="@Ognl@isNotEmpty(parentFlowKey)">and parent_flow_key_=#{parentFlowKey,jdbcType=VARCHAR} </if>
+		<if test="@Ognl@isEmpty(parentFlowKey)">and (parent_flow_key_ is null or parent_flow_key_='') </if>
+	</delete>
+	
+	
+	<delete id="removeByFormKey" parameterType="java.lang.String">
+		DELETE FROM BPM_FORM_RIGHT 
+		WHERE
+		form_key_=#{formKey}
+	</delete>
+	
+</mapper>

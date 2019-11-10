@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.mon.model.MonColScreenModel">
+	<select id="queryForWEStartupRate" parameterType="java.util.Map" resultType="com.hanthink.mon.model.MonColScreenModel">
+		SELECT AVG(MPT.OEE) runOee,
+			   100 - AVG(MPT.OEE) stopOee
+		  FROM MM_PUB_TACT_TIME MPT
+		 WHERE MPT.WORKCENTER = #{weWorkCenter}
+		   AND MPT.FACTORY_CODE = #{factoryCode}
+	</select>
+	<select id="queryForAFStartupRate" parameterType="java.util.Map" resultType="com.hanthink.mon.model.MonColScreenModel">
+		SELECT AVG(MPT.OEE) runOee,
+			   100 - AVG(MPT.OEE) stopOee
+		  FROM MM_PUB_TACT_TIME MPT
+		 WHERE MPT.WORKCENTER = #{afWorkCenter}
+		   AND MPT.FACTORY_CODE = #{factoryCode}
+	</select>
+</mapper>

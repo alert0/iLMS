@@ -1,0 +1,139 @@
+package com.hotent.org.persistence.dao;
+import java.util.List;
+import java.util.Map;
+
+import com.hotent.base.api.query.QueryFilter;
+import com.hotent.base.db.api.Dao;
+import com.hotent.org.persistence.model.User;
+
+/**
+ * 
+ * <pre> 
+ * 描述：用户表 DAO接口
+ * 构建组：x5-bpmx-platform
+ * 作者:ray
+ * 邮箱:zhangyg@jee-soft.cn
+ * 日期:2016-06-30 10:26:50
+ * 版权：广州宏天软件有限公司
+ * </pre>
+ */
+public interface UserDao extends Dao<String, User> {
+	
+	
+	/**
+	 * 根据idshuzu 。
+	 * @param code
+	 * @return
+	 */
+	List<User> getUserByIds(String[] orgId);
+	/**
+	 * 根据Account取定义对象。
+	 * @param code
+	 * @return
+	 */
+	User getByAccount(String account);
+	
+	/**
+	 * 不含用户组织关系
+	 */
+	List<User> getUserListByOrgId(String orgId);
+	
+	/**
+	 * 含组织用户关系表数据
+	 * @param orgId
+	 * @return
+	 */
+	List<User> getOrgUserRelByOrgId(String orgId);
+	
+	/**
+	 * 不含用户组织关系
+	 * @param queryFilter
+	 * @return
+	 */
+	List<User> queryOrgUser(QueryFilter queryFilter);
+	
+	/**
+	 * 含组织用户关系表数据
+	 * @param queryFilter
+	 * @return
+	 */
+	List queryOrgUserRel(QueryFilter queryFilter);
+	
+	/**
+	 * 根据岗位编码获取用户列表
+	 * @param relCode
+	 * @return
+	 */
+	List<User> getListByRelCode(String relCode);
+	
+	/**
+	 * 根据岗位ID获取用户列表
+	 * @param relCode
+	 * @return
+	 */
+	List<User> getListByRelId(String relId);
+	
+	
+	/**
+	 * 根据角色ID获取用户列表
+	 * @param roleId
+	 * @return
+	 */
+	List<User> getUserListByRoleId(String roleId);
+	
+	/**
+	 * 根据角色Code获取用户列表
+	 * @param roleId
+	 * @return
+	 */
+	List<User> getUserListByRoleCode(String roleCode);
+	
+	/**
+	 * 判断用户是否存在。
+	 * @param user
+	 * @return
+	 */
+	boolean isUserExist(User user);
+	
+	/**
+	 * 获取登录的用户信息
+	 * @param account
+	 * @return
+	 */
+	User getLoginUser(String account);
+	
+	/**
+	 * 根据 email查询用户
+	 * @param email
+	 * @return
+	 */
+	List<User> getByUserEmail(String email);
+	
+	/**
+	 * 获取用户的所有上级
+	 * @param underUserId
+	 * @return
+	 */
+	List<User> getUpUsersByUserId(String underUserId);
+	
+	/**
+	 * 获取用户某组织下的上级
+	 * @param map
+	 * @return
+	 */
+	User getUpUserByUserIdAndOrgId(Map<String,String> map);
+	
+	/**
+	 * 获取用户的所有下级
+	 * @param upUserId
+	 * @return
+	 */
+	List<User> getUnderUsersByUserId(String upUserId);
+	
+	/**
+	 * 获取用户某组织下的下级用户
+	 * @param map
+	 * @return
+	 */
+	List<User> getUnderUserByUserIdAndOrgId(Map<String,String> map);
+}

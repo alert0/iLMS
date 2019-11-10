@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.sys.persistence.model.QueryMetafield">
+	<resultMap id="QueryMetafield" type="com.hotent.sys.persistence.model.QueryMetafield">
+		<id property="id" column="ID_" jdbcType="VARCHAR"/>
+		<result property="sqlId" column="SQL_ID_" jdbcType="VARCHAR"/>
+		<result property="name" column="NAME_" jdbcType="VARCHAR"/>
+		<result property="fieldName" column="FIELD_NAME_" jdbcType="VARCHAR"/>
+		<result property="fieldDesc" column="FIELD_DESC_" jdbcType="VARCHAR"/>
+		<result property="isShow" column="IS_SHOW_" jdbcType="NUMERIC"/>
+		<result property="isSearch" column="IS_SEARCH_" jdbcType="NUMERIC"/>
+		<result property="controlType" column="CONTROL_TYPE_" jdbcType="VARCHAR"/>
+		<result property="dataType" column="DATA_TYPE_" jdbcType="VARCHAR"/>
+		<result property="isVirtual" column="IS_VIRTUAL_" jdbcType="NUMERIC"/>
+		<result property="virtualFrom" column="VIRTUAL_FROM_" jdbcType="VARCHAR"/>
+		<result property="resultFromType" column="RESULT_FROM_TYPE_" jdbcType="VARCHAR"/>
+		<result property="resultFrom" column="RESULT_FROM_" jdbcType="VARCHAR"/>
+		<result property="alarmSetting" column="ALARM_SETTING_" jdbcType="VARCHAR"/>
+		<result property="dateFormat" column="DATE_FORMAT_" jdbcType="VARCHAR"/>
+		<result property="url" column="URL_" jdbcType="VARCHAR"/>
+		<result property="formater" column="FORMATER_" jdbcType="CLOB"/>
+		<result property="controlContent" column="CONTROL_CONTENT_" jdbcType="VARCHAR"/>
+		<result property="sn" column="SN_" jdbcType="NUMERIC"/>
+		<result property="width" column="WIDTH_" jdbcType="NUMERIC"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.sys.persistence.model.QueryMetafield">
+		INSERT INTO sys_query_metafield
+		(ID_,SQL_ID_,NAME_,FIELD_NAME_,FIELD_DESC_,IS_SHOW_,IS_SEARCH_,CONTROL_TYPE_,DATA_TYPE_,IS_VIRTUAL_,VIRTUAL_FROM_,RESULT_FROM_TYPE_,RESULT_FROM_,ALARM_SETTING_,DATE_FORMAT_,URL_,FORMATER_,CONTROL_CONTENT_,SN_,WIDTH_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{sqlId,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR}, #{fieldName,jdbcType=VARCHAR}, #{fieldDesc,jdbcType=VARCHAR}, #{isShow,jdbcType=NUMERIC}, #{isSearch,jdbcType=NUMERIC}, #{controlType,jdbcType=VARCHAR}, #{dataType,jdbcType=VARCHAR}, #{isVirtual,jdbcType=NUMERIC}, #{virtualFrom,jdbcType=VARCHAR}, #{resultFromType,jdbcType=VARCHAR}, #{resultFrom,jdbcType=VARCHAR}, #{alarmSetting,jdbcType=VARCHAR}, #{dateFormat,jdbcType=VARCHAR}, #{url,jdbcType=VARCHAR}, #{formater,jdbcType=CLOB}, #{controlContent,jdbcType=VARCHAR}, #{sn,jdbcType=NUMERIC}, #{width,jdbcType=NUMERIC})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="QueryMetafield">
+		SELECT * FROM sys_query_metafield 
+		WHERE 
+		ID_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="QueryMetafield">
+		SELECT * FROM sys_query_metafield
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY ID_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.sys.persistence.model.QueryMetafield">
+		UPDATE sys_query_metafield SET
+		SQL_ID_=#{sqlId,jdbcType=VARCHAR},
+		NAME_=#{name,jdbcType=VARCHAR},
+		FIELD_NAME_=#{fieldName,jdbcType=VARCHAR},
+		FIELD_DESC_=#{fieldDesc,jdbcType=VARCHAR},
+		IS_SHOW_=#{isShow,jdbcType=NUMERIC},
+		IS_SEARCH_=#{isSearch,jdbcType=NUMERIC},
+		CONTROL_TYPE_=#{controlType,jdbcType=VARCHAR},
+		DATA_TYPE_=#{dataType,jdbcType=VARCHAR},
+		IS_VIRTUAL_=#{isVirtual,jdbcType=NUMERIC},
+		VIRTUAL_FROM_=#{virtualFrom,jdbcType=VARCHAR},
+		RESULT_FROM_TYPE_=#{resultFromType,jdbcType=VARCHAR},
+		RESULT_FROM_=#{resultFrom,jdbcType=VARCHAR},
+		ALARM_SETTING_=#{alarmSetting,jdbcType=VARCHAR},
+		DATE_FORMAT_=#{dateFormat,jdbcType=VARCHAR},
+		URL_=#{url,jdbcType=VARCHAR},
+		FORMATER_=#{formater,jdbcType=CLOB},
+		CONTROL_CONTENT_=#{controlContent,jdbcType=VARCHAR},
+		SN_=#{sn,jdbcType=NUMERIC},
+		WIDTH_=#{width,jdbcType=NUMERIC}
+		WHERE
+		ID_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_query_metafield 
+		WHERE
+		ID_=#{id}
+	</delete>
+	
+	<select id="getBySqlId" parameterType="java.lang.String" resultMap="QueryMetafield">
+		SELECT * FROM sys_query_metafield 
+		WHERE 
+		SQL_ID_=#{sqlId} ORDER BY SN_
+	</select>
+	
+	<delete id="removeBySqlId" parameterType="java.lang.String">
+		DELETE FROM sys_query_metafield 
+		WHERE
+		SQL_ID_=#{sqlId}
+	</delete>
+</mapper>

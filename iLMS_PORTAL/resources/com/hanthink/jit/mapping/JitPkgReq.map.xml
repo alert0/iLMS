@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.jit.model.JitPkgReqModel">
+		
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="queryJitPkgReqForPage" parameterType="com.hanthink.jit.model.JitPkgReqModel" 
+	    resultType="com.hanthink.jit.model.JitPkgReqModel">
+			SELECT A.ID id,
+			       A.PLAN_CODE planCode,
+			       B.PLAN_CODE_DESC planCodeDesc,
+			       DD.CODE_VALUE_NAME workcenter,
+			       A.PART_NO partNo,
+			       A.LOCATION location,
+			       A.S_PRODUCT_SEQNO sproductSeqno,
+			       A.E_PRODUCT_SEQNO eproductSeqno,
+			       A.REQUIRE_NUM requireNum,
+			       A.PART_SHORT_NO partShortNo,
+			       A.PART_NAME partName,
+			       A.SUP_FACTORY supFactory,
+			       A.SUPPLIER_NO supplierNo,
+			       A.SUPPLIER_NAME supplierName,
+			       A.SHIP_DEPOT shipDepot,
+			       A.ARR_DEPOT arrDepot,
+			       A.DISTRI_PACKAGE distriPackage,
+			       A.STANDARD_PACKAGE standardPackage,
+			       A.UNLOAD_PORT unloadPort,
+			       A.STORAGE storage,
+			       A.PREPARE_PERSON preparePerson,
+			       A.CARPOOL carpool,
+			       A.DISTRI_PERSON distriPerson,
+			       PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(A.PLAN_CODE, A.KB_PRODUCT_SEQNO) kbProductSeqno,
+			       PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(A.PLAN_CODE, A.PREPARE_PRODUCT_SEQNO) prepareProductSeqno,
+			       PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(A.PLAN_CODE, A.DISPATCH_PRODUCT_SEQNO) dispatchProductSeqno,
+			       PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(A.PLAN_CODE, A.DELIVERY_PRODUCT_SEQNO) deliveryProductSeqno,
+			       PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(A.PLAN_CODE, A.ARRIVE_PRODUCT_SEQNO) arriveProductSeqno,
+			       PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(A.PLAN_CODE, A.DISTRI_PRODUCT_SEQNO) distriProductSeqno,       
+			       A.ASSEMBLE_PRODUCT_SEQNO assembleProductSeqno,
+			       A.ORDER_NO orderNo,
+			       TO_CHAR(A.ORDER_DEAL_TIME, 'YYYY-MM-DD HH24:MI:SS') orderDealTimeStr,
+			       A.PREPARE_BATCH_SEQNO prepareBatchSeqno,
+			       D.CODE_VALUE_NAME orderDealFlag,
+			       A.CREATION_TIME creationTime
+			  FROM MM_JIT_PKG_REQ A
+			  INNER JOIN MM_PUB_PLAN_CODE B ON B.PLAN_CODE = A.PLAN_CODE
+			  LEFT JOIN MM_PUB_DATA_DICT C ON C.CODE_TYPE = 'PUB_WORKCENTER' AND C.CODE_VALUE = B.WORKCENTER AND C.FACTORY_CODE = B.FACTORY_CODE
+			  LEFT JOIN MM_PUB_DATA_DICT D ON D.CODE_TYPE = 'JIT_GEN_ORDER_STATUS' AND D.CODE_VALUE = A.ORDER_DEAL_FLAG AND D.FACTORY_CODE = B.FACTORY_CODE
+			  LEFT JOIN MM_PUB_DATA_DICT DD ON DD.CODE_VALUE = B.WORKCENTER AND DD.CODE_TYPE = 'PUB_WORKCENTER' AND DD.FACTORY_CODE = B.FACTORY_CODE
+			 WHERE 1 = 1
+			  <if test="workcenter!=null and ''!= workcenter ">
+			  AND	B.WORKCENTER = #{workcenter}
+			  </if>
+			  <if test="shipDepot!=null and ''!= shipDepot">
+			  AND	A.SHIP_DEPOT = #{shipDepot}
+			  </if>
+			  <if test="partNo!=null and '' != partNo">
+			  AND	A.PART_NO LIKE CONCAT(#{partNo}, '%')
+			  </if>
+			  <if test="partShortNo!=null and ''!= partShortNo">
+			  AND	A.PART_SHORT_NO = #{partShortNo}
+			  </if>
+			  <!-- 下线批次 -->
+			  <if test="null != kbProductSeqno and ''!= kbProductSeqno">
+			  	AND PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(A.PLAN_CODE, A.KB_PRODUCT_SEQNO) = #{kbProductSeqno}
+			  </if>
+			   <if test="planCode!=null and ''!=planCode ">
+			  AND	A.PLAN_CODE = #{planCode}
+			  </if>
+			  <if test="creationTime != null and creationTime != ''">
+			  <![CDATA[ AND A.ORDER_DEAL_TIME >= TO_DATE(#{creationTime},'yyyy-MM-dd hh24:mi:ss') ]]>
+			  </if>
+		      <if test="creationTimeTo != null and creationTimeTo != ''">
+		      <![CDATA[ AND A.ORDER_DEAL_TIME <= TO_DATE(#{creationTimeTo},'yyyy-MM-dd hh24:mi:ss') ]]>
+		      </if>
+			  ORDER BY A.KB_PRODUCT_SEQNO ASC
+	</select>
+	
+</mapper>

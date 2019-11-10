@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
+	
+	<appender name="debugLog" class="org.apache.log4j.RollingFileAppender">
+		<param name="File" value="D:/ilms_mail_logs/ilms_Debug.log" />
+	    <param name="Append" value="true" />
+        <param name="MaxFileSize" value="10MB" />
+        <param name="MaxBackupIndex" value="7" />
+		<layout class="org.apache.log4j.PatternLayout">
+			<param name="ConversionPattern" value="%d{yyyy/MM/dd HH:mm:ss} %C{1}:%M %-5p %x %m%n" />
+		</layout>
+		<filter class="org.apache.log4j.varia.LevelRangeFilter">
+            <param name="levelMin" value="DEBUG"/>  
+            <param name="levelMax" value="DEBUG"/>
+            <param name="AcceptOnMatch" value="true"/>
+        </filter>
+        <filter class="org.apache.log4j.varia.DenyAllFilter" />
+	</appender>
+	
+	<appender name="infoLog" class="org.apache.log4j.RollingFileAppender">
+		<param name="File" value="D:/gps_mail_logs/gps_Info.log" />
+ 	    <param name="Append" value="true" />
+        <param name="MaxFileSize" value="10MB" />
+        <param name="MaxBackupIndex" value="7" />
+		<layout class="org.apache.log4j.PatternLayout">
+			<param name="ConversionPattern" value="%d{yyyy/MM/dd HH:mm:ss} %x %m%n" />
+		</layout>
+		<filter class="org.apache.log4j.varia.LevelRangeFilter">
+            <param name="levelMin" value="INFO"/>  
+            <param name="levelMax" value="INFO"/>
+            <param name="AcceptOnMatch" value="true"/>
+        </filter>
+        <filter class="org.apache.log4j.varia.DenyAllFilter" />
+	</appender>
+	<!-- 接口数据导入log -->
+	<appender name="importDataLog" class="org.apache.log4j.RollingFileAppender">
+		<param name="File" value="D:/gps_mail_logs/gps_importData_Info.log" />
+ 	    <param name="Append" value="true" />
+        <param name="MaxFileSize" value="10MB" />
+        <param name="MaxBackupIndex" value="7" />
+		<layout class="org.apache.log4j.PatternLayout">
+			<param name="ConversionPattern" value="%d{yyyy/MM/dd HH:mm:ss} %x %m%n" />
+		</layout>
+		<filter class="org.apache.log4j.varia.LevelRangeFilter">
+            <param name="levelMin" value="WARN"/>  
+            <param name="levelMax" value="WARN"/>
+            <param name="AcceptOnMatch" value="true"/>
+        </filter>
+        <filter class="org.apache.log4j.varia.DenyAllFilter" />
+	</appender>
+
+	<appender name="errorLog" class="org.apache.log4j.RollingFileAppender">
+		<param name="File" value="D:/gps_mail_logs/gps_Error.log" />
+		<param name="Append" value="true" />
+        <param name="MaxFileSize" value="10MB" />
+        <param name="MaxBackupIndex" value="7" />
+		<layout class="org.apache.log4j.PatternLayout">
+			<param name="ConversionPattern" value="%d{yyyy/MM/dd HH:mm:ss} %C{1}:%M %-5p %x %m%n" />
+		</layout>
+        <filter class="org.apache.log4j.varia.LevelRangeFilter">
+            <param name="levelMin" value="ERROR"/>  
+            <param name="levelMax" value="ERROR"/>
+            <param name="AcceptOnMatch" value="true"/>
+        </filter>
+        <filter class="org.apache.log4j.varia.DenyAllFilter" />
+	</appender>
+
+	<appender name="traceLog" class="org.apache.log4j.RollingFileAppender">
+		<param name="File" value="D:/gps_mail_logs/gps_Trace.log" />
+		<param name="Append" value="true" />
+        <param name="MaxFileSize" value="10MB" />
+        <param name="MaxBackupIndex" value="7" />
+		<layout class="org.apache.log4j.PatternLayout">
+			<param name="ConversionPattern" value="%d{yyyy/MM/dd HH:mm:ss} %C{1}:%M %-5p %x %m%n" />
+		</layout>
+	</appender>	
+
+	<appender name="fatalLog" class="org.apache.log4j.RollingFileAppender">
+		<param name="File" value="D:/gps_mail_logs/gps_Fatal.log" />
+		<param name="Append" value="true" />
+        <param name="MaxFileSize" value="1MB" />
+        <param name="MaxBackupIndex" value="7" />
+		<layout class="org.apache.log4j.PatternLayout">
+			<param name="ConversionPattern" value="%d{yyyy/MM/dd HH:mm:ss} %m%n" />
+		</layout>
+        <filter class="org.apache.log4j.varia.LevelRangeFilter">
+            <param name="levelMin" value="FATAL"/>  
+            <param name="levelMax" value="FATAL"/>
+            <param name="AcceptOnMatch" value="true"/>
+        </filter>
+        <filter class="org.apache.log4j.varia.DenyAllFilter" />
+	</appender>
+
+    <appender name="console" class="org.apache.log4j.ConsoleAppender">
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{yyyy/MM/dd HH:mm:ss} %5p %x %-72c %t - %m%n" />
+        </layout>
+    </appender>
+    
+    <logger name="com.hanthink.gps.util.logger.LogUtil">
+    	<!-- INFO及以上级别的LOG使用如下的appender -->
+	  <level value="DEBUG" />
+	  <appender-ref ref="infoLog" />
+	  <appender-ref ref="traceLog" />
+	  <appender-ref ref="debugLog" />
+  	  <appender-ref ref="importDataLog" />
+  	  <appender-ref ref="errorLog" />
+  	  <appender-ref ref="fatalLog" />
+  	  <appender-ref ref="console" />
+	</logger>
+	
+	<!-- Transaction 正常prepareTransactionInfo commitTransactionAfterReturning -->
+	<!-- Transaction 异常prepareTransactionInfo completeTransactionAfterThrowing-->
+	<logger name="org.springframework.transaction.interceptor.TransactionInterceptor">
+	  <level value="DEBUG" />
+  	  <appender-ref ref="debugLog" />
+  	  <appender-ref ref="traceLog" />
+  	  <appender-ref ref="console" />
+	</logger>
+	
+	<!-- ibatis error -->
+	<logger name="org.springframework.orm.ibatis">
+	  <level value="ERROR" />
+  	  <appender-ref ref="errorLog" />
+  	  <appender-ref ref="traceLog" />
+  	  <appender-ref ref="fatalLog" />
+  	  <appender-ref ref="console" />
+	</logger>
+	<logger name="org.springframework.orm.ibatis.SqlMapClientCallback">
+	  <level value="ERROR" />
+  	  <appender-ref ref="errorLog" />
+  	  <appender-ref ref="traceLog" />
+  	  <appender-ref ref="fatalLog" />
+  	  <appender-ref ref="console" />
+	</logger>
+	
+	<!-- open connection:Connection -->
+    <logger name="java.sql.Connection">
+      <level value="DEBUG" />
+      <appender-ref ref="debugLog" />
+      <appender-ref ref="traceLog" />
+      <appender-ref ref="console" />
+    </logger>
+    <!-- Sql语句 -->
+    <logger name="java.sql.Statement">
+      <level value="DEBUG" />
+      <appender-ref ref="debugLog" />
+      <appender-ref ref="traceLog" />
+      <appender-ref ref="console" />
+    </logger>
+    
+    <logger name="java.sql.PreparedStatement">
+      <level value="DEBUG" />
+      <appender-ref ref="debugLog" />
+      <appender-ref ref="traceLog" />
+      <appender-ref ref="console" />
+    </logger>
+    
+    <logger name="java.sql.ResultSet">
+      <level value="ERROR" />
+      <appender-ref ref="errorLog" />
+      <appender-ref ref="traceLog" />
+      <appender-ref ref="fatalLog" />
+      <appender-ref ref="console" />
+    </logger>
+    
+</log4j:configuration>

@@ -1,0 +1,1023 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper
+	namespace="com.hanthink.sw.model.SwDemondOrderDetailModel">
+
+	<!-- 订单查询 -->
+	<select id="queryDemandOrderPage"
+			parameterType="com.hanthink.sw.model.SwDemondOrderDetailModel"
+			resultType="com.hanthink.sw.model.SwDemondOrderDetailModel">
+			SELECT A.SUPPLIER_NO supplierNo,
+		       A.SUP_FACTORY supFactory,
+		       PS.SUPPLIER_NAME supplierName,
+		       A.ORDER_NO orderNo,
+		       TO_CHAR(A.ORDER_DATE, 'YYYY-MM-DD') orderDate,
+		       TO_CHAR(A.ARRIVE_DATE, 'YYYY-MM-DD') arriveDate,
+		       A.DEPOT_NO depotNo,
+		       A.PURCHASE_NO purchaseNo,
+		       F.CODE_VALUE_NAME printStatus,
+		       E.CODE_VALUE_NAME downloadStatus,
+		       D.CODE_VALUE_NAME deliveryStatus,
+		       C.CODE_VALUE_NAME receiveStatus,
+		       TO_CHAR(A.PRINT_TIME, 'YYYY-MM-DD HH24:MI:SS') printTime,
+		       A.PRINT_USER printUser,
+		       A.PRINT_USER_IP printUserIp,
+		       A.ORDER_TYPE orderType,
+		       TO_CHAR(G.PLAN_PICKUP_TIME, 'YYYY-MM-DD HH24:MI:SS') planPickUpTimeStr
+		  FROM MM_SW_ORDER A
+		  LEFT JOIN MM_PUB_SUPPLIER PS
+		    ON A.SUPPLIER_NO = PS.SUPPLIER_NO
+		  LEFT JOIN MM_PUB_DATA_DICT C
+		    ON C.CODE_TYPE = 'PUB_ARRIVE_STATUS'
+		   AND TO_CHAR(A.RECEIVE_STATUS) = C.CODE_VALUE
+		  LEFT JOIN MM_PUB_DATA_DICT D
+		    ON D.CODE_TYPE = 'PUB_DELIVERY_STATUS'
+		   AND TO_CHAR(A.DELIVERY_STATUS) = D.CODE_VALUE
+		  LEFT JOIN MM_PUB_DATA_DICT E
+		    ON E.CODE_TYPE = 'PUP_DOWNLOAD_STATUS'
+		   AND TO_CHAR(A.DOWNLOAD_STATUS) = E.CODE_VALUE
+		  LEFT JOIN MM_PUB_DATA_DICT F
+		    ON F.CODE_TYPE = 'PUB_PRINT_STATUS'
+		   AND TO_CHAR(A.PRINT_STATUS) = F.CODE_VALUE
+		  LEFT JOIN MM_SW_PICKUP_PLAN G
+		    ON G.ORDER_NO = A.ORDER_NO
+		   AND G.PURCHASE_NO = A.PURCHASE_NO
+		 WHERE A.ORDER_TYPE = #{orderType}
+		 
+		 	  <!-- 数据权限 -->
+		      <if test="null != userType and '4'.toString() == userType">
+			      <if test="null != userId and ''!= userId">
+			      	
+			      	AND A.SUP_FACTORY IN (SELECT V.VALUE_CODE FROM VIEW_SYS_USER_DATA_PERM V 
+			      		WHERE V.USER_ID = #{userId} AND V.TYPE_CODE = 'SW_SUP_FACTORY')
+			      </if>
+		      </if>
+			      
+		 	<if test="orderType == '01'">
+		 		AND A.ZG_FLAG = 0
+		 	</if>
+			<if test="supplierNo != null and '' != supplierNo">
+				AND A.SUPPLIER_NO = #{supplierNo}
+			</if>
+			<if test="supFactory != null and '' != supFactory">
+				AND A.SUP_FACTORY = #{supFactory}
+			</if>
+			<if test="orderNo != null and '' != orderNo">
+				AND A.ORDER_NO LIKE CONCAT(#{orderNo}, '%')
+			</if>
+			<if test="printStatus != null and '' != printStatus">
+				AND A.PRINT_STATUS = #{printStatus}
+			</if>
+			<if test="downloadStatus != null and '' != downloadStatus">
+				AND A.DOWNLOAD_STATUS = #{downloadStatus}
+			</if>
+			<if test="deliveryStatus != null and '' != deliveryStatus">
+				AND A.DELIVERY_STATUS = #{deliveryStatus}
+			</if>
+			<if test="receiveStatus != null and '' != receiveStatus">
+				AND A.RECEIVE_STATUS = #{receiveStatus}
+			</if>
+			<if test="timeStart != null and '' != timeStart">
+				AND TO_CHAR(A.ARRIVE_DATE, 'YYYY-MM-DD') &gt;=
+				#{timeStart}
+			</if>
+			<if test="timeEnd != null and '' != timeEnd">
+				AND TO_CHAR(A.ARRIVE_DATE, 'YYYY-MM-DD') &lt;=
+				#{timeEnd}
+			</if>
+			<if test="planPickUpTimeStrStart != null and planPickUpTimeStrStart != ''">
+			<![CDATA[ AND G.PLAN_PICKUP_TIME >= TO_DATE(#{planPickUpTimeStrStart},'yyyy-MM-dd hh24:mi:ss') ]]>
+			</if>
+	        <if test="planPickUpTimeStrEnd != null and planPickUpTimeStrEnd != ''">
+	        <![CDATA[ AND G.PLAN_PICKUP_TIME <= TO_DATE(#{planPickUpTimeStrEnd},'yyyy-MM-dd hh24:mi:ss') ]]>
+	        </if>
+		</select>
+
+	<!-- 订单明细查询 -->
+	<select id="queryDemandDetailOrderPage"
+		parameterType="com.hanthink.sw.model.SwDemondOrderDetailModel"
+		resultType="com.hanthink.sw.model.SwDemondOrderDetailModel">
+		SELECT A.PURCHASE_NO 		purchaseNo,
+		       A.PURCHASE_ROWNO  	purchaseRowNo,
+		       A.PART_NO 			partNo,
+		       B.PART_NAME_CN 		partName,
+		       B.PART_SHORT_NO 		partShortNo,
+		       A.ORDER_QTY 			orderQty,
+		       DECODE(A.STANDARD_PACKAGE, 0, 1, NULL, 1, A.STANDARD_PACKAGE) standardPackage,
+		       CEIL(A.ORDER_QTY /
+		            DECODE(A.STANDARD_PACKAGE, NULL, 1, 0, 1, A.STANDARD_PACKAGE)) boxesNum,
+		       A.CANCEL_NUM 		cancelNum,
+		       A.TOTAL_REC_QTY 		totalRecQty,
+		       C.CODE_VALUE_NAME 	receiveStatus,
+		       D.HMS_ORDER_NO 		hmsOrder,
+		       D.SP_TYPE 			spType,
+		       D.REC_ADDRESS 		recAdress,
+		       D.REC_TEL 			recTel,
+		       D.ORDER_TYPE 		orderType
+		  FROM MM_SW_ORDER_DETAIL A
+		  LEFT JOIN MM_PUB_PART_UDA B
+		    ON A.PART_NO = B.PART_NO
+		  LEFT JOIN MM_PUB_DATA_DICT C
+		    ON C.CODE_TYPE = 'PUB_ARRIVE_STATUS'
+		   AND TO_CHAR(A.RECEIVE_STATUS) = C.CODE_VALUE
+		  LEFT JOIN MM_SW_ORDER D
+		    ON A.PURCHASE_NO = D.PURCHASE_NO
+		 WHERE 1 = 1
+
+		<if test="purchaseNo != null and '' != purchaseNo">
+			AND A.PURCHASE_NO = #{purchaseNo}
+		</if>
+		<if test="orderNo != null and '' != orderNo">
+			AND D.ORDER_NO = #{orderNo}
+		</if>
+		<if test="supplierNo != null and '' != supplierNo">
+			AND D.SUPPLIER_NO = #{supplierNo}
+		</if>
+		<if test="supplierName != null and '' != supplierName">
+			AND E.SUPPLIER_NAME = #{supplierName}
+		</if>
+		<if test="depotNo != null and '' != depotNo">
+			AND D.DEPOT_NO = #{depotNo}
+		</if>
+		<if test="orderDate != null and '' != orderDate">
+			AND TO_CHAR(D.ORDER_DATE,'YYYY-MM-DD') = #{orderDate}
+		</if>
+		
+		<if test="partName != null and '' != partName">
+			AND B.PART_NAME_CN LIKE CONCAT( #{partName}, '%')
+		</if>
+		<if test="partShortNo != null and '' != partShortNo">
+			AND B.PART_SHORT_NO = #{partShortNo}
+		</if>
+
+		ORDER BY A.PURCHASE_NO,A.PURCHASE_ROWNO
+	</select>
+
+
+	<!-- 订单下载 -->
+	<select id="downloadDemondOrder"
+		parameterType="com.hanthink.sw.model.SwDemondOrderDetailModel"
+		resultType="com.hanthink.sw.model.SwDemondOrderDetailModel">
+		SELECT A.PURCHASE_NO purchaseNo,
+		       B.PURCHASE_ROWNO purchaseRowNo,
+		       A.ORDER_NO orderNo,
+		       A.SUPPLIER_NO supplierNo,
+		       A.SUP_FACTORY supFactory,
+		       TO_CHAR(G.PLAN_PICKUP_TIME, 'YYYY-MM-DD HH24:MI:SS') planPickUpTimeStr,
+		       TO_CHAR(A.PRINT_TIME, 'YYYY-MM-DD HH24:MI:SS') printTime,
+		       J.SUPPLIER_NAME supplierName,
+		       TO_CHAR(A.ORDER_DATE, 'YYYY-MM-DD') orderDate,
+		       TO_CHAR(A.ARRIVE_DATE, 'YYYY-MM-DD') arriveDate,
+		       F.CODE_VALUE_NAME PRINT_STATUS,
+		       E.CODE_VALUE_NAME DOWNLOAD_STATUS,
+		       D.CODE_VALUE_NAME DELIVERY_STATUS,
+		       C.CODE_VALUE_NAME RECEIVE_STATUS,
+		       A.ORDER_TYPE orderType,
+		       A.DEPOT_NO depotNo,
+		       B.PART_NO partNo,
+		       Z.PART_NAME_CN partName,
+		       Z.PART_SHORT_NO partShortNo,
+		       B.ORDER_QTY orderQty,
+		       DECODE(B.STANDARD_PACKAGE, 0, 1, NULL, 1, B.STANDARD_PACKAGE) standardPackage,
+		       CEIL(B.ORDER_QTY /
+		            DECODE(B.STANDARD_PACKAGE, NULL, 1, 0, 1, B.STANDARD_PACKAGE)) boxesNum,
+		       B.CANCEL_NUM cancelNum,
+		       B.TOTAL_REC_QTY totalRecQty
+		  FROM MM_SW_ORDER A
+		  LEFT JOIN MM_SW_ORDER_DETAIL B
+		    ON A.PURCHASE_NO = B.PURCHASE_NO
+		  LEFT JOIN MM_PUB_DATA_DICT C
+		    ON C.CODE_TYPE = 'PUB_ARRIVE_STATUS'
+		   AND TO_CHAR(A.RECEIVE_STATUS) = C.CODE_VALUE
+		  LEFT JOIN MM_PUB_DATA_DICT D
+		    ON D.CODE_TYPE = 'PUB_DELIVERY_STATUS'
+		   AND TO_CHAR(A.DELIVERY_STATUS) = D.CODE_VALUE
+		  LEFT JOIN MM_PUB_DATA_DICT E
+		    ON E.CODE_TYPE = 'PUP_DOWNLOAD_STATUS'
+		   AND TO_CHAR(A.DOWNLOAD_STATUS) = E.CODE_VALUE
+		  LEFT JOIN MM_PUB_DATA_DICT F
+		    ON F.CODE_TYPE = 'PUB_PRINT_STATUS'
+		   AND TO_CHAR(A.PRINT_STATUS) = F.CODE_VALUE
+		  LEFT JOIN MM_SW_PICKUP_PLAN G
+		    ON G.ORDER_NO = A.ORDER_NO
+		   AND G.PURCHASE_NO = A.PURCHASE_NO
+		  LEFT JOIN MM_PUB_SUPPLIER J
+		    ON J.SUPPLIER_NO = A.SUPPLIER_NO
+		  LEFT JOIN MM_PUB_PART_UDA Z
+		    ON B.PART_NO = Z.PART_NO
+		 WHERE 1 = 1
+		   AND A.ORDER_TYPE = #{orderType}
+		   	<if test="orderType == '01'">
+		 		AND A.ZG_FLAG = 0
+		 	</if>
+		    <if test="supplierNo != null and '' != supplierNo">
+				AND A.SUPPLIER_NO = #{supplierNo}
+			</if>
+			<if test="supFactory != null and '' != supFactory">
+				AND A.SUP_FACTORY = #{supFactory}
+			</if>
+			<if test="orderNo != null and '' != orderNo">
+				AND A.ORDER_NO LIKE CONCAT(#{orderNo}, '%')
+			</if>
+			<if test="printStatus != null and '' != printStatus">
+				AND A.PRINT_STATUS = #{printStatus}
+			</if>
+			<if test="downloadStatus != null and '' != downloadStatus">
+				AND A.DOWNLOAD_STATUS = #{downloadStatus}
+			</if>
+			<if test="deliveryStatus != null and '' != deliveryStatus">
+				AND A.DELIVERY_STATUS = #{deliveryStatus}
+			</if>
+			<if test="receiveStatus != null and '' != receiveStatus">
+				AND A.RECEIVE_STATUS = #{receiveStatus}
+			</if>
+			<if test="timeStart != null and '' != timeStart">
+				AND TO_CHAR(A.ARRIVE_DATE, 'YYYY-MM-DD') &gt;=
+				#{timeStart}
+			</if>
+			<if test="timeEnd != null and '' != timeEnd">
+				AND TO_CHAR(A.ARRIVE_DATE, 'YYYY-MM-DD') &lt;=
+				#{timeEnd}
+			</if>
+			<if test="planPickUpTimeStrStart != null and planPickUpTimeStrStart != ''">
+			<![CDATA[ AND G.PLAN_PICKUP_TIME >= TO_DATE(#{planPickUpTimeStrStart},'yyyy-MM-dd hh24:mi:ss') ]]>
+			</if>
+	        <if test="planPickUpTimeStrEnd != null and planPickUpTimeStrEnd != ''">
+	        <![CDATA[ AND G.PLAN_PICKUP_TIME <= TO_DATE(#{planPickUpTimeStrEnd},'yyyy-MM-dd hh24:mi:ss') ]]>
+	        </if>
+		ORDER BY
+		A.PURCHASE_NO,B.PURCHASE_ROWNO
+	</select>
+
+	<!-- 订单选择下载 -->
+	<select id="downloadDemondOrderByChoose"
+		parameterType="java.lang.String"
+		resultType="com.hanthink.sw.model.SwDemondOrderDetailModel">
+		WITH AA AS
+		 (SELECT A.SUPPLIER_NO,
+		         A.SUP_FACTORY,
+		         A.ORDER_NO,
+		         TO_CHAR(A.ORDER_DATE, 'YYYY-MM-DD') ORDER_DATE,
+		         TO_CHAR(A.ARRIVE_DATE, 'YYYY-MM-DD') ARRIVE_DATE,
+		         A.DEPOT_NO,
+		         A.PURCHASE_NO,
+		         F.CODE_VALUE_NAME PRINT_STATUS,
+		         E.CODE_VALUE_NAME DOWNLOAD_STATUS,
+		         D.CODE_VALUE_NAME DELIVERY_STATUS,
+		         C.CODE_VALUE_NAME RECEIVE_STATUS,
+		         TO_CHAR(G.PLAN_PICKUP_TIME, 'YYYY-MM-DD HH24:MI:SS') PLAN_PICKUP_TIME,
+		         TO_CHAR(A.PRINT_TIME, 'YYYY-MM-DD HH24:MI:SS') PRINT_TIME,
+		         J.SUPPLIER_NAME SUPPLIER_NAME
+		    FROM MM_SW_ORDER A
+		    LEFT JOIN MM_PUB_DATA_DICT C
+		      ON C.CODE_TYPE = 'PUB_ARRIVE_STATUS'
+		     AND TO_CHAR(A.RECEIVE_STATUS) = C.CODE_VALUE
+		    LEFT JOIN MM_PUB_DATA_DICT D
+		      ON D.CODE_TYPE = 'PUB_DELIVERY_STATUS'
+		     AND TO_CHAR(A.DELIVERY_STATUS) = D.CODE_VALUE
+		    LEFT JOIN MM_PUB_DATA_DICT E
+		      ON E.CODE_TYPE = 'PUP_DOWNLOAD_STATUS'
+		     AND TO_CHAR(A.DOWNLOAD_STATUS) = E.CODE_VALUE
+		    LEFT JOIN MM_PUB_DATA_DICT F
+		      ON F.CODE_TYPE = 'PUB_PRINT_STATUS'
+		     AND TO_CHAR(A.PRINT_STATUS) = F.CODE_VALUE
+		    LEFT JOIN MM_SW_PICKUP_PLAN G
+		      ON G.ORDER_NO = A.ORDER_NO
+		     AND G.PURCHASE_NO = A.PURCHASE_NO
+		    LEFT JOIN MM_PUB_SUPPLIER J
+		      ON J.SUPPLIER_NO = A.SUPPLIER_NO
+		    WHERE 1=1
+		    AND 0= 
+			   CASE WHEN A.ORDER_TYPE = '01' THEN
+		          A.ZG_FLAG
+		         ELSE 
+	              0
+	           END
+		    <if test="array != null and array != ''">
+		    	AND A.PURCHASE_NO IN
+				<foreach collection="array"  item="splitPurchaseNo"  open="(" separator="," close=")">
+				 #{splitPurchaseNo,jdbcType=VARCHAR}
+				</foreach>
+			</if>
+		)
+		SELECT A.PURCHASE_NO purchaseNo,
+		       A.PURCHASE_ROWNO purchaseRowNo,
+		       A.ORDER_NO orderNo,
+		       M.SUPPLIER_NO supplierNo,
+		       M.SUP_FACTORY supFactory,
+		       M.PRINT_TIME printTime,
+		       M.PLAN_PICKUP_TIME planPickUpTimeStr,
+		       M.SUPPLIER_NAME supplierName,
+		       M.ORDER_DATE orderDate,
+		       M.ARRIVE_DATE arriveDate,
+		       M.DEPOT_NO depotNo,
+		       M.PRINT_STATUS printStatus,
+		       M.DOWNLOAD_STATUS downloadStatus,
+		       M.DELIVERY_STATUS deliveryStatus,
+		       M. RECEIVE_STATUS receiveStatus,
+		       A.PART_NO partNo,
+		       Z.PART_NAME_CN partName,
+		       Z.PART_SHORT_NO partShortNo,
+		       A.ORDER_QTY orderQty,
+		       DECODE(A.STANDARD_PACKAGE, 0, 1, NULL, 1, A.STANDARD_PACKAGE) standardPackage,
+		       CEIL(A.ORDER_QTY /
+		            DECODE(A.STANDARD_PACKAGE, NULL, 1, 0, 1, A.STANDARD_PACKAGE)) boxesNum,
+		       A.CANCEL_NUM cancelNum,
+		       A.TOTAL_REC_QTY totalRecQty
+		  FROM MM_SW_ORDER_DETAIL A
+		  LEFT JOIN AA M
+		    ON A.PURCHASE_NO = M.PURCHASE_NO
+		  LEFT JOIN MM_PUB_PART_UDA Z
+		    ON A.PART_NO = Z.PART_NO
+		WHERE 1 = 1
+		<if test="array != null and array != ''">
+			AND A.PURCHASE_NO IN
+			<foreach collection="array"  item="splitPurchaseNo"  open="(" separator="," close=")">
+			 	#{splitPurchaseNo,jdbcType=VARCHAR}
+			</foreach>
+		</if>
+		ORDER BY A.PURCHASE_NO,A.PURCHASE_ROWNO
+	</select>
+
+	<!-- 标签打印查询 -->
+	<select id="queryDemondOrderPrintLabelList"
+		parameterType="com.hanthink.sw.model.SwDemondOrderDetailModel"
+		resultType="com.hanthink.sw.model.SwDemondOrderDetailModel">
+		SELECT A.PURCHASE_NO        purchaseNo,
+	           A.PURCHASE_ROWNO     purchaseRowNo,
+	           DECODE(A.STANDARD_PACKAGE, 0, 1, NULL, 1, A.STANDARD_PACKAGE) standartPackage,
+	           DECODE(A.STANDARD_PACKAGE, 0, 1, NULL, 1, A.STANDARD_PACKAGE) standardPackage,
+	           A.STANDARD_PACKAGE   requireNum,
+	           A.ORDER_ROWNO        purchaseRowNo,
+	           B.ORDER_NO           orderNo,
+	           A.PART_NO            partNo,
+	           D.PART_SHORT_NO      partShortNo,
+	           D.PART_NAME_CN       partName,
+	           B.SUPPLIER_NO        supplierNo,
+	           SUP.SUPPLIER_NAME      supplierName,
+	           C.UNLOAD_PORT        unloadPort,
+	           TO_CHAR(B.ORDER_DATE,
+	                   'YYYY-MM-DD')            orderDate,
+	           TO_CHAR(B.ARRIVE_DATE, 'YYYY-MM-DD') arriveDate,
+	           TO_CHAR(B.ARRIVE_DATE, 'YYYY-MM-DD') arriveTime,
+	           A.ORDER_QTY            orderQty,
+	           NVL(A.TOTAL_DELIV_QTY,0)    totalDelivQty,
+	           CEIL(A.ORDER_QTY /
+	                DECODE(A.STANDARD_PACKAGE, NULL, 1, 0, 1, A.STANDARD_PACKAGE)) boxesNum,
+	           TO_CHAR(B.ORDER_DATE, 'HH24:MI') orderTimeHhmi,
+	           TO_CHAR(B.ORDER_DATE, 'YYYY-MM-DD') orderTimeYmd,
+	           B.HMS_ORDER_NO        hmsOrder,
+	           B.ORDER_TYPE          orderType,
+	           B.SP_TYPE             spType,
+	           B.REC_ADDRESS         recAddress,
+	           B.REC_TEL             recTel,
+	           A.ORDER_UNIT          orderUnit,
+	           DECODE(A.ZK_FLAG, 0, '否', 1, '是') zkFlag,
+	           (CASE NVL(A.CURRENT_QTY,0)
+	           WHEN 0 THEN (A.ORDER_QTY - NVL(A.TOTAL_DELIV_QTY,0))
+	           ELSE NVL(A.CURRENT_QTY,0) END)  tempDelivQty,
+	           A.ORDER_ROWNO    orderRowNo,
+	           TO_CHAR(B.PREPARE_TIME, 'MM-DD HH24:MI') prepareProductSeqno,
+	           B.DELIVERY_STATUS       deliveryStatus
+	      FROM MM_SW_ORDER_DETAIL A
+	      LEFT JOIN MM_SW_ORDER B
+	        ON A.PURCHASE_NO = B.PURCHASE_NO
+	      LEFT JOIN (SELECT G.PART_NO,
+	                    G.SUPPLIER_NO,
+	                    G.FACTORY_CODE,
+	                    G.WARE_CODE,
+	                    MIN(G.UNLOAD_PORT) UNLOAD_PORT
+	               FROM MM_INV_PART_LOCATION G
+	              GROUP BY G.PART_NO, G.SUPPLIER_NO, G.FACTORY_CODE, G.WARE_CODE) C
+	        ON A.PART_NO = C.PART_NO
+	       AND B.SUPPLIER_NO = C.SUPPLIER_NO
+	       AND B.DEPOT_NO = C.WARE_CODE
+	       AND B.FACTORY_CODE = C.FACTORY_CODE
+	      LEFT JOIN MM_PUB_PART_UDA D
+	        ON A.PART_NO = D.PART_NO
+	      LEFT JOIN MM_PUB_SUPPLIER SUP
+	        ON B.SUPPLIER_NO = SUP.SUPPLIER_NO
+	     WHERE 1 = 1
+		   AND B.ORDER_NO = #{orderNo}
+		 ORDER BY A.PURCHASE_NO, A.PURCHASE_ROWNO
+	</select>
+	
+	
+	<!-- 标签打印查询 -->
+	<select id="queryLabelPrintList"
+		parameterType="com.hanthink.sw.model.SwDemondOrderDetailModel"
+		resultType="com.hanthink.sw.model.SwDemondOrderDetailModel">
+			SELECT A.PURCHASE_NO purchaseNo,
+             A.PURCHASE_ROWNO purchaseRowNo,
+             DECODE(A.STANDARD_PACKAGE, 0, 1, NULL, 1, A.STANDARD_PACKAGE) standartPackage,
+             DECODE(A.STANDARD_PACKAGE, 0, 1, NULL, 1, A.STANDARD_PACKAGE) standardPackage,
+             A.STANDARD_PACKAGE requireNum,
+             A.ORDER_ROWNO purchaseRowNo,
+             B.ORDER_NO orderNo,
+             A.PART_NO partNo,
+             D.PART_SHORT_NO partShortNo,
+             D.PART_NAME_CN partName,
+             P.PART_NAME_CN partNameCn,
+             B.SUPPLIER_NO supplierNo,
+             SUP.SUPPLIER_NAME supplierName,
+             C.UNLOAD_PORT unloadPort,
+             C.PREPARE_PERSON preparePerson,
+             C.DISTRI_PERSON distriPerson,
+             C.LOCATION location,
+             C.STORAGE prepareAddress,
+             TO_CHAR(B.ORDER_DATE, 'YYYY-MM-DD') orderDate,
+             TO_CHAR(B.ARRIVE_DATE, 'YYYY-MM-DD') arriveDate,
+             TO_CHAR(B.ARRIVE_DATE, 'YYYY-MM-DD') arriveTime,
+             A.ORDER_QTY orderQty,
+             NVL(A.TOTAL_DELIV_QTY, 0) totalDelivQty,
+             CEIL(A.ORDER_QTY /
+                  DECODE(A.STANDARD_PACKAGE, NULL, 1, 0, 1, A.STANDARD_PACKAGE)) boxesNum,
+             TO_CHAR(B.ORDER_DATE, 'HH24:MI') orderTimeHhmi,
+             TO_CHAR(B.ORDER_DATE, 'YYYY-MM-DD') orderTimeYmd,
+             B.HMS_ORDER_NO hmsOrder,
+             B.ORDER_TYPE orderType,
+             B.SP_TYPE spType,
+             B.REC_ADDRESS recAddress,
+             B.REC_TEL recTel,
+             A.ORDER_UNIT orderUnit,
+             DECODE(A.ZK_FLAG, 0, '否', 1, '是') zkFlag,
+             (CASE NVL(A.CURRENT_QTY, 0)
+               WHEN 0 THEN
+                (A.ORDER_QTY - NVL(A.TOTAL_DELIV_QTY, 0))
+               ELSE
+                NVL(A.CURRENT_QTY, 0)
+             END) tempDelivQty,
+             A.ORDER_ROWNO orderRowNo,
+             TO_CHAR(B.PREPARE_TIME, 'MM-DD HH24:MI') prepareProductSeqno,
+             A.DEMANDER              demander,
+             A.DEMAND_DEPARTMENT     demandDepartment,
+             A.USE                   use,
+             A.CON_NUMBER            conNumber      
+        FROM MM_SW_ORDER_DETAIL A
+        LEFT JOIN MM_SW_ORDER B
+          ON A.PURCHASE_NO = B.PURCHASE_NO
+        LEFT JOIN (SELECT D.PART_NO,
+					       D.SUPPLIER_NO,
+					       D.FACTORY_CODE,
+					       D.WARE_CODE,
+					       MIN(D.UNLOAD_PORT) UNLOAD_PORT,
+					       MY_CONCAT(USF_DELIMITER(DECODE(D.LOCATION,
+					                                      '',
+					                                      NULL,
+					                                      NULL,
+					                                      NULL,
+					                                      '□' || D.LOCATION),
+					                               '\r\n')) location,
+					       MIN(D.PREPARE_PERSON) PREPARE_PERSON,
+					       MIN(D.STORAGE) STORAGE,
+					       MIN(D.DISTRI_PERSON) DISTRI_PERSON
+					  FROM (SELECT A.PART_NO,
+					               A.SUPPLIER_NO,
+					               A.FACTORY_CODE,
+					               A.WARE_CODE,
+					               MIN(A.UNLOAD_PORT) UNLOAD_PORT,
+					               A.LOCATION,
+					               MIN(A.PREPARE_PERSON) PREPARE_PERSON,
+					               MIN(A.STORAGE) STORAGE,
+					               MIN(A.DISTRI_PERSON) DISTRI_PERSON
+					          FROM MM_INV_PART_LOCATION A
+					         GROUP BY A.PART_NO,
+					                  A.SUPPLIER_NO,
+					                  A.FACTORY_CODE,
+					                  A.WARE_CODE,
+					                  A.LOCATION) D
+					 GROUP BY D.PART_NO, D.SUPPLIER_NO, D.FACTORY_CODE, D.WARE_CODE
+					HAVING COUNT(1) &lt; 4
+					UNION ALL
+					SELECT D.PART_NO,
+					       D.SUPPLIER_NO,
+					       D.FACTORY_CODE,
+					       D.WARE_CODE,
+					       MIN(D.UNLOAD_PORT) UNLOAD_PORT,
+					       SUBSTR(MY_CONCAT(USF_DELIMITER(DECODE(D.LOCATION,
+					                                                 '',
+					                                                 NULL,
+					                                                 NULL,
+					                                                 NULL,
+					                                                 '□' || D.LOCATION),
+					                                          '\r\n')),
+					                  0,
+					                  INSTR(MY_CONCAT(USF_DELIMITER(DECODE(D.LOCATION,
+					                                                       '',
+					                                                       NULL,
+					                                                       NULL,
+					                                                       NULL,
+					                                                       '□' ||
+					                                                       D.LOCATION),
+					                                                '\r\n')),
+					                        '\r\n',
+					                        1,
+					                        3)) || 'r\n...' location,
+					       MIN(D.PREPARE_PERSON) PREPARE_PERSON,
+					       MIN(D.STORAGE) STORAGE,
+					       MIN(D.DISTRI_PERSON) DISTRI_PERSON
+					  FROM (SELECT A.PART_NO,
+					               A.SUPPLIER_NO,
+					               A.FACTORY_CODE,
+					               A.WARE_CODE,
+					               MIN(A.UNLOAD_PORT) UNLOAD_PORT,
+					               A.LOCATION,
+					               MIN(A.PREPARE_PERSON) PREPARE_PERSON,
+					               MIN(A.STORAGE) STORAGE,
+					               MIN(A.DISTRI_PERSON) DISTRI_PERSON
+					          FROM MM_INV_PART_LOCATION A
+					         GROUP BY A.PART_NO,
+					                  A.SUPPLIER_NO,
+					                  A.FACTORY_CODE,
+					                  A.WARE_CODE,
+					                  A.LOCATION) D
+					 GROUP BY D.PART_NO, D.SUPPLIER_NO, D.FACTORY_CODE, D.WARE_CODE
+					HAVING COUNT(1) &gt;= 4
+					) C
+          ON A.PART_NO = C.PART_NO
+         AND B.SUPPLIER_NO = C.SUPPLIER_NO
+         AND B.DEPOT_NO = C.WARE_CODE
+         AND B.FACTORY_CODE = C.FACTORY_CODE
+        LEFT JOIN MM_PUB_PART_UDA D
+          ON A.PART_NO = D.PART_NO
+        LEFT JOIN MM_PUB_SUPPLIER SUP
+            ON B.SUPPLIER_NO = SUP.SUPPLIER_NO
+         LEFT JOIN MM_PUB_PART P
+            ON A.PART_NO = P.PART_NO
+       WHERE 1 = 1
+        AND B.ORDER_NO = #{orderNo}
+         AND 0= 
+         CASE WHEN B.ORDER_TYPE = '01' THEN
+              B.ZG_FLAG
+             ELSE 
+                0
+             END
+       ORDER BY A.PURCHASE_NO, A.PURCHASE_ROWNO
+	</select>
+	
+
+	<!-- 订单打印状态更新 -->
+	<update id="updatePrintLabelStatus"
+		parameterType="com.hanthink.sw.model.SwDemondOrderDetailModel">
+		UPDATE
+		MM_SW_ORDER SET 
+		LABEL_PRINT_STATUS = 1 ,
+		LABEL_PRINT_TIME = SYSDATE ,
+		PRINT_USER = #{printUser} ,
+		PRINT_USER_IP = #{printUserIp}
+		WHERE ORDER_NO = #{orderNo}
+	</update>
+
+	<!--订单打印 -->
+	<select id="queryDemondOrderDetailList"
+		parameterType="com.hanthink.sw.model.SwDemondOrderDetailModel"
+		resultType="com.hanthink.sw.model.SwDemondOrderDetailModel">
+		SELECT A.PURCHASE_NO purchaseNo,
+		       A.PURCHASE_ROWNO purchaseRowNo,
+		       DECODE(A.STANDARD_PACKAGE, 0, 1, NULL, 1, A.STANDARD_PACKAGE) standartPackage,
+		       DECODE(A.STANDARD_PACKAGE, 0, 1, NULL, 1, A.STANDARD_PACKAGE) standardPackage,
+		       TO_CHAR(B.RECEIVE_DATE, 'YYYY-MM-DD') receiveDate,
+		       TO_CHAR(B.ARRIVE_DATE, 'YYYY-MM-DD') arriveDate,
+		       F.CODE_VALUE_NAME receiveStatus,
+		       B.ORDER_NO orderNo,
+		       A.PART_NO partNo,
+		       D.PART_SHORT_NO partShortNo,
+		       D.PART_NAME_CN partName,
+		       B.SUPPLIER_NO supplierNo,
+		       A.ORDER_QTY orderQty,
+		       CEIL(A.ORDER_QTY /
+		            DECODE(A.STANDARD_PACKAGE, NULL, 1, 0, 1, A.STANDARD_PACKAGE)) boxesNum,
+		       SUP.SUPPLIER_NAME supplierName,
+		       C.UNLOAD_PORT unloadPort,
+		       B.HMS_ORDER_NO hmsOrder,
+		       B.SP_TYPE spType,
+		       B.REC_ADDRESS recAddress,
+		       B.REC_TEL recTel,
+		       B.ORDER_TYPE orderType,
+		       B.DEPOT_NO depotNo,
+		       A.ORDER_UNIT orderUnit,
+		       A.TOTAL_REC_QTY totalRecQty,
+		       (CASE
+		         WHEN B.ORDER_TYPE = '01' THEN
+		          '量产'
+		         WHEN B.ORDER_TYPE = '02' THEN
+		          '例外'
+		         WHEN B.ORDER_TYPE = '05' THEN
+		          '试制'
+		         WHEN B.ORDER_TYPE = '11' THEN
+		          '量产'
+		         WHEN B.ORDER_TYPE = '12' THEN
+		          'SP件'
+		       END) orderTypeName
+		  FROM MM_SW_ORDER_DETAIL A
+		  LEFT JOIN MM_SW_ORDER B
+		    ON A.PURCHASE_NO = B.PURCHASE_NO
+		  LEFT JOIN (SELECT G.PART_NO,
+		                    G.SUPPLIER_NO,
+		                    G.WARE_CODE,
+		                    G.FACTORY_CODE,
+		                    MIN(G.UNLOAD_PORT) UNLOAD_PORT
+		               FROM MM_INV_PART_LOCATION G
+		              GROUP BY G.PART_NO, G.SUPPLIER_NO, G.WARE_CODE, G.FACTORY_CODE) C
+		    ON A.PART_NO = C.PART_NO
+		   AND B.SUPPLIER_NO = C.SUPPLIER_NO
+		   AND B.DEPOT_NO = C.WARE_CODE
+		   AND B.FACTORY_CODE = C.FACTORY_CODE
+		  LEFT JOIN MM_PUB_PART_UDA D
+		    ON A.PART_NO = D.PART_NO
+		  LEFT JOIN MM_PUB_SUPPLIER SUP
+        	ON B.SUPPLIER_NO = SUP.SUPPLIER_NO
+		  LEFT JOIN MM_PUB_DATA_DICT F
+		    ON F.CODE_TYPE = 'PUB_ARRIVE_STATUS'
+		   AND TO_CHAR(A.RECEIVE_STATUS) = F.CODE_VALUE
+		 WHERE 1 = 1
+		   AND B.ORDER_NO = #{orderNo}
+		   AND 0= 
+		   CASE WHEN B.ORDER_TYPE = '01' THEN
+	          B.ZG_FLAG
+	         ELSE 
+              0
+           END
+		 ORDER BY A.PURCHASE_NO, A.PURCHASE_ROWNO
+	</select>
+
+	<!-- 打印状态更新 -->
+	<update id="updatePrintInfo"
+		parameterType="com.hanthink.sw.model.SwDemondOrderDetailModel">
+		UPDATE MM_SW_ORDER
+		SET PRINT_STATUS = 1,
+		PRINT_TIME = SYSDATE,
+		PRINT_USER = #{printUser,jdbcType=VARCHAR},
+		PRINT_USER_IP = #{printUserIp,jdbcType=VARCHAR}
+		WHERE ORDER_NO = #{orderNo,jdbcType=VARCHAR}
+	</update>
+
+	<!-- 下载状态更新 -->
+	<update id="updateDowloadInfo"
+		parameterType="java.util.Map">
+		UPDATE MM_SW_ORDER
+		SET DOWNLOAD_STATUS = #{downloadStatus,jdbcType=VARCHAR},
+		DOWNLOAD_TIME = SYSDATE 
+		WHERE PURCHASE_NO IN
+		<foreach collection="purchaseNoArr" item="purchaseNo" index="index" open="("
+			separator="," close=")">
+			#{purchaseNo,jdbcType=VARCHAR}
+		</foreach>
+	</update>
+
+	<!-- 批量下载状态更新 -->
+	<update id="updateDowloadInfoByBatch"
+		parameterType="com.hanthink.sw.model.SwDemondOrderDetailModel">
+		UPDATE MM_SW_ORDER A SET A.DOWNLOAD_STATUS = #{downloadStatusYes,jdbcType=VARCHAR},
+		A.DOWNLOAD_TIME = SYSDATE
+		WHERE A.ORDER_TYPE = #{orderType}
+		<if test="supplierNo != null and '' != supplierNo">
+			AND A.SUPPLIER_NO = #{supplierNo}
+		</if>
+		<if test="orderNo != null and '' != orderNo">
+			AND A.ORDER_NO = #{orderNo}
+		</if>
+		<if test="printStatus != null and '' != printStatus">
+			AND A.PRINT_STATUS = #{printStatus}
+		</if>
+		<if test="downloadStatus != null and '' != downloadStatus">
+			AND A.DOWNLOAD_STATUS = #{downloadStatus}
+		</if>
+		<if test="deliveryStatus != null and '' != deliveryStatus">
+			AND A.DELIVERY_STATUS = #{deliveryStatus}
+		</if>
+		<if test="receiveStatus != null and '' != receiveStatus">
+			AND A.RECEIVE_STATUS = #{receiveStatus}
+		</if>
+		<if test="timeStart != null and '' != timeStart">
+			AND TO_CHAR(A.ARRIVE_DATE, 'YYYY-MM-DD') &gt;
+			#{timeStart}
+		</if>
+		<if test="timeEnd != null and '' != timeEnd">
+			AND TO_CHAR(A.ARRIVE_DATE, 'YYYY-MM-DD') &lt;
+			#{timeEnd}
+		</if>
+	</update>
+
+	<!-- 托盘打印 -->
+	<select id="demondOrderPrintTpLabel"
+		parameterType="com.hanthink.sw.model.SwDemondOrderDetailModel"
+		resultType="com.hanthink.sw.model.SwDemondOrderDetailModel">
+		SELECT DISTINCT A.PURCHASE_NO purchaseNo,
+		                B.ORDER_NO orderNo,
+		                B.SUPPLIER_NO supplierNo,
+		                SUP.SUPPLIER_NAME supplierName,
+		                C.UNLOAD_PORT unloadPort,
+		                TO_CHAR(B.ARRIVE_DATE, 'YYYY-MM-DD') arriveTime,
+		                TO_CHAR(B.ORDER_DATE, 'HH24:MI') orderTimeHhmi,
+		                TO_CHAR(B.ORDER_DATE, 'YYYY-MM-DD') orderTimeYmd,
+		                TO_CHAR(B.ARRIVE_DATE, 'YYYY-MM-DD HH24:MI:SS') arriveTime
+		  FROM MM_SW_ORDER_DETAIL A
+		  LEFT JOIN MM_SW_ORDER B
+		    ON A.PURCHASE_NO = B.PURCHASE_NO
+		  LEFT JOIN (SELECT G.PART_NO,
+		                    G.SUPPLIER_NO,
+		                    G.FACTORY_CODE,
+		                    G.WARE_CODE,
+		                    MIN(G.UNLOAD_PORT) UNLOAD_PORT
+		               FROM MM_INV_PART_LOCATION G
+		              GROUP BY G.PART_NO, G.SUPPLIER_NO, G.FACTORY_CODE, G.WARE_CODE) C
+		    ON A.PART_NO = C.PART_NO
+		   AND B.SUPPLIER_NO = C.SUPPLIER_NO
+		   AND B.DEPOT_NO = C.WARE_CODE
+		   AND B.FACTORY_CODE = C.FACTORY_CODE
+		  LEFT JOIN MM_PUB_PART_UDA D
+		    ON A.PART_NO = D.PART_NO
+		  LEFT JOIN MM_PUB_SUPPLIER SUP 
+        	ON B.SUPPLIER_NO = SUP.SUPPLIER_NO
+		 WHERE 1 = 1
+		   AND B.ORDER_NO = #{orderNo}
+		 ORDER BY A.PURCHASE_NO
+	</select>
+
+	<!-- 查询收货明细 -->
+	<select id="demondOrderDetailUpdateQuery"
+		parameterType="java.util.List"
+		resultType="com.hanthink.sw.model.SwDemondOrderDetailModel">
+		SELECT A.PURCHASE_NO purchaseNo,
+		A.PURCHASE_ROWNO
+		purchaseRowNo,
+		A.PART_NO partNo,
+		B.PART_NAME_CN partName,
+		B.PART_SHORT_NO partShortNo,
+		B.STANDARD_PACKAGE standardPackage,
+		B.STANDARD_PACKAGE standartPackage,
+		A.ORDER_QTY orderQty,
+		NVL(A.TOTAL_DELIV_QTY,0) totalDelivQty,
+		A.ORDER_QTY - NVL(A.TOTAL_DELIV_QTY,0) tempDelivQty
+		FROM
+		MM_SW_ORDER_DETAIL A
+		LEFT JOIN MM_PUB_PART_UDA B
+		ON A.PART_NO =
+		B.PART_NO
+		LEFT JOIN MM_PUB_DATA_DICT C
+		ON C.CODE_TYPE =
+		'PUB_ARRIVE_STATUS' AND
+		TO_CHAR(A.RECEIVE_STATUS) =
+		C.CODE_VALUE
+		WHERE
+		
+		A.PURCHASE_NO IN
+		<foreach collection="purchaseNos" item="purchaseNo" index="index" open="("
+			separator="," close=")">
+			#{purchaseNo,jdbcType=VARCHAR}
+		</foreach>
+		
+		<if test="model.purchaseNo != null and '' != model.purchaseNo">
+			AND A.PURCHASE_NO = #{model.purchaseNo,jdbcType=VARCHAR}
+		</if>
+		<if test="model.orderNo != null and '' != model.orderNo">
+			AND A.ORDER_NO = #{model.orderNo,jdbcType=VARCHAR}
+		</if>
+		
+		<if test="model.partName != null and '' != model.partName">
+			AND B.PART_NAME_CN LIKE CONCAT( #{model.partName,jdbcType=VARCHAR}, '%')
+		</if>
+		<if test="model.partShortNo != null and '' != model.partShortNo">
+			AND B.PART_SHORT_NO = #{model.partShortNo,jdbcType=VARCHAR}
+		</if>
+		ORDER BY A.PURCHASE_NO,A.PURCHASE_ROWNO
+	</select>
+
+
+	<!-- 发货数更新 -->
+	<update id="updateDemandDetailForPrint"
+		parameterType="com.hanthink.sw.model.SwDemondOrderDetailModel">
+		  UPDATE MM_SW_ORDER_DETAIL A
+		    SET (A.TOTAL_DELIV_QTY, A.CURRENT_QTY, A.DELIVERY_STATUS) =
+		        (SELECT 
+		        (NVL(B.TOTAL_DELIV_QTY, 0) + #{tempDelivQty}),
+		        0,
+		        (CASE (NVL(B.TOTAL_DELIV_QTY, 0) + #{tempDelivQty}) 
+		        WHEN 0 THEN 0
+		        WHEN B.ORDER_QTY THEN 2 
+		        ELSE 1 END)
+		         FROM MM_SW_ORDER_DETAIL B
+		  WHERE B.PURCHASE_NO = #{purchaseNo}
+		    AND B.PURCHASE_ROWNO = #{purchaseRowNo})
+		  WHERE A.PURCHASE_NO = #{purchaseNo}
+		    AND A.PURCHASE_ROWNO = #{purchaseRowNo}
+	</update>
+
+	<select id="getDeliveryNo"
+		parameterType="com.hanthink.sw.model.SwDemondOrderDetailModel"
+		resultType="com.hanthink.sw.model.SwDemondOrderDetailModel">
+		SELECT MAX(delivery_no) deliveryNo FROM MM_SW_DELIVERY WHERE purchase_no =
+		#{purchaseNo}
+	</select>
+	
+	<!-- 查询发货单号后五位且为最大值 -->
+	<select id="getLastFive" parameterType="java.lang.String" resultType="java.lang.Integer">
+		SELECT B.lastFive lastFive
+			  FROM (select substr(A.DELIVERY_NO, greatest(-5, -length(A.DELIVERY_NO)), 5) lastFive
+			          FROM MM_SW_DELIVERY A
+			         WHERE A.purchase_no = #{purchaseNo}
+			         ORDER BY lastFive DESC) B
+			 WHERE rownum = 1
+	</select>
+
+<!-- 	<insert id="insertDelivery"
+		parameterType="com.hanthink.sw.model.SwDemondOrderDetailModel">
+		
+		INSERT INTO MM_SW_DELIVERY
+					  (DELIVERY_NO,
+					   PURCHASE_NO,
+					   FACTORY_CODE,
+					   DELIVERY_USER,
+					   DELIVERY_TIME,
+					   PRINT_STATUS,
+					   PRINT_TIME,
+					   LAST_MODIFIED_USER,
+					   LAST_MODIFIED_TIME)
+					 SELECT  A.PURCHASE_NO || lpad(#{lastFive},'5','0'),
+					         A.PURCHASE_NO,
+					         #{factoryCode,jdbcType=VARCHAR},
+					         #{updateUser,jdbcType=VARCHAR},
+					         SYSDATE,
+					         '1',
+					         SYSDATE,
+					         #{updateUser,jdbcType=VARCHAR},
+					         SYSDATE
+					    FROM MM_SW_ORDER A LEFT JOIN 
+					         MM_SW_ORDER_DETAIL B ON A.PURCHASE_NO = B.PURCHASE_NO
+					   WHERE A.PURCHASE_NO = #{purchaseNo,jdbcType=VARCHAR}
+					   		AND B.PURCHASE_ROWNO = #{purchaseRowNo}
+	</insert> -->
+	
+		<insert id="insertDelivery"
+		parameterType="com.hanthink.sw.model.SwDemondOrderDetailModel">
+		
+		INSERT INTO MM_SW_DELIVERY
+					  (DELIVERY_NO,
+					   PURCHASE_NO,
+					   FACTORY_CODE,
+					   DELIVERY_USER,
+					   DELIVERY_TIME,
+					   PRINT_STATUS,
+					   PRINT_TIME,
+					   LAST_MODIFIED_USER,
+					   LAST_MODIFIED_TIME)
+					 SELECT  A.PURCHASE_NO || lpad(#{lastFive},'5','0'),
+					         A.PURCHASE_NO,
+					         #{factoryCode,jdbcType=VARCHAR},
+					         #{updateUser,jdbcType=VARCHAR},
+					         SYSDATE,
+					         '1',
+					         SYSDATE,
+					         #{updateUser,jdbcType=VARCHAR},
+					         SYSDATE
+					    FROM MM_SW_ORDER A 
+					   WHERE A.PURCHASE_NO = #{purchaseNo,jdbcType=VARCHAR}
+					   	
+	</insert>
+	
+	<insert id="insertDeliveryDetail" parameterType="com.hanthink.sw.model.SwDemondOrderDetailModel">
+				   
+				   INSERT INTO MM_SW_DELIVERY_DETAIL
+							  (DELIVERY_NO,
+							   DELIVERY_ROWNO,
+							   PART_NO,
+							   DELIVERY_QTY,
+							   DELIVERY_NUMS,
+							   CREATION_TIME)
+							  SELECT SO.PURCHASE_NO || lpad(#{lastFive},'5','0'),
+							         SO.PURCHASE_ROWNO,
+							         SO.PART_NO,
+							         #{tempDelivQty,jdbcType=VARCHAR},
+							         SO.RECEIVE_COUNT,
+							         SYSDATE
+							    FROM MM_SW_ORDER_DETAIL SO
+							   WHERE SO.PURCHASE_NO = #{purchaseNo}
+				   					AND SO.PURCHASE_ROWNO = #{purchaseRowNo}
+	</insert>
+	
+	<update id="updateDeliveryDetail" parameterType="com.hanthink.sw.model.SwDemondOrderDetailModel">
+				    	  UPDATE MM_SW_ORDER_DETAIL A
+						    SET (A.TOTAL_DELIV_QTY, A.CURRENT_QTY, A.DELIVERY_STATUS) =
+						        (SELECT 
+						        (NVL(B.TOTAL_DELIV_QTY, 0) + #{tempDelivQty}),
+						        0,
+						        (CASE (NVL(B.TOTAL_DELIV_QTY, 0) + #{tempDelivQty}) 
+						        WHEN 0 THEN 0
+						        WHEN B.ORDER_QTY THEN 2 
+						        ELSE 1 END)
+						         FROM MM_SW_ORDER_DETAIL B
+						  WHERE B.PURCHASE_NO = #{purchaseNo}
+						    AND B.PURCHASE_ROWNO = #{purchaseRowNo})
+						    
+						  WHERE A.PURCHASE_NO = #{purchaseNo}
+						    AND A.PURCHASE_ROWNO = #{purchaseRowNo}
+	</update>
+	
+	<!-- 根据订单号获取采购单号-->
+	<select id="getPurChaseNoByOrderNo" parameterType="java.lang.String" 
+	resultType="java.lang.String">
+		SELECT A.PURCHASE_NO  purchaseNo
+		  FROM MM_SW_ORDER A
+		 WHERE A.ORDER_NO = #{orderNo}
+	</select>
+	
+	
+	<!-- 根据采购单号和采购单行号判断是否已存在，如存在则只插入明细表 -->
+	<select id="isExistsByDetail" parameterType="com.hanthink.sw.model.SwDemondOrderDetailModel" 
+	resultType="java.lang.Integer">
+		SELECT COUNT(*)  
+		  FROM MM_SW_DELIVERY A
+		 WHERE A.PURCHASE_NO = #{purchaseNo}
+		   AND A.PURCHASE_ROWNO = #{purchaseRowNo}
+
+	</select>
+
+	<!--套打功能 -->
+	<select id="queryOrderDetailList"
+		parameterType="com.hanthink.sw.model.SwDemondOrderDetailModel"
+		resultType="com.hanthink.pub.model.PubPrintOrderModel">
+		 SELECT DISTINCT A.PURCHASE_NO purchaseOrderno,
+		                A.PURCHASE_ROWNO purchaseRowNo,
+		                DECODE(A.STANDARD_PACKAGE, 0, 1, NULL, 1, A.STANDARD_PACKAGE) standardPackage,
+		                TO_CHAR(B.ARRIVE_DATE, 'YYYY-MM-DD') arriveTime,
+		                B.ORDER_NO orderNo,
+		                A.PART_NO partNo,
+		                D.PART_SHORT_NO partShortNo,
+		                B.SUPPLIER_NO supplierNo,
+		                CEIL(A.ORDER_QTY / DECODE(A.STANDARD_PACKAGE,
+		                                     0,
+		                                     1,
+		                                     NULL,
+		                                     1,
+		                                     A.STANDARD_PACKAGE)) xs,
+		                SUP.SUPPLIER_NAME supplierName,
+		                A.ORDER_QTY requireNum,
+		                B.ORDER_TYPE type,
+		                G.PART_NAME_CN partName,
+		                (SELECT SUM(CEIL(NVL(L.ORDER_QTY, 0) /
+		                                 DECODE(L.STANDARD_PACKAGE,
+		                                        0,
+		                                        1,
+		                                        NULL,
+		                                        1,
+		                                        L.STANDARD_PACKAGE)))
+		                   FROM MM_SW_ORDER_DETAIL L
+		                  WHERE L.PURCHASE_NO = #{orderNo}) labelPageNum
+		  FROM MM_SW_ORDER_DETAIL A
+		  LEFT JOIN MM_SW_ORDER B
+		    ON A.PURCHASE_NO = B.PURCHASE_NO
+		  LEFT JOIN (SELECT G.PART_NO,
+                    G.SUPPLIER_NO,
+                    G.FACTORY_CODE,
+                    G.WARE_CODE,
+                    MIN(G.UNLOAD_PORT) UNLOAD_PORT
+               FROM MM_INV_PART_LOCATION G
+              GROUP BY G.PART_NO, G.SUPPLIER_NO, G.FACTORY_CODE, G.WARE_CODE) C
+		    ON A.PART_NO = C.PART_NO
+		   AND B.SUPPLIER_NO = C.SUPPLIER_NO
+		   AND B.DEPOT_NO = C.WARE_CODE
+		   AND B.FACTORY_CODE = C.FACTORY_CODE
+		  LEFT JOIN MM_PUB_PART_UDA D
+		    ON A.PART_NO = D.PART_NO
+		  LEFT JOIN MM_PUB_DATA_DICT F
+		    ON F.CODE_TYPE = 'PUB_ARRIVE_STATUS'
+		   AND TO_CHAR(A.RECEIVE_STATUS) = F.CODE_VALUE
+		  LEFT JOIN MM_PUB_PART G
+		    ON G.PART_NO = A.PART_NO
+		  LEFT JOIN MM_PUB_SUPPLIER SUP
+        	ON B.SUPPLIER_NO = SUP.SUPPLIER_NO
+		 WHERE 1 = 1
+		   AND B.ORDER_NO = #{orderNo}
+		   AND 0= 
+		   CASE WHEN B.ORDER_TYPE = '01' THEN
+	          B.ZG_FLAG
+	         ELSE 
+              0
+           END
+		 ORDER BY A.PURCHASE_NO, A.PURCHASE_ROWNO
+	</select>
+	
+	<!--更新订单头表中的发货状态 -->
+	<update id="updateDelivery" parameterType="com.hanthink.sw.model.SwDemondOrderDetailModel">
+	    	 UPDATE MM_SW_ORDER M
+			    SET (M.DELIVERY_STATUS) =
+			        (
+			         SELECT  CASE
+				       WHEN  SUM(shStatus) / COUNT(*) &lt; 1 THEN CEIL(SUM(shStatus) / COUNT(*))
+				       ELSE  FLOOR(SUM(shStatus) / COUNT(*))
+				        END  shStatus
+				       FROM (SELECT 
+				             CASE A.ORDER_QTY - NVL(A.TOTAL_DELIV_QTY, 0)
+				             WHEN A.ORDER_QTY THEN  0
+				             WHEN 0 THEN 2
+				             ELSE 1
+				             END  shStatus
+				             FROM MM_SW_ORDER_DETAIL A
+				             WHERE A.PURCHASE_NO = #{purchaseNo}
+				             )
+			    )
+			  WHERE M.PURCHASE_NO = #{purchaseNo}
+	</update>
+	
+</mapper>

@@ -1,0 +1,228 @@
+/**图标按钮*/
+.icon-button{
+  margin-top: 10px;
+  z-index: 20;
+  position: relative;
+}
+.btn-sm{
+	display: inline-block;
+}
+.btn-sm.fa.button{
+	padding-top: 0.25rem; 
+}
+ /*** form valid 表单样式  ***/
+ input.ht-input,textarea.ng-valid ,select.ng-valid ,.edui-editor.ng-valid,div.ng-valid .ht-input {
+    border-color: #D1D1D1 !important;
+	-webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+    width:100%;
+} 
+.ng-dirty input{ 
+	background-color: white; 
+} 
+
+input.ht-input,textarea.ng-invalid, select.ng-invalid, .edui-editor.ng-invalid ,span.ng-invalid input,div.ng-invalid .ht-input
+{
+	border :1px solid #dd514c !important;  /**invalid inputs 加上边框*/
+	-webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+    width:100%;
+}
+
+input.ng-invalid
+{
+	border :1px solid #dd514c !important;  /**invalid inputs 加上边框*/
+	-webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+}
+
+div.ng-invalid label,div.ng-invalid a,div.ng-invalid span{
+	color:red;
+}
+table.ng-invalid {
+	border-color: #dd514c !important;
+	-webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+}
+ /**表单的样式end*/
+ /**表单预览的样式*/
+ .title{
+ line-height:2.2em !important;
+ font-size:1.2em;
+ }
+.bar{
+ background-color:#ffffff;
+ }
+ .bar>h1
+ {
+   margin-top:25px;
+   text-align:center;
+ }
+  /**表单预览的样式end*/
+
+  body{
+  background:#ffffff !important;
+  }
+  .formTitle
+  {
+  	position:relative;
+  	margin:0;
+  	padding:.5rem 0;
+  	overflow:hidden;
+  	text-overflow:ellipsis;
+  	text-transform:uppercase;
+ 	white-space:nowrap;
+ 	text-align:center;
+ 	color:#0894ec;
+ 	font-size:1.2em;
+ 	border-bottom:1px solid #e5e5e5 !important;
+ 	background:#eeeeee;
+  }
+  .formItem{
+	 position:relative;
+	 width:100%;
+	 min-height:2.2rem; 
+	 margin-top:5px;
+  }
+
+ }
+.itemTitle
+  {
+     color:#333333 !important;
+     font-size:0.8em;
+     width:100%;
+     min-height:2em; 
+  }
+  .iteminput
+  {
+    padding:0 8px 0 10px;
+    text-align:center;
+    width: 100%;
+  }
+  .iteminput>input
+  {
+    background: none repeat scroll 0 0 #fff;
+	border: 1px solid #D1D1D1 ;
+	border-radius:5px;
+	color: #252525;
+	font-size:1em;
+	height: 44px;
+	width: 100%;
+	padding:0 10px;
+  }
+input.ht-dic,select.ng-valid
+  {
+    background: none repeat scroll 0 0 #fff;
+	border: 1px solid #D1D1D1 !important;
+	border-radius:5px;
+	color: #252525;
+	font-size:1em;
+	height: 44px;
+	width: 100%;
+	padding:0 10px;
+  }
+.fa-2x{font-size:1.2em;}
+
+.itemTitle{
+	padding:5px;
+	font-size:1em;
+	margin:10px 0 0 5px;
+}
+/*分组标题*/
+.group-title{
+	font-weight: bold;
+	padding-left: 5px;
+	line-height: 25px;
+ 	height: 25px;
+ 	vertical-align: middle;
+ 	background-color: #FBFBFB;
+}
+
+/**/
+div.ng-isolate-scope{/*单选/复选框居左显示*/
+	text-align:left;
+}
+
+/*工作台样式9宫格*/
+.box {
+  display: -webkit-box;/* 旧版，声明弹性盒子 */
+  -webkit-box-orient: vertical;/* 旧版，主轴方向 */
+  -webkit-box-direction: normal; /* 旧版，反向，正序为normal */
+  -webkit-box-pack: justify; /* 旧版，主轴的对其方式，两端靠齐 */
+  -webkit-box-align: center; /* 旧版，交叉轴的对其方式，收缩居中 */
+  display: flex; /* 新版，声明弹性盒子 */
+  flex-direction: column; /* 新版，垂直反向，结合了旧版的-webkit-box-orient和-webkit-box-direction */
+  flex-wrap: nowrap; /* 新版，父元素主轴尺寸不够的时候子元素换行，旧版没有找到对应的属性 */
+  justify-content: space-between; /* 新版，主轴的对其方式，两端靠齐，与旧版-webkit-box-pack对应 */
+  align-items: center; /* 新版，交叉轴的对其方式，收缩居中，与旧版-webkit-box-align对应 */
+}
+.top,.middle,.bottom {
+  width: 100%;
+  display: -webkit-box;/* 旧版，声明弹性盒子 */
+  -webkit-box-orient: horizontal;/* 旧版，主轴方向 */
+  -webkit-box-direction: normal; /* 旧版，反向，正序为normal */
+  -webkit-box-pack: justify; /* 旧版，主轴的对其方式，两端靠齐 */
+  -webkit-box-align: center; /* 旧版，交叉轴的对其方式，收缩居中 */
+  display: flex; /* 新版，声明弹性盒子 */
+  flex-direction: row; /* 新版，垂直反向，结合了旧版的-webkit-box-orient和-webkit-box-direction */
+  flex-wrap: nowrap; /* 新版，父元素主轴尺寸不够的时候子元素换行，旧版没有找到对应的属性 */
+  justify-content: space-between; /* 新版，主轴的对其方式，两端靠齐，与旧版-webkit-box-pack对应 */
+  align-items: center; /* 新版，交叉轴的对其方式，收缩居中，与旧版-webkit-box-align对应 */
+}
+.top,.middle,.bottom,.left,.center,.right {
+  -webkit-box-flex: 0;
+  flex-basis: auto;
+  flex-grow: 0;
+  flex-shrink: 0;
+  flex: 0 0 auto;
+}
+.top,.left {
+  -webkit-box-ordinal-group: 1;
+  order: 1;
+}
+.middle,.center {
+  -webkit-box-ordinal-group: 2;
+  order: 2;
+}
+.bottom,.right {
+  -webkit-box-ordinal-group: 3;
+  order: 3;
+}
+.left,.right,.center{
+	width: 33.333%;
+	text-align: center;
+	height: 8rem;
+	background-color: #FFF;
+	border-top:1px solid rgba(0,0,0,0.1);
+	border-right:1px solid rgba(0,0,0,0.1);
+}
+.left img,.right img,.center img{
+	width: 50%;
+	margin-top: 0.8rem;
+}
+.left h4,.right h4,.center h4{
+	margin: 0;
+}
+.left span,.right span,.center span{
+	font-size: 0.6rem;
+	color:rgb(204,204,204);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.jit.model.JitVehScrapModel">
+		
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="queryJitVehScrapForPage" parameterType="com.hanthink.jit.model.JitVehScrapModel" 
+			resultType="com.hanthink.jit.model.JitVehScrapModel">
+			SELECT A.FACTORY_CODE       factoryCode,
+			       A.ORDER_NO           orderNo,
+			       A.VIN                vin,
+			       C.CODE_VALUE_NAME    scrapWorkcenter,
+			       A.SCRAP_STATION_CODE scrapStationCode,
+			       A.SCRAP_STATION_DESC scrapStationDesc,
+			       A.SCRAP_REASON       scrapReason,
+			       A.SCRAP_TIME         scrapTime,
+			       B.CODE_VALUE_NAME    adjustKbState,
+			       A.ADJUST_USER        adjustUser,
+			       A.ADJUST_TIME        adjustTimeStr,
+			       A.ADJUST_IP          adjustIp
+			  FROM MM_JIT_VEH_SCRAP A
+			  LEFT JOIN MM_PUB_DATA_DICT B
+			    ON A.ADJUST_KB_STATE = B.CODE_VALUE
+			   AND B.CODE_TYPE = 'JIT_ADJUST_KB'  AND A.FACTORY_CODE = #{factoryCode}
+			  LEFT JOIN MM_PUB_DATA_DICT C
+			    ON C.CODE_VALUE = A.SCRAP_WORKCENTER
+			   AND C.CODE_TYPE = 'PUB_WORKCENTER'  AND C.FACTORY_CODE = #{factoryCode}
+			 WHERE 1 = 1
+			  <if test="vin!=null and ''!=vin">
+			  AND	A.VIN = #{vin}
+			  </if>
+			  <if test="adjustKbState!=null and ''!=adjustKbState">
+			  AND	A.ADJUST_KB_STATE = #{adjustKbState}
+			  </if>
+			  <if test="scrapTimeStrStart != null and scrapTimeStrStart != ''">
+			  <![CDATA[ AND TO_DATE(A.SCRAP_TIME,'yyyy-MM-dd hh24:mi:ss') >= TO_DATE(#{scrapTimeStrStart},'yyyy-MM-dd hh24:mi:ss') ]]>
+			  </if>
+		      <if test="scrapTimeStrEnd != null and scrapTimeStrEnd != ''">
+		      <![CDATA[ AND TO_DATE(A.SCRAP_TIME,'yyyy-MM-dd hh24:mi:ss') <= TO_DATE(#{scrapTimeStrEnd},'yyyy-MM-dd hh24:mi:ss') ]]>
+		      </if>
+		      AND A.FACTORY_CODE = #{factoryCode}
+			  ORDER BY A.SCRAP_TIME DESC
+	</select>
+	
+	
+	<!-- 手工补看板 -->
+	<update id="updateAdjustKb" parameterType="com.hanthink.jit.model.JitVehScrapModel">
+		UPDATE MM_JIT_VEH_SCRAP T
+	       SET T.ADJUST_USER = #{adjustUser},
+	       T.ADJUST_KB_STATE = '1',
+	       T.ADJUST_TIME = SYSDATE,
+	       T.ADJUST_IP = #{adjustIp},
+	       T.LAST_MODIFIED_TIME = SYSDATE
+	   	WHERE T.FACTORY_CODE = #{factoryCode} AND T.ORDER_NO = #{orderNo}
+	</update>
+	
+</mapper>

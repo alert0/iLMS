@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.jit.model.JitAccountFilterModel">
+	
+	<!-- 拉动订单结算屏蔽查询   -->
+	<select id="queryJitAccountFilterPage" parameterType="com.hanthink.jit.model.JitAccountFilterModel"
+		resultType="com.hanthink.jit.model.JitAccountFilterModel">
+		SELECT T.ID id,
+			   C.WORKCENTER workcenter,
+		       T.PLAN_CODE planCode,
+		       C.PLAN_CODE_DESC planCodeDesc,
+		       T.ORDER_TYPE orderType,
+		       D.CODE_VALUE_NAME orderTypeDesc,
+		       T.FILTER_BY filterBy,
+		       DD.CODE_VALUE_NAME filterByDesc,
+		       T.FILTER_DATA filterData
+		  FROM MM_JIT_ACCOUNT_FILTER T
+		  INNER JOIN MM_PUB_PLAN_CODE C ON C.PLAN_CODE = T.PLAN_CODE AND C.FACTORY_CODE = #{factoryCode}
+		  LEFT JOIN MM_PUB_DATA_DICT D ON D.CODE_VALUE = T.ORDER_TYPE AND D.CODE_TYPE = 'JIT_ORDER_TYPE'
+		       AND D.FACTORY_CODE = C.FACTORY_CODE
+		  LEFT JOIN MM_PUB_DATA_DICT DD ON DD.CODE_VALUE = T.FILTER_BY AND DD.CODE_TYPE = 'JIT_ACCOUNT_FILTER'
+		       AND DD.FACTORY_CODE = C.FACTORY_CODE
+		  WHERE 1=1
+		  <if test="null != planCode and ''!= planCode">
+	      	AND T.PLAN_CODE = #{planCode}
+	      </if>
+	      <if test="null != filterData and ''!=filterData">
+	      	AND T.FILTER_DATA LIKE #{filterData} || '%'
+	      </if>
+	      ORDER BY T.PLAN_CODE, T.ORDER_TYPE, T.FILTER_BY, T.FILTER_DATA ASC
+	</select>
+	
+	<!-- 查询拉动订单结算记录是否存在 -->
+	<select id="queryIsExists" parameterType="com.hanthink.jit.model.JitAccountFilterModel"
+			resultType="com.hanthink.jit.model.JitAccountFilterModel">
+		SELECT T.ID id,
+		       T.PLAN_CODE planCode,
+		       T.ORDER_TYPE orderType,
+		       T.FILTER_BY filterBy,
+		       T.FILTER_DATA filterData
+		  FROM MM_JIT_ACCOUNT_FILTER T 
+		WHERE T.PLAN_CODE = #{planCode} 
+		AND T.ORDER_TYPE = #{orderType}
+		AND T.FILTER_BY = #{filterBy}
+		AND T.FILTER_DATA = #{filterData}
+	</select>
+	
+	<!-- 新增拉动订单结算屏蔽 -->
+	<insert id="insertJitAccountFilter" parameterType="com.hanthink.jit.model.JitAccountFilterModel">
+		INSERT INTO MM_JIT_ACCOUNT_FILTER
+			  (ID,
+			   PLAN_CODE,
+			   ORDER_TYPE,
+			   FILTER_BY,
+			   FILTER_DATA,
+			   CREATION_USER,
+			   CREATION_TIME
+			   )
+			VALUES
+			  (SEQ_MM_JIT_ACCOUNT_FILTER.NEXTVAL,
+			   #{planCode, jdbcType=VARCHAR},
+			   #{orderType, jdbcType=VARCHAR},
+			   #{filterBy, jdbcType=VARCHAR},
+			   #{filterData, jdbcType=VARCHAR},
+			   #{creationUser, jdbcType=VARCHAR},
+			   SYSDATE
+			   )
+	</insert>
+	
+	<!-- 删除拉动订单结算屏蔽 -->
+	<delete id="deleteJitAccountFilter" parameterType="com.hanthink.jit.model.JitAccountFilterModel">
+		DELETE MM_JIT_ACCOUNT_FILTER
+ 			WHERE ID = #{id}
+	</delete>
+
+</mapper>

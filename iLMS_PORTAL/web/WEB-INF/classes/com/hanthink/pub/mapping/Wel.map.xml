@@ -1,0 +1,388 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.pub.model.WelModel">
+
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="queryPackageForPage" parameterType="com.hanthink.pub.model.WelModel"
+		resultType="com.hanthink.pub.model.WelModel">
+		<!-- SELECT B.CODE_VALUE_NAME proposalStatus, count(*) taskNum
+		  FROM MM_PKG_PROPOSAL A
+		  LEFT JOIN MM_PUB_DATA_DICT B
+		    ON B.CODE_TYPE = 'PKG_STATUS'
+		   AND A.PROPOSAL_STATUS = B.CODE_VALUE
+		 WHERE A.FACTORY_CODE = #{factoryCode}
+		 GROUP BY A.PROPOSAL_STATUS, B.CODE_VALUE_NAME -->
+		 
+		 SELECT A.CODE_VALUE_NAME proposalStatus, COUNT(B.PROPOSAL_STATUS) taskNum
+			  FROM MM_PUB_DATA_DICT A
+			  LEFT JOIN MM_PKG_PROPOSAL B
+			    ON A.CODE_VALUE = B.PROPOSAL_STATUS
+			   AND A.FACTORY_CODE = #{factoryCode}
+			 WHERE A.CODE_TYPE = 'PKG_STATUS'
+			   AND A.FACTORY_CODE = #{factoryCode}
+			   AND A.CODE_VALUE != 0
+			 GROUP BY A.CODE_VALUE_NAME, A.CODE_VALUE
+			 ORDER BY A.CODE_VALUE ASC
+	</select>
+	
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="queryOrderForPage" parameterType="com.hanthink.pub.model.WelModel"
+		resultType="com.hanthink.pub.model.WelModel">
+		<!--查询所有订单类型 -->
+		WITH ORDER_TYPE AS
+		 (SELECT A.CODE_VALUE orderType, A.CODE_VALUE_NAME orderTypeName
+		    FROM MM_PUB_DATA_DICT A
+		   WHERE A.CODE_TYPE = 'SW_ORDER_TYPE'
+		     AND A.FACTORY_CODE = #{factoryCode}),
+		<!--查询各种订单类型的订单总数 -->
+		ORDER_NUM AS
+		 (SELECT COUNT(1) orderNum, A.ORDER_TYPE orderType
+		    FROM MM_SW_ORDER A
+		   WHERE A.ORDER_TYPE NOT IN ('03', '04')
+		     AND A.FACTORY_CODE = #{factoryCode}
+		     AND A.SUPPLIER_NO = #{supplier}
+		   GROUP BY A.ORDER_TYPE
+		  UNION ALL
+		  SELECT COUNT(1) orderNum, '03' orderType
+		    FROM MM_JIT_ORDER B
+		    LEFT JOIN MM_PUB_PLAN_CODE C
+		      ON B.PLAN_CODE = C.PLAN_CODE
+		     AND C.FACTORY_CODE = #{factoryCode}
+		   WHERE B.SUPPLIER_NO = #{supplier}
+		  UNION ALL
+		  SELECT COUNT(1) orderNum, '04' orderType
+		    FROM MM_JISO_ORDER D
+		    LEFT JOIN MM_PUB_PLAN_CODE E
+		      ON D.PLAN_CODE = E.PLAN_CODE
+		     AND E.FACTORY_CODE = #{factoryCode}
+		  WHERE D.SUPPLIER_NO = #{supplier}),
+		<!--查询各种订单类型的未打印订单数 -->
+		NOT_PRINT_NUM AS
+		 (SELECT COUNT(1) notPrintNum, A.ORDER_TYPE orderType
+		    FROM MM_SW_ORDER A
+		   WHERE A.ORDER_TYPE NOT IN ('03', '04')
+		     AND NVL(A.PRINT_STATUS, 0) = 0
+		     AND A.FACTORY_CODE = #{factoryCode}
+		     AND A.SUPPLIER_NO = #{supplier}
+		   GROUP BY A.ORDER_TYPE
+		  UNION ALL
+		  SELECT COUNT(1) notPrintNum, '03' orderType
+		    FROM MM_JIT_ORDER B
+		    LEFT JOIN MM_PUB_PLAN_CODE C
+		      ON B.PLAN_CODE = C.PLAN_CODE
+		     AND C.FACTORY_CODE = #{factoryCode}
+		   WHERE NVL(B.PRINT_STATUS, 0) = 0
+		   AND B.SUPPLIER_NO = #{supplier}
+		  UNION ALL
+		  SELECT COUNT(1) notPrintNum, '04' orderType
+		    FROM MM_JISO_ORDER D
+		    LEFT JOIN MM_PUB_PLAN_CODE E
+		      ON D.PLAN_CODE = E.PLAN_CODE
+		     AND E.FACTORY_CODE = #{factoryCode}
+		   WHERE NVL(D.PRINT_STATUS, 0) = 0
+		   AND D.SUPPLIER_NO = #{supplier}),
+		<!--查询已打印的订单数量 -->
+		PRINT_NUM AS
+		 (SELECT COUNT(1) printNum, A.ORDER_TYPE orderType
+		    FROM MM_SW_ORDER A
+		   WHERE A.ORDER_TYPE NOT IN ('03', '04')
+		     AND NVL(A.PRINT_STATUS, 0) = 1
+		     AND A.FACTORY_CODE = #{factoryCode}
+		     AND A.SUPPLIER_NO = #{supplier}
+		   GROUP BY A.ORDER_TYPE
+		  UNION ALL
+		  SELECT COUNT(1) printNum, '03' orderType
+		    FROM MM_JIT_ORDER B
+		    LEFT JOIN MM_PUB_PLAN_CODE C
+		      ON B.PLAN_CODE = C.PLAN_CODE
+		     AND C.FACTORY_CODE = #{factoryCode}
+		   WHERE NVL(B.PRINT_STATUS, 0) = 1
+		   AND B.SUPPLIER_NO = #{supplier}
+		  UNION ALL
+		  SELECT COUNT(1) notPrintNum, '04' orderType
+		    FROM MM_JISO_ORDER D
+		    LEFT JOIN MM_PUB_PLAN_CODE E
+		      ON D.PLAN_CODE = E.PLAN_CODE
+		     AND E.FACTORY_CODE = #{factoryCode}
+		   WHERE NVL(D.PRINT_STATUS, 0) = 1
+		   AND D.SUPPLIER_NO = #{supplier}),
+		<!--查询未收货的订单数量 -->
+		NOT_REC_NUM AS
+		 (SELECT COUNT(1) notRecNum, A.ORDER_TYPE orderType
+		    FROM MM_SW_ORDER A
+		   WHERE A.ORDER_TYPE NOT IN ('03', '04')
+		     AND A.FACTORY_CODE = #{factoryCode}
+		     AND A.RECEIVE_STATUS = 0
+		     AND A.SUPPLIER_NO = #{supplier}
+		   GROUP BY A.ORDER_TYPE
+		  UNION ALL
+		  SELECT COUNT(1) notRecNum, '03' orderType
+		    FROM MM_JIT_ORDER B
+		    LEFT JOIN MM_PUB_PLAN_CODE C
+		      ON B.PLAN_CODE = C.PLAN_CODE
+		     AND C.FACTORY_CODE = #{factoryCode}
+		   WHERE B.ARRIVE_STATUS = 0
+		   AND B.SUPPLIER_NO = #{supplier}
+		  UNION ALL
+		  SELECT COUNT(1) notRecNum, '04' orderType
+		    FROM MM_JISO_ORDER D
+		    LEFT JOIN MM_PUB_PLAN_CODE E
+		      ON D.PLAN_CODE = E.PLAN_CODE
+		     AND E.FACTORY_CODE = #{factoryCode}
+		   WHERE D.ARRIVE_STATUS = 0
+		   AND D.SUPPLIER_NO = #{supplier}),
+		<!--查询部分收货的订单数量 -->
+		PORTION_REC_NUM AS
+		 (SELECT COUNT(1) portionRecNum, A.ORDER_TYPE orderType
+		    FROM MM_SW_ORDER A
+		   WHERE A.ORDER_TYPE NOT IN ('03', '04')
+		     AND A.FACTORY_CODE = #{factoryCode}
+		     AND A.RECEIVE_STATUS = 1
+		     AND A.SUPPLIER_NO = #{supplier}
+		   GROUP BY A.ORDER_TYPE
+		  UNION ALL
+		  SELECT COUNT(1) portionRecNum, '03' orderType
+		    FROM MM_JIT_ORDER B
+		    LEFT JOIN MM_PUB_PLAN_CODE C
+		      ON B.PLAN_CODE = C.PLAN_CODE
+		     AND C.FACTORY_CODE = #{factoryCode}
+		   WHERE B.ARRIVE_STATUS = 1
+		   AND B.SUPPLIER_NO = #{supplier}
+		  UNION ALL
+		  SELECT COUNT(1) portionRecNum, '04' orderType
+		    FROM MM_JISO_ORDER D
+		    LEFT JOIN MM_PUB_PLAN_CODE E
+		      ON D.PLAN_CODE = E.PLAN_CODE
+		     AND E.FACTORY_CODE = #{factoryCode}
+		   WHERE D.ARRIVE_STATUS = 1
+		   AND D.SUPPLIER_NO = #{supplier}),
+		<!--查询全部收货的订单数量 -->
+		ALL_REC_NUM AS
+		 (SELECT COUNT(1) allRecNum, A.ORDER_TYPE orderType
+		    FROM MM_SW_ORDER A
+		   WHERE A.ORDER_TYPE NOT IN ('03', '04')
+		     AND A.FACTORY_CODE = #{factoryCode}
+		     AND A.RECEIVE_STATUS = 2
+		     AND A.SUPPLIER_NO = #{supplier}
+		   GROUP BY A.ORDER_TYPE
+		  UNION ALL
+		  SELECT COUNT(1) allRecNum, '03' orderType
+		    FROM MM_JIT_ORDER B
+		    LEFT JOIN MM_PUB_PLAN_CODE C
+		      ON B.PLAN_CODE = C.PLAN_CODE
+		     AND C.FACTORY_CODE = #{factoryCode}
+		   WHERE B.ARRIVE_STATUS = 2
+		   AND B.SUPPLIER_NO = #{supplier}
+		  UNION ALL
+		  SELECT COUNT(1) allRecNum, '04' orderType
+		    FROM MM_JISO_ORDER D
+		    LEFT JOIN MM_PUB_PLAN_CODE E
+		      ON D.PLAN_CODE = E.PLAN_CODE
+		     AND E.FACTORY_CODE = #{factoryCode}
+		   WHERE D.ARRIVE_STATUS = 2
+		   AND D.SUPPLIER_NO = #{supplier})
+		<!--查询 -->
+		SELECT OP.orderTypeName,
+		       NVL(ORN.orderNum, 0) orderNum,
+		       NVL(NPN.notPrintNum, 0) notPrintNum,
+		       NVL(PN.printNum, 0) printNum,
+		       NVL(NRN.notRecNum, 0) notRecNum,
+		       NVL(PRN.portionRecNum, 0) portionRecNum,
+		       NVL(ARN.allRecNum, 0) allRecNum
+		  FROM ORDER_TYPE OP
+		  LEFT JOIN ORDER_NUM ORN
+		    ON OP.orderType = ORN.orderType
+		  LEFT JOIN NOT_PRINT_NUM NPN
+		    ON OP.orderType = NPN.orderType
+		  LEFT JOIN PRINT_NUM PN
+		    ON OP.orderType = PN.orderType
+		  LEFT JOIN NOT_REC_NUM NRN
+		    ON OP.orderType = NRN.orderType
+		  LEFT JOIN PORTION_REC_NUM PRN
+		    ON OP.orderType = PRN.orderType
+		  LEFT JOIN ALL_REC_NUM ARN
+		    ON OP.orderType = ARN.orderType
+		 ORDER BY OP.orderTypeName
+	</select>
+	
+	<!-- 分页查询全部订单数据 -->
+	<select id="queryAllOrderForPage" parameterType="com.hanthink.pub.model.WelModel"
+		resultType="com.hanthink.pub.model.WelModel">
+		<!--查询所有订单类型 -->
+		WITH ORDER_TYPE AS
+		 (SELECT A.CODE_VALUE orderType, A.CODE_VALUE_NAME orderTypeName
+		    FROM MM_PUB_DATA_DICT A
+		   WHERE A.CODE_TYPE = 'SW_ORDER_TYPE'
+		     AND A.FACTORY_CODE = #{factoryCode}),
+		<!--查询各种订单类型的订单总数 -->
+		ORDER_NUM AS
+		 (SELECT COUNT(1) orderNum, A.ORDER_TYPE orderType
+		    FROM MM_SW_ORDER A
+		   WHERE A.ORDER_TYPE NOT IN ('03', '04')
+		     AND A.FACTORY_CODE = #{factoryCode}
+		   GROUP BY A.ORDER_TYPE
+		  UNION ALL
+		  SELECT COUNT(1) orderNum, '03' orderType
+		    FROM MM_JIT_ORDER B
+		    LEFT JOIN MM_PUB_PLAN_CODE C
+		      ON B.PLAN_CODE = C.PLAN_CODE
+		     AND C.FACTORY_CODE = #{factoryCode}
+		  UNION ALL
+		  SELECT COUNT(1) orderNum, '04' orderType
+		    FROM MM_JISO_ORDER D
+		    LEFT JOIN MM_PUB_PLAN_CODE E
+		      ON D.PLAN_CODE = E.PLAN_CODE
+		     AND E.FACTORY_CODE = #{factoryCode}),
+		<!--查询各种订单类型的未打印订单数 -->
+		NOT_PRINT_NUM AS
+		 (SELECT COUNT(1) notPrintNum, A.ORDER_TYPE orderType
+		    FROM MM_SW_ORDER A
+		   WHERE A.ORDER_TYPE NOT IN ('03', '04')
+		     AND NVL(A.PRINT_STATUS, 0) = 0
+		     AND A.FACTORY_CODE = #{factoryCode}
+		   GROUP BY A.ORDER_TYPE
+		  UNION ALL
+		  SELECT COUNT(1) notPrintNum, '03' orderType
+		    FROM MM_JIT_ORDER B
+		    LEFT JOIN MM_PUB_PLAN_CODE C
+		      ON B.PLAN_CODE = C.PLAN_CODE
+		     AND C.FACTORY_CODE = #{factoryCode}
+		   WHERE NVL(B.PRINT_STATUS, 0) = 0
+		  UNION ALL
+		  SELECT COUNT(1) notPrintNum, '04' orderType
+		    FROM MM_JISO_ORDER D
+		    LEFT JOIN MM_PUB_PLAN_CODE E
+		      ON D.PLAN_CODE = E.PLAN_CODE
+		     AND E.FACTORY_CODE = #{factoryCode}
+		   WHERE NVL(D.PRINT_STATUS, 0) = 0),
+		<!--查询已打印的订单数量 -->
+		PRINT_NUM AS
+		 (SELECT COUNT(1) printNum, A.ORDER_TYPE orderType
+		    FROM MM_SW_ORDER A
+		   WHERE A.ORDER_TYPE NOT IN ('03', '04')
+		     AND NVL(A.PRINT_STATUS, 0) = 1
+		     AND A.FACTORY_CODE = #{factoryCode}
+		   GROUP BY A.ORDER_TYPE
+		  UNION ALL
+		  SELECT COUNT(1) printNum, '03' orderType
+		    FROM MM_JIT_ORDER B
+		    LEFT JOIN MM_PUB_PLAN_CODE C
+		      ON B.PLAN_CODE = C.PLAN_CODE
+		     AND C.FACTORY_CODE = #{factoryCode}
+		   WHERE NVL(B.PRINT_STATUS, 0) = 1
+		  UNION ALL
+		  SELECT COUNT(1) notPrintNum, '04' orderType
+		    FROM MM_JISO_ORDER D
+		    LEFT JOIN MM_PUB_PLAN_CODE E
+		      ON D.PLAN_CODE = E.PLAN_CODE
+		     AND E.FACTORY_CODE = #{factoryCode}
+		   WHERE NVL(D.PRINT_STATUS, 0) = 1),
+		<!--查询未收货的订单数量 -->
+		NOT_REC_NUM AS
+		 (SELECT COUNT(1) notRecNum, A.ORDER_TYPE orderType
+		    FROM MM_SW_ORDER A
+		   WHERE A.ORDER_TYPE NOT IN ('03', '04')
+		     AND A.FACTORY_CODE = #{factoryCode}
+		     AND A.RECEIVE_STATUS = 0
+		   GROUP BY A.ORDER_TYPE
+		  UNION ALL
+		  SELECT COUNT(1) notRecNum, '03' orderType
+		    FROM MM_JIT_ORDER B
+		    LEFT JOIN MM_PUB_PLAN_CODE C
+		      ON B.PLAN_CODE = C.PLAN_CODE
+		     AND C.FACTORY_CODE = #{factoryCode}
+		   WHERE B.ARRIVE_STATUS = 0
+		  UNION ALL
+		  SELECT COUNT(1) notRecNum, '04' orderType
+		    FROM MM_JISO_ORDER D
+		    LEFT JOIN MM_PUB_PLAN_CODE E
+		      ON D.PLAN_CODE = E.PLAN_CODE
+		     AND E.FACTORY_CODE = #{factoryCode}
+		   WHERE D.ARRIVE_STATUS = 0),
+		<!--查询部分收货的订单数量 -->
+		PORTION_REC_NUM AS
+		 (SELECT COUNT(1) portionRecNum, A.ORDER_TYPE orderType
+		    FROM MM_SW_ORDER A
+		   WHERE A.ORDER_TYPE NOT IN ('03', '04')
+		     AND A.FACTORY_CODE = #{factoryCode}
+		     AND A.RECEIVE_STATUS = 1
+		   GROUP BY A.ORDER_TYPE
+		  UNION ALL
+		  SELECT COUNT(1) portionRecNum, '03' orderType
+		    FROM MM_JIT_ORDER B
+		    LEFT JOIN MM_PUB_PLAN_CODE C
+		      ON B.PLAN_CODE = C.PLAN_CODE
+		     AND C.FACTORY_CODE = #{factoryCode}
+		   WHERE B.ARRIVE_STATUS = 1
+		  UNION ALL
+		  SELECT COUNT(1) portionRecNum, '04' orderType
+		    FROM MM_JISO_ORDER D
+		    LEFT JOIN MM_PUB_PLAN_CODE E
+		      ON D.PLAN_CODE = E.PLAN_CODE
+		     AND E.FACTORY_CODE = #{factoryCode}
+		   WHERE D.ARRIVE_STATUS = 1),
+		<!--查询全部收货的订单数量 -->
+		ALL_REC_NUM AS
+		 (SELECT COUNT(1) allRecNum, A.ORDER_TYPE orderType
+		    FROM MM_SW_ORDER A
+		   WHERE A.ORDER_TYPE NOT IN ('03', '04')
+		     AND A.FACTORY_CODE = #{factoryCode}
+		     AND A.RECEIVE_STATUS = 2
+		   GROUP BY A.ORDER_TYPE
+		  UNION ALL
+		  SELECT COUNT(1) allRecNum, '03' orderType
+		    FROM MM_JIT_ORDER B
+		    LEFT JOIN MM_PUB_PLAN_CODE C
+		      ON B.PLAN_CODE = C.PLAN_CODE
+		     AND C.FACTORY_CODE = #{factoryCode}
+		   WHERE B.ARRIVE_STATUS = 2
+		  UNION ALL
+		  SELECT COUNT(1) allRecNum, '04' orderType
+		    FROM MM_JISO_ORDER D
+		    LEFT JOIN MM_PUB_PLAN_CODE E
+		      ON D.PLAN_CODE = E.PLAN_CODE
+		     AND E.FACTORY_CODE = #{factoryCode}
+		   WHERE D.ARRIVE_STATUS = 2)
+		<!--查询 -->
+		SELECT OP.orderTypeName,
+		       NVL(ORN.orderNum, 0) orderNum,
+		       NVL(NPN.notPrintNum, 0) notPrintNum,
+		       NVL(PN.printNum, 0) printNum,
+		       NVL(NRN.notRecNum, 0) notRecNum,
+		       NVL(PRN.portionRecNum, 0) portionRecNum,
+		       NVL(ARN.allRecNum, 0) allRecNum
+		  FROM ORDER_TYPE OP
+		  LEFT JOIN ORDER_NUM ORN
+		    ON OP.orderType = ORN.orderType
+		  LEFT JOIN NOT_PRINT_NUM NPN
+		    ON OP.orderType = NPN.orderType
+		  LEFT JOIN PRINT_NUM PN
+		    ON OP.orderType = PN.orderType
+		  LEFT JOIN NOT_REC_NUM NRN
+		    ON OP.orderType = NRN.orderType
+		  LEFT JOIN PORTION_REC_NUM PRN
+		    ON OP.orderType = PRN.orderType
+		  LEFT JOIN ALL_REC_NUM ARN
+		    ON OP.orderType = ARN.orderType
+		 ORDER BY OP.orderTypeName
+	</select>
+
+	<!-- 分页查询全部订单数据 -->
+	<select id="loadRolePanel" parameterType="java.lang.String"
+		resultType="com.hanthink.pub.model.WelModel">
+		SELECT D.ALIAS_ alias
+		  FROM SYS_USER A
+		  LEFT JOIN SYS_USER_ROLE B
+		    ON A.ID_ = B.USER_ID_
+		  LEFT JOIN BASE_RES_ROLE C
+		    ON B.ROLE_ID_ = C.ROLE_ID_
+		  LEFT JOIN BASE_SYS_RESOURCE D
+		    ON C.RES_ID_ = D.ID_
+		 WHERE A.ACCOUNT_ = #{account}
+		   AND EXISTS (SELECT 1
+		          FROM BASE_SYS_RESOURCE E
+		         WHERE E.ALIAS_ = 'wel'
+		           AND D.PARENT_ID_ = E.ID_)
+	</select>
+
+</mapper>

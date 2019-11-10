@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.org.persistence.model.SysOrgParams">
+	<resultMap id="SysOrgParams" type="com.hotent.org.persistence.model.SysOrgParams">
+		<id property="id" column="ID_" jdbcType="VARCHAR"/>
+		<result property="orgId" column="ORG_ID_" jdbcType="VARCHAR"/>
+		<result property="alias" column="ALIAS_" jdbcType="VARCHAR"/>
+		<result property="value" column="VALUE_" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.org.persistence.model.SysOrgParams">
+		INSERT INTO sys_org_params
+		(ID_,ORG_ID_,ALIAS_,VALUE_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{orgId,jdbcType=VARCHAR}, #{alias,jdbcType=VARCHAR}, #{value,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="SysOrgParams">
+		SELECT * FROM sys_org_params 
+		WHERE 
+		ID_=#{id}
+	</select>
+	
+	<select id="getByOrgId" parameterType="java.lang.String" resultMap="SysOrgParams">
+		SELECT * FROM sys_org_params 
+		WHERE 
+		ORG_ID_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="SysOrgParams">
+		SELECT * FROM sys_org_params
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY ID_ DESC
+		</if>
+	</select>
+	
+	<select id="getByOrgIdAndAlias" parameterType="java.util.Map" resultMap="SysOrgParams">
+		SELECT * FROM sys_org_params
+		where 1=1
+		<if test="@Ognl@isNotEmpty(orgId)">
+			and ORG_ID_ = #{orgId}
+		</if>
+		<if test="@Ognl@isNotEmpty(alias)">
+			and ALIAS_ = #{alias}
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.org.persistence.model.SysOrgParams">
+		UPDATE sys_org_params SET
+		ORG_ID_=#{orgId,jdbcType=VARCHAR},
+		ALIAS_=#{alias,jdbcType=VARCHAR},
+		VALUE_=#{value,jdbcType=VARCHAR}
+		WHERE
+		ID_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_org_params 
+		WHERE
+		ID_=#{id}
+	</delete>
+	
+	<delete id="removeByOrgId" parameterType="java.lang.String">
+		DELETE FROM sys_org_params 
+		WHERE
+		ORG_ID_=#{orgId}
+	</delete>
+	
+	<delete id="removeByAlias" parameterType="java.lang.String">
+		DELETE FROM sys_org_params 
+		WHERE
+		ALIAS_=#{alias}
+	</delete>
+	
+	
+</mapper>

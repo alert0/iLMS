@@ -1,0 +1,66 @@
+<!doctype html>
+<html ng-app="myApp">
+<head>
+<title>X5手机平台</title>
+<meta charset="utf-8">
+<script src="../assets/js/importJs.js"></script>
+
+<script type="text/javascript">
+var myApp = angular.module("myApp", ['base','mobileDirective']);
+myApp.controller("myTaskCtrl",['$scope','baseService','$sce', function(scope,baseService,$sce) {
+	/* scope.liuchengfenlei = function(){
+		baseService.postForm(__ctx+"/mobile/bpm/getByGroupKey",{"groupKey":"FLOW_TYPE"}).then(
+			function(data){
+				scope.flowType = data;
+			},
+			function(code){}
+		)
+	}
+	scope.liuchengfenlei() */
+	scope.startFlow = function(defId){
+		location.href = "startFlow.html?defId="+defId;
+	}
+}]);
+
+$(function(){
+	$("a.item-inner").click(function(){
+		$.closePanel()
+	});
+})
+
+
+</script>
+
+</head>
+
+<body ng-controller="myTaskCtrl" list-load="/mobile/bpm/getMyDef" size="1000">
+<div class="page" id="newFlow">
+	<header class="hkm-red-header bar bar-nav">
+		  <a class="icon icon-left pull-left back" href="workbench.html" external></a>
+		  <span class='title'>发起流程</span>
+	</header>
+	<div class="content">
+		<div class="faqiliucheng-page">
+				<div ng-repeat="item in dataList[0].flowType" >
+				 <div class="liucheng-tem-title">{{item.name}}<i class="moreflow icon pull-right"><img src="../assets/img/dotIcon.svg"/></i></div>
+		    	 <div class="P-box">
+				     <div ng-if="flow.typeId == item.id" class="flex-box icon-flow-{{flow.defKey}} icon-flow" ng-repeat="flow in dataList[0].bpmDefinitionlist" 
+				     ng-click="startFlow(flow.defId)">
+				          <h4>{{flow.name}}</h4>
+				    </div>
+			    </div>
+			</div>
+		</div>
+  	</div>
+			
+	</div>
+	 <div class="hot_foot clearfix">
+			<a href="../index.html" class="hot_foot_cell" external><span class="iconfont hot_foot_icon">&#xe601;</span><span class="hot_foot_word">首页</span></a>
+			<a href="##" class="hot_foot_cell current"><span class="iconfont hot_foot_icon">&#xe66b;</span><span class="hot_foot_word">工作台</span></a>
+<!-- 			<a href="../im/session.html" class="hot_foot_cell" external><span class="iconfont hot_foot_icon">&#xe61c;</span><span class="hot_foot_word">消息</span></a>
+ -->			<a href="contacts.html" class="hot_foot_cell" external><span class="iconfont hot_foot_icon">&#xe612;</span><span class="hot_foot_word">通讯录</span></a>
+			<a href="myCenter.html" class="hot_foot_cell" external><span class="iconfont hot_foot_icon">&#xe630;</span><span class="hot_foot_word">我的</span></a>
+		</div>
+	</div>
+</body>
+</html>

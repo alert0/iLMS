@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.dpm.model.DpmDepartmentModel">
+	<resultMap id="DpmDepartmentModel" type="com.hanthink.dpm.model.DpmDepartmentModel">
+		<id property="id" column="ID" jdbcType="NUMERIC" />
+		<result property="factoryCode" column="FACTORY_CODE" jdbcType="VARCHAR" />
+		<result property="depCode" column="DEP_CODE" jdbcType="VARCHAR" />
+		<result property="depName" column="DEP_NAME" jdbcType="VARCHAR" />
+		<result property="belongDep" column="BELONG_DEP" jdbcType="VARCHAR" />
+		<result property="depChecker" column="DEP_CHECKER" jdbcType="VARCHAR" />
+	</resultMap>
+
+    <!-- 新增责任部门信息 -->
+	<insert id="create" parameterType="com.hanthink.dpm.model.DpmDepartmentModel">
+		INSERT INTO MM_DPM_DEPARTMENT
+		(ID,
+		FACTORY_CODE, DEP_CODE, DEP_NAME, BELONG_DEP,DEP_CHECKER)
+		VALUES
+		(SEQ_MM_DPM_DEPARTMENT.NEXTVAL, #{factoryCode,jdbcType=VARCHAR},
+		#{depCode,jdbcType=VARCHAR}, #{depName,jdbcType=VARCHAR},
+		#{belongDep,jdbcType=VARCHAR},#{depChecker,jdbcType=VARCHAR} )
+	</insert>
+
+    <!-- 分页查询显示列表信息 -->
+	<select id="queryDpmItemForPage" parameterType="com.hanthink.dpm.model.DpmDepartmentModel" resultMap="DpmDepartmentModel">
+		SELECT 
+		A.ID id,
+		A.DEP_CODE depCode,
+		A.DEP_NAME depName,
+		A.BELONG_DEP belongDep,
+		B.FULLNAME_ depChecker
+		FROM MM_DPM_DEPARTMENT A LEFT JOIN SYS_USER B
+        ON A.DEP_CHECKER=B.FULLNAME_
+		WHERE 1=1 
+		<if test="belongDep!=null">
+		AND	BELONG_DEP LIKE CONCAT(#{belongDep}, '%')
+		</if>
+		<if test="depCode!=null">
+		AND	DEP_CODE LIKE CONCAT(#{depCode}, '%')
+		</if>
+		<if test="depName!=null">
+		AND	DEP_NAME LIKE CONCAT(#{depName}, '%')
+		</if>
+		ORDER BY A.ID DESC
+	</select>
+	
+	<!-- 修改责任部门信息 -->
+ 	<update id="update" parameterType="com.hanthink.dpm.model.DpmDepartmentModel">
+		UPDATE MM_DPM_DEPARTMENT SET
+		DEP_CODE = #{depCode,jdbcType=VARCHAR},
+		DEP_NAME = #{depName,jdbcType=VARCHAR},
+		BELONG_DEP = #{ibelongDep,jdbcType=VARCHAR},
+		DEP_CHECKER = #{depChecker,jdbcType=VARCHAR},
+		LAST_MODIFIED_USER = #{updateBy,jdbcType=VARCHAR},
+		LAST_MODIFIED_TIME=sysdate
+		WHERE
+		ID = #{id}
+	</update> 
+	
+	<!-- 通过ID获取数据明细 -->
+ 	<select id="get"   parameterType="java.lang.String" resultMap="DpmDepartmentModel">
+		SELECT 
+		A.ID id,
+		A.DEP_CODE depCode,
+		A.DEP_NAME depName,
+		A.BELONG_DEP belongDep,
+		B.FULLNAME_ depChecker
+		FROM MM_DPM_DEPARTMENT A LEFT JOIN SYS_USER B
+        ON A.DEP_CHECKER=B.FULLNAME_ 
+		WHERE ID=#{id}
+	</select> 
+
+    <!-- 根据ID删除责任部门信息 -->
+    <delete id="remove" parameterType="java.lang.String">
+		DELETE FROM MM_DPM_DEPARTMENT 
+		WHERE
+		ID = #{id}
+	</delete>
+	
+	<!-- 通过责任组代码判断数据是否已存在 -->
+	<select id="getByCode" parameterType="java.lang.String" resultMap="DpmDepartmentModel">
+	    SELECT * FROM MM_DPM_DEPARTMENT
+	    WHERE DEP_CODE=#{depCode}
+	</select> 
+	
+	<!-- 获取部门审核人 -->
+	<select id="getDepChecker" parameterType="com.hanthink.dpm.model.DpmDepartmentModel" resultMap="DpmDepartmentModel">
+	    SELECT A.ID_ id,B.USER_ID_ depChecker, A.FULLNAME_ fullname,C.NAME_  name FROM 
+	    SYS_USER A LEFT JOIN SYS_ORG_USER B ON A.ID_=B.USER_ID_
+        LEFT JOIN SYS_ORG C ON B.ORG_ID_=C.ID_
+        WHERE 1=1
+        <if test="fullname!=null">
+		AND	A.FULLNAME_ =#{fullname}
+		</if>
+	</select>
+	
+	<!-- 部门人员新增界面责任组下拉框 -->
+	<select id="getDepUnloadCode" parameterType="java.util.Map" resultType="com.hanthink.base.model.DictVO">
+	     select DISTINCT DEP_CODE valueKey,DEP_CODE valueName from MM_DPM_DEPARTMENT
+	</select>
+</mapper>

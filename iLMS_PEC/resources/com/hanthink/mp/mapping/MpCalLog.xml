@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.mp.model.MpCalLogModel">
+		
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="queryMpCalLogForPage" parameterType="com.hanthink.mp.model.MpCalLogModel" resultType="com.hanthink.mp.model.MpCalLogModel">
+		SELECT 
+	     a.CAL_TYPE  calType,
+	     a.IS_LOCK  isLock,
+	     a.CAL_START_TIME  calStartTimeStr,
+	     a.CAL_END_TIME  calEndTimeStr
+	    FROM  MM_MP_CAL_LOG  a
+	    WHERE a.CAL_START_TIME >= sysdate - 30
+	    AND a.factory_code = #{factoryCode}
+	    ORDER BY a.cal_start_time DESC
+	</select>
+	
+	<!-- 检索按钮是否被锁 -->
+   	<select id="isLockCheck" parameterType="com.hanthink.mp.model.MpCalLogModel" resultType="java.lang.String">
+   		SELECT a.IS_LOCK isLock
+   		FROM MM_MP_CAL_LOCK  a
+   		WHERE a.CAL_TYPE  = #{calType,jdbcType=VARCHAR}  
+   		AND a.FACTORY_CODE = #{factoryCode,jdbcType=VARCHAR} 
+   	</select>
+	
+	<!-- 需求计算  -->
+	<parameterMap type="map" id="demandCalMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeId" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="type" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="arrFactory" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="outCode" jdbcType="INTEGER" mode="OUT"/>  
+	</parameterMap> 
+	<select id="demandCal" parameterMap="demandCalMap" statementType="CALLABLE">
+		{CALL PKG_MP_MAIN.USP_MP_ZSB(?, ?, ?, ?, ?)}
+	</select>
+	
+	<!-- 订单发布 -->
+	<parameterMap type="map" id="releaseOrderMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeId" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="type" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="arrFactory" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="outCode" jdbcType="INTEGER" mode="OUT"/>  
+	</parameterMap> 
+    <select id="releaseOrder" parameterMap="releaseOrderMap" statementType="CALLABLE">
+		{CALL PKG_MP_MAIN.USP_MP_PO(?, ?, ?, ?, ?)}
+	</select>
+	
+	<!-- 订单号生成 -->
+	<parameterMap type="map" id="generateOrderNoMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeId" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="type" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="arrFactory" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="outCode" jdbcType="INTEGER" mode="OUT"/>  
+	</parameterMap> 
+    <select id="generateOrderNo" parameterMap="generateOrderNoMap" statementType="CALLABLE">
+		{CALL PKG_MP_MAIN.USP_MP_GEN_ORDER_NO(?, ?, ?, ?, ?)}
+	</select>
+	
+    <!-- 查询状态 -->
+	<select id="selectStatus" parameterType="java.lang.String" resultType="java.lang.Integer">
+		   SELECT COUNT(1)
+			 FROM MM_MP_VEH_PLAN A
+			WHERE NOT EXISTS (SELECT 1
+			         FROM MM_MP_VEH_PLAN B
+			         LEFT JOIN (SELECT *
+			                     FROM MM_MP_CAR_TYPE_QUEUE T
+			                    WHERE T.MULTI_CAR_TYPE = T.CAR_TYPE
+			                      AND T.CAR_TYPE IS NOT NULL) C
+			           ON B.SORT_ID = C.SORT_ID
+			         LEFT JOIN MM_MP_CAL_END CE
+			           ON CE.CAR_TYPE = C.MULTI_CAR_TYPE
+		  WHERE A.SORT_ID = B.SORT_ID
+			AND C.CAR_TYPE_SORT_ID &lt;= CE.CAL_POINT)
+			AND A.FACTORY_CODE = #{arrFactory}
+			AND EXISTS (SELECT 1
+		  FROM MM_PUB_ORDER_BOM D
+        WHERE A.ORDER_NO = D.ORDER_NO
+          AND A.FACTORY_CODE = D.FACTORY_CODE
+          HAVING COUNT(1) &lt;= 0)
+	</select>
+	
+	<!-- 查询最后一次计算的类型 -->
+	<select id="queryLastCalLog" parameterType="java.lang.String" resultType="java.lang.String">
+		   SELECT B.CAL_TYPE
+			  FROM (SELECT *
+			          FROM MM_MP_CAL_LOG A
+			         WHERE A.FACTORY_CODE = #{factoryCode}
+			         ORDER BY A.CAL_START_TIME DESC) B
+			 WHERE ROWNUM = 1
+	</select>
+	
+	<!-- 查询MM_MP_PUR_ORDER_TEMP表的记录条数 -->
+	<select id="queryPurOrderTempCount" parameterType="java.lang.String" resultType="java.lang.Integer">
+		   SELECT COUNT(1)
+			  FROM MM_MP_PUR_ORDER_TEMP A
+			 WHERE A.FACTORY_CODE = #{factoryCode}
+	</select>
+    
+</mapper>

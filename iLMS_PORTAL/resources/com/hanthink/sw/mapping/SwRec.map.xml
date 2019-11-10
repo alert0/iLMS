@@ -1,0 +1,349 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hanthink.sw.model.SwRecModel">
+ 		<!-- 收获查询界面，查询功能 -->
+        <select id="queryJisoRecPage" parameterType="com.hanthink.sw.model.SwRecModel" resultType="com.hanthink.sw.model.SwRecModel">
+                      SELECT DISTINCT
+                             OD.ORDER_NO      orderNo,
+                             OD.PURCHASE_NO   purchaseNo,
+                             SO.SUPPLIER_NO   supplierNo,
+                             SO.SUP_FACTORY     supFactory,
+                             PS.SUPPLIER_NAME   supplierName,
+                             SO.DEPOT_NO      depotNo,
+                             OD.ORDER_ROWNO  purchaseRowno,
+                             OD.PART_NO     partNo,
+                             PD.PART_NAME_CN    partNameCn,
+                             PD.PART_SHORT_NO   partShortNo,
+                             OD.ORDER_QTY-NVL(OD.CANCEL_NUM,0)     orderQty,
+                             P.REC_QTY   totalRecQty,
+                             TO_CHAR(R.CREATION_TIME,'YYYY-MM-DD')    receiveDate,
+                             TO_CHAR(SO.ARRIVE_DATE,'YYYY-MM-DD HH24:MI:SS')   arriveTime,
+                             (
+                                     CASE
+                                       WHEN OD.ORDER_QTY-NVL(OD.CANCEL_NUM,0) = P.REC_QTY THEN
+                                        '2'
+                                       WHEN (OD.ORDER_QTY-NVL(OD.CANCEL_NUM,0) > P.REC_QTY AND
+                                            NVL(P.REC_QTY, 0) != 0) THEN
+                                        '1'
+                                       WHEN NVL(P.REC_QTY, 0) = 0 THEN
+                                        '0'
+                                     END 
+                               )    receiveStatus,
+                             A.CODE_VALUE_NAME  codeValueName
+                        FROM MM_SW_ORDER_DETAIL OD
+                        LEFT JOIN MM_SW_ORDER SO
+                          ON OD.ORDER_NO = SO.ORDER_NO
+                         
+                        LEFT JOIN MM_PUB_SUPPLIER PS
+                          ON SO.SUPPLIER_NO = PS.SUPPLIER_NO
+                        LEFT JOIN MM_PUB_PART_UDA PD
+                          ON OD.PART_NO = PD.PART_NO
+                          AND SO.FACTORY_CODE = PD.FACTORY_CODE
+                          
+                       LEFT JOIN (SELECT 
+                                  E.ORDER_NO,
+                                  F.PART_NO,
+                                  F.ROW_NO,
+                                  SUM(F.REC_QTY) REC_QTY
+                              FROM MM_INV_IN E
+                              LEFT JOIN MM_INV_IN_DETAIL F
+                                ON E.REC_NO = F.REC_NO
+                              LEFT JOIN MM_SW_ORDER_DETAIL H
+                                ON E.Order_No = H.ORDER_NO
+                               AND F.ROW_NO = H.PURCHASE_ROWNO
+                              GROUP BY E.ORDER_NO,F.PART_NO,F.ROW_NO) P
+                         ON  P.ORDER_NO = OD.ORDER_NO
+                         AND P.PART_NO = OD.PART_NO
+                         AND P.ROW_NO = OD.PURCHASE_ROWNO
+                        LEFT JOIN MM_PUB_DATA_DICT A
+                          ON A.CODE_TYPE = 'PUB_ARRIVE_STATUS'
+                         AND A.FACTORY_CODE = #{factoryCode}
+                         AND A.CODE_VALUE = (
+                                     CASE
+                                       WHEN OD.ORDER_QTY-NVL(OD.CANCEL_NUM,0) = P.REC_QTY THEN
+                                        '2'
+                                       WHEN (OD.ORDER_QTY-NVL(OD.CANCEL_NUM,0) > P.REC_QTY AND
+                                            NVL(P.REC_QTY, 0) != 0) THEN
+                                        '1'
+                                       WHEN NVL(P.REC_QTY, 0) = 0 THEN
+                                        '0'
+                                     END 
+                               ) 
+                        LEFT JOIN (SELECT MAX(S.CREATION_TIME) CREATION_TIME,
+                                S.ORDER_NO
+                                FROM MM_INV_IN S
+                                LEFT JOIN MM_SW_ORDER_DETAIL OD
+                                 ON S.Order_No = OD.ORDER_NO
+                                 GROUP BY S.ORDER_NO) R
+                           ON R.ORDER_NO = OD.ORDER_NO
+					 WHERE SO.FACTORY_CODE = #{factoryCode}
+					  <if test="recTimeStart !=null and recTimeStart !='' ">
+					  <![CDATA[ AND R.CREATION_TIME>= TO_DATE(#{recTimeStart},'yyyy-MM-dd') ]]>
+					  </if>
+					  <if test="recTimeEnd !=null and recTimeEnd !='' ">
+					  <![CDATA[ AND R.CREATION_TIME <= TO_DATE(#{recTimeEnd},'yyyy-MM-dd') + 1 ]]>
+					  </if>
+					  <if test="orderNo !=null and orderNo !='' ">
+					  AND OD.ORDER_NO like CONCAT(#{orderNo}, '%')
+					  </if>
+					  <if test="purchaseNo !=null and purchaseNo !='' ">
+					  AND OD.PURCHASE_NO like CONCAT(#{purchaseNo}, '%')
+					  </if>
+					  <if test="supplierNo !=null and supplierNo !='' ">
+					  AND SO.SUPPLIER_NO like CONCAT(#{supplierNo}, '%')
+					  </if>
+					  <if test="supFactory !=null and supFactory !='' ">
+					  AND SO.SUP_FACTORY  like CONCAT(#{supFactory}, '%')
+					  </if>
+					  <if test="partNo !=null and partNo !='' ">
+					  AND OD.PART_NO like CONCAT(#{partNo}, '%')
+					  </if>
+					  <if test="receiveStatus !=null and receiveStatus !='' ">
+					  AND A.CODE_VALUE = #{receiveStatus}
+					  </if>
+					  
+					  <if test="arriveTimeStart !=null and arriveTimeStart !='' ">
+					  <![CDATA[ AND SO.ARRIVE_DATE>= TO_DATE(#{arriveTimeStart},'yyyy-MM-dd hh24:mi:ss') ]]>
+					  </if>
+					  <if test="arriveTimeEnd !=null and arriveTimeEnd !='' ">
+					  <![CDATA[ AND SO.ARRIVE_DATE <= TO_DATE(#{arriveTimeEnd},'yyyy-MM-dd hh24:mi:ss') ]]>
+					  </if>
+					  UNION ALL 
+						SELECT DISTINCT
+                             OD.ORDER_NO      orderNo,
+                             OD.ORDER_NO      purchaseNo,
+                             SO.SUPPLIER_NO   supplierNo,
+                             SO.SUP_FACTORY     supFactory,
+                             PS.SUPPLIER_NAME   supplierName,
+                             SO.ARR_DEPOT      depotNo,
+                             OD.ORDER_ROWNO  purchaseRowno,
+                             OD.PART_NO     partNo,
+                             PD.PART_NAME_CN    partNameCn,
+                             PD.PART_SHORT_NO   partShortNo,
+                             OD.REQUIRE_NUM     orderQty,
+                             P.REC_QTY   totalRecQty,
+                             TO_CHAR(R.CREATION_TIME,'YYYY-MM-DD')    receiveDate,
+                             to_char(SO.ARRIVE_TIME,'yyyy-mm-dd hh24:mi:ss')  arriveTime,
+                             (
+                                     CASE
+                                       WHEN OD.REQUIRE_NUM = P.REC_QTY THEN
+                                        '2'
+                                       WHEN (OD.REQUIRE_NUM > P.REC_QTY AND
+                                            NVL(P.REC_QTY, 0) != 0) THEN
+                                        '1'
+                                       WHEN NVL(P.REC_QTY, 0) = 0 THEN
+                                        '0'
+                                     END 
+                               )    receiveStatus,
+                             A.CODE_VALUE_NAME  codeValueName
+                        FROM MM_JIT_ORDER_DETAIL OD
+                        LEFT JOIN MM_JIT_ORDER SO
+                          ON OD.ORDER_NO = SO.ORDER_NO
+                        LEFT JOIN MM_PUB_PLAN_CODE C
+                          ON SO.PLAN_CODE = C.PLAN_CODE
+                        LEFT JOIN MM_PUB_SUPPLIER PS
+                          ON SO.SUPPLIER_NO = PS.SUPPLIER_NO
+                        LEFT JOIN MM_PUB_PART_UDA PD
+                          ON OD.PART_NO = PD.PART_NO
+                         AND PD.FACTORY_CODE = #{factoryCode}
+                         
+                       LEFT JOIN (SELECT 
+                                  E.ORDER_NO,
+                                  F.PART_NO,
+                                  F.ROW_NO,
+                                  SUM(F.REC_QTY) REC_QTY
+                              FROM MM_INV_IN E
+                              LEFT JOIN MM_INV_IN_DETAIL F
+                                ON E.REC_NO = F.REC_NO
+                              LEFT JOIN MM_JIT_ORDER_DETAIL H
+                                ON E.Order_No = H.ORDER_NO
+                               AND F.ROW_NO = H.ORDER_ROWNO
+                              GROUP BY E.ORDER_NO,F.PART_NO,F.ROW_NO) P
+                         ON  P.ORDER_NO = OD.ORDER_NO
+                         AND P.PART_NO = OD.PART_NO
+                         AND P.ROW_NO = OD.ORDER_ROWNO
+                        LEFT JOIN MM_PUB_DATA_DICT A
+                          ON A.CODE_TYPE = 'PUB_ARRIVE_STATUS'
+                          AND A.FACTORY_CODE = #{factoryCode}
+                         AND A.CODE_VALUE = (
+                                     CASE
+                                       WHEN OD.REQUIRE_NUM = P.REC_QTY THEN
+                                        '2'
+                                       WHEN (OD.REQUIRE_NUM > P.REC_QTY AND
+                                            NVL(P.REC_QTY, 0) != 0) THEN
+                                        '1'
+                                       WHEN NVL(P.REC_QTY, 0) = 0 THEN
+                                        '0'
+                                     END 
+                               ) 
+                        LEFT JOIN (SELECT MAX(S.CREATION_TIME) CREATION_TIME,
+                                S.ORDER_NO
+                                FROM MM_INV_IN S
+                                LEFT JOIN MM_JIT_ORDER_DETAIL OD
+                                 ON S.Order_No = OD.ORDER_NO
+                                 GROUP BY S.ORDER_NO) R
+                           ON R.ORDER_NO = OD.ORDER_NO
+				       WHERE  1=1 AND C.FACTORY_CODE = #{factoryCode}
+					  <if test="recTimeStart !=null and recTimeStart !='' ">
+					  <![CDATA[ AND R.CREATION_TIME>= TO_DATE(#{recTimeStart},'yyyy-MM-dd') ]]>
+					  </if>
+					  <if test="recTimeEnd !=null and recTimeEnd !='' ">
+					  <![CDATA[ AND R.CREATION_TIME <= TO_DATE(#{recTimeEnd},'yyyy-MM-dd') + 1 ]]>
+					  </if>
+					  <if test="orderNo !=null and orderNo !='' ">
+					  AND OD.ORDER_NO like CONCAT(#{orderNo}, '%')
+					  </if>
+					  <if test="supplierNo !=null and supplierNo !='' ">
+					  AND SO.SUPPLIER_NO like CONCAT(#{supplierNo}, '%')
+					  </if>
+					  <if test="supFactory !=null and supFactory !='' ">
+					  AND SO.SUP_FACTORY  like CONCAT(#{supFactory}, '%')
+					  </if>
+					  <if test="partNo !=null and partNo !='' ">
+					  AND OD.PART_NO like CONCAT(#{partNo}, '%')
+					  </if>
+					  <if test="receiveStatus !=null and receiveStatus !='' ">
+					  AND A.CODE_VALUE = #{receiveStatus}
+					  </if>
+					  
+					  <if test="arriveTimeStart !=null and arriveTimeStart !='' ">
+					  <![CDATA[ AND SO.ARRIVE_TIME>= TO_DATE(#{arriveTimeStart},'yyyy-MM-dd hh24:mi:ss') ]]>
+					  </if>
+					  <if test="arriveTimeEnd !=null and arriveTimeEnd !='' ">
+					  <![CDATA[ AND SO.ARRIVE_TIME <= TO_DATE(#{arriveTimeEnd},'yyyy-MM-dd hh24:mi:ss') ]]>
+					  </if>
+						UNION ALL
+						SELECT DISTINCT
+                             OD.ORDER_NO      orderNo,
+                             OD.ORDER_NO     purchaseNo,
+                             SO.SUPPLIER_NO   supplierNo,
+                             SO.SUP_FACTORY     supFactory,
+                             PS.SUPPLIER_NAME   supplierName,
+                             SO.ARR_DEPOT      depotNo,
+                             OD.ORDER_ROWNO  purchaseRowno,
+                             OD.PART_NO     partNo,
+                             PD.PART_NAME_CN    partNameCn,
+                             PD.PART_SHORT_NO   partShortNo,
+                             OD.REQUIRE_NUM     orderQty,
+                             P.REC_QTY   totalRecQty,
+                             TO_CHAR(R.CREATION_TIME,'YYYY-MM-DD')    receiveDate,
+                             to_char(SO.ARRIVE_TIME,'yyyy-mm-dd hh24:mi:ss')    arriveTime,
+                             (
+                                     CASE
+                                       WHEN OD.REQUIRE_NUM = P.REC_QTY THEN
+                                        '2'
+                                       WHEN (OD.REQUIRE_NUM > P.REC_QTY AND
+                                            NVL(P.REC_QTY, 0) != 0) THEN
+                                        '1'
+                                       WHEN NVL(P.REC_QTY, 0) = 0 THEN
+                                        '0'
+                                     END 
+                               )    receiveStatus,
+                             A.CODE_VALUE_NAME  codeValueName
+                        FROM MM_JISO_ORDER_DETAIL OD
+                        LEFT JOIN MM_JISO_ORDER SO
+                          ON OD.ORDER_NO = SO.ORDER_NO
+                        LEFT JOIN MM_PUB_PLAN_CODE C
+                          ON SO.PLAN_CODE = C.PLAN_CODE
+                        LEFT JOIN MM_PUB_SUPPLIER PS
+                          ON SO.SUPPLIER_NO = PS.SUPPLIER_NO
+                        LEFT JOIN MM_PUB_PART_UDA PD
+                          ON OD.PART_NO = PD.PART_NO
+                         AND PD.FACTORY_CODE = #{factoryCode}
+                       LEFT JOIN (SELECT 
+                                  E.ORDER_NO,
+                                  F.PART_NO,
+                                  F.ROW_NO,
+                                  SUM(F.REC_QTY) REC_QTY
+                              FROM MM_INV_IN E
+                              LEFT JOIN MM_INV_IN_DETAIL F
+                                ON E.REC_NO = F.REC_NO
+                              LEFT JOIN MM_JISO_ORDER_DETAIL H
+                                ON E.ORDER_NO = H.ORDER_NO
+                               AND F.ROW_NO = H.ORDER_ROWNO
+                              GROUP BY E.ORDER_NO,F.PART_NO,F.ROW_NO) P
+                         ON  P.ORDER_NO = OD.ORDER_NO
+                         AND P.PART_NO = OD.PART_NO
+                         AND P.ROW_NO = OD.ORDER_ROWNO
+                        LEFT JOIN MM_PUB_DATA_DICT A
+                          ON A.CODE_TYPE = 'PUB_ARRIVE_STATUS'
+                         and a.FACTORY_CODE = #{factoryCode}
+                         AND A.CODE_VALUE = (
+                                     CASE
+                                       WHEN OD.REQUIRE_NUM = P.REC_QTY THEN
+                                        '2'
+                                       WHEN (OD.REQUIRE_NUM > P.REC_QTY AND
+                                            NVL(P.REC_QTY, 0) != 0) THEN
+                                        '1'
+                                       WHEN NVL(P.REC_QTY, 0) = 0 THEN
+                                        '0'
+                                     END 
+                               ) 
+                        LEFT JOIN (SELECT MAX(S.CREATION_TIME) CREATION_TIME,
+                                S.ORDER_NO
+                                FROM MM_INV_IN S
+                                LEFT JOIN MM_JISO_ORDER_DETAIL OD
+                                 ON S.ORDER_NO = OD.ORDER_NO 
+                                 GROUP BY S.ORDER_NO) R
+                           ON R.ORDER_NO = OD.ORDER_NO
+                      WHERE 1=1 AND C.FACTORY_CODE = #{factoryCode}
+					  <if test="recTimeStart !=null and recTimeStart !='' ">
+					  <![CDATA[ AND R.CREATION_TIME>= TO_DATE(#{recTimeStart},'yyyy-MM-dd') ]]>
+					  </if>
+					  <if test="recTimeEnd !=null and recTimeEnd !='' ">
+					  <![CDATA[ AND R.CREATION_TIME <= TO_DATE(#{recTimeEnd},'yyyy-MM-dd') + 1 ]]>
+					  </if>
+					  <if test="orderNo !=null and orderNo !='' ">
+					  AND OD.ORDER_NO like CONCAT(#{orderNo}, '%')
+					  </if>
+					  <if test="supplierNo !=null and supplierNo !='' ">
+					  AND SO.SUPPLIER_NO like CONCAT(#{supplierNo}, '%')
+					  </if>
+					  <if test="supFactory !=null and supFactory !='' ">
+					  AND SO.SUP_FACTORY  like CONCAT(#{supFactory}, '%')
+					  </if>
+					  <if test="partNo !=null and partNo !='' ">
+					  AND OD.PART_NO like CONCAT(#{partNo}, '%')
+					  </if>
+					  <if test="receiveStatus !=null and receiveStatus !='' ">
+					  AND A.CODE_VALUE = #{receiveStatus}
+					  </if>
+					  
+					  <if test="arriveTimeStart !=null and arriveTimeStart !='' ">
+					  <![CDATA[ AND SO.ARRIVE_TIME>= TO_DATE(#{arriveTimeStart},'yyyy-MM-dd hh24:mi:ss') ]]>
+					  </if>
+					  <if test="arriveTimeEnd !=null and arriveTimeEnd !='' ">
+					  <![CDATA[ AND SO.ARRIVE_TIME <= TO_DATE(#{arriveTimeEnd},'yyyy-MM-dd hh24:mi:ss') ]]>
+					  </if>
+					  ORDER BY 1 DESC
+        </select>
+        
+        <!-- 收货查询界面，明细查看功能 -->
+        <select id="queryJisoRecDetailPage" parameterType="com.hanthink.sw.model.SwRecModel" resultType="com.hanthink.sw.model.SwRecModel">
+			   SELECT DISTINCT  II.REC_NO 			recNo,
+				                IID.ROW_NO  		recRowno,
+				                IID.PART_NO         partNo,
+				                IID.REC_QTY 		recQty,
+				                IID.CREATION_TIME 	receiveDate,
+				                II.CREATION_USER	recUser,
+				                UDA.PART_SHORT_NO	partShortNo,
+                        		UDA.PART_NAME_CN	partNameCn
+							  FROM MM_INV_IN II
+							  LEFT JOIN MM_INV_IN_DETAIL IID
+							    ON II.REC_NO = IID.REC_NO
+							  LEFT JOIN MM_PUB_PART_UDA UDA
+                  				ON IID.PART_NO = UDA.PART_NO
+                  			   AND II.FACTORY_CODE = UDA.FACTORY_CODE
+                  			  LEFT JOIN  (
+				                SELECT A.ORDER_NO FROM MM_SW_ORDER A
+				                UNION ALL 
+				                SELECT A.ORDER_NO FROM MM_JIT_ORDER A
+				                UNION ALL 
+				                SELECT A.ORDER_NO FROM MM_JISO_ORDER A 
+				                WHERE A.ORDER_NO = #{orderNo}) K
+				                ON K.ORDER_NO = II.ORDER_NO 
+			                 WHERE II.ORDER_NO = #{orderNo}
+        </select>
+
+</mapper>

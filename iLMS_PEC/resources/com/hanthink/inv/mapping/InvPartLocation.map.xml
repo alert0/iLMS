@@ -1,0 +1,642 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.inv.model.InvPartLocationModel">
+		
+	<!-- 分页查询属地数据 -->
+	<select id="queryInvPartLocationPage" parameterType="com.hanthink.inv.model.InvPartLocationModel"
+		resultType="com.hanthink.inv.model.InvPartLocationModel">
+		SELECT 
+		   MIN(TT.ID) id,
+		   wm_concat(TT.MODEL_CODE) modelCode,
+		   MIN(TT.UNLOAD_PORT)  AS unload_port,
+		   MIN(TT.PREPARE_PERSON) AS prepare_person,
+		   MIN(TT.CARPOOL) AS carpool,
+		   MIN(TT.STORAGE) AS storage,
+		   MIN(TT.DISTRI_PERSON) AS distri_person,
+		   MIN(TT.LOCATION) AS location,
+		   MIN(TT.STATION_CODE) AS station_code,
+		   MIN(TT.SHELF_NO) AS shelf_no,
+		   MIN(TT.LOCATION_NUM) AS location_num,
+		   MIN(TT.DEP_NO) AS dept_No,
+		   MIN(TT.PART_NO) AS part_no,
+		   MIN(TT.SUPPLIER_NO) AS supplier_no,
+		   MIN(TT.eff_start) AS eff_start,
+		   MIN(TT.eff_end) AS eff_end,
+		   MIN(TT.PART_NAME_CN) AS part_name_cn,
+		   MIN(TT.PART_SHORT_NO) AS part_short_no,
+		   MIN(TT.SUPPLIER_NAME) AS supplier_name
+		FROM( SELECT 
+				   T.ID,
+		           T.UNLOAD_PORT,
+		           T.PREPARE_PERSON,
+		           T.CARPOOL, 
+		           T.STORAGE, 
+		           T.DISTRI_PERSON,
+		           T.LOCATION, 
+		           T.STATION_CODE, 
+		           T.SHELF_NO, 
+		           T.LOCATION_NUM, 
+		           T.MODEL_CODE,
+		           T.DEP_NO, 
+		           T.PART_NO, 
+		           T.SUPPLIER_NO,
+		           TO_CHAR(T.EFF_START, 'YYYYMMDD') AS eff_start,
+		           TO_CHAR(T.EFF_END, 'YYYYMMDD') AS eff_end,
+		           P.PART_NAME_CN,
+		           nvl(UD.PART_SHORT_NO, P.PART_SHORT_NO) PART_SHORT_NO,
+		           S.SUPPLIER_NAME
+		      FROM MM_INV_PART_LOCATION T 
+		      LEFT JOIN MM_PUB_PART P ON P.PART_NO = T.PART_NO
+		      			AND P.FACTORY_CODE = T.FACTORY_CODE
+		      LEFT JOIN MM_PUB_PART_UDA UD ON UD.PART_NO = T.PART_NO
+		      			AND UD.FACTORY_CODE = T.FACTORY_CODE
+		      LEFT JOIN MM_PUB_SUPPLIER S ON S.SUPPLIER_NO = T.SUPPLIER_NO 
+		     WHERE 1 = 1 AND T.FACTORY_CODE = #{factoryCode}
+				 <if test="null != part_no and ''!= part_no">
+				 	AND T.PART_NO LIKE #{part_no} || '%'
+				 </if>
+				 <if test="null != modelCode and ''!= modelCode">
+				 	AND T.MODEL_CODE = #{modelCode}
+				 </if>
+				 <if test="null != unload_port and ''!= unload_port">
+				 	AND T.UNLOAD_PORT LIKE #{unload_port} || '%'
+				 </if>
+				 <if test="null != part_name_cn and ''!= part_name_cn">
+				 	AND P.PART_NAME_CN LIKE  '%' || #{part_name_cn}  || '%'
+				 </if>
+				 <if test="null != location and ''!= location">
+				 	AND T.LOCATION LIKE #{location} || '%'
+				 </if>
+				 <if test="null != shelf_no and ''!= shelf_no">
+				 	AND T.SHELF_NO LIKE '%' || #{shelf_no} || '%'
+				 </if>
+				 <if test="null != storage and ''!= storage">
+				 	AND T.STORAGE LIKE '%' || #{storage} || '%'
+				 </if>
+				 <if test="null != part_short_no and ''!= part_short_no">
+				 	AND P.PART_SHORT_NO = #{part_short_no} OR UD.PART_SHORT_NO = #{part_short_no}
+				 </if>) TT
+		     GROUP BY 
+		           TT.UNLOAD_PORT ,
+		           TT.PREPARE_PERSON,
+		           TT.CARPOOL,
+		           TT.STORAGE,
+		           TT.DISTRI_PERSON,
+		           TT.LOCATION,
+		           TT.STATION_CODE,
+		           TT.SHELF_NO,
+		           TT.LOCATION_NUM,
+		           TT.DEP_NO ,
+		           TT.PART_NO ,
+		           TT.SUPPLIER_NO ,
+		           TT.eff_start,
+		           TT.eff_end,
+		           TT.PART_NAME_CN ,
+		           TT.PART_SHORT_NO ,
+		           TT.SUPPLIER_NAME 
+	</select>
+	
+	<!-- 零件数据维护页面查询货架标签打印信息 -->
+	<select id="queryInvShelfPrintInfo" parameterType="com.hanthink.inv.model.InvPartLocationModel" 
+		resultType="com.hanthink.inv.model.InvPartLocationModel">
+		SELECT NVL(U.PART_SHORT_NO, P.PART_SHORT_NO) partShortNo,
+		       NVL(U.PART_NAME_CN, P.PART_NAME_CN) partName,
+		       T.PART_NO partNo,
+       		   T.SHELF_NO shelfNo,
+               T.SUPPLIER_NO supplierNo,
+		       T.MODEL_CODE modelCode,
+		       NVL(U.SUPPLIER_NAME, S.SUPPLIER_NAME) supplierName,
+		       U.STANDARD_PACKAGE standardPackage,
+		       T.LOCATION location,
+		       T.STORAGE storage,
+		       NVL((to_char(T.LAST_MODIFIED_TIME, 'MM') || '月'), (to_char(T.CREATION_TIME, 'MM') || '月')) lastModifiedTime
+		  FROM MM_INV_PART_LOCATION T
+		  LEFT JOIN MM_PUB_PART P ON P.PART_NO = T.PART_NO
+		  			AND P.FACTORY_CODE = T.FACTORY_CODE
+		  LEFT JOIN MM_PUB_PART_UDA U ON U.PART_NO = T.PART_NO
+		  			AND U.FACTORY_CODE = T.FACTORY_CODE
+		  LEFT JOIN MM_PUB_SUPPLIER S ON S.SUPPLIER_NO = T.SUPPLIER_NO
+		 WHERE T.ID = #{id}	
+	</select>
+	
+	<!-- 根据UUID删除导入的临时数据 -->
+	<delete id="deleteImportTempDataByUUID" parameterType="java.lang.String">
+		DELETE FROM MM_INV_PART_LOCATION_TEMP WHERE IMP_UUID = #{value,jdbcType=VARCHAR}
+	</delete>
+	
+	<!-- 根据卸货口获取仓库代码(废止) -->
+	<select id="queryWareCodeByOldUnloadPort" parameterType="com.hanthink.inv.model.InvPartLocationModel"
+		resultType="com.hanthink.inv.model.InvPartLocationModel">
+		SELECT T.WARE_CODE wareCode,T.WORK_CENTER workCenter FROM MM_INV_UNLOAD T WHERE 1 = 1	
+			AND T.UNLOAD_PORT = #{oldUnloadPort, jdbcType=VARCHAR}
+			AND T.FACTORY_CODE = #{factoryCode, jdbcType=VARCHAR}
+	</select>
+	
+	<!-- 根据卸货口获取仓库代码(新增or移动) -->
+	<select id="queryWareCodeByNewUnloadPort" parameterType="com.hanthink.inv.model.InvPartLocationModel"
+		resultType="com.hanthink.inv.model.InvPartLocationModel">
+		SELECT T.WARE_CODE wareCode,T.WORK_CENTER workCenter FROM MM_INV_UNLOAD T WHERE 1 = 1	
+			AND T.UNLOAD_PORT = #{newUnloadPort, jdbcType=VARCHAR}
+			AND T.FACTORY_CODE = #{factoryCode, jdbcType=VARCHAR}
+	</select>
+	
+	<!-- 导入零件属地到临时表 -->
+	<insert id="insertInvPartLocationTempData" parameterType="java.util.List">
+		INSERT INTO MM_INV_PART_LOCATION_TEMP
+			(id,
+			NEW_WORK_CENTER,
+			NEW_WARE_CODE,
+			new_part_no,
+			new_supplier_no,
+			new_unload_port,
+			new_repare_person,
+			new_carpool,
+			new_distri_person,
+			new_location,
+			new_station_code,
+			new_shelf_no,
+			new_location_num,
+			new_storage,
+			new_dept_no,
+			old_part_no,
+			old_supplier_no,
+			old_unload_port,
+			old_repare_person,
+			old_carpool,
+			old_distri_person,
+			old_location,
+			old_station_code,
+			old_shelf_no,
+			old_location_num,
+			old_storage,
+			old_dept_no,
+			model_code,
+			eff_start,
+			eff_end,
+			deal_flag,
+			check_flag,
+			operation_type,
+			factory_code,
+			BUSI_ID,
+			CREATION_USER,
+			CREATION_TIME,
+			LAST_MODIFIED_IP,
+			IMP_UUID,
+			CHECK_RESULT,
+			CHECK_INFO,
+			IMPORT_STATUS)
+		<foreach collection="list" item="item" index="index" separator=" UNION ALL ">
+		SELECT PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_INV_PART_LOCATION_TEMP'),
+			#{item.workCenter,jdbcType=VARCHAR},
+			#{item.wareCode,jdbcType=VARCHAR},
+			#{item.newPartNo,jdbcType=VARCHAR},
+			#{item.newSupplierNo,jdbcType=VARCHAR},
+			#{item.newUnloadPort,jdbcType=VARCHAR},
+			#{item.newReparePerson,jdbcType=VARCHAR},
+			#{item.newCarpool,jdbcType=VARCHAR},
+			#{item.newDistriPerson,jdbcType=VARCHAR},
+			#{item.newLocation,jdbcType=VARCHAR},
+			#{item.newStationCode,jdbcType=VARCHAR},
+			#{item.newShelfNo,jdbcType=VARCHAR},
+			#{item.newLocationNum,jdbcType=VARCHAR},
+			#{item.newStorage,jdbcType=VARCHAR},
+			#{item.newDeptNo,jdbcType=VARCHAR},
+			#{item.oldPartNo,jdbcType=VARCHAR},
+			#{item.oldSupplierNo,jdbcType=VARCHAR},
+			#{item.oldUnloadPort,jdbcType=VARCHAR},
+			#{item.oldReparePerson,jdbcType=VARCHAR},
+			#{item.oldCarpool,jdbcType=VARCHAR},
+			#{item.oldDistriPerson,jdbcType=VARCHAR},
+			#{item.oldLocation,jdbcType=VARCHAR},
+			#{item.oldStationCode,jdbcType=VARCHAR},
+			#{item.oldShelfNo,jdbcType=VARCHAR},
+			#{item.oldLocationNum,jdbcType=VARCHAR},
+			#{item.oldStorage,jdbcType=VARCHAR},
+			#{item.oldDeptNo,jdbcType=VARCHAR},
+			#{item.modelCode,jdbcType=VARCHAR},
+			TO_DATE(#{item.effStart,jdbcType=VARCHAR},'yyyy-mm-dd hh24:mi:ss'),
+			TO_DATE(#{item.effEnd,jdbcType=VARCHAR},'yyyy-mm-dd hh24:mi:ss'),
+			#{item.dealFlag, jdbcType=VARCHAR},
+			#{item.checkFlag,jdbcType=VARCHAR},
+			#{item.operationType,jdbcType=VARCHAR},
+			#{item.factoryCode,jdbcType=VARCHAR},
+			PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_INV_PART_LOCATION'),
+			#{item.creationUser, jdbcType=VARCHAR},
+			SYSDATE,
+			#{item.lastModifiedIp, jdbcType=VARCHAR},
+			#{item.uuid, jdbcType=VARCHAR},
+			#{item.checkResult, jdbcType=VARCHAR},
+			#{item.checkInfo, jdbcType=VARCHAR},
+			#{item.importStatus, jdbcType=VARCHAR}
+		FROM DUAL
+		</foreach>
+	</insert>
+	
+	<!-- 检查导入临时表数据 -->
+	<parameterMap type="map" id="impCkParamMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="userName" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<!-- 调用存储过程校验批量导出零件余量 -->
+	<select id="checkImportData" parameterMap="impCkParamMap" statementType="CALLABLE">
+		{CALL PKG_PUB_CHECK.USP_MM_INV_PART_LOCATION_CHECK(?, ?, ?, ?, ?)}
+	</select>
+	
+	<!-- 查询临时表数据 -->
+	<select id="queryImportTempPage" parameterType="com.hanthink.inv.model.InvPartLocationModel"
+		resultType="com.hanthink.inv.model.InvPartLocationModel">
+		SELECT 
+		         wm_concat(TT.model_code) modelCode,
+		         MIN(TT.new_part_no) newPartNo,
+		         MIN(TT.new_supplier_no) newSupplierNo,
+		         MIN(TT.new_unload_port) newUnloadPort,
+		         MIN(TT.new_repare_person) newReparePerson,
+		         MIN(TT.new_carpool) newCarpool,
+		         MIN(TT.new_distri_person) newDistriPerson,
+		         MIN(TT.new_location) newLocation,
+		         MIN(TT.new_station_code) newStationCode,
+		         MIN(TT.new_shelf_no) newShelfNo,
+		         MIN(TT.new_location_num) newLocationNum,
+		         MIN(TT.new_dept_no) newDeptNo,
+		         MIN(TT.new_storage) newStorage,
+		         MIN(TT.old_part_no) oldPartNo,
+		         MIN(TT.old_supplier_no) oldSupplierNo,
+		         MIN(TT.old_unload_port) oldUnloadPort,
+		         MIN(TT.old_repare_person) oldReparePerson,
+		         MIN(TT.old_carpool) oldCarpool,
+		         MIN(TT.old_distri_person) oldDistriPerson,
+		         MIN(TT.old_location) oldLocation,
+		         MIN(TT.old_station_code) oldStationCode,
+		         MIN(TT.old_shelf_no) oldShelfNo,
+		         MIN(TT.old_location_num) oldLocationNum,
+		         MIN(TT.old_storage) oldStorage,
+		         MIN(TT.old_dept_no) oldDeptNo,
+		         MIN(TT.effStart) effStart,
+		         MIN(TT.effEnd) effEnd,
+		         MIN(TT.CHECK_INFO) checkInfo,
+		         MIN(TT.OPERATION_TYPE) operationType,
+		         MIN(TT.IMPORT_STATUS) importStatus,
+		         MIN(TT.CHECK_RESULT) checkResult,
+		         MIN(TT.importStatusDesc) importStatusDesc,
+		         MIN(TT.checkResultDesc) checkResultDesc
+		FROM(SELECT 
+		         new_part_no,
+		         new_supplier_no,
+		         new_unload_port,
+		         new_repare_person,
+		         new_carpool,
+		         new_distri_person,
+		         new_location,
+		         new_station_code,
+		         new_shelf_no,
+		         new_location_num,
+		         new_dept_no,
+		         new_storage,
+		         old_part_no,
+		         old_supplier_no,
+		         old_unload_port,
+		         old_repare_person,
+		         old_carpool,
+		         old_distri_person,
+		         old_location,
+		         old_station_code,
+		         old_shelf_no,
+		         old_location_num,
+		         old_storage,
+		         old_dept_no,
+		         model_code,
+		         TO_CHAR(EFF_START, 'YYYYMMDD') AS effStart,
+		         TO_CHAR(EFF_END, 'YYYYMMDD') AS effEnd,
+		         T.CHECK_INFO,
+		         OPERATION_TYPE,
+		         T.IMPORT_STATUS,
+		         T.CHECK_RESULT,
+		         D.CODE_VALUE_NAME importStatusDesc,
+		         DD.CODE_VALUE_NAME checkResultDesc
+		    FROM MM_INV_PART_LOCATION_TEMP T
+		    LEFT JOIN MM_PUB_DATA_DICT D ON D.CODE_VALUE = T.IMPORT_STATUS AND D.CODE_TYPE = 'PUB_IMP_STATUS'
+		                    AND D.FACTORY_CODE = #{factoryCode, jdbcType=VARCHAR}
+		    LEFT JOIN MM_PUB_DATA_DICT DD ON DD.CODE_VALUE = T.CHECK_RESULT AND DD.CODE_TYPE = 'PUB_IMP_CK_RESULT'
+		                    AND DD.FACTORY_CODE = #{factoryCode, jdbcType=VARCHAR}
+		    WHERE T.IMP_UUID = #{uuid, jdbcType=VARCHAR} ORDER BY T.CHECK_RESULT ASC) TT
+		    GROUP BY 
+		         TT.new_part_no,
+		         TT.new_supplier_no,
+		         TT.new_unload_port,
+		         TT.new_repare_person,
+		         TT.new_carpool,
+		         TT.new_distri_person,
+		         TT.new_location,
+		         TT.new_station_code,
+		         TT.new_shelf_no,
+		         TT.new_location_num,
+		         TT.new_dept_no,
+		         TT.new_storage,
+		         TT.old_part_no,
+		         TT.old_supplier_no,
+		         TT.old_unload_port,
+		         TT.old_repare_person,
+		         TT.old_carpool,
+		         TT.old_distri_person,
+		         TT.old_location,
+		         TT.old_station_code,
+		         TT.old_shelf_no,
+		         TT.old_location_num,
+		         TT.old_storage,
+		         TT.old_dept_no,
+		         TT.effStart,
+		         TT.effEnd,
+		         TT.CHECK_INFO,
+		         TT.OPERATION_TYPE,
+		         TT.IMPORT_STATUS,
+		         TT.CHECK_RESULT,
+		         TT.importStatusDesc,
+		         TT.checkResultDesc
+	</select>
+	
+	<!-- 查询导入校验结果是否包含不通过 -->
+	<select id="queryIsExistsCheckResultFalse" parameterType="java.lang.String"
+		resultType="java.lang.Object">
+		SELECT COUNT(*)
+				FROM MM_INV_PART_LOCATION_TEMP T
+			WHERE T.IMP_UUID = #{uuid, jdbcType=VARCHAR} AND T.CHECK_RESULT = 0		
+	</select>
+	
+	<!-- 更新临时表数据导入状态-->
+	<update id="updateImportDataImpStatus">
+		UPDATE MM_INV_PART_LOCATION_TEMP SET IMPORT_STATUS = #{IMPORT_STATUS_YES,jdbcType=VARCHAR} 
+			WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		    AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+		    AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR} 
+	</update>
+	
+	<!-- 临时表写入正式表 -->
+	<insert id="insertImportDataAdd">
+		INSERT INTO MM_INV_PART_LOCATION
+		  (ID,
+		  CREATION_USER,
+		  CREATION_TIME,
+		   PART_NO,
+		   SUPPLIER_NO,
+		   STATION_CODE,
+		   UNLOAD_PORT,
+		   PREPARE_PERSON,
+		   CARPOOL,
+		   DISTRI_PERSON,
+		   LOCATION,
+		   SHELF_NO,
+		   LOCATION_NUM,
+		   MODEL_CODE,
+		   STORAGE,
+		   EFF_START,
+		   EFF_END,
+		   FACTORY_CODE,
+		   WORKCENTER,
+		   WARE_CODE,
+		   DEP_NO)
+		  SELECT T.BUSI_ID,
+		  		 T.CREATION_USER,
+		  		 SYSDATE,
+		         T.NEW_PART_NO,
+		         T.NEW_SUPPLIER_NO,
+		         T.NEW_STATION_CODE,
+		         T.NEW_UNLOAD_PORT,
+		         T.NEW_REPARE_PERSON,
+		         T.NEW_CARPOOL,
+		         T.NEW_DISTRI_PERSON,
+		         T.NEW_LOCATION,
+		         T.NEW_SHELF_NO,
+		         T.NEW_LOCATION_NUM,
+		         T.MODEL_CODE,
+		         T.NEW_STORAGE,
+		         T.EFF_START,
+		         T.EFF_END,
+		         T.FACTORY_CODE,
+		         T.NEW_WORK_CENTER,
+		         T.NEW_WARE_CODE,
+		         T.NEW_DEPT_NO
+		    FROM MM_INV_PART_LOCATION_TEMP T
+		   WHERE IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		     AND CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		     AND IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+		     AND T.OPERATION_TYPE = '新增'
+	</insert>
+	
+	<!-- 查询临时表废止数据 -->
+	<select id="queryFZList" resultType="com.hanthink.inv.model.InvPartLocationModel">
+		SELECT T.id               id,
+	       new_part_no        newPartNo,
+	       new_supplier_no    newSupplierNo,
+	       new_unload_port    newUnloadPort,
+	       new_repare_person  newReparePerson,
+	       new_carpool        newCarpool,
+	       new_distri_person  newDistriPerson,
+	       new_location       newLocation,
+	       new_station_code   newStationCode,
+	       new_shelf_no       newShelfNo,
+	       new_location_num   newLocationNum,
+	       new_dept_no        newDeptNo,
+	       new_storage        newStorage,
+	       old_part_no        oldPartNo,
+	       old_supplier_no    oldSupplierNo,
+	       old_unload_port    oldUnloadPort,
+	       old_repare_person  oldReparePerson,
+	       old_carpool        oldCarpool,
+	       old_distri_person  oldDistriPerson,
+	       old_location       oldLocation,
+	       old_station_code   oldStationCode,
+	       old_shelf_no       oldShelfNo,
+	       old_location_num   oldLocationNum,
+	       old_storage        oldStorage,
+	       old_dept_no        oldDeptNo,
+	       model_code         modelCode,
+	       deal_flag          dealFlag,
+	       check_flag         checkFlag,
+	       T.CHECK_INFO       checkInfo,
+	       check_result       checkResult,
+	       OPERATION_TYPE     operationType,
+	       T.CREATION_USER    creationUser,
+	       to_char(EFF_START,'yyyy-mm-dd')  effStart,
+	       to_char(EFF_END,'yyyy-mm-dd')  effEnd,
+	       FACTORY_CODE       factoryCode,
+	       T.LAST_MODIFIED_IP lastModifiedIp
+	  FROM MM_INV_PART_LOCATION_TEMP T
+	 WHERE T.OPERATION_TYPE = '废止'
+	  AND IMP_UUID = #{uuid, jdbcType = VARCHAR}
+	  AND CHECK_RESULT = 1
+	  AND IMPORT_STATUS = 0
+	</select>
+	
+	<!-- 更新废止信息到正式表 -->
+	<update id="updateImportDataFZ" parameterType="com.hanthink.inv.model.InvPartLocationModel">
+		UPDATE MM_INV_PART_LOCATION T
+			SET 
+				T.EFF_START = TO_DATE(#{effStart,jdbcType=VARCHAR},'yyyy-mm-dd'),
+				T.EFF_END  = TO_DATE(#{effEnd,jdbcType=VARCHAR},'yyyy-mm-dd'),
+			    T.LAST_MODIFIED_USER = #{creationUser, jdbcType=VARCHAR},
+			    T.LAST_MODIFIED_TIME = SYSDATE,
+			    T.LAST_MODIFIED_IP = #{lastModifiedIp, jdbcType=VARCHAR}
+			WHERE T.UNLOAD_PORT = #{oldUnloadPort, jdbcType=VARCHAR}
+			AND T.SUPPLIER_NO = #{oldSupplierNo, jdbcType=VARCHAR}
+			AND T.PART_NO = #{oldPartNo, jdbcType=VARCHAR}
+			AND T.PREPARE_PERSON = #{oldReparePerson, jdbcType=VARCHAR}
+			AND T.CARPOOL = #{oldCarpool, jdbcType=VARCHAR}
+			AND T.STORAGE = #{oldStorage, jdbcType=VARCHAR}
+			AND T.DISTRI_PERSON = #{oldDistriPerson, jdbcType=VARCHAR}
+			AND T.LOCATION = #{oldLocation, jdbcType=VARCHAR}
+			AND T.STATION_CODE = #{oldStationCode, jdbcType=VARCHAR}
+			AND T.SHELF_NO = #{oldShelfNo, jdbcType=VARCHAR}
+			AND T.LOCATION_NUM = #{oldLocationNum, jdbcType=VARCHAR}
+			AND T.DEP_NO = #{oldDeptNo, jdbcType=VARCHAR}
+			AND T.MODEL_CODE = #{modelCode, jdbcType=VARCHAR}
+	</update>
+	
+	<!-- 查询临时表移动数据 -->
+	<select id="queryYDList" resultType="com.hanthink.inv.model.InvPartLocationModel">
+		SELECT T.id               id,
+	       new_part_no        newPartNo,
+	       new_supplier_no    newSupplierNo,
+	       new_unload_port    newUnloadPort,
+	       new_repare_person  newReparePerson,
+	       new_carpool        newCarpool,
+	       new_distri_person  newDistriPerson,
+	       new_location       newLocation,
+	       new_station_code   newStationCode,
+	       new_shelf_no       newShelfNo,
+	       new_location_num   newLocationNum,
+	       new_dept_no        newDeptNo,
+	       new_storage        newStorage,
+	       old_part_no        oldPartNo,
+	       old_supplier_no    oldSupplierNo,
+	       old_unload_port    oldUnloadPort,
+	       old_repare_person  oldReparePerson,
+	       old_carpool        oldCarpool,
+	       old_distri_person  oldDistriPerson,
+	       old_location       oldLocation,
+	       old_station_code   oldStationCode,
+	       old_shelf_no       oldShelfNo,
+	       old_location_num   oldLocationNum,
+	       old_storage        oldStorage,
+	       old_dept_no        oldDeptNo,
+	       model_code         modelCode,
+	       deal_flag          dealFlag,
+	       check_flag         checkFlag,
+	       T.CHECK_INFO       checkInfo,
+	       check_result       checkResult,
+	       OPERATION_TYPE     operationType,
+	       T.CREATION_USER    creationUser, 
+	       to_char(EFF_START,'yyyy-mm-dd') effStart,
+	       to_char(EFF_END,'yyyy-mm-dd') effEnd,
+	       FACTORY_CODE       factoryCode,
+	       NEW_WORK_CENTER    newWorkCenter,
+	       OLD_WORK_CENTER    oldWorkCenter,
+	       T.LAST_MODIFIED_IP lastModifiedIp
+	  FROM MM_INV_PART_LOCATION_TEMP T
+	 WHERE T.OPERATION_TYPE = '移动'
+	  AND IMP_UUID = #{uuid, jdbcType = VARCHAR}
+	  AND CHECK_RESULT = 1
+	  AND IMPORT_STATUS = 0
+	</select>
+	
+	<!-- 更新移动数据到正式表 -->
+	<update id="updateImportDataYD" parameterType="com.hanthink.inv.model.InvPartLocationModel">
+		UPDATE MM_INV_PART_LOCATION T
+		   SET T.UNLOAD_PORT        = #{newUnloadPort, jdbcType = VARCHAR},
+		       T.SUPPLIER_NO        = #{newSupplierNo, jdbcType = VARCHAR},
+		       T.PART_NO            = #{newPartNo, jdbcType = VARCHAR},
+		       T.PREPARE_PERSON     = #{newReparePerson, jdbcType = VARCHAR},
+		       T.CARPOOL            = #{newCarpool, jdbcType = VARCHAR},
+		       T.STORAGE            = #{newStorage, jdbcType = VARCHAR},
+		       T.DISTRI_PERSON      = #{newDistriPerson, jdbcType = VARCHAR},
+		       T.LOCATION           = #{newLocation, jdbcType = VARCHAR},
+		       T.STATION_CODE       = #{newStationCode, jdbcType = VARCHAR},
+		       T.SHELF_NO           = #{newShelfNo, jdbcType = VARCHAR},
+		       T.LOCATION_NUM       = #{newLocationNum, jdbcType = VARCHAR},
+		       T.DEP_NO             = #{newDeptNo, jdbcType = VARCHAR},
+		       T.FACTORY_CODE       = #{factoryCode, jdbcType = VARCHAR},
+		       T.MODEL_CODE         = #{modelCode, jdbcType = VARCHAR},
+		       T.EFF_START          = TO_DATE(#{effStart,jdbcType=VARCHAR},'yyyy-mm-dd'),
+		       T.EFF_END            = TO_DATE(#{effEnd,jdbcType=VARCHAR},'yyyy-mm-dd'),
+		       T.LAST_MODIFIED_USER = #{creationUser, jdbcType = VARCHAR},
+		       T.LAST_MODIFIED_TIME = SYSDATE,
+		       T.LAST_MODIFIED_IP   = #{lastModifiedIp, jdbcType = VARCHAR},
+		       T.WORKCENTER         = #{newWorkCenter, jdbcType = VARCHAR}
+		 WHERE T.UNLOAD_PORT = #{oldUnloadPort, jdbcType = VARCHAR}
+		   AND T.SUPPLIER_NO = #{oldSupplierNo, jdbcType = VARCHAR}
+		   AND T.PART_NO = #{oldPartNo, jdbcType = VARCHAR}
+		   AND T.PREPARE_PERSON = #{oldReparePerson, jdbcType = VARCHAR}
+		   AND T.CARPOOL = #{oldCarpool, jdbcType = VARCHAR}
+		   AND T.STORAGE = #{oldStorage, jdbcType = VARCHAR}
+		   AND T.DISTRI_PERSON = #{oldDistriPerson, jdbcType = VARCHAR}
+		   AND T.LOCATION = #{oldLocation, jdbcType = VARCHAR}
+		   AND T.STATION_CODE = #{oldStationCode, jdbcType = VARCHAR}
+		   AND T.SHELF_NO = #{oldShelfNo, jdbcType = VARCHAR}
+		   AND T.LOCATION_NUM = #{oldLocationNum, jdbcType = VARCHAR}
+		   AND T.DEP_NO = #{oldDeptNo, jdbcType = VARCHAR}
+		   AND T.MODEL_CODE = #{modelCode, jdbcType = VARCHAR}
+	</update>
+	
+	
+	<!-- 属地维护日志查询 -->
+	<select id="queryInvPartLocationLogPage" parameterType="com.hanthink.inv.model.InvPartLocationModel"
+		resultType="com.hanthink.inv.model.InvPartLocationModel">
+		SELECT T.id id,
+		     U.FULLNAME_  creationUser,
+             T.CREATION_TIME creationTime,
+             T.LAST_MODIFIED_IP lastModifiedIp,
+	         new_part_no newPartNo,
+	         new_supplier_no newSupplierNo,
+	         new_unload_port newUnloadPort,
+	         new_repare_person newReparePerson,
+	         new_carpool newCarpool,
+	         new_distri_person newDistriPerson,
+	         new_location newLocation,
+	         new_station_code newStationCode,
+	         new_shelf_no newShelfNo,
+	         new_location_num newLocationNum,
+	         new_dept_no newDeptNo,
+	         new_storage newStorage,
+	         old_part_no oldPartNo,
+	         old_supplier_no oldSupplierNo,
+	         old_unload_port oldUnloadPort,
+	         old_repare_person oldReparePerson,
+	         old_carpool oldCarpool,
+	         old_distri_person oldDistriPerson,
+	         old_location oldLocation,
+	         old_station_code oldStationCode,
+	         old_shelf_no oldShelfNo,
+	         old_location_num oldLocationNum,
+	         old_storage oldStorage,
+	         old_dept_no oldDeptNo,
+	         model_code modelCode,
+	         TO_CHAR(EFF_START, 'YYYYMMDD') AS effStart,
+	         TO_CHAR(EFF_END, 'YYYYMMDD') AS effEnd,
+	         deal_flag dealFlag,
+	         check_flag checkFlag,
+	         T.CHECK_INFO checkInfo,
+	         OPERATION_TYPE operationType
+	    FROM MM_INV_PART_LOCATION_TEMP T
+	    LEFT JOIN SYS_USER U ON U.ACCOUNT_ = T.CREATION_USER
+	    LEFT JOIN MM_PUB_PART_UDA UD ON UD.PART_NO = T.NEW_PART_NO
+	    		  AND UD.FACTORY_CODE = T.FACTORY_CODE
+		WHERE 1=1 AND T.IMPORT_STATUS = 1
+		AND T.CREATION_TIME > SYSDATE - 90
+		<if test="null != part_no and ''!= part_no">
+		 	AND new_part_no LIKE #{part_no} || '%'
+		</if>
+		<if test="null != part_short_no and ''!= part_short_no">
+		 	AND UD.PART_SHORT_NO = #{part_short_no}
+		 </if> 
+		 <if test="null != modelCode and ''!= modelCode">
+			AND model_code = #{modelCode}
+		 </if>	
+		 <if test="null != creationTime and '' != creationTime">
+	  	    AND T.CREATION_TIME &gt; to_date(#{creationTime}, 'yyyy-mm-dd hh24:mi:ss')
+	  	  </if>
+	  	  ORDER BY T.CREATION_TIME DESC
+	</select>
+	
+</mapper>

@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.system.worktime.model.CalendarSetting">
+	<resultMap id="CalendarSetting"
+		type="com.hotent.system.worktime.model.CalendarSetting">
+		<id property="id" column="ID_" jdbcType="VARCHAR" />
+		<result property="calendarId" column="CALENDAR_ID_" jdbcType="VARCHAR" />
+		<result property="years" column="YEARS_" jdbcType="NUMERIC" />
+		<result property="months" column="MONTHS_" jdbcType="NUMERIC" />
+		<result property="days" column="DAYS_" jdbcType="NUMERIC" />
+		<result property="dateType" column="DATE_TYPE_" jdbcType="VARCHAR" />
+		<result property="shiftId" column="SHIFT_ID_" jdbcType="VARCHAR" />
+		<result property="calDay" column="CAL_DAY_" jdbcType="VARCHAR" />
+	</resultMap>
+
+	<resultMap id="CalendarSettingExt" extends="CalendarSetting"
+		type="com.hotent.system.worktime.model.CalendarSetting">
+		<collection property="calendarShiftPeroidList"
+			ofType="com.hotent.system.worktime.model.CalendarShiftPeroid"
+			javaType="ArrayList">
+			<result property="startTime" column="startTime" />
+			<result property="endTime" column="endTime" />
+		</collection>
+	</resultMap>
+
+	<sql id="columns">
+		id_,calendar_Id_,years_,months_,days_,date_type_,shift_id_,cal_Day_
+	</sql>
+
+	<insert id="create" parameterType="com.hotent.system.worktime.model.CalendarSetting">
+		INSERT INTO CAL_SETTING
+		(id_,calendar_Id_,years_,months_,days_,date_type_,shift_id_,cal_Day_)
+		VALUES
+		(#{id,jdbcType=VARCHAR}, #{calendarId,jdbcType=VARCHAR}, #{years,jdbcType=NUMERIC},
+		#{months,jdbcType=NUMERIC}, #{days,jdbcType=NUMERIC},
+		#{dateType,jdbcType=VARCHAR},
+		#{shiftId,jdbcType=VARCHAR}, #{calDay,jdbcType=VARCHAR})
+	</insert>
+
+	<select id="get" parameterType="java.lang.String" resultMap="CalendarSetting">
+		SELECT * FROM CAL_SETTING
+		WHERE
+		ID_=#{id}
+	</select>
+
+	<select id="query" parameterType="java.util.Map" resultMap="CalendarSetting">
+		SELECT * FROM CAL_SETTING
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY ID_ DESC
+		</if>
+	</select>
+
+	<update id="update" parameterType="com.hotent.system.worktime.model.CalendarSetting">
+		UPDATE CAL_SETTING SET
+		CALENDAR_ID_=#{calendarId,jdbcType=VARCHAR},
+		YEARS_=#{years,jdbcType=NUMERIC},
+		MONTHS_=#{months,jdbcType=NUMERIC},
+		DAYS_=#{days,jdbcType=NUMERIC},
+		DATE_TYPE_=#{dateType,jdbcType=VARCHAR},
+		SHIFT_ID_=#{shiftId,jdbcType=VARCHAR},
+		CAL_DAY_=#{calDay,jdbcType=VARCHAR}
+		WHERE
+		ID_=#{id}
+	</update>
+
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM CAL_SETTING
+		WHERE
+		ID_=#{id}
+	</delete>
+
+	<select id="getByCalendarId" parameterType="Map" resultMap="CalendarSettingExt">
+		select a.id_,
+		a.calendar_Id_,
+		a.years_,
+		a.months_,
+		a.days_,
+		a.date_type_,
+		a.shift_Id_,
+		a.cal_Day_,
+		b.start_Time_,
+		b.end_Time_
+		from CAL_SETTING a, CAL_SHIFT_PEROID b
+		where a.shift_id_ = b.shift_id_
+		and a.calendar_Id_ = #{calendarId}
+		and a.cal_Day_ >= #{startTime}
+		and date_type_ = 1
+		order by a.cal_Day_, b.start_Time_
+	</select>
+
+	<select id="getCalByIdYearMon" parameterType="Map" resultMap="CalendarSetting">
+		select a.id_,
+		a.calendar_Id_,
+		a.years_,
+		a.months_,
+		a.days_,
+		a.date_type_,
+		a.shift_Id_,
+		b.name_ wtName
+		from CAL_SETTING a
+		left join CAL_SHIFT b
+		on a.shift_Id_ = b.id_
+		where a.calendar_Id_ = #{id}
+		and a.years_ = #{year}
+		and a.months_ = #{month}
+		order by a.days_
+	</select>
+
+	<select id="getCalByIdYear" parameterType="Map" resultMap="CalendarSetting">
+		select a.id_,
+		a.calendar_Id_,
+		a.years_,
+		a.months_,
+		a.days_,
+		a.date_type_,
+		a.shift_Id_,
+		b.name_ wtName
+		from CAL_SETTING a
+		left join CAL_SHIFT b
+		on a.shift_Id_ = b.id_
+		where a.calendar_Id_ = #{id}
+		and a.years_ = #{year}
+		order by a.months_, a.days_
+	</select>
+
+	<select id="getSegmentByCalId" parameterType="Map"
+		resultMap="CalendarSettingExt">
+		select a.id_,
+		a.calendar_Id_,
+		a.years_,
+		a.months_,
+		a.days_,
+		a.date_type_,
+		a.shift_id_,
+		a.cal_Day_
+		from CAL_SETTING a
+		where a.calendar_Id_ = #{calendarId}
+		AND date_TYPE_ = 1
+		<if test="startDate!=null">
+			and a.cal_Day_ between #{startDate} and #{endDate}
+		</if>
+		order by a.cal_Day_
+	</select>
+
+	<delete id="delByCalidYearMon" parameterType="Map">
+		DELETE FROM
+		CAL_SETTING
+		WHERE calendar_Id_=#{id} and years_=#{year} and months_=#{month}
+	</delete>
+	
+	<delete id="delByCalendarId" parameterType="java.lang.String">
+		DELETE FROM
+		CAL_SETTING
+		WHERE calendar_Id_=#{calendarId}
+	</delete>
+
+	<delete id="delByCalId" parameterType="java.lang.String">
+		DELETE FROM CAL_SETTING
+		WHERE calendar_Id_=#{calendarId}
+	</delete>
+
+
+
+</mapper>

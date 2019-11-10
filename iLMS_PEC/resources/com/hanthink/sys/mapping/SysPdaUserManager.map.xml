@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.sys.model.SysPdaUserManagerModel">
+		
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="querySysPdaUserManagerForPage" parameterType="com.hanthink.sys.model.SysPdaUserManagerModel" resultType="com.hanthink.sys.model.SysPdaUserManagerModel">
+					SELECT A.USER_ID   userId,
+					       A.USER_NAME  userName,
+					       A.FACTORY_CODE  factoryCode,
+					       A.USER_PWD   userPwd,
+					       A.LOGIN_NUM   loginNum,
+					       A.LOGIN_IP    loginIp,
+					       TO_CHAR(A.LOGIN_TIME, 'YYYY-MM-DD HH24:MI:SS')   loginTime
+					 FROM MM_PDA_USER A
+                     WHERE 1=1
+                     <if test="opeUser != 'admin' ">
+						AND A.USER_ID  NOT IN (
+						  SELECT B.VALUE_CODE 
+						  FROM VIEW_SYS_USER_DATA_PERM  B
+			              WHERE B.USER_ID =  #{opeUser}
+			              AND  B.TYPE_CODE = 'PDA_SYS'
+			            ) 			
+					</if>
+					<if test="userId!=null and userId!='' ">
+					AND	A.USER_ID LIKE CONCAT(#{userId}, '%')
+					</if>
+					<if test="userName!= null and userName!= ''">
+					AND	A.USER_NAME LIKE CONCAT(#{userName}, '%')
+					</if>
+					AND A.FACTORY_CODE = #{factoryCode}
+	</select>
+	
+	<insert id="insert" parameterType="com.hanthink.sys.model.SysPdaUserManagerModel">
+		INSERT INTO MM_PDA_USER
+			  (USER_ID,
+			   USER_NAME,
+			   FACTORY_CODE,
+			   USER_PWD,
+			   LOGIN_NUM,
+			   LOGIN_TIME,
+			   CREATION_USER,
+			   CREATION_TIME,
+			   LAST_MODIFIED_USER,
+			   LAST_MODIFIED_TIME)
+			VALUES
+			  (TO_CHAR(LPAD(SEQ_MM_PDA_USER.NEXTVAL,15,0)),
+			   #{userName,jdbcType=VARCHAR},
+			   #{factoryCode,jdbcType=VARCHAR},
+			   #{userPwd,jdbcType=VARCHAR},
+			   0,
+			   sysdate,
+			   #{creationUser,jdbcType=VARCHAR},
+			   sysdate,
+			   #{lastModifiedUser,jdbcType=VARCHAR},
+			   sysdate)
+	</insert>
+	
+	<!-- 修改方法 -->
+	<update id="update" parameterType="com.hanthink.sys.model.SysPdaUserManagerModel">
+		UPDATE MM_PDA_USER
+		   SET USER_PWD = #{userPwd,jdbcType=VARCHAR},
+		       LAST_MODIFIED_USER = #{lastModifiedUser,jdbcType=VARCHAR},
+		       LAST_MODIFIED_TIME = sysdate
+		 WHERE 1=1
+		   AND USER_ID = #{userId}
+	</update>
+	
+	<!-- 单条/批量数据删除 -->
+	<delete id="deleteByIds" parameterType="java.lang.String">
+		DELETE FROM MM_PDA_USER
+		WHERE USER_ID IN
+		<foreach item="aryIds" collection="array" open="(" separator="," close=")">
+			#{aryIds,jdbcType=VARCHAR}
+		</foreach>
+	</delete>
+	
+	<!-- 单条/批量数据删除用户菜单关系 -->
+	<delete id="deletePdaMenuByIds" parameterType="java.lang.String">
+		DELETE FROM MM_PDA_USER_MENU
+		WHERE USER_ID IN
+		<foreach item="aryIds" collection="array" open="(" separator="," close=")">
+			#{aryIds,jdbcType=VARCHAR}
+		</foreach>
+	</delete>
+	
+	<!-- 判断主键冲突 -->
+	<select id="selectPrimaryKey" parameterType="com.hanthink.sys.model.SysPdaUserManagerModel" resultType="java.lang.Integer">
+      SELECT COUNT(*)
+		FROM MM_PDA_USER A
+	    WHERE A.USER_NAME = #{userName,jdbcType = VARCHAR}
+	</select>
+	
+	<!-- 判断主键冲突 -->
+	<select id="selectPrimaryKeyPEC" parameterType="com.hanthink.sys.model.SysPdaUserManagerModel" resultType="java.lang.Integer">
+      SELECT COUNT(*)
+        FROM SYS_USER A
+        WHERE A.ACCOUNT_ = #{userName,jdbcType = VARCHAR}
+	</select>
+	
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="querySysPdaUserManagerLabel" parameterType="com.hanthink.sys.model.SysPdaUserManagerModel" resultType="com.hanthink.sys.model.SysPdaUserManagerModel">
+					SELECT A.USER_ID   userId,
+					       A.USER_NAME  userName,
+					       A.FACTORY_CODE  factoryCode,
+					       A.USER_PWD   userPwd,
+					       A.LOGIN_NUM   loginNum,
+					       A.LOGIN_IP    loginIp,
+					       TO_CHAR(A.LOGIN_TIME, 'YYYY-MM-DD HH24:MI:SS')   loginTime
+					 FROM MM_PDA_USER A
+                     WHERE 1=1
+                     <if test="opeUser != 'admin' ">
+						AND A.USER_ID NOT IN (
+						  SELECT B.VALUE_CODE 
+						  FROM VIEW_SYS_USER_DATA_PERM  B
+			              WHERE B.USER_ID =  #{opeUser}
+			              AND  B.TYPE_CODE = 'PDA_SYS'
+			            ) 			
+					</if>
+					<if test="userName!= null and userName!= ''">
+					AND	A.USER_NAME LIKE CONCAT(#{userName}, '%')
+					</if>
+					AND A.FACTORY_CODE = #{factoryCode}
+	</select>
+	
+	<!-- 先查询系统参数表里面是否有该图片信息 -->
+	<select id="queryPicture"  parameterType="com.hanthink.sys.model.SysPdaUserManagerModel"  resultType="java.lang.Integer">
+				  SELECT COUNT(*) 
+				    FROM  MM_PUB_SYS_PARAM A
+                   WHERE  A.PARAM_GROUP = 'PUB_PICTURE'
+                     AND  A.PARAM_NAME = 'app发布二维码'
+                     AND  A.FACTORY_CODE = #{factoryCode}
+	</select>
+	
+	<!-- 新增 -->
+	<insert id="insertImageId" parameterType="com.hanthink.sys.model.SysPdaUserManagerModel">
+		INSERT INTO MM_PUB_SYS_PARAM
+				  (ID,
+				   FACTORY_CODE,
+				   PARAM_CODE,
+				   PARAM_NAME,
+				   PARAM_VAL,
+				   PARAM_GROUP,
+				   IS_EDIT,
+				   CREATION_TIME,
+				   CREATION_USER
+				   )
+				VALUES
+				  (SEQ_MM_PUB_SYS_PARAM.NEXTVAL,
+				    #{factoryCode,jdbcType = VARCHAR},
+				   'PUB_PICTURE',
+				   'app发布二维码',
+				    #{imageId,jdbcType = VARCHAR},
+				   'PUB_PICTURE',
+				   '1',
+				   sysdate,
+				   #{creationUser,jdbcType = VARCHAR}
+				   )
+	</insert>
+	
+	<!-- 更新图片 -->
+	<update id="updateImageId" parameterType="com.hanthink.sys.model.SysPdaUserManagerModel">
+		 UPDATE MM_PUB_SYS_PARAM
+		    SET PARAM_CODE = 'PUB_PICTURE',
+		        PARAM_VAL = #{imageId,jdbcType = VARCHAR},		    
+		        LAST_MODIFIED_TIME = sysdate,
+		        LAST_MODIFIED_USER = #{lastModifiedUser,jdbcType = VARCHAR},		
+		        LAST_MODIFIED_IP = #{lastModifiedIp,jdbcType = VARCHAR}
+		  WHERE PARAM_GROUP = 'PUB_PICTURE'
+            AND PARAM_NAME = 'app发布二维码'
+            AND FACTORY_CODE = #{factoryCode}
+	</update>
+	
+	<!-- 查询之前的图片ID-->
+	<select id="queryOlderPicture" parameterType="com.hanthink.sys.model.SysPdaUserManagerModel" 
+	    resultType="com.hanthink.sys.model.SysPdaUserManagerModel">
+					SELECT A.PARAM_VAL imageId
+					  FROM MM_PUB_SYS_PARAM A
+                     WHERE 1=1
+                       AND A.FACTORY_CODE = #{factoryCode}
+                       AND A.PARAM_GROUP = 'PUB_PICTURE'
+                       AND A.PARAM_NAME = 'app发布二维码'
+	</select>
+	
+	<!-- 新增PEC表用户方法 -->
+	<insert id="insertPEC" parameterType="com.hanthink.sys.model.SysPdaUserManagerModel">
+		INSERT INTO SYS_USER
+			  (ID_,
+			   FULLNAME_,
+			   ACCOUNT_,
+			   PASSWORD_,
+			   CREATE_TIME_,
+			   SEX_,
+			   STATUS_,
+			   USER_TYPE)
+			VALUES
+			  (TO_CHAR(LPAD(SEQ_MM_PDA_USER.NEXTVAL-1,15,0)),
+			   #{userName,jdbcType=VARCHAR},
+			   #{userName,jdbcType=VARCHAR},
+			   #{userPwdPEC,jdbcType=VARCHAR},
+			   sysdate,
+			   '男',
+			   1,
+			   3)
+	</insert>
+	
+	<!-- 修改PEC表用户方法 -->
+	<update id="updatePEC" parameterType="com.hanthink.sys.model.SysPdaUserManagerModel">
+		UPDATE SYS_USER
+		   SET PASSWORD_ = #{userPwdPEC,jdbcType=VARCHAR}
+		 WHERE ID_ = #{userId}
+		   AND USER_TYPE = 3
+	</update>
+	
+	<!-- 单条/批量数据删除 PEC表用户-->
+	<delete id="deleteByIdsPEC" parameterType="java.lang.String">
+		DELETE FROM SYS_USER
+		WHERE ID_ IN
+		<foreach item="aryIds" collection="array" open="(" separator="," close=")">
+			#{aryIds,jdbcType=VARCHAR}
+		</foreach>
+	</delete>
+	
+</mapper>

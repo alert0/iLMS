@@ -1,0 +1,434 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.inv.model.PartMainTenanance">
+	<!-- 分页查询显示列表信息 -->
+	<select id="queryPartMainTenananceForPage"
+		parameterType="com.hanthink.inv.model.PartMainTenanance"
+		resultType="com.hanthink.inv.model.PartMainTenanance">
+		SELECT DISTINCT A.ID AS id,
+		                A.PART_NO AS part_no,
+		                B.PART_NAME_CN AS part_name_cn,
+		                B.PART_SHORT_NO AS part_short_no,
+		                A.SUPPLIER_NO AS supplier_no,
+		                C.SUPPLIER_NAME AS supplier_name,
+		                UNLOAD_PORT AS unload_port,
+		                PREPARE_PERSON AS prepare_person,
+		                CARPOOL AS carpool,
+		                STORAGE AS storage,
+		                DISTRI_PERSON AS distri_person,
+		                LOCATION AS location,
+		                STATION_CODE AS station_code,
+		                SHELF_NO AS shelf_no,
+		                LOCATION_NUM AS location_num,
+		                MODEL_CODE AS model_code,
+		                A.DEP_NO AS dept_No,
+		                TO_CHAR(EFF_START, 'YYYY-MM-DD') AS eff_start,
+		                TO_CHAR(EFF_END, 'YYYY-MM-DD') AS eff_end
+		  FROM MM_INV_PART_LOCATION A
+		  LEFT JOIN MM_PUB_PART B
+		    ON A.PART_NO = B.PART_NO
+		    <!-- i-LMS2019053001 mod by 赵明健 -->
+		    AND B.FACTORY_CODE = A.FACTORY_CODE
+		  LEFT JOIN MM_PUB_SUPPLIER C
+		    ON A.SUPPLIER_NO = C.SUPPLIER_NO
+		 WHERE 1 = 1
+		<if test="null != location and ''!=location ">
+			AND A.LOCATION = #{location}	
+		</if>
+		<if test="part_no != null and '' != part_no">
+			AND A.PART_NO LIKE '%' || #{part_no} || '%'
+		</if>
+		<if test="part_short_no != null and '' != part_short_no">
+			AND B.PART_SHORT_NO LIKE '%' || #{part_short_no} || '%'
+		</if>
+		<if test="part_name_cn != null and '' != part_name_cn">
+			AND B.PART_NAME_CN LIKE '%' || #{part_name_cn} || '%'  
+		</if>
+		<if test="model_code != null and ''!= model_code">
+			AND A.MODEL_CODE = #{model_code}
+		</if>
+	</select>
+
+	<!-- 查询属地数据作为导出 -->
+	<select id="queryPartMainTenananceExport"
+		parameterType="com.hanthink.inv.model.PartMainTenanance"
+		resultType="com.hanthink.inv.model.PartMainTenanance">
+		SELECT A.ID AS id,
+		A.PART_NO AS part_no,
+		B.PART_NAME_CN AS part_name_cn,
+		B.PART_SHORT_NO AS part_short_no,
+		A.SUPPLIER_NO AS supplier_no,
+		C.SUPPLIER_NAME AS supplier_name,
+		UNLOAD_PORT AS unload_port,
+		PREPARE_PERSON AS prepare_person,
+		CARPOOL AS carpool,
+		STORAGE AS
+		storage,
+		DISTRI_PERSON AS distri_person,
+		LOCATION AS location,
+		STATION_CODE AS station_code,
+		SHELF_NO AS shelf_no,
+		LOCATION_NUM AS
+		location_num,
+		MODEL_CODE AS model_code,
+		A.DEP_NO AS dept_No,
+		TO_CHAR(EFF_START,'YYYY-MM-DD') AS eff_start,
+		TO_CHAR(EFF_END,'YYYY-MM-DD') AS
+		eff_end
+		FROM MM_INV_PART_LOCATION A
+		LEFT JOIN MM_PUB_PART B
+		ON A.PART_NO = B.PART_NO
+		<!-- i-LMS2019053001 mod by 赵明健 -->
+		AND B.FACTORY_CODE = A.FACTORY_CODE
+		LEFT JOIN MM_PUB_SUPPLIER C
+		ON A.SUPPLIER_NO = C.SUPPLIER_NO
+		WHERE 1 = 1
+		<if test="null != location and ''!=location ">
+			AND A.LOCATION = #{location}	
+		</if>
+		<if test="part_no != null and '' != part_no">
+			AND A.PART_NO LIKE CONCAT(#{part_no}, '%')
+		</if>
+		<if test="part_shot_no != null and '' != part_shot_no">
+			AND B.PART_SHOT_NO LIKE = #{part_shot_no}
+		</if>
+		<if test="part_name_cn != null and '' != part_name_cn">
+			AND B.PART_NAME_CN LIKE CONCAT(#{part_name_cn}, '%')
+		</if>
+		<if test="model_code != null and '' != model_code">
+			AND A.MODEL_CODE = #{model_code}
+		</if>
+	</select>
+
+
+	<!-- 导入数据插入临时表 -->
+
+	<insert id="importPartMaintenanceTemp"
+		parameterType="java.util.List">
+		INSERT INTO MM_INV_PART_LOCATION_TEMP
+		(id,
+		new_part_no,
+		new_supplier_no,
+		new_unload_port,
+		new_repare_person,
+		new_carpool,
+		new_distri_person,
+		new_location,
+		new_station_code,
+		new_shelf_no,
+		new_location_num,
+		new_storage,
+		new_dept_no,
+		old_part_no,
+		old_supplier_no,
+		old_unload_port,
+		old_repare_person,
+		old_carpool,
+		old_distri_person,
+		old_location,
+		old_station_code,
+		old_shelf_no,
+		old_location_num,
+		old_storage,
+		old_dept_no,
+		model_code,
+		eff_start,
+		eff_end,
+		deal_flag,
+		check_flag,
+		check_result,
+		operation_type,
+		factory_code)
+		<foreach collection="list" item="item" index="index" separator=" UNION ALL ">
+			SELECT PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_INV_PART_LOCATION_TEMP'),
+			#{item.newPartNo,jdbcType=VARCHAR},
+			#{item.newSupplierNo,jdbcType=VARCHAR},
+			#{item.newUnloadPort,jdbcType=VARCHAR},
+			#{item.newReparePerson,jdbcType=VARCHAR},
+			#{item.newCarpool,jdbcType=VARCHAR},
+			#{item.newDistriPerson,jdbcType=VARCHAR},
+			#{item.newLocation,jdbcType=VARCHAR},
+			#{item.newStationCode,jdbcType=VARCHAR},
+			#{item.newShelfNo,jdbcType=VARCHAR},
+			#{item.newLocationNum,jdbcType=VARCHAR},
+			#{item.newStorage,jdbcType=VARCHAR},
+			#{item.newDeptNo,jdbcType=VARCHAR},
+			#{item.oldPartNo,jdbcType=VARCHAR},
+			#{item.oldSupplierNo,jdbcType=VARCHAR},
+			#{item.oldUnloadPort,jdbcType=VARCHAR},
+			#{item.oldReparePerson,jdbcType=VARCHAR},
+			#{item.oldCarpool,jdbcType=VARCHAR},
+			#{item.oldDistriPerson,jdbcType=VARCHAR},
+			#{item.oldLocation,jdbcType=VARCHAR},
+			#{item.oldStationCode,jdbcType=VARCHAR},
+			#{item.oldShelfNo,jdbcType=VARCHAR},
+			#{item.oldLocationNum,jdbcType=VARCHAR},
+			#{item.oldStorage,jdbcType=VARCHAR},
+			#{item.oldDeptNo,jdbcType=VARCHAR},
+			#{item.modelCode,jdbcType=VARCHAR},
+			TO_DATE(#{item.effStart,jdbcType=VARCHAR},'yyyy-mm-dd hh24:mi:ss'),
+			TO_DATE(#{item.effEnd,jdbcType=VARCHAR},'yyyy-mm-dd hh24:mi:ss'),
+			#{item.dealFlag, jdbcType=VARCHAR},
+			#{item.checkFlag,jdbcType=VARCHAR},
+			#{item.checkResult,jdbcType=VARCHAR},
+			#{item.operationType,jdbcType=VARCHAR},
+			#{item.factory,jdbcType=VARCHAR}
+			FROM DUAL
+		</foreach>
+	</insert>
+
+	<!-- 检查导入临时表数据 -->
+	<parameterMap type="map" id="impCkParamMap">
+		<parameter property="errorFlag" jdbcType="VARCHAR"
+			mode="OUT" />
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT" />
+	</parameterMap>
+	<!-- 调用存储过程校验批量导出零件余量 -->
+	<select id="checkImportData" parameterMap="impCkParamMap"
+		statementType="CALLABLE">
+		{CALL PKG_PUB_CHECK.USP_MM_PART_REMAIN_CHECK(?,?)}
+	</select>
+
+	<!--确定导入 -->
+	<parameterMap type="map" id="CkParamMap">
+		<parameter property="errorFlag" jdbcType="VARCHAR"
+			mode="OUT" />
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT" />
+	</parameterMap>
+	<select id="PartMaintenanceImportData" parameterMap="CkParamMap"
+		statementType="CALLABLE">
+		{CALL PKG_PUB_CHECK.USP_MM_PART_IMPORT(?,?)}
+	</select>
+
+
+	<!-- 查询导入临时数据 -->
+	<select id="queryPartMaintenanceTemp"
+		parameterType="com.hanthink.inv.model.PartMainTenanance"
+		resultType="com.hanthink.inv.model.PartMainTenanance">
+		SELECT id id,
+		new_part_no newPartNo,
+		new_supplier_no
+		newSupplierNo,
+		new_unload_port newUnloadPort,
+		new_repare_person
+		newReparePerson,
+		new_carpool newCarpool,
+		new_distri_person
+		newDistriPerson,
+		new_location newLocation,
+		new_station_code
+		newStationCode,
+		new_shelf_no newShelfNo,
+		new_location_num
+		newLocationNum,
+		new_dept_no newDeptNo,
+		new_storage newStorage,
+		old_part_no oldPartNo,
+		old_supplier_no oldSupplierNo,
+		old_unload_port oldUnloadPort,
+		old_repare_person oldReparePerson,
+		old_carpool oldCarpool,
+		old_distri_person oldDistriPerson,
+		old_location oldLocation,
+		old_station_code oldStationCode,
+		old_shelf_no oldShelfNo,
+		old_location_num oldLocationNum,
+		old_storage oldStorage,
+		old_dept_no oldDeptNo,
+		model_code
+		modelCode,
+		TO_CHAR(EFF_START,'YYYY-MM-DD') AS effStart,
+		TO_CHAR(EFF_END,'YYYY-MM-DD') AS effEnd,
+		deal_flag dealFlag,
+		check_flag checkFlag,
+		check_result checkResult,
+		OPERATION_TYPE operationType
+		FROM
+		MM_INV_PART_LOCATION_TEMP 
+		order by id
+	</select>
+
+	<!-- 属地导入临时数据导出 -->
+	<select id="queryPartMaintenanceTempForExport"
+		parameterType="com.hanthink.inv.model.PartMainTenanance"
+		resultType="com.hanthink.inv.model.PartMainTenanance">
+	SELECT id id,
+    new_part_no newPartNO,
+    new_supplier_no
+    newSupplierNo,
+    new_unload_port newUnloadPort,
+    new_repare_person
+    newReparePerson,
+    new_carpool newCarpool,
+    new_distri_person
+    newDistriPerson,
+    new_location
+    newLocation,
+    new_station_code
+    newStationCode,
+    new_shelf_no newShelfNo,
+    new_location_num
+    newLocationNum,
+    new_storage newStorage,
+    new_dept_no newDeptNo,
+    old_part_no
+    oldPartNo,
+    old_supplier_no oldSupplierNo,
+    old_unload_port oldUnloadPort,
+    old_repare_person oldReparePerson,
+    old_carpool oldCarpool,
+    old_distri_person oldDistriPerson,
+    old_location oldLocation,
+    old_station_code oldStationCode,
+    old_shelf_no oldShelfNo,
+    old_location_num oldLocationNum,
+    old_storage oldStorage,
+    old_dept_no oldDeptNo,
+    model_code
+    modelCode,
+    TO_CHAR(EFF_START,'YYYY-MM-DD') AS effStart,
+    TO_CHAR(EFF_END,'YYYY-MM-DD') AS effEnd,
+    Decode(deal_flag,'0','未导入','1','导入')dealFlag,
+    check_result checkResult,
+    Decode(check_Flag,'0','不通过','1','通过')checkFlag,
+    OPERATION_TYPE operationType
+    FROM MM_INV_PART_LOCATION_TEMP
+    order by id
+	</select>
+
+	<!-- 查询是否存在通过审核但未提交的数据 -->
+	<select id="queryPartMaintenanceImport"
+		parameterType="com.hanthink.inv.model.PartMainTenanance"
+		resultType="com.hanthink.inv.model.PartMainTenanance">
+		SELECT id id,
+		new_part_no newPartNO,
+		new_supplier_no
+		newSupplierNo,
+		new_unload_port newUnloadPort,
+		new_repare_person
+		newReparePerson,
+		new_carpool newCarpool,
+		new_distri_person
+		newDistriPerson,
+		new_location
+		newLocation,
+		new_station_code
+		newStationCode,
+		new_shelf_no newShelfNo,
+		new_location_num
+		newLocationNum,
+		new_storage newStorage,
+		old_part_no
+		oldPartNo,
+		old_supplier_no oldSupplierNo,
+		old_unload_port oldUnloadPort,
+		old_repare_person oldReparePerson,
+		old_carpool oldCarpool,
+		old_distri_person oldDistriPerson,
+		old_location oldLocation,
+		old_station_code oldStationCode,
+		old_shelf_no oldShelfNo,
+		old_location_num oldLocationNum,
+		old_storage oldStorage,
+		model_code
+		modelCode,
+		TO_CHAR(EFF_START,'YYYY-MM-DD') AS effStart,
+		TO_CHAR(EFF_END,'YYYY-MM-DD') AS effEnd,
+		deal_flag dealFlag,
+		check_flag checkFlag,
+		OPERATION_TYPE operationType
+		FROM MM_INV_PART_LOCATION_TEMP WHERE deal_flag =
+		'0' and check_flag = '1'
+	</select>
+
+	<!--根据卸货口获取仓库号 -->
+	<select id="getWarCode"
+		parameterType="com.hanthink.inv.model.PartMainTenanance"
+		resultType="com.hanthink.inv.model.PartMainTenanance">
+		SELECT WARE_CODE wareCode FROM MM_INV_UNLOAD WHERE 1 = 1
+		<if test="newUnloadPort != null and '' != newUnloadPort">
+			AND UNLOAD_PORT = #{newUnloadPort}
+		</if>
+		<if test="oldUnloadPort != null and '' != oldUnloadPort">
+			AND UNLOAD_PORT = #{oldUnloadPort}
+		</if>
+	</select>
+	
+	<!-- 删除货架临时表数据 -->
+	<delete id="removePartMaintenanceTemp" >
+		DELETE FROM
+		MM_INV_PART_LOCATION_TEMP
+	</delete>
+	
+	
+	<!-- 查询导入校验失败的数据是否存在 -->
+	<select id="queryImportFailCount"
+		parameterType="com.hanthink.inv.model.PartMainTenanance"
+		resultType="com.hanthink.inv.model.PartMainTenanance">
+		SELECT id id,
+		new_part_no newPartNO,
+		new_supplier_no
+		newSupplierNo,
+		new_unload_port newUnloadPort,
+		new_repare_person
+		newReparePerson,
+		new_carpool newCarpool,
+		new_distri_person
+		newDistriPerson,
+		new_location
+		newLocation,
+		new_station_code
+		newStationCode,
+		new_shelf_no newShelfNo,
+		new_location_num
+		newLocationNum,
+		new_storage newStorage,
+		old_part_no
+		oldPartNo,
+		old_supplier_no oldSupplierNo,
+		old_unload_port oldUnloadPort,
+		old_repare_person oldReparePerson,
+		old_carpool oldCarpool,
+		old_distri_person oldDistriPerson,
+		old_location oldLocation,
+		old_station_code oldStationCode,
+		old_shelf_no oldShelfNo,
+		old_location_num oldLocationNum,
+		old_storage oldStorage,
+		model_code
+		modelCode,
+		TO_CHAR(EFF_START,'YYYY-MM-DD') AS effStart,
+		TO_CHAR(EFF_END,'YYYY-MM-DD') AS effEnd,
+		deal_flag dealFlag,
+		check_flag checkFlag,
+		OPERATION_TYPE operationType
+		 FROM MM_INV_PART_LOCATION_TEMP WHERE deal_flag =
+		'0' and check_flag = '0'
+	</select>
+	
+	<!-- 零件数据维护页面查询货架标签打印信息 -->
+	<select id="queryInvShelfPrintInfo" parameterType="com.hanthink.inv.model.PartMainTenanance" 
+		resultType="com.hanthink.inv.model.PartMainTenanance">
+		SELECT NVL(U.PART_SHORT_NO, P.PART_SHORT_NO) partShortNo,
+		       NVL(U.PART_NAME_CN, P.PART_NAME_CN) partName,
+		       T.PART_NO partNo,
+       		   T.SHELF_NO shelfNo,
+               T.SUPPLIER_NO supplierNo,
+		       T.MODEL_CODE modelCode,
+		       NVL(U.SUPPLIER_NAME, S.SUPPLIER_NAME) supplierName,
+		       U.STANDARD_PACKAGE standardPackage,
+		       T.LOCATION location,
+		       T.STORAGE storage,
+		       NVL((to_char(T.LAST_MODIFIED_TIME, 'MM') || '月'), (to_char(T.CREATION_TIME, 'MM') || '月')) lastModifiedTime
+		  FROM MM_INV_PART_LOCATION T
+		  LEFT JOIN MM_PUB_PART P ON P.PART_NO = T.PART_NO
+		  		<!-- i-LMS2019053001 mod by 赵明健 -->
+		  			AND P.FACTORY_CODE = T.FACTORY_CODE
+		  LEFT JOIN MM_PUB_PART_UDA U ON U.PART_NO = T.PART_NO
+		  		<!-- i-LMS2019053001 mod by 赵明健 -->
+		  			AND U.FACTORY_CODE = T.FACTORY_CODE
+		  LEFT JOIN MM_PUB_SUPPLIER S ON S.SUPPLIER_NO = T.SUPPLIER_NO
+		 WHERE T.ID = #{id}	
+	</select>
+	
+</mapper>

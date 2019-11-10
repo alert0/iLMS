@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd"> 
+<mapper namespace="com.hotent.sys.persistence.model.ConditionScript">
+	<resultMap id="ConditionScript" type="com.hotent.sys.persistence.model.ConditionScript">
+		<id property="id" column="ID_" jdbcType="VARCHAR"/>
+		<result property="className" column="CLASS_NAME_" jdbcType="VARCHAR"/>
+		<result property="classInsName" column="CLASS_INS_NAME_" jdbcType="VARCHAR"/>
+		<result property="methodName" column="METHOD_NAME_" jdbcType="VARCHAR"/>
+		<result property="methodDesc" column="METHOD_DESC_" jdbcType="VARCHAR"/>
+		<result property="returnType" column="RETURN_TYPE_" jdbcType="VARCHAR"/>
+		<result property="argument" column="ARGUMENT_" jdbcType="VARCHAR"/>
+ 
+		<result property="enable" column="ENABLE_" jdbcType="NUMERIC"/>
+		<result property="type" column="TYPE_" jdbcType="NUMERIC"/>
+	</resultMap>
+
+	<sql id="columns">
+		ID_, CLASS_NAME_,CLASS_INS_NAME_,METHOD_NAME_,METHOD_DESC_,RETURN_TYPE_,ARGUMENT_,ENABLE_,TYPE_
+	</sql>
+
+	<insert id="create" parameterType="com.hotent.sys.persistence.model.ConditionScript">
+		INSERT INTO SYS_MULTI_SCRIPT
+		(<include refid="columns"/>)
+		VALUES
+		(#{id,jdbcType=NUMERIC},  #{className,jdbcType=VARCHAR}, #{classInsName,jdbcType=VARCHAR}, #{methodName,jdbcType=VARCHAR}, #{methodDesc,jdbcType=VARCHAR}, #{returnType,jdbcType=VARCHAR}, #{argument,jdbcType=VARCHAR}, #{enable,jdbcType=NUMERIC},  #{type,jdbcType=NUMERIC})
+	</insert>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="ConditionScript">
+		SELECT * FROM SYS_MULTI_SCRIPT
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY ID_ DESC
+		</if>
+	</select>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="ConditionScript">
+		SELECT * FROM SYS_MULTI_SCRIPT 
+		WHERE 
+		ID_=#{id}
+	</select>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM SYS_MULTI_SCRIPT 
+		WHERE
+		ID_=#{id}
+	</delete>
+	
+	<update id="update" parameterType="com.hotent.sys.persistence.model.ConditionScript">
+		UPDATE SYS_MULTI_SCRIPT SET
+		CLASS_NAME_=#{className,jdbcType=VARCHAR},
+	 
+		CLASS_INS_NAME_=#{classInsName,jdbcType=VARCHAR},
+		METHOD_NAME_=#{methodName,jdbcType=VARCHAR},
+		METHOD_DESC_=#{methodDesc,jdbcType=VARCHAR},
+		RETURN_TYPE_=#{returnType,jdbcType=VARCHAR},
+		ARGUMENT_=#{argument,jdbcType=VARCHAR},
+		ENABLE_=#{enable,jdbcType=NUMERIC},
+		TYPE_=#{type,jdbcType=NUMERIC}
+		WHERE
+		ID_=#{id}
+	</update>
+</mapper>

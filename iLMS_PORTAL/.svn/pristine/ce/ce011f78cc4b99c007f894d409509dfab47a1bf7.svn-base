@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.jiso.model.JisoOrderModel">
+	
+	<!-- 查询厂外同步订单 -->
+	<select id="queryJisoOrderPage" parameterType="com.hanthink.jiso.model.JisoOrderModel"
+			resultType="com.hanthink.jiso.model.JisoOrderModel">
+	  SELECT T.SUP_FACTORY supFactory,
+	         T.ARR_DEPOT arrDepot,
+	         T.ROUTE_CODE routeCode,
+	         T.CAR_BATCH carBatch,
+	  		 T.ORDER_NO orderNo,
+	         T.PURCHASE_ORDERNO purchaseOrderno,
+	         T.PLAN_CODE planCode,
+	         PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(T.PLAN_CODE, T.PREPARE_PRODUCT_SEQNO) prepareProductSeqno,
+	         PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(T.PLAN_CODE, T.DELIVERY_PRODUCT_SEQNO) deliveryProductSeqno,
+	         PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(T.PLAN_CODE, T.ARRIVE_PRODUCT_SEQNO) arriveProductSeqno,
+	         PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(T.PLAN_CODE, T.DISTRI_PRODUCT_SEQNO) distriProductSeqno,
+	         D.CODE_VALUE_NAME printStatus,
+	         to_char(T.PRINT_TIME, 'yyyy-mm-dd hh24:mi:ss') printTime,
+	         DD.CODE_VALUE_NAME arriveStatus,
+	         DDD.CODE_VALUE_NAME isManuDeal,
+	         U.FULLNAME_ manuReqUser,
+	         to_char(T.MANU_REQ_TIME, 'yyyy-mm-dd hh24:mi:ss') manuReqTime,
+	         to_char(T.CREATION_TIME, 'yyyy-mm-dd hh24:mi:ss') creationTime,
+	         T.SUPPLIER_NO supplierNo,
+	         
+	         PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(T.PLAN_CODE, T.DISPATCH_PRODUCT_SEQNO) dispatchProductSeqno,
+	         T.CAR_BATCH_SEQNO carBatchSeqno,
+	         T.SUPPLIER_NAME supplierName,
+	         T.ROUTE_DESC routeDesc,
+	         T.MANU_REQ_IP manuReqIp,
+	         T.ARRIVE_COUNT arriveCount,
+	         T.DEAL_FLAG dealFlag,
+	         to_char(T.DEAL_TIME, 'yyyy-mm-dd hh24:mi:ss') dealTime
+	      FROM MM_JISO_ORDER T
+	      LEFT JOIN MM_PUB_PLAN_CODE C ON C.PLAN_CODE = T.PLAN_CODE
+	      LEFT JOIN MM_PUB_DATA_DICT D ON D.CODE_VALUE = T.PRINT_STATUS AND D.CODE_TYPE = 'PUB_PRINT_STATUS' AND D.FACTORY_CODE = C.FACTORY_CODE
+	      LEFT JOIN MM_PUB_DATA_DICT DD ON DD.CODE_VALUE = T.ARRIVE_STATUS AND DD.CODE_TYPE = 'PUB_ARRIVE_STATUS' AND DD.FACTORY_CODE = C.FACTORY_CODE
+	      LEFT JOIN MM_PUB_DATA_DICT DDD ON DDD.CODE_VALUE = T.IS_MANU_DEAL AND DDD.CODE_TYPE = 'PUB_TRUE_FALSE' AND DDD.FACTORY_CODE = C.FACTORY_CODE
+	      LEFT JOIN SYS_USER U ON U.ACCOUNT_ = T.MANU_REQ_USER
+	      WHERE 1=1
+	  	  <!-- 数据权限, 2 供应商, 4 GBL -->
+	      <if test="null != userType and '2'.toString() == userType">
+		      <if test="null != userId and ''!= userId">
+		      	AND T.SUPPLIER_NO = #{supplierNoAuth}
+		      	AND T.SUP_FACTORY IN (SELECT V.VALUE_CODE FROM VIEW_SYS_USER_DATA_PERM V 
+		      		WHERE V.USER_ID = #{userId} AND V.TYPE_CODE = 'JISO_SUP_FACTORY')
+		      </if>
+	      </if>
+	      <if test="null != userType and '4'.toString() == userType">
+		      <if test="null != userId and ''!= userId">
+		      	AND T.SUP_FACTORY IN (SELECT V.VALUE_CODE FROM VIEW_SYS_USER_DATA_PERM V 
+		      		WHERE V.USER_ID = #{userId} AND V.TYPE_CODE = 'JISO_SUP_FACTORY')
+		      </if>
+	      </if>
+	    <if test="null != supplierNo and '' != supplierNo">
+			AND T.SUPPLIER_NO = #{supplierNo}	    
+	    </if> 
+	  	<if test="null != supFactory and '' != supFactory">
+	  	    AND T.SUP_FACTORY = #{supFactory}
+	  	</if>
+	  	<if test="null != orderNo and '' != orderNo">
+	  	    AND T.ORDER_NO = #{orderNo}
+	  	</if>
+	  	<if test="null != creationTime and '' != creationTime">
+	  	    AND T.CREATION_TIME &gt;= to_date(#{creationTime}, 'yyyy-mm-dd hh24:mi:ss')
+	  	</if>
+	  	<if test="null != creationTimeTo and '' != creationTimeTo">
+	  	    AND T.CREATION_TIME &lt;= to_date(#{creationTimeTo}, 'yyyy-mm-dd hh24:mi:ss') + 1
+	  	</if>
+	  	<if test="null != printStatus and '' != printStatus">
+	  	    AND T.PRINT_STATUS = #{printStatus}
+	  	</if>
+	  	<if test="null != routeCode and '' != routeCode">
+	  	    AND T.ROUTE_CODE = #{routeCode}
+	  	</if>
+	  	<if test="null != arriveBatchNo and '' != arriveBatchNo">
+	  	    AND T.ARRIVE_BATCH_NO &gt;= #{arriveBatchNo}
+	  	</if>
+	  	<if test="null != arriveBatchNoTo and '' != arriveBatchNoTo">
+	  	    AND T.ARRIVE_BATCH_NO &lt;= #{arriveBatchNoTo}
+	  	</if>
+	  	ORDER BY T.CREATION_TIME
+	</select>
+	
+	<!-- 根据订单号查询厂外同步订单明细 -->
+	<select id="queryJisoOrderDetailPageByOrderNo" parameterType="com.hanthink.jiso.model.JisoOrderModel"
+			resultType="com.hanthink.jiso.model.JisoOrderDetailModel">
+			SELECT 
+	              D.PART_SHORT_NO partShortNo,
+	              D.PART_NO partNo,
+	              D.PART_NAME partName,
+	              D.REQUIRE_NUM requireNum,
+	              T.ORDER_NO orderNo,
+	              D.INS_NO insNo
+	       FROM MM_JISO_ORDER T
+		       LEFT JOIN MM_JISO_INS I ON T.ORDER_NO = I.ORDER_NO
+		       LEFT JOIN MM_JISO_INS_DETAIL D ON I.INS_NO = D.INS_NO 
+		   WHERE T.ORDER_NO = #{orderNo, jdbcType=VARCHAR}
+		       ORDER BY I.CREATION_TIME
+		<!-- SELECT T.PART_SHORT_NO partShortNo,
+		       T.PART_NO partNo,
+		       T.PART_NAME partName,
+		       T.REQUIRE_NUM requireNum,
+		       D.CODE_VALUE_NAME arriveStatus,
+			   T.ORDER_NO orderNo,
+		       T.ORDER_ROWNO orderRowno,
+		       to_char(T.CREATION_TIME, 'yyyy-mm-dd hh24:mi:ss') creationTime,
+		       T.ARRIVE_COUNT arriveCount,
+		       T.ARRIVE_NUM arriveNum
+		  	FROM MM_JISO_ORDER_DETAIL T
+		  	LEFT JOIN MM_PUB_DATA_DICT D ON D.CODE_VALUE = T.ARRIVE_STATUS AND D.CODE_TYPE = 'PUB_ARRIVE_STATUS' 
+		  		AND D.FACTORY_CODE = #{curFactoryCode}
+		  	WHERE 1=1
+		  	AND T.ORDER_NO = #{orderNo, jdbcType=VARCHAR}
+		  	ORDER BY T.CREATION_TIME -->
+	</select>
+	
+	<!-- 厂外同步订单明细(导出excel) -->
+	<select id="downloadJisoOrderDetail" parameterType="com.hanthink.jiso.model.JisoOrderModel"
+			resultType="com.hanthink.jiso.model.JisoOrderDetailModel">
+			SELECT 
+	             T.ORDER_NO orderNo,
+	             T.SUPPLIER_NO supplierNo,
+	             T.SUP_FACTORY supFactory,
+	             T.ARR_DEPOT arrDepot,
+	             D.PART_SHORT_NO partShortNo,
+	             D.PART_NO partNo,
+	             D.PART_NAME partName,
+	             D.REQUIRE_NUM requireNum,
+	             I.INS_NO insNo
+	       FROM MM_JISO_ORDER T
+	       LEFT JOIN MM_JISO_INS I ON T.ORDER_NO = I.ORDER_NO
+	       LEFT JOIN MM_JISO_INS_DETAIL D ON I.INS_NO = D.INS_NO 
+	       WHERE 1=1
+		<!-- SELECT T.ORDER_NO orderNo,
+		       T.SUP_FACTORY supFactory,
+		       T.ARR_DEPOT arrDepot,
+		       DE.PART_SHORT_NO partShortNo,
+		       DE.PART_NO partNo,
+		       DE.PART_NAME partName,
+		       DE.REQUIRE_NUM requireNum,
+		       D.CODE_VALUE_NAME arriveStatus
+		      FROM MM_JISO_ORDER T
+		      LEFT JOIN MM_PUB_PLAN_CODE C ON C.PLAN_CODE = T.PLAN_CODE
+		      LEFT JOIN MM_JISO_ORDER_DETAIL DE ON DE.ORDER_NO = T.ORDER_NO
+		      LEFT JOIN MM_PUB_DATA_DICT D ON D.CODE_VALUE = DE.ARRIVE_STATUS AND D.CODE_TYPE = 'PUB_ARRIVE_STATUS'
+		           AND D.FACTORY_CODE = C.FACTORY_CODE
+		      WHERE 1=1 -->
+		  <!-- 数据权限 -->
+	      <if test="null != userType and '2'.toString() == userType">
+		      <if test="null != userId and ''!= userId">
+		      	AND T.SUPPLIER_NO = #{supplierNoAuth}
+		      	AND T.SUP_FACTORY IN (SELECT V.VALUE_CODE FROM VIEW_SYS_USER_DATA_PERM V 
+		      		WHERE V.USER_ID = #{userId} AND V.TYPE_CODE = 'JISO_SUP_FACTORY')
+		      </if>
+	      </if>
+	    <if test="null != supplierNo and '' != supplierNo">
+			AND T.SUPPLIER_NO = #{supplierNo}	    
+	    </if> 
+	  	<if test="null != supFactory and '' != supFactory">
+	  	    AND T.SUP_FACTORY = #{supFactory}
+	  	</if>
+	  	<if test="null != orderNo and '' != orderNo">
+	  	    AND T.ORDER_NO = #{orderNo}
+	  	</if>
+	  	<if test="null != creationTime and '' != creationTime">
+	  	    AND T.CREATION_TIME &gt;= to_date(#{creationTime}, 'yyyy-mm-dd hh24:mi:ss')
+	  	</if>
+	  	<if test="null != creationTimeTo and '' != creationTimeTo">
+	  	    AND T.CREATION_TIME &lt;= to_date(#{creationTimeTo}, 'yyyy-mm-dd hh24:mi:ss') + 1
+	  	</if>
+	  	<if test="null != printStatus and '' != printStatus">
+	  	    AND T.PRINT_STATUS = #{printStatus}
+	  	</if>
+	  	<if test="null != routeCode and '' != routeCode">
+	  	    AND T.ROUTE_CODE = #{routeCode}
+	  	</if>
+	  	<if test="null != arriveBatchNo and '' != arriveBatchNo">
+	  	    AND T.ARRIVE_BATCH_NO &gt;= #{arriveBatchNo}
+	  	</if>
+	  	<if test="null != arriveBatchNoTo and '' != arriveBatchNoTo">
+	  	    AND T.ARRIVE_BATCH_NO &lt;= #{arriveBatchNoTo}
+	  	</if>
+	  	ORDER BY T.ORDER_NO, T.CREATION_TIME
+	</select>
+	
+	<!-- 根据订单号查询订单明细(订单打印) 
+	<select id="queryJisoOrderDetailList" parameterType="java.util.List" 
+			resultType="com.hanthink.jiso.model.JisoOrderDetailModel">
+		SELECT T.ORDER_NO orderNo,
+	         T.ORDER_ROWNO orderRowno,
+	         T.PART_NO partNo,
+	         T.STANDARD_PACKAGE standardPackage,
+	         T.REQUIRE_NUM/T.STANDARD_PACKAGE xs,
+	         T.REQUIRE_NUM requireNum,
+	         T.PART_SHORT_NO partShortNo,
+	         T.PART_NAME partName,
+	         to_char(T.CREATION_TIME, 'yyyy-mm-dd hh24:mi:ss') creationTime,
+	         T.ARRIVE_STATUS arriveStatus,
+	         T.ARRIVE_COUNT arriveCount,
+	         T.ACTUAL_ARR_PRODUCT_SEQNO actualArrProductSeqno,
+	         T.ARRIVE_NUM arriveNum,
+	         O.PURCHASE_ORDERNO purchaseOrderno,
+           	 to_char(O.ARRIVE_TIME, 'yyyy-mm-dd hh24:mi:ss') arriveTime,
+             O.ARRIVE_PRODUCT_SEQNO arriveProductSeqno,
+             O.SUPPLIER_NAME supplierName,
+             O.SUPPLIER_NO supplierNo
+	     FROM MM_JISO_ORDER_DETAIL T
+	     LEFT JOIN MM_JISO_ORDER O ON O.ORDER_NO = T.ORDER_NO
+	     WHERE 1=1
+	     AND T.ORDER_NO IN
+	     <foreach collection="list" item="item" index="index" open="(" separator="," close=")">
+	     	 #{item.orderNo}
+	     </foreach>
+	</select> -->
+	
+	<!-- 通过订单号查询订单明细 (订单打印)-->
+	<select id="queryJisoOrderDetailList_by_model" parameterType="com.hanthink.jiso.model.JisoOrderDetailModel" 
+			resultType="com.hanthink.pub.model.PubPrintOrderModel">
+		SELECT 
+			 <!-- 订单指示票数量 -->
+		     (SELECT COUNT(*) FROM MM_JISO_INS INS WHERE INS.ORDER_NO = T.ORDER_NO) labelPageNum,
+			 O.PURCHASE_ORDERNO purchaseOrderno,			 	         
+			 T.ORDER_NO orderNo,
+           	 to_char(O.ARRIVE_TIME, 'yyyy-mm-dd hh24:mi:ss') arriveTime,
+             O.ARRIVE_BATCH_NO arriveBatch,
+             O.SUPPLIER_NAME supplierName,
+             O.SUPPLIER_NO supplierNo,
+	         T.PART_NO partNo,
+	         T.PART_NAME partName,
+	         T.PART_SHORT_NO partShortNo,
+	         ceil(T.REQUIRE_NUM/T.STANDARD_PACKAGE) xs,
+	         T.STANDARD_PACKAGE standardPackage,
+	         T.REQUIRE_NUM requireNum
+	     FROM MM_JISO_ORDER_DETAIL T
+	     LEFT JOIN MM_JISO_ORDER O ON O.ORDER_NO = T.ORDER_NO
+	     WHERE 1=1
+	     AND T.ORDER_NO =  #{orderNo}
+	     ORDER BY T.ORDER_ROWNO
+	</select>
+	
+	<!-- 更新厂外同步订单打印信息  -->
+	<update id="updatePrintInfo" parameterType="java.util.List">
+		UPDATE MM_JISO_ORDER T SET 
+                 T.PRINT_STATUS = 1,
+                 T.PRINT_TIME = SYSDATE
+           WHERE T.ORDER_NO IN
+           <foreach  collection="array" item="order"  open="(" separator="," close=")">
+           		#{order}
+           </foreach>
+	</update>
+	
+	<!-- 根据订单号查询指示票信息(厂外订单查询-配送单打印) -->
+	<select id="queryJisoInsList" resultType="com.hanthink.jiso.model.JisoInsModel">
+		SELECT 
+			   T.INS_NO insNo
+		FROM MM_JISO_INS T WHERE T.ORDER_NO IN
+		<foreach collection="array" item="orderNo" index="index" open="(" close=")" separator=",">
+			#{orderNo}
+		</foreach>	
+		ORDER BY T.ORDER_NO
+	</select>
+	
+	<!-- 更新厂外同步订单打印信息(model)  -->
+	<update id="updatePrintInfoModel" parameterType="com.hanthink.jiso.model.JisoOrderDetailModel">
+		UPDATE MM_JISO_ORDER T SET 
+               T.PRINT_STATUS = 1,
+               T.PRINT_TIME = SYSDATE,
+               T.PRINT_USER = #{printUser, jdbcType=VARCHAR},
+			   T.PRINT_USER_IP = #{printUserIp, jdbcType=VARCHAR}
+        WHERE  T.ORDER_NO =  #{orderNo} AND T.PRINT_STATUS = 0
+	</update>
+	
+</mapper>

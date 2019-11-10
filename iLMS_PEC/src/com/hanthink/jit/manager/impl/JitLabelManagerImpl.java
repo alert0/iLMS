@@ -1,0 +1,91 @@
+package com.hanthink.jit.manager.impl;
+
+import java.util.List;
+
+import javax.annotation.Resource;
+
+import org.springframework.stereotype.Service;
+
+import com.hanthink.base.manager.impl.AbstractManagerImpl;
+import com.hanthink.jit.dao.JitLabelDao;
+import com.hanthink.jit.manager.JitLabelManager;
+import com.hanthink.jit.model.JitLabelModel;
+import com.hotent.base.db.api.Dao;
+import com.hotent.base.db.mybatis.domain.DefaultPage;
+import com.hotent.base.db.mybatis.domain.PageList;
+
+/**
+ * @ClassName: JitLabelManagerImpl
+ * @Description: 零件标签查询
+ * @author dtp
+ * @date 2018年9月29日
+ */
+@Service("jitLabelManager")
+public class JitLabelManagerImpl extends AbstractManagerImpl<String, JitLabelModel> implements JitLabelManager{
+
+	@Resource
+	private JitLabelDao jitLabelDao;
+	
+	@Override
+	protected Dao<String, JitLabelModel> getDao() {
+		return jitLabelDao;
+	}
+
+	/**
+	 * @Description: 零件标签查询
+	 * @param: @param model
+	 * @param: @param page
+	 * @param: @return    
+	 * @return: PageList<JitLabelModel>   
+	 * @author: dtp
+	 * @date: 2018年9月29日
+	 */
+	@Override
+	public PageList<JitLabelModel> queryJitLabelPage(JitLabelModel model, DefaultPage page) {
+		return jitLabelDao.queryJitLabelPage(model, page);
+	}
+
+	/**
+	 * @Description: 零件标签查询导出 
+	 * @param: @param model
+	 * @param: @return    
+	 * @return: List<JitLabelModel>   
+	 * @author: dtp
+	 * @date: 2018年9月29日
+	 */
+	@Override
+	public List<JitLabelModel> queryJitLabelList(JitLabelModel model) {
+		return jitLabelDao.queryJitLabelList(model);
+	}
+
+	/**
+	 * @Description: 获取标签(标签打印) 
+	 * @param: @param model
+	 * @param: @return    
+	 * @return: JitLabelModel   
+	 * @author: dtp
+	 * @date: 2018年10月4日
+	 */
+	@Override
+	public JitLabelModel queryJitLabel(JitLabelModel model) {
+		return jitLabelDao.queryJitLabel(model);
+	}
+
+	/**
+	 * @Description: 更新打印信息
+	 * @param: @param list_printInfo    
+	 * @return: void   
+	 * @author: dtp
+	 * @date: 2018年12月26日
+	 */
+	@Override
+	public void updateJitLabelPrintInfo(List<JitLabelModel> list_printInfo, List<JitLabelModel> list) {
+		for (JitLabelModel jitLabelModel : list_printInfo) {
+			jitLabelDao.updateJitLabelPrintInfo(jitLabelModel);
+		}
+		/*for (JitLabelModel jitLabelModel : list) {
+			jitLabelDao.updateLabelUUID(jitLabelModel);
+		}*/
+	}
+
+}

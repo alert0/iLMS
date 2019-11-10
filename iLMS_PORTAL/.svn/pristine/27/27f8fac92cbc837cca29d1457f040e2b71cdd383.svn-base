@@ -1,0 +1,155 @@
+package com.hanthink.mp.controller;
+
+
+import java.net.URLDecoder;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.ibatis.session.RowBounds;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.hanthink.mp.manager.MpAdjSupFeedbackManager;
+import com.hanthink.mp.model.MpAdjSupFeedbackModel;
+import com.hanthink.util.excel.ExcelUtil;
+import com.hotent.base.api.model.ResultMessage;
+import com.hotent.base.core.util.string.StringUtil;
+import com.hotent.base.core.web.GenericController;
+import com.hotent.base.core.web.RequestUtil;
+import com.hotent.base.db.mybatis.domain.DefaultPage;
+import com.hotent.base.db.mybatis.domain.PageJson;
+import com.hotent.base.db.mybatis.domain.PageList;
+import com.hotent.sys.util.ContextUtil;
+import com.hotent.sys.util.SysPropertyUtil;
+
+
+/**
+ * 
+ * <pre> 
+ * 描述：供应商能力反馈 控制器类
+ * 构建组：x5-bpmx-platform
+ * 作者:linzhuo
+ * 邮箱:zhuo.lin@hotent.com
+ * 日期:2018-09-10 10:39:09
+ * 版权：汉思信息技术有限公司
+ * </pre>
+ */
+@Controller
+@RequestMapping("/mp/mpAdjSupFeedback")
+public class MpAdjSupFeedbackController extends GenericController{
+	
+	private static Logger log = LoggerFactory.getLogger(MpAdjSupFeedbackController.class);
+	
+	@Resource
+	MpAdjSupFeedbackManager mpAdjSupFeedbackManager;
+	  	
+	/**
+     * 分页查询供应商能力反馈
+     * @param request
+     * @param reponse
+	 * @return 
+     * @throws Exception
+     */
+    @RequestMapping("curdlistJson")
+    public @ResponseBody PageJson curdlistJson(HttpServletRequest request,
+            HttpServletResponse reponse,
+            MpAdjSupFeedbackModel model) {
+    	String resultMsg=null;
+    	try {
+        DefaultPage p=new DefaultPage(new RowBounds(getQueryFilter(request).getPage().getStartIndex(), getQueryFilter(request).getPage().getPageSize()));
+        model.setFactoryCode(ContextUtil.getCurrentUser().getCurFactoryCode());
+        List<MpAdjSupFeedbackModel> pageList = (PageList<MpAdjSupFeedbackModel>) mpAdjSupFeedbackManager.queryMpAdjSupFeedbackForPage(model, p);
+        return new PageJson(pageList);
+    	} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+    }
+	
+    /**
+	 * 提交
+	 * <p>return: void</p>  
+	 * <p>Description: MpVehPlanController.java</p>  
+	 * @author linzhuo  
+	 * @date 2018年9月20日
+	 * @version 1.0
+	 */
+	@RequestMapping("getCommit")
+	public void getCommit(HttpServletRequest request,HttpServletResponse response) throws Exception{
+		ResultMessage message=null;
+		request.setCharacterEncoding("utf-8");
+		String[] idArr = RequestUtil.getStringAryByStr(request, "id");
+		String supplyReason = RequestUtil.getString(request, "supplyReason");
+		if(StringUtil.isNotEmpty(supplyReason)) {
+			supplyReason = URLDecoder.decode(supplyReason,"UTF-8");
+		}
+		String isSupply = RequestUtil.getString(request, "isSupply");
+		try {	
+		if(null != idArr)
+			{
+			MpAdjSupFeedbackModel model = new MpAdjSupFeedbackModel();
+			model.setSupplyReason(supplyReason);
+			model.setIsSupply(isSupply);
+			model.setAryIds(idArr);
+			mpAdjSupFeedbackManager.getCommit(RequestUtil.getIpAddr(request), model);
+			message=new ResultMessage(ResultMessage.SUCCESS, "提交成功");
+		    } 
+		}
+			catch (Exception e) {
+			e.printStackTrace();
+			message=new ResultMessage(ResultMessage.FAIL, "提交失败");
+		}
+ 		writeResultMessage(response.getWriter(), message);
+	}
+    
+	/**
+	 * 下载导出MpAdjSupFeedback数据信息
+	 * @param request
+	 * @param response
+	 * @author linzhuo	
+	 * @DATE	2018年9月10日 上午11:25:20
+	 */
+	@RequestMapping("downloadMpAdjSupFeedbackModel")
+	public void downloadMpAdjSupFeedbackModel(HttpServletRequest request,HttpServletResponse response
+			,MpAdjSupFeedbackModel model ){
+		try {
+		model.setFactoryCode(ContextUtil.getCurrentUser().getCurFactoryCode());
+		List<MpAdjSupFeedbackModel> list =  mpAdjSupFeedbackManager.queryMpAdjSupFeedbackByKey(model);
+		/**
+		 * 如果查询记录超过10000条则报错
+		 */
+		if(0 == list.size()){
+			ExcelUtil.exportNoDataError(request, response);
+			return;
+		}
+		int sysMaxNum = SysPropertyUtil.getIntByAlias("EXCEL_EXPORT_MAX_SIZE", 100000); //获取系统所允许的最大导出数量
+		if(list.size() > sysMaxNum){
+			ExcelUtil.exportNumError(sysMaxNum, request, response);
+			return;
+		}
+		
+		String[] headers = {"零件号","简号", "供应商代码", "出货地","供应商名称",
+				"差异数量","是否可供应", "零件名称"};
+		String[] columns = {"partNo","partShortNo", "supplierNo", "supFactory","supplierName",
+				"diffNum","codeValueName", "partNameCn"};
+		int[] widths = {80, 80, 80, 80,80,
+				80,80,80};
+		SimpleDateFormat df = new SimpleDateFormat("yyyyMMddHHmmss");//设置日期格式
+		ExcelUtil.exportExcel(ExcelUtil.EXCEL_XLSX, request, response, "供应商能力反馈"+df.format(new Date()), list, headers, widths, columns);
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.error(e.toString());
+			ExcelUtil.exportException(e, request, response);
+		}
+		
+	}
+	
+}

@@ -1,0 +1,166 @@
+html,body{
+	height: 100%;
+}
+.panel{opacity:0.8;}
+/*渐变背景*/
+.background{
+	text-align: center;
+	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr = '#71ABF1', endColorstr = '#ffffff');
+	-ms-filter: "progid:DXImageTransform.Microsoft.gradient(startColorstr = '#71ABF1', endColorstr = '#ffffff')";
+	background-image: -moz-linear-gradient(top, #71ABF1, #ffffff);
+	background-image: -ms-linear-gradient(top, #71ABF1, #ffffff);
+	background-image: -o-linear-gradient(top, #71ABF1, #ffffff);
+	background-image: -webkit-gradient(linear, center top, center bottom, from(#71ABF1), to(#ffffff));
+	background-image: -webkit-linear-gradient(top, #71ABF1, #ffffff);
+	background-image: linear-gradient(top, #71ABF1, #ffffff);
+}
+
+/*登录导航条*/
+.loginnav{
+	background:#437bb4; 
+	width:100%;
+    height:5%;
+	border-bottom:1px solid #2f6da5; 
+	color: #fff; 
+	text-align:left; 
+	padding-left:20px;
+	line-height:40px;
+}
+/*登录框的样式*/
+#paner-head{
+	background-color: rgba(255, 255, 255, 1);
+	-moz-box-shadow: 2px 6px 6px #999999;
+	-webkit-box-shadow: 2px 6px 6px #999999;
+	-o-box-shadow: 2px 6px 6px #999999;
+	-ms-box-shadow: 2px 6px 6px #999999;
+	box-shadow: 2px 6px 6px #999999;
+	/*-- for IE8 --*/
+	-ms-filter: "progid:DXImageTransform.Microsoft.Shadow(Strength=6, Direction=135, Color='#999999')";
+	/*-- for IE5.5-7--*/
+	filter: progid:DXImageTransform.Microsoft.Shadow(Color=#999999, Strength=6, Direction=135,);
+	width:370px;height:400px;
+}
+.btn{
+	background:#199EDB; 
+	color:#ffffff; 
+	width:210px; 
+	margin-bottom:10px;
+	height:40px;
+	border-radius:3px;
+	line-height:25px;
+}
+
+.btn:hover{
+	background:#aed8f9; 
+	color:#000; 
+	width:210px; 
+	margin-bottom:10px;
+	height:40px;
+	border-radius:3px; 
+}
+
+#form-control{
+	margin:0px;width:170px;
+}
+.panel-body{
+	padding:0;
+	margin-top: 50px;
+}
+.media{
+	background:#fff; 
+	width:280px; 
+	height:67px; 
+	padding:10px; 
+	box-shadow: 0px 1px 2px #FFFAFA;
+	border-color: #DDD; 
+	margin-left:50px;
+}
+.media-left{
+	padding:0;
+}
+.media-body{
+	font-family:"宋体";
+	color:#199EDB; 
+	margin-left:-15px;  
+	font-size:30px; 
+	text-align:left;
+}
+/*登录输入框的样式*/
+.userinput{
+	text-align:center;
+	padding-left:32px;
+	margin-top:20px;
+}
+.input-group-addon{
+	background:#fff;
+	border:1px solid #dddddd;border-right:none; 
+	border-radius:0; 
+	border-right:0px;
+}
+input.ng-valid{
+	border-color: #dddddd !important;
+    -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+}
+.glyphicon{
+	color:#199EDB;
+}
+.back-red{
+	background: red;
+}
+/*登录记住密码的样式*/
+
+.password{
+	margin:4px 0 0 -100px;
+}
+.input-checkbox{
+	margin-left:-20px !important;
+	float:left;
+}
+.checkbox>label{
+    margin-left:-35px;
+    color:#39F;	
+}
+/*弹出框内容*/
+#divMessage{
+	color:red;
+	font-size:12px;
+}
+
+/*登录输入框的样式end*/
+.margin-bt{
+	margin-bottom: 10px;
+}
+.site-wrapper {
+  display: table;
+  width: 100%;
+  height: 95%;
+  min-height:95%;
+}
+.site-wrapper-inner {
+  display: table-cell;
+  vertical-align: top;
+  padding-top:140px;
+}
+@media (min-width:768px){
+	.site-wrapper-inner {
+	  padding-top:140px;
+	  /*vertical-align: middle;*/
+	}	
+}
+.cover-container {
+  margin-right: auto;
+  margin-left: auto;
+}
+@media (min-width: 768px){
+	.cover-container {
+	  width: 100%;
+	}	
+}
+@media (min-width: 992px){
+	.cover-container {
+	  width: 280px;
+	}	
+}
+/**输入款调整*/
+.from-distance{margin-left:16.6%;}}

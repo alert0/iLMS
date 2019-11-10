@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+<title>SmartWorkESB</title>
+<link href="../zui/css/zui.min.css?v=1.0" rel="stylesheet">
+<link href="../zui/lib/datagrid/zui.datagrid.min.css?v=1.0" rel="stylesheet">
+<link href="../zui/lib/uploader/zui.uploader.min.css?v=1.0" rel="stylesheet">
+<link href="../zui/lib/chosen/chosen.min.css?v=1.0" rel="stylesheet">
+<link href="../zui/lib/datetimepicker/datetimepicker.min.css?v=1.0" rel="stylesheet">
+<link href="../css/comm.css?v=1.0" rel="stylesheet">
+<style type="text/css">
+html, body {
+    overflow: hidden;
+    overflow-x: hidden;
+    height: 100%;
+}
+
+.my-query {
+    overflow: visible;
+    line-height: 25px;
+}
+
+.my-result-timer {
+    height: 292px;
+}
+
+</style>
+
+</head>
+<body>
+
+  <!-- 查询条件 -->
+  <a name="top"></a>
+  <form class="form-inline my-top my-query my-query-timer">
+    <div class="form-group">
+      <div class="input-control">
+        <input name="jobDesc" type="text" class="form-control" placeholder="任务名称">
+      </div>
+    </div>
+    <div class="form-group">
+      <div class="input-control">
+        <input name="ifCode" type="text" class="form-control" placeholder="接口代码" />
+      </div>
+    </div>
+    <button btnname="search" type="button" class="btn btn-default">
+      <i class="icon icon-search"></i><span>查询</span>
+    </button>
+    <button btnname="add" type="button" class="btn btn-primary">
+      <i class="icon icon-file-o"></i><span>新增</span>
+    </button>
+    <button btnname="modify" type="button" class="btn btn-info">
+      <i class="icon icon-edit"></i><span>修改</span>
+    </button>
+    <button btnname="delete" type="button" class="btn btn-warning">
+      <i class="icon icon-trash"></i><span>删除</span>
+    </button>
+    <button btnname="enable" type="button" class="btn btn-info">
+      <i class="icon icon-check"></i><span>启用</span>
+    </button>
+    <button btnname="disable" type="button" class="btn btn-info">
+      <i class="icon icon-times"></i><span>禁用</span>
+    </button>
+    <div class="uploader">
+      <button btnname="import" type="button" class="btn btn-info uploader-btn-browse">
+        <i class="icon icon-upload-alt"></i><span>导入</span>
+      </button>
+    </div>
+    <button btnname="export" type="button" class="btn btn-info">
+      <i class="icon icon-download-alt"></i><span>导出</span>
+    </button>
+  </form>
+
+  <!-- 查询结果表格 -->
+  <div class="my-result-timer datagrid datagrid-striped">
+    <div class="datagrid-container"></div>
+    <div class="pager"></div>
+  </div>
+
+  <!-- 编辑计划任务 -->
+  <div class="modal fade" id="my-dialog-timer">
+    <div class="modal-dialog my-form-dialog3">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title"></h4>
+        </div>
+        <div class="modal-body">
+          <form class="form-inline">
+            <div class="form-group">
+              <div class="input-control has-label-left has-icon-right my-tip-question my-word4">
+                <input name="jobCode" update="false" type="text" regex="^[\-_A-Za-z0-9]+$" required="required" maxlength="40" class="form-control" id="id-timer-jobCode">
+                <label for="id-timer-jobCode" class="input-control-label-left">任务代码:</label>
+                <label class="input-control-label-right" my-tip-title="EN">?</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="input-control has-label-left my-word4">
+                <input name="jobDesc" type="text" maxlength="255" required="required" class="form-control" id="id-timer-jobDesc">
+                <label for="id-timer-jobDesc" class="input-control-label-left">任务名称:</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="input-control has-label-left has-icon-right my-tip-question my-word4">
+                <input name="jobGroup" type="text" regex="^[\-_A-Za-z0-9]+$" required="required" maxlength="40" class="form-control" id="id-timer-jobGroup">
+                <label for="id-timer-jobGroup" class="input-control-label-left">任务分组:</label>
+                <label class="input-control-label-right" my-tip-title="EN">?</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="input-control has-label-left my-word4">
+                <div class="checkbox form-control">
+                  <label>
+                    <input type="checkbox" name="runState" value="1" id="id-timer-runState"><span>启用计划任务</span>
+                  </label>
+                </div>
+                <label for="id-timer-runState" class="input-control-label-left">启用类型:</label>
+              </div>
+            </div>
+            <hr>
+            <div class="form-group">
+              <select name="jobClass" class="chosen-select input-control has-label-left my-word4 three-width" id="id-timer-jobClass">
+                <option value=""></option>
+                <option value=""></option>
+              </select>
+              <label for="id-timer-jobClass_chosen" class="input-control-label-left">任务类名:</label>
+            </div>
+            <div class="form-group">
+              <div class="input-control input-group has-label-left my-word4 onetwo-width my-input-group">
+                <input name="ifCode" type="text" required="required" class="form-control" id="id-timer-ifCode">
+                <label for="id-timer-ifCode" class="input-control-label-left">接口代码:</label>
+                <span class="input-group-btn">
+                  <button btnname="selectIfCode" class="btn btn-default" type="button">
+                    <i class="icon icon-search"></i>
+                  </button>
+                </span>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="input-control has-label-left my-word4 onetwo-width">
+                <input name="ifName" type="text" readonly="readonly" class="form-control" id="id-timer-ifName">
+                <label for="id-timer-ifName" class="input-control-label-left">接口名称:</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="input-control input-group has-label-left my-word5 three-width my-input-group">
+                <input name="masterQueryTableId" type="text" maxlength="255" class="form-control" id="id-timer-masterQueryTableId">
+                <label for="id-timer-masterQueryTableId" class="input-control-label-left">发送主配置:</label>
+                <span class="input-group-btn">
+                  <button btnname="selectMasterQueryTableId" class="btn btn-default" type="button">
+                    <i class="icon icon-search"></i>
+                  </button>
+                </span>
+              </div>
+            </div>
+            <hr>
+            <div class="form-group">
+              <div class="input-control has-label-left has-icon-right my-tip-question my-word3 onetwo-width">
+                <input name="triggerValue" type="text" required="required" class="form-control" id="id-timer-triggerValue">
+                <label for="id-timer-triggerValue" class="input-control-label-left">表达式:</label>
+                <label class="input-control-label-right" my-tip-title="TRIGGER-VALUE">?</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="input-control has-label-left my-word4 onetwo-width">
+                <input name="startTime" type="datetime" class="form-control form-datetime" id="id-timer-startTime">
+                <label for="id-timer-startTime" class="input-control-label-left">启用时间:</label>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button btnname="ok" type="button" class="btn btn-primary">
+            <i class="icon icon-check"></i>保存
+          </button>
+          <button btnname="cancel" type="button" class="btn btn-default">
+            <i class="icon icon-times"></i>取消
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 选择接口代码 -->
+  <div class="modal fade" id="my-dialog-select-ifconfig">
+    <div class="modal-dialog my-form-dialog3">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title"></h4>
+        </div>
+        <div class="modal-body">
+          <form class="form-inline my-top my-query">
+            <div class="form-group">
+              <div class="input-control">
+                <input name="ifCode" type="text" class="form-control" placeholder="接口代码" />
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="input-control">
+                <input name="ifName" type="text" class="form-control" placeholder="接口名称">
+              </div>
+            </div>
+            <button btnname="search" type="button" class="btn btn-default">
+              <i class="icon icon-search"></i><span>查询</span>
+            </button>
+          </form>
+          
+          <div class="my-result-select-ifconfig datagrid datagrid-striped">
+            <div class="datagrid-container"></div>
+            <div class="pager"></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button btnname="cancel" type="button" class="btn btn-default">
+            <i class="icon icon-times"></i>取消
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 选择发送主配置 -->
+  <div class="modal fade" id="my-dialog-select-queryconfig">
+    <div class="modal-dialog my-form-dialog3">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title"></h4>
+        </div>
+        <div class="modal-body">
+          <div class="my-result-select-queryconfig datagrid datagrid-striped">
+            <div class="datagrid-container"></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button btnname="ok" type="button" class="btn btn-primary">
+            <i class="icon icon-check"></i>确定
+          </button>
+          <button btnname="cancel" type="button" class="btn btn-default">
+            <i class="icon icon-times"></i>取消
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script src="../zui/lib/jquery/jquery.js?v=1.0"></script>
+  <script src="../zui/lib/jquery/jquery.validate.min.js?v=1.0"></script>
+  <script src="../zui/lib/jquery/localization/messages_zh.min.js?v=1.0"></script>
+  <script src="../zui/js/zui.min.js?v=1.0"></script>
+  <script src="../zui/lib/datagrid/zui.datagrid.min.js?v=1.0"></script>
+  <script src="../zui/lib/uploader/zui.uploader.min.js?v=1.0"></script>
+  <script src="../zui/lib/chosen/chosen.min.js?v=1.0"></script>
+  <script src="../zui/lib/datetimepicker/datetimepicker.min.js?v=1.0"></script>
+  <script src="../js/extension.js?v=1.0"></script>
+  <script src="timer.js?v=1.0"></script>
+</body>
+</html>

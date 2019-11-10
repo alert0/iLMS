@@ -1,0 +1,375 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.pup.model.PupPlanModel">
+	<!-- 取货计划分页查询 -->
+	<select id="queryPlanForPage" parameterType="com.hanthink.pup.model.PupPlanModel" resultType="com.hanthink.pup.model.PupPlanModel">
+		SELECT MSP.PICKUP_TYPE pickupType,
+			   MSP.AREA area,
+			   MSP.CAR_TYPE carType,
+			   MSP.ROUTE_CODE routeCode,
+			   MSP.TOTAL_BATCHS totalBatchs,
+			   MSP.MERGE_BATCHS mergeBatchs,
+			   MSP.SUP_FACTORY supFactory,
+			   MSP.SUPPLIER_NO supplierNo,
+			   B.SUPPLIER_NAME supplierName,
+			   MSP.ORDER_NO orderNo,
+			   MSP.PURCHASE_NO purchaseNo,
+			   TO_CHAR(MSP.WORK_DATE,'yyyy-MM-dd') workDate,
+			   MSP.TODAY_CAR_BATCH todayCarBatch,
+			   TO_CHAR(MSP.PLAN_PICKUP_TIME,'yyyy-MM-dd hh24:mi:ss') planPickupTime,
+			   TO_CHAR(MSP.PLAN_ARR_TIME,'yyyy-MM-dd hh24:mi:ss') planArrTime,
+			   TO_CHAR(MSP.PLAN_ASSEMBLE_TIME,'yyyy-MM-dd hh24:mi:ss') planAssembleTime,
+			   MSP.ORDER_USE orderUse,
+			   MSP.CREATION_USER creationUser,
+			   MSP.INTER_LOGIS_MANAGER interLogisManager,
+			   MSP.CONFIRM_DAYS confirmDays,
+			   MSP.FEEDBACK_STATUS feedBackStatus,
+			   MPD.CODE_VALUE_NAME excelFeedBackStatus,
+			   MSP.DOWNLOAD_STATUS downloadStatus,
+			   MPDD.CODE_VALUE_NAME excelDownloadStatus,
+			   TO_CHAR(MSP.DOWNLOAD_TIME,'yyyy-MM-dd hh24:mi:ss') downloadTime,
+			   CASE WHEN MSP.DIFF_FLAG = 0 THEN '有差异'
+			        WHEN MSP.DIFF_FLAG = 1 OR MSP.DIFF_FLAG IS NULL THEN '无差异'
+			        WHEN MSP.DIFF_FLAG = 2 THEN '新发布'
+			   END AS diffFlag
+		FROM MM_SW_PICKUP_PLAN MSP
+			LEFT JOIN MM_PUB_DATA_DICT MPD
+			ON MPD.CODE_TYPE = 'SW_FEEDBACK_STATUS_ZC'
+			AND MPD.CODE_VALUE = MSP.FEEDBACK_STATUS
+			AND MPD.FACTORY_CODE = #{factoryCode}
+			LEFT JOIN MM_PUB_DATA_DICT MPDD
+			ON MPDD.CODE_TYPE = 'PUP_DOWNLOAD_STATUS'
+			AND MPDD.CODE_VALUE = MSP.DOWNLOAD_STATUS
+			AND MPDD.FACTORY_CODE = #{factoryCode}
+			LEFT JOIN MM_PUB_SUPPLIER B
+			ON MSP.SUPPLIER_NO = B.SUPPLIER_NO
+		WHERE MSP.FACTORY_CODE = #{factoryCode}
+		<if test="planPickupTimeStart != null and planPickupTimeStart != ''">
+			AND MSP.PLAN_PICKUP_TIME >= TO_DATE(#{planPickupTimeStart},'yyyy-MM-dd hh24:mi:ss')
+		</if>
+		<if test="planPickupTimeEnd != null and planPickupTimeEnd != ''">
+			AND MSP.PLAN_PICKUP_TIME <![CDATA[<=]]> TO_DATE(#{planPickupTimeEnd},'yyyy-MM-dd hh24:mi:ss')
+		</if>
+		<if test="orderNo != null and orderNo != ''">
+			AND MSP.ORDER_NO LIKE CONCAT(#{orderNo},'%')
+		</if>
+		<if test="purchaseNo != null and purchaseNo !=''">
+			AND MSP.PURCHASE_NO LIKE CONCAT(#{purchaseNo},'%')
+		</if>
+		<if test="supplierNo != null and supplierNo != ''">
+			AND MSP.SUPPLIER_NO = #{supplierNo}
+		</if>
+		<if test="routeCode != null and routeCode != ''">
+			AND MSP.ROUTE_CODE = #{routeCode}
+		</if>
+		<if test="partNo != null and partNo != ''">
+			AND MSP.PART_NO LIKE CONCAT(#{partNo},'%')
+		</if>
+		<if test="downloadStatus != null and downloadStatus != ''">
+			AND MSP.DOWNLOAD_STATUS = #{downloadStatus}
+		</if>
+		ORDER BY MSP.ORDER_NO,MSP.PURCHASE_NO
+	</select>
+	<!-- 数据字典差异标识加载 -->
+	<select id="queryDownloadStatus" parameterType="java.util.Map" resultType="com.hanthink.base.model.DictVO">
+		SELECT DISTINCT CODE_VALUE valueKey, CODE_VALUE_NAME valueName FROM MM_PUB_DATA_DICT 
+		WHERE
+		CODE_TYPE = 'PUP_DOWNLOAD_STATUS'
+	</select>
+	<!-- 单条/批量删除数据 -->
+	<delete id="deletePlansById">
+		DELETE FROM MM_SW_PICKUP_PLAN
+		WHERE (ORDER_NO,PURCHASE_NO) IN
+		<foreach item="item" collection="list" open="(" separator="," close=")">
+			(#{item.orderNo},#{item.purchaseNo})
+		</foreach>
+	</delete>
+	<!-- 根据uuid删除临时表数据 -->
+	<delete id="deletePlanByUUID">
+		DELETE FROM MM_SW_PICKUP_PLAN_IMP
+		WHERE 
+		IMP_UUID = #{uuid}
+	</delete>
+	<!-- 将Excel数据写入临时数据表 -->
+	<insert id="insertPlanToTempTable" parameterType="java.util.List">
+		INSERT INTO MM_SW_PICKUP_PLAN_IMP
+		(ID,FACTORY_CODE,AREA,CAR_TYPE,TOTAL_BATCHS,MERGE_BATCHS,SUP_FACTORY,SUPPLIER_NO,ORDER_NO,
+		 PURCHASE_NO,WORK_DATE,TODAY_CAR_BATCH,PLAN_PICKUP_TIME,PLAN_ARR_TIME,PLAN_ASSEMBLE_TIME,
+		 ORDER_USE,INTER_LOGIS_MANAGER,CONFIRM_DAYS,IMP_UUID,CHECK_RESULT,CHECK_INFO,IMPORT_STATUS,
+		 OPE_TYPE,CREATION_USER,CREATION_TIME,ROUTE_CODE,PICKUP_TYPE, UNLOAD_PORT)
+		 <foreach  collection="list" item="item" index="index" separator=" UNION ALL" >
+		 	SELECT #{item.id,jdbcType=VARCHAR},#{item.factoryCode,jdbcType=VARCHAR},#{item.area,jdbcType=VARCHAR},
+		 		   #{item.carType,jdbcType=VARCHAR},#{item.totalBatchs,jdbcType=VARCHAR},#{item.mergeBatchs,jdbcType=VARCHAR},
+		 		   #{item.supFactory,jdbcType=VARCHAR},#{item.supplierNo,jdbcType=VARCHAR},#{item.orderNo,jdbcType=VARCHAR},
+		 		   #{item.purchaseNo,jdbcType=VARCHAR},TO_DATE(#{item.workDate,jdbcType=VARCHAR},'yyyy-MM-dd'),#{item.todayCarBatch,jdbcType=VARCHAR},
+		 		   TO_DATE(#{item.planPickupTime,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss'),
+		 		   TO_DATE(#{item.planArrTime,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss'),
+		 		   TO_DATE(#{item.planAssembleTime,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss'),
+		 		   #{item.orderUse,jdbcType=VARCHAR},#{item.interLogisManager,jdbcType=VARCHAR},#{item.confirmDays,jdbcType=VARCHAR},
+		 		   #{item.impUUID,jdbcType=VARCHAR},#{item.checkResult,jdbcType=VARCHAR},#{item.checkInfo,jdbcType=VARCHAR},
+		 		   #{item.importStatus,jdbcType=VARCHAR},#{item.opeType,jdbcType=VARCHAR},#{item.creationUser,jdbcType=VARCHAR},
+		 		   sysdate,#{item.routeCode,jdbcType=VARCHAR},#{item.pickupType,jdbcType=VARCHAR},#{item.unloadPort,jdbcType=VARCHAR}
+		 	FROM DUAL
+		 </foreach>
+	</insert>
+	<!-- 调用存储过程校验数据 -->
+	<parameterMap type="map" id="impCkParamMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="userName" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<select id="checkImportMessage" parameterMap="impCkParamMap" statementType="CALLABLE">
+		{CALL PKG_PUP_CHECK.PUP_PICKUP_PLAN_CHECK(?, ?, ?,  ?,?)}
+	</select>
+	<!-- 查询数据的导入状态 -->
+	<select id="queryImportFlag" parameterType="java.lang.String" resultType="java.lang.String">
+		WITH TEMPA AS
+		 (SELECT COUNT(1) s
+		    FROM MM_SW_PICKUP_PLAN_IMP A
+		   WHERE A.CHECK_RESULT = 0
+		     AND A.IMP_UUID = #{uuid}),
+		TEMPB AS
+		 (SELECT COUNT(1) S
+		    FROM MM_SW_PICKUP_PLAN_IMP B
+		   WHERE B.IMP_UUID = #{uuid})
+		SELECT CASE
+		         WHEN A.S >= B.S THEN
+		          0
+		         ELSE
+		          1
+		       END AS FLAG
+		  FROM TEMPA A, TEMPB B
+	</select>
+	<!-- 查询导入数据详情 -->
+	<select id="queryImportForPage" parameterType="java.util.Map" resultType="com.hanthink.pup.model.PupPlanModel">
+		SELECT MSP.ID id,
+			   MSP.PICKUP_TYPE pickupType,
+			   MSP.FACTORY_CODE factoryCode,
+			   MSP.AREA area,
+			   MSP.CAR_TYPE carType,
+			   MSP.ROUTE_CODE routeCode,
+			   MSP.TOTAL_BATCHS totalBatchs,
+			   MSP.MERGE_BATCHS mergeBatchs,
+			   MSP.SUP_FACTORY supFactory,
+			   MSP.SUPPLIER_NO supplierNo,
+			   MPS.SUPPLIER_NAME supplierName,
+			   MSP.ORDER_NO orderNo,
+			   MSP.PURCHASE_NO purchaseNo,
+			   TO_CHAR(MSP.WORK_DATE,'yyyy-MM-dd') workDate,
+			   MSP.TODAY_CAR_BATCH todayCarBatch,
+			   TO_CHAR(MSP.PLAN_PICKUP_TIME,'yyyy-MM-dd') planPickupDate,
+			   TO_CHAR(MSP.PLAN_PICKUP_TIME,'hh24:mi:ss') planPickupTime,
+			   TO_CHAR(MSP.PLAN_ARR_TIME,'yyyy-MM-dd') planArrDate,
+			   TO_CHAR(MSP.PLAN_ARR_TIME,'hh24:mi:ss') planArrTime,
+			   TO_CHAR(MSP.PLAN_ASSEMBLE_TIME,'yyyy-MM-dd') planAssembleDate,
+			   TO_CHAR(MSP.PLAN_ASSEMBLE_TIME,'hh24:mi:ss') planAssembleTime,
+			   MSP.ORDER_USE orderUse,
+			   MSP.INTER_LOGIS_MANAGER interLogisManager,
+			   MSP.CONFIRM_DAYS confirmDays,
+			   MSP.IMP_UUID impUUID,
+			   MSP.CHECK_RESULT checkResult,
+			   MSP.CHECK_INFO checkInfo,
+			   MSP.IMPORT_STATUS importStatus,
+			   MSP.OPE_TYPE opeType,
+			   MSP.CREATION_USER creationUser,
+			   TO_CHAR(MSP.CREATION_TIME,'yyyy-MM-dd hh24:mi:ss') creationTime
+		FROM MM_SW_PICKUP_PLAN_IMP MSP
+		LEFT JOIN MM_SW_ORDER MSO
+		ON MSP.ORDER_NO = MSO.ORDER_NO
+		AND MSP.PURCHASE_NO = MSO.PURCHASE_NO
+		AND MSO.FACTORY_CODE = #{factoryCode}
+		LEFT JOIN MM_PUB_SUPPLIER MPS
+		ON MSO.SUP_FACTORY = MPS.SUP_FACTORY
+		AND MSO.SUPPLIER_NO = MPS.SUPPLIER_NO
+		WHERE MSP.IMP_UUID = #{uuid}
+		ORDER BY MSP.CHECK_RESULT,MSP.ORDER_NO
+	</select>
+	
+	<!-- 查询导入数据的正确条数 -->
+	<select id="getCountPlanForImport" parameterType="java.util.Map" resultType="java.lang.Integer">
+		SELECT COUNT(*) FROM MM_SW_PICKUP_PLAN_IMP
+		WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR}
+			  AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR} 
+			  AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR}
+	</select>
+	<!-- 查询需要修改的数据的id -->
+	<select id="queryUpdateFromTemp" parameterType="java.util.Map" resultType="java.lang.String">
+		SELECT MSP.ID id
+		FROM MM_SW_PICKUP_PLAN_IMP MSP
+		WHERE MSP.OPE_TYPE = 'U'
+			  AND MSP.IMP_UUID = #{uuid,jdbcType=VARCHAR}
+			  AND MSP.IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR} 
+		      AND MSP.CHECK_RESULT = #{checkResult,jdbcType=VARCHAR}
+	</select>
+	<!-- 查询可导入的正确数据 -->
+	<select id="queryForRightList" parameterType="java.util.Map" resultType="com.hanthink.pup.model.PupPlanModel">
+		SELECT MSP.ID id,
+			   MSP.FACTORY_CODE factoryCode,
+			   MSP.AREA area,
+			   MSP.CAR_TYPE carType,
+			   MSP.ROUTE_CODE routeCode,
+			   MSP.TOTAL_BATCHS totalBatchs,
+			   MSP.MERGE_BATCHS mergeBatchs,
+			   MSP.SUP_FACTORY supFactory,
+			   MSP.SUPPLIER_NO supplierNo,
+			   MSP.ORDER_NO orderNo,
+			   MSP.PURCHASE_NO purchaseNo,
+			   TO_CHAR(MSP.WORK_DATE,'yyyy-MM-dd') workDate,
+			   MSP.TODAY_CAR_BATCH todayCarBatch,
+			   TO_CHAR(MSP.PLAN_PICKUP_TIME,'yyyy-MM-dd hh24:mi:ss') planPickupTime,
+			   TO_CHAR(MSP.PLAN_ARR_TIME,'yyyy-MM-dd hh24:mi:ss') planArrTime,
+			   TO_CHAR(MSP.PLAN_ASSEMBLE_TIME,'yyyy-MM-dd hh24:mi:ss') planAssembleTime,
+			   MSP.ORDER_USE orderUse,
+			   MSP.INTER_LOGIS_MANAGER interLogisManager,
+			   MSP.CONFIRM_DAYS confirmDays,
+			   MSP.IMP_UUID impUUID,
+			   MSP.CHECK_RESULT checkResult,
+			   MSP.CHECK_INFO checkInfo,
+			   MSP.IMPORT_STATUS importStatus,
+			   MSP.OPE_TYPE opeType,
+			   MSP.CREATION_USER creationUser,
+			   TO_CHAR(MSP.CREATION_TIME,'yyyy-MM-dd hh24:mi:ss') creationTime
+		FROM MM_SW_PICKUP_PLAN_IMP MSP
+		WHERE MSP.IMP_UUID = #{uuid}
+			AND MSP.CHECK_RESULT = #{checkResult}
+			AND MSP.IMPORT_STATUS = #{importStatus}
+	</select>
+	<!-- 查看数据在正式表是否存在 -->
+	<select id="judgeIsExistsInFormal" parameterType="com.hanthink.pup.model.PupPlanModel" resultType="java.lang.Integer">
+		SELECT COUNT(1) 
+			FROM MM_SW_PICKUP_PLAN MSP
+		WHERE MSP.ORDER_NO = #{orderNo}
+			AND MSP.PURCHASE_NO = #{purchaseNo}
+	</select>
+	<insert id="insertIntoFormal" parameterType="com.hanthink.pup.model.PupPlanModel">
+		INSERT INTO MM_SW_PICKUP_PLAN
+			(ORDER_NO,PURCHASE_NO,CONFIRM_DAYS,INTER_LOGIS_MANAGER,ORDER_USE,PLAN_ASSEMBLE_TIME,
+			PLAN_ARR_TIME,PLAN_PICKUP_TIME,TODAY_CAR_BATCH,AREA,CAR_TYPE,ROUTE_CODE,
+			TOTAL_BATCHS,MERGE_BATCHS,SUP_FACTORY,WORK_DATE,FACTORY_CODE,CREATION_USER,CREATION_TIME,PICKUP_TYPE)
+		VALUES
+			(#{orderNo,jdbcType=VARCHAR},#{purchaseNo,jdbcType=VARCHAR},#{confirmDays,jdbcType=VARCHAR},#{interLogisManager,jdbcType=VARCHAR},
+			#{orderUse,jdbcType=VARCHAR},TO_DATE(#{planAssembleTime,jdbcType=VARCHAR},'yyyy-MM-dd HH:mi:ss'),
+			TO_DATE(#{planArrTime,jdbcType=VARCHAR},'yyyy-MM-dd HH:mi:ss'),TO_DATE(#{planPickupTime,jdbcType=VARCHAR},'yyyy-MM-dd HH:mi:ss'),
+			#{todayCarBatch,jdbcType=VARCHAR},#{area,jdbcType=VARCHAR},#{carType,jdbcType=VARCHAR},#{routeCode,jdbcType=VARCHAR},#{totalBatchs,jdbcType=VARCHAR},
+			#{mergeBatchs,jdbcType=VARCHAR},#{supFactory,jdbcType=VARCHAR},TO_DATE(#{workDate,jdbcType=VARCHAR},'yyyy-MM-dd HH:mi:ss'),
+			#{factoryCode,jdbcType=VARCHAR},#{creationUser,jdbcType=VARCHAR},sysdate,#{pickupType,jdbcType=VARCHAR})
+	</insert>
+	<!-- 修改正式表的数据 -->
+	<update id="updateFormalData" parameterType="com.hanthink.pup.model.PupPlanModel">
+		UPDATE MM_SW_PICKUP_PLAN 
+		SET CONFIRM_DAYS = #{confirmDays,jdbcType=VARCHAR},
+			INTER_LOGIS_MANAGER = #{interLogisManager,jdbcType=VARCHAR},
+			ORDER_USE = #{orderUse,jdbcType=VARCHAR},
+			PLAN_ASSEMBLE_TIME = TO_DATE(#{planAssembleTime,jdbcType=VARCHAR},'yyyy-MM-dd HH:mi:ss'),
+			PLAN_ARR_TIME = TO_DATE(#{planArrTime,jdbcType=VARCHAR},'yyyy-MM-dd HH:mi:ss'),
+			PLAN_PICKUP_TIME = TO_DATE(#{planPickupTime,jdbcType=VARCHAR},'yyyy-MM-dd HH:mi:ss'),
+			TODAY_CAR_BATCH = #{todayCarBatch,jdbcType=VARCHAR},
+			AREA = #{area,jdbcType=VARCHAR},
+			CAR_TYPE = #{carType,jdbcType=VARCHAR},
+			ROUTE_CODE = #{routeCode,jdbcType=VARCHAR},
+			TOTAL_BATCHS = #{totalBatchs,jdbcType=VARCHAR},
+			MERGE_BATCHS = #{mergeBatchs,jdbcType=VARCHAR},
+			SUP_FACTORY = #{supFactory,jdbcType=VARCHAR},
+			WORK_DATE = TO_DATE(#{workDate,jdbcType=VARCHAR},'yyyy-MM-dd HH:mi:ss'),
+			FACTORY_CODE = #{factoryCode,jdbcType=VARCHAR},
+			LAST_MODIFIED_USER = #{lastModifiedUser,jdbcType=VARCHAR},
+			LAST_MODIFIED_TIME = sysdate
+		WHERE ORDER_NO = #{orderNo}
+			AND PURCHASE_NO = #{purchaseNo}
+	</update>
+	<!-- 修改临时表的数据导入状态 -->
+	<update id="updateImportStatus">
+		UPDATE MM_SW_PICKUP_PLAN_IMP SET 
+			IMPORT_STATUS = #{IMPORT_STATUS_YES,jdbcType=VARCHAR} 
+		WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		  AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+		  AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR} 
+	</update>
+	<!-- 调用存储将数据写入正式表 -->
+	<parameterMap type="map" id="paramMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="userName" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<select id="insertAndUpdatePlan" parameterMap="paramMap" statementType="CALLABLE">
+		{CALL PKG_PUP_CHECK.PUP_PICKUP_PLAN_IMPORT(?, ?, ?,  ?,?)}
+	</select>
+	<select id="getCountAllImport" parameterType="java.util.Map" resultType="java.lang.Integer">
+		SELECT COUNT(*) FROM MM_SW_PICKUP_PLAN_IMP WHERE IMP_UUID = #{uuid}
+	</select>
+	<!-- 已发车查询 -->
+	<select id="queryForDepEnq" parameterType="com.hanthink.pup.model.PupPlanModel" resultType="com.hanthink.pup.model.PupPlanModel">
+		SELECT RES.* ,MPD.CODE_VALUE_NAME excelDeqStatus
+			FROM(
+			 SELECT MSW.AREA area,
+			       MSW.CAR_TYPE carType,
+			       MSW.ROUTE_CODE routeCode,
+			       MSW.TOTAL_BATCHS totalBatchs,
+			       MSW.MERGE_BATCHS mergeBatchs,
+			       MSW.SUP_FACTORY supFactory,
+			       MSW.SUPPLIER_NO supplierNo,
+			       MSW.ORDER_NO orderNo,
+			       MSW.PURCHASE_NO purchaseNo,
+			       TO_CHAR(MSW.WORK_DATE,'yyyy-MM-dd') workDate,
+			       MSW.TODAY_CAR_BATCH todayCarBatch, 
+			       TO_CHAR(MSW.PLAN_PICKUP_TIME,'yyyy-MM-dd') planPickupDate,
+			       TO_CHAR(MSW.PLAN_PICKUP_TIME,'hh24:mi:ss') planPickupTime,
+			       TO_CHAR(MSW.PLAN_ARR_TIME,'yyyy-MM-dd') planArrDate,
+			       TO_CHAR(MSW.PLAN_ARR_TIME,'hh24:mi:ss') planArrTime,
+			       TO_CHAR(MSW.PLAN_ASSEMBLE_TIME,'yyyy-MM-dd') planAssembleDate,
+			       TO_CHAR(MSW.PLAN_ASSEMBLE_TIME,'yyyy-MM-dd') planAssembleTime,
+			       MSW.ORDER_USE orderUse,
+			       MSW.INTER_LOGIS_MANAGER interLogisManager,
+			       MSW.CONFIRM_DAYS confirmDays,  
+			       MSW.PICKUP_TYPE pickupType,
+			       MTD.PLATE_NUM plateNum,
+			       CASE
+			         WHEN NVL(MTD.EXCUTE_STATUS, 0) = 0 THEN
+			          0
+			         ELSE
+			          1
+			       END deqStatus
+			  FROM MM_SW_PICKUP_PLAN MSW
+			  LEFT JOIN (SELECT MPDD.ORDER_NO, MPD.EXCUTE_STATUS,MPD.PLATE_NUM
+			               FROM MM_PUP_DCS_PICK_PLAN MPD
+			               LEFT JOIN MM_PUP_DCS_PICK_PLAN_DETAIL MPDD
+			                 ON MPD.PLAN_SHEET_NO = MPDD.PLAN_SHEET_NO
+			                 AND MPD.FACTORY_CODE = #{factoryCode}) MTD
+			    ON MSW.ORDER_NO = MTD.ORDER_NO
+			  WHERE MSW.FACTORY_CODE = #{factoryCode}) RES
+			  LEFT JOIN MM_PUB_DATA_DICT MPD
+			  ON MPD.CODE_TYPE = 'MM_PUP_DEQ_STATUS'
+			  AND MPD.CODE_VALUE = RES.deqStatus
+			  AND MPD.FACTORY_CODE = #{factoryCode}
+			  WHERE 1=1
+			<if test="planPickupTimeStart != null and planPickupTimeStart != ''">
+				AND RES.planPickupDate >= #{planPickupTimeStart}
+			</if>
+			<if test="planPickupTimeEnd != null and planPickupTimeEnd != ''">
+				AND RES.planPickupDate <![CDATA[<=]]> #{planPickupTimeEnd}
+			</if>
+			<if test="orderNo != null and orderNo != ''">
+				AND RES.orderNo LIKE CONCAT(#{orderNo},'%')
+			</if>
+			<if test="purchaseNo != null and purchaseNo !=''">
+				AND RES.purchaseNo LIKE CONCAT(#{purchaseNo},'%')
+			</if>
+			<if test="supplierNo != null and supplierNo != ''">
+				AND RES.supplierNo = #{supplierNo}
+			</if>
+			<if test="routeCode != null and routeCode != ''">
+				AND RES.routeCode = #{routeCode}
+			</if>
+			<if test="deqStatus != null and deqStatus != ''">
+				AND RES.deqStatus = #{deqStatus}
+			</if>
+			<if test="plateNum != null and plateNum != ''">
+				AND RES.plateNum = #{plateNum}
+			</if>
+		ORDER BY RES.orderNo,RES.deqStatus
+	</select>
+</mapper>

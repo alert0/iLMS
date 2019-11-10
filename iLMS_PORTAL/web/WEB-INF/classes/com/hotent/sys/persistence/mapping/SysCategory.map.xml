@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.sys.persistence.model.SysCategory">
+	<resultMap id="SysCategory" type="com.hotent.sys.persistence.model.SysCategory">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="groupKey" column="group_key_" jdbcType="VARCHAR"/>
+		<result property="name" column="name_" jdbcType="VARCHAR"/>
+		<result property="flag" column="flag_" jdbcType="NUMERIC"/>
+		<result property="sn" column="sn_" jdbcType="NUMERIC"/>
+		<result property="type" column="type_" jdbcType="NUMERIC"/>
+		<result property="createBy" column="create_by_" jdbcType="VARCHAR"/>
+		<result property="createTime" column="create_time_" jdbcType="TIMESTAMP"/>
+		<result property="createOrgId" column="create_org_id_" jdbcType="VARCHAR"/>
+		<result property="updateBy" column="update_by_" jdbcType="VARCHAR"/>
+		<result property="updateTime" column="update_time_" jdbcType="TIMESTAMP"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.sys.persistence.model.SysCategory">
+		INSERT INTO sys_type_group
+		(id_,group_key_,name_,flag_,sn_,type_,create_by_,create_time_,create_org_id_,update_by_,update_time_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{groupKey,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR}, #{flag,jdbcType=NUMERIC}, #{sn,jdbcType=NUMERIC}, #{type,jdbcType=NUMERIC}, #{createBy,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP}, #{createOrgId,jdbcType=VARCHAR}, #{updateBy,jdbcType=VARCHAR}, #{updateTime,jdbcType=TIMESTAMP})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="SysCategory">
+		SELECT * FROM sys_type_group 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="getByKey"   parameterType="java.lang.String" resultMap="SysCategory">
+		SELECT * FROM sys_type_group 
+		WHERE 
+		group_key_=#{key}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="SysCategory">
+		SELECT * FROM sys_type_group
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.sys.persistence.model.SysCategory">
+		UPDATE sys_type_group SET
+		group_key_=#{groupKey,jdbcType=VARCHAR},
+		name_=#{name,jdbcType=VARCHAR},
+		flag_=#{flag,jdbcType=NUMERIC},
+		sn_=#{sn,jdbcType=NUMERIC},
+		type_=#{type,jdbcType=NUMERIC},
+		create_by_=#{createBy,jdbcType=VARCHAR},
+		create_time_=#{createTime,jdbcType=TIMESTAMP},
+		create_org_id_=#{createOrgId,jdbcType=VARCHAR},
+		update_by_=#{updateBy,jdbcType=VARCHAR},
+		update_time_=#{updateTime,jdbcType=TIMESTAMP}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_type_group 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	<select id="isKeyExist" resultType="java.lang.Integer">
+		select count(*) from sys_type_group where lower(group_key_)=#{groupKey} 
+		<if test="id!=null"> AND id_ !=#{id} </if>
+	</select>
+	
+	
+</mapper>

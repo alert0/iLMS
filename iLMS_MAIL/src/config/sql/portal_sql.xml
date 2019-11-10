@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="portal">
+   <typeAlias alias="InterfErrorVO" type="com.hanthink.gps.system.vo.InterfErrorVO"/>
+   <typeAlias alias="SysAlertVO" type="com.hanthink.gps.system.vo.SysAlertVO"/>
+   <typeAlias alias="ProErrorVO" type="com.hanthink.gps.system.vo.ProErrorVO" />
+   
+   <typeAlias alias="checkTableSpaceVO" type="com.hanthink.gps.system.vo.CheckTableSpaceVO"/>
+   <typeAlias alias="checkProcedureTimeVO" type="com.hanthink.gps.system.vo.CheckProcedureTimeVO"/>
+   <typeAlias alias="checkDBObjectSpaceVO" type="com.hanthink.gps.system.vo.CheckDBObjectSpaceVO"/>
+   <typeAlias alias="checkTableRowNumVO" type="com.hanthink.gps.system.vo.CheckTableRowNumVO"/>
+   
+   <typeAlias alias="dbBlockErrorVO" type="com.hanthink.gps.system.vo.DataBaseBlockErrorVO"/>
+   
+   <typeAlias alias="printErrorVO" type="com.hanthink.gps.system.vo.PrintErrorVO"/>
+   <typeAlias alias="SystemParamVO" type="com.hanthink.gps.pub.vo.SystemParamVO"/>
+   
+   
+   <!-- 根据参数代码获取系统参数 -->
+   <select id="queryParamByParamCode" parameterClass="SystemParamVO" resultClass="SystemParamVO">
+   		SELECT T.PARAM_VAL paramVal FROM MM_PUB_SYS_PARAM T WHERE T.PARAM_CODE = #paramCode#
+   			AND T.FACTORY_CODE = #factory#
+   </select>
+   
+   <!-- 统计数据库表空间 -->
+   <select id="checkTableSpace" resultClass="checkTableSpaceVO" parameterClass="checkTableSpaceVO">
+    select 
+    a.tablespace_name as tableSpaceName,
+    a.bytes/1024/1024 as totalSpace,
+    (a.bytes-b.bytes)/1024/1024  as useSpace,
+    b.bytes/1024/1024 as restSpace,
+    round(((a.bytes-b.bytes)/a.bytes)*100,2) as percent
+    from (select tablespace_name,sum(bytes) bytes from dba_data_files group by tablespace_name)   a,
+    (select tablespace_name,sum(bytes) bytes,max(bytes) largest from dba_free_space group by tablespace_name)   b
+    where a.tablespace_name=b.tablespace_name and a.tablespace_name in(#tableSpaceName#,'SYSTEM','SYSAUX')
+    order by ((a.bytes-b.bytes)/a.bytes) desc
+   </select>
+   
+   <!-- 统计存储过程执行时间 -->
+   <select id="checkProcedureTime" resultClass="checkProcedureTimeVO">
+     select 
+     t.exec_code as execCode,
+       '最近1天' as range,
+       trunc(max((t.end_time - t.start_time)) * 24 * 60 * 60) as maxExecTime,
+       trunc(min((t.end_time - t.start_time)) * 24 * 60 * 60) as minExecTime
+       from MM_PUB_EXEC_TIME_LOG t
+     where t.start_time > sysdate - 1
+     GROUP BY t.exec_code
+   </select>
+   
+   <!-- 统计数据库对象占用空间信息 -->
+   <select id="checkDBObjectSpace" resultClass="checkDBObjectSpaceVO" parameterClass="checkDBObjectSpaceVO">
+     select 
+       segment_name as segnName,
+       segment_type as segnType,
+       bytes/1024/1024 as useSpace
+     from user_segments where bytes>#useSpace#
+     order by bytes desc
+   </select>
+   
+   <!-- 统计数据表行数信息 -->
+   <select id="checkTableRowNum" resultClass="checkTableRowNumVO" parameterClass="checkTableRowNumVO">
+     select 
+        a.TABLE_NAME as tableName,
+        a.NUM_ROWS  as  rowNums
+     from  user_tables a
+     where 
+        a.NUM_ROWS > #rowNums#
+     order by a.NUM_ROWS desc
+   </select>
+   
+   
+   <!-- 查询存储过程执行异常错误信息 -->
+	<select id="select_queryProErrorInfoList" resultClass="ProErrorVO">
+		SELECT 
+		  ID AS pkId,
+		  ALERT_TYPE AS alertType,
+		  ERROR_NAME AS errorName,
+		  ERROR_DESC AS errorDesc,
+		  CREATION_DATE AS creationDate,
+		  TO_CHAR(CREATION_DATE, 'YYYY-MM-DD HH24:MI:SS') AS creationDateStr,
+		  KEY_NAME AS keyName,
+		  SEND_MAIL_FLAG AS sendMailFlag,
+		  ERROR_LEVEL AS errorLevel
+		FROM MM_PUB_PRO_ERROR
+		WHERE DEAL_FLAG = 0 
+		  AND CREATION_DATE &gt; (SYSDATE - 1) 
+		ORDER BY CREATION_DATE DESC
+	</select>
+	
+	
+	<select id="queryDataBaseBlockErrorInfo" parameterClass="dbBlockErrorVO" resultClass="dbBlockErrorVO">
+    <!--找出死锁的语句 select username,lockwait,status,machine,program from $vsession$ where sid in
+        (select session_id from $vlock$) and lockwait is not null-->
+			select b.username,
+			       b.lockwait,
+			       b.status,
+			       b.machine,
+			       b.program,
+			       a.object_id,
+			       c.object_name tableName,
+			       b.sql_address,
+			       d.sql
+			  from $vlock$ a
+			  join $vsession$ b
+			    on a.session_id = b.sid
+			  join user_objects c
+			    on a.object_id = c.object_id
+			  left join (select s.address,
+			                    xmlagg(xmlparse(content replace(s.sql_text, '  ', '') || '' wellformed) order by s.piece)
+			                    .getclobval() as sql
+			               from $sqltext$ s
+			              group by s.address) d
+			    on b.sql_address = d.address
+			  where d.sql is not null
+			    and (d.sql not like 'select%' or d.sql not like 'SELECT%')
+   </select>
+	
+   <!-- 接口异常 -->
+   <select id="select_interfErrorInfo" resultClass="InterfErrorVO">
+    select m.if_name_zh as ifNameZH,a.if_code as ifCode, a.job_name as jobName, t1.last_process_time as lastProccessTime
+    from T_TIMEER a join t_if_config m on a.if_code=m.if_code 
+    left join (select b.job_name,
+                    (sysdate - max(b.process_time))*24*60 run_minus,
+                    max(b.process_time) last_process_time
+               from T_IF_TIMER_LOG b
+              where b.process_time > sysdate - 2
+              group by b.job_name) t1
+    on a.job_name = t1.job_name
+    where a.alert_min is not null
+    and a.run_state = 1
+    and a.update_state = 0
+    and (t1.last_process_time is null or t1.run_minus > a.alert_min)
+   </select>
+   
+   <!-- 自动打印相关 开始 -->
+    <!-- 执行查询异常信息之前的存储过程 -->
+    <procedure id="checkPrintError">
+      {call PKG_PR_ALERT.USP_PRINT_EXCEP_ALERT()}
+    </procedure>
+    
+    <!-- 查询自动打印异常信息 updated by chenyong 2016-10-09修改取出错误信息是前五分钟的信息
+     -->
+    <select id="select_queryPrintErrorInfo" parameterClass="printErrorVO" resultClass="printErrorVO">
+      select t.error_msg as errorMsg from MM_PR_EXCEP_ALERT t where t.deal_flag=0 and t.creation_time>sysdate - interval '5' MINUTE
+    </select>
+   <!-- 自动打印相关 结束 -->
+   
+   
+   <!-- A级警讯 2016-10-18-->
+   <select id="select_queryPECGpsMesIfErrorA" resultClass="SysAlertVO">
+     select 
+         A.FACTORY_CODE as factory,
+         a.alert_module as alertModule,
+         a.alert_code as alertCode,
+         a.alert_level as alertLevel,
+         a.alert_info as alertInfo,
+         a.creation_time as creationTime
+     from MM_PUB_SYS_ALERT a 
+     where a.deal_flag=0 
+     and a.alert_level='A' 
+     and a.creation_time>(sysdate-30/1440) 
+     ORDER BY a.creation_time
+   </select>
+   
+   <!-- 系统警讯提醒非A级警讯 2016-10-18 -->
+   <select id="select_queryPECGpsMesIfErrorNotA" resultClass="SysAlertVO" parameterClass="java.lang.String">
+      select 
+         A.FACTORY_CODE as factory,
+         a.alert_module as alertModule,
+         a.alert_code as alertCode,
+         a.alert_level as alertLevel,
+         a.alert_info as alertInfo,
+         a.creation_time as creationTime
+      from 
+      MM_PUB_SYS_ALERT a 
+      where a.deal_flag=0 
+      and $value$ 
+      ORDER BY a.creation_time
+   </select>
+   
+   <!-- 修改非A级别的数据为已处理 2016-11-09 -->
+   <update id="update_updateNotAIsHandle">
+       update MM_PUB_SYS_ALERT a set a.deal_flag=1 where a.alert_level!= 'A'
+   </update>
+   
+   <!--查询数据库JOB异常停止  -->
+	<select id="queryDBJobExceptionStopPortal" parameterClass="proErrorVO" resultClass="proErrorVO">
+		select 'ILMSPORTAL' dbName,
+			   a.job job, 
+			   a.what what, 
+			   a.last_date lastDate,  
+			   a.next_date nextDate, 
+			   a.interval interval
+		  from user_jobs a
+		 where a.broken = 'Y'
+	</select>
+	
+	<!-- 查询触发器异常 -->
+	<select id="queryDBTriggerExceptionStopPortal" parameterClass="proErrorVO" resultClass="proErrorVO">
+		select 'ILMSPORTAL' dbName,
+			   a.trigger_name triggerName, 
+			   a.table_name tableName, 
+			   a.status status, 
+			   a.triggering_event triggeringEvent
+			  from user_triggers a
+			  where a.status = 'DISABLED'
+	</select>
+   
+</sqlMap>

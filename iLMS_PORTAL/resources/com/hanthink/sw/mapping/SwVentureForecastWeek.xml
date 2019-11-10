@@ -1,0 +1,1196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hanthink.sw.model.SwVentureForecastModel">
+	
+	<!--**导入开始****************************************************  -->
+	<!--  根据UUID删除临时表数据-->
+	<delete id="deleteImportTempDataByUUID" parameterType="java.lang.String">
+		DELETE MM_SW_FORECAST_WEEK_JV_IMP WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR}
+	</delete>
+	
+	<!-- 批量导入数据写入到临时表 -->
+	<insert id="insertImportTempData" parameterType="java.util.List">
+		INSERT INTO MM_SW_FORECAST_WEEK_JV_IMP
+		  (ID,
+           FACTORY_CODE,
+           FORE_TYPE,
+           JV_PLACE,
+           JV_VERSION,
+           PLAN_DELIVERY,
+           PHASE,
+           PART_NO,
+           ORDER_QTY,
+           SUPPLIER_NO,
+           MODEL_CODE,
+           ADVANCE_TIME,
+           CREATION_USER,
+           CREATION_TIME,
+		   IMP_UUID,
+		   CHECK_RESULT,
+		   CHECK_INFO,
+		   IMPORT_STATUS)
+		<foreach collection="list" item="item" index="index" separator=" UNION ALL ">
+			SELECT 
+			 PKG_PUB.USF_GET_SEQUENCE('SEQ_SW_FORECAST_WEEK_JV_IMP'),
+			 #{item.factoryCode,jdbcType=VARCHAR},
+			 '2',
+			 #{item.jvPlace,jdbcType=VARCHAR},
+			 #{item.jvVersion,jdbcType=VARCHAR},
+			 
+			 #{item.planDelivery,jdbcType=VARCHAR}, 
+			 #{item.phase,jdbcType=VARCHAR},
+			 #{item.partNo,jdbcType=VARCHAR},
+			 #{item.orderQty,jdbcType=VARCHAR},
+			 #{item.supplierNo,jdbcType=VARCHAR},
+			 #{item.modelCode,jdbcType=VARCHAR},
+			 #{item.advanceTime,jdbcType=VARCHAR},
+			 #{item.creationUser,jdbcType=VARCHAR},
+			 SYSDATE,
+			 #{item.uuid,jdbcType=VARCHAR}, 
+			 #{item.checkResult,jdbcType=VARCHAR}, 
+			 #{item.checkInfo,jdbcType=VARCHAR}, 
+			 #{item.importStatus,jdbcType=VARCHAR}
+			FROM DUAL 
+    	</foreach>
+	</insert>
+	
+	<!-- 检查导入临时表数据 -->
+	<parameterMap type="map" id="impCkParamMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="userName" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<select id="checkImportData" parameterMap="impCkParamMap" statementType="CALLABLE">
+		{CALL PKG_PUB_CHECK.USP_SW_VENTURE_WEEK_CHECK(?, ?, ?,  ?,?)}
+	</select>
+	
+	<!-- 查询临时表中的数据是否可以导入 -->
+	<select id="queryIsImportFlag" parameterType="java.lang.String" resultType="java.lang.String">
+		WITH TEMPA AS
+		 (SELECT COUNT(1) s
+		    FROM MM_SW_FORECAST_WEEK_JV_IMP A
+		   WHERE A.CHECK_RESULT = 0
+		     AND A.IMP_UUID = #{VALUE}),
+		TEMPB AS
+		 (SELECT COUNT(1) S
+		    FROM MM_SW_FORECAST_WEEK_JV_IMP B
+		   WHERE B.IMP_UUID = #{VALUE})
+		SELECT CASE
+		         WHEN A.S >= B.S THEN
+		          0
+		         ELSE
+		          1
+		       END AS FLAG
+		  FROM TEMPA A, TEMPB B
+	</select>
+	
+	<!-- 查询导入的临时数据 -->
+	<select id="queryImportTempData" parameterType="java.util.Map" resultType="com.hanthink.sw.model.SwVentureForecastModel">
+			SELECT A.ID 		 id,
+		       A.FACTORY_CODE 	 factoryCode,
+		       A.JV_VERSION 	 jvVersion,
+		       A.PLAN_DELIVERY   planDelivery,
+		       
+		       A.PHASE 			 phaseStr,
+		       <!-- D.CODE_VALUE_NAME phaseStr, -->
+		       A.PART_NO 		 partNo,
+		      
+		       A.ORDER_QTY 		 orderQty,
+		       A.SUPPLIER_NO 	 supplierNo,
+		       A.MODEL_CODE 	 modelCode,
+			   A.JV_PLACE			jvPlace,
+		       A.CHECK_RESULT 		checkResult,
+		       A.CHECK_INFO 		checkInfo,
+		       A.IMPORT_STATUS 		importStatus,
+		       H.CODE_VALUE_NAME 	checkResultStr,
+		       G.CODE_VALUE_NAME 	importStatusStr,
+		       A.ADVANCE_TIME		advanceTime
+		  FROM MM_SW_FORECAST_WEEK_JV_IMP A
+		  LEFT JOIN MM_PUB_SUPPLIER B
+		    ON A.SUPPLIER_NO = B.SUPPLIER_NO
+
+		  LEFT JOIN MM_PUB_DATA_DICT H
+		    ON A.CHECK_RESULT = H.CODE_VALUE
+		   AND H.CODE_TYPE = 'PUB_IMP_CK_RESULT'
+		   AND H.FACTORY_CODE = A.FACTORY_CODE
+		   
+		  LEFT JOIN MM_PUB_DATA_DICT G
+		    ON A.IMPORT_STATUS = G.CODE_VALUE
+		   AND G.CODE_TYPE = 'PUB_IMP_STATUS'
+		   AND G.FACTORY_CODE = A.FACTORY_CODE
+		   
+		   
+		 WHERE A.IMP_UUID = #{uuid}
+		 ORDER BY A.CHECK_RESULT, A.CHECK_INFO, A.PART_NO
+	</select>
+	
+	
+	<!-- 查询可导入数据 -->
+	<select id="queryForInsertList" parameterType="java.util.Map" resultType="com.hanthink.sw.model.SwVentureForecastModel">
+	   SELECT A.id
+		  FROM MM_SW_FORECAST_WEEK_JV_IMP A
+		 WHERE A.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		   AND A.IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+		   AND A.CHECK_RESULT = #{checkResult, jdbcType = VARCHAR}
+	</select>
+	
+	<!-- 导入临时数据写入到正式表 -->
+	<insert id="insertImportData" parameterType="java.util.Map" >
+		INSERT INTO MM_SW_FORECAST_WEEK_JV
+		  (ID,
+           FACTORY_CODE,
+           FORE_TYPE,
+           JV_VERSION,
+           PLAN_DELIVERY,
+           PART_NO,
+           ORDER_QTY,
+           SUPPLIER_NO,
+           MODEL_CODE,
+           PHASE,
+           JV_PLACE,
+           ADVANCE_TIME,
+           CREATION_USER,
+           CREATION_TIME)
+		  (SELECT PKG_PUB.USF_GET_SEQUENCE('SEQ_SW_FORECAST_WEEK_JV'),
+		          A.FACTORY_CODE,
+		          '2',
+		          A.JV_VERSION,
+		          to_date(A.PLAN_DELIVERY,'yyyy-mm-dd'),
+				  A.PART_NO,
+				  A.ORDER_QTY,
+				  A.SUPPLIER_NO,
+				  A.MODEL_CODE,
+				  (SELECT B.CODE_VALUE
+	              FROM MM_PUB_DATA_DICT B
+	             WHERE B.FACTORY_CODE = A.FACTORY_CODE
+	               AND B.CODE_TYPE = 'SW_PHASE'
+	               AND B.CODE_VALUE_NAME = A.PHASE),
+		          A.JV_PLACE,
+				  A.ADVANCE_TIME,
+		          A.CREATION_USER,
+		          SYSDATE
+		          
+		     FROM MM_SW_FORECAST_WEEK_JV_IMP A
+		    WHERE IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		      AND CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		      AND IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+		      AND OPE_TYPE = 'I')
+	</insert>
+	
+	<!--  版本号记录至MM_SW_FORECAST_VERSION_JV-->
+	<insert id="insertVersion" parameterType="java.util.Map" >
+		INSERT INTO MM_SW_FORECAST_VERSION
+			  (ID,
+			   FACTORY_CODE,
+			   FORE_TYPE,
+			   VERSION,
+			   JV_PLACE,
+			   TYPE,
+			   CREATION_USER,
+			   CREATION_TIME)
+			  SELECT PKG_PUB.USF_GET_SEQUENCE('SEQ_SW_FORECAST_VERSION'),
+			         A.FACTORY_CODE,
+			         '2',
+			         A.JV_VERSION,
+			         A.JV_PLACE,
+			         '0',
+			         #{creationUser,jdbcType=VARCHAR},
+			         SYSDATE
+			    FROM MM_SW_FORECAST_WEEK_JV_IMP A
+			    WHERE A.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+			      AND A.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+			      AND A.IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+			      AND A.OPE_TYPE = 'I'
+			   GROUP BY A.FACTORY_CODE, A.FORE_TYPE, A.JV_VERSION, A.JV_PLACE
+	</insert>
+	
+	<!-- 更新临时表数据导入状态 -->
+	<update id="updateVentureForecastImportDataImpStatus" parameterType="java.util.Map">
+		UPDATE MM_SW_FORECAST_WEEK_JV_IMP
+		   SET IMPORT_STATUS = #{IMPORT_STATUS_YES, jdbcType = VARCHAR}
+		 WHERE IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		   AND CHECK_RESULT = #{checkResult, jdbcType = VARCHAR}
+		   AND IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+	</update>
+	<!--****导入结束***********************************************************  -->
+	
+	<!--  分页查询合资车预测数据-->
+	<!-- 导出数据 -->
+	<!--  查询要删除的版本是否已发布-->
+	<select id="queryVentureForePage" parameterType="com.hanthink.sw.model.SwVentureForecastModel" 
+	  resultType="com.hanthink.sw.model.SwVentureForecastModel">
+			SELECT A.ID				id,
+		       A.FACTORY_CODE		factoryCode,
+		      <!--  A.FORE_TYPE			foreType,
+		       D2.CODE_VALUE_NAME 	foreTypeStr, -->
+		       A.JV_VERSION		    jvVersion,
+		       A.JV_PLACE			jvPlace,
+		       A.PLAN_DELIVERY		planDelivery,
+		       A.PART_NO			partNo,
+		       A.ORDER_QTY			orderQty,
+		       A.SUPPLIER_NO		supplierNo,
+		       A.MODEL_CODE			modelCode,
+		       A.PHASE				phase,
+		       D.CODE_VALUE_NAME	phaseStr,
+		       A.P_SUPPLIER			parentSupplier,
+		       A.RELEASE_STATUS		releaseStatus,
+		       D1.CODE_VALUE_NAME	releaseStatusStr,
+		       A.ADVANCE_TIME		advanceTime,
+		       A.CREATION_USER		creationUser,
+		       to_char(A.CREATION_TIME,'yyyy-mm-dd')		creationTime,
+		       
+		       T.PART_NAME_CN		partNameCn,
+		       U.PART_SHORT_NO		partShortNo,
+		       P.SUPPLIER_NAME		supplierName
+		  FROM MM_SW_FORECAST_WEEK_JV A
+		  LEFT JOIN MM_PUB_PART T
+		    ON A.PART_NO = T.PART_NO
+		   AND A.FACTORY_CODE = T.FACTORY_CODE
+		  LEFT JOIN MM_PUB_PART_UDA U
+		    ON A.PART_NO = U.PART_NO
+		   AND A.FACTORY_CODE = U.FACTORY_CODE
+		  LEFT JOIN MM_PUB_SUPPLIER P
+		    ON A.SUPPLIER_NO = P.SUPPLIER_NO
+		  LEFT JOIN MM_PUB_DATA_DICT D
+		    ON D.CODE_TYPE = 'SW_PHASE'
+		   AND D.FACTORY_CODE = A.FACTORY_CODE
+		   AND D.CODE_VALUE = A.PHASE
+		  LEFT JOIN MM_PUB_DATA_DICT D1
+		    ON D1.CODE_TYPE = 'SW_RELEASE_STATUS'
+		   AND D1.FACTORY_CODE = A.FACTORY_CODE
+		   AND D1.CODE_VALUE = A.RELEASE_STATUS
+	
+		 WHERE A.FACTORY_CODE = #{factoryCode}
+		
+		<!-- 数据权限 -->
+		<if test=" null != userType and userType == '6'.toString() ">
+		<if test="null != userId and ''!= userId">
+	      	AND A.JV_PLACE IN (SELECT V.VALUE_CODE FROM VIEW_SYS_USER_DATA_PERM V 
+	      		WHERE V.USER_ID = #{userId} AND V.TYPE_CODE = 'JV_FORE_PLACE')
+	    </if>
+	    </if>
+		<if test="null != jvVersion and '' != jvVersion">
+			AND A.JV_VERSION = #{jvVersion,jdbcType=VARCHAR}
+		</if>
+		<if test="null != partNo and '' != partNo">
+			AND A.PART_NO LIKE CONCAT(#{partNo},'%')
+		</if>
+		<if test="null != partShortNo and '' != partShortNo">
+			AND U.PART_SHORT_NO = #{partShortNo,jdbcType=VARCHAR}
+		</if>
+	    <if test="null != partNameCn and '' != partNameCn">
+			AND T.PART_NAME_CN LIKE CONCAT(#{partNameCn,jdbcType=VARCHAR},'%')
+		</if>
+	    <if test="planDeliveryStar !=null and planDeliveryStar !='' ">
+	      <![CDATA[ AND A.PLAN_DELIVERY >= TO_DATE(#{planDeliveryStar},'yyyy-MM-dd') ]]>
+	    </if>
+	    <if test="planDeliveryEnd !=null and planDeliveryEnd !='' ">
+	      <![CDATA[ AND A.PLAN_DELIVERY <= TO_DATE(#{planDeliveryEnd},'yyyy-MM-dd') ]]>
+	    </if>
+	    <if test="creationTimeStar !=null and creationTimeStar !='' ">
+	      <![CDATA[ AND A.CREATION_TIME >= TO_DATE(#{creationTimeStar},'yyyy-MM-dd') ]]>
+	    </if>
+	    <if test="creationTimeEnd !=null and creationTimeEnd !='' ">
+	       <![CDATA[ AND A.CREATION_TIME <= TO_DATE(#{creationTimeEnd},'yyyy-MM-dd') ]]>
+	    </if>
+	    <if test="null != releaseStatus and '' != releaseStatus">
+		   AND A.RELEASE_STATUS = #{releaseStatus,jdbcType=VARCHAR}
+	    </if>
+	  	<if test="null != supplierNo and '' != supplierNo">
+		   AND A.SUPPLIER_NO = #{supplierNo,jdbcType=VARCHAR}
+	    </if>
+	    <if test="null != jvPlace and '' != jvPlace">
+		  AND A.JV_PLACE = #{jvPlace,jdbcType=VARCHAR}
+	    </if>
+		ORDER BY A.JV_PLACE,A.CREATION_TIME DESC
+	</select>
+	
+
+	<!--**根据版本删除数据开始*******************************************  -->
+	<!--  删除版本号（MM_SW_FORECAST_JV）-->
+	<delete id="deleteVentureVersion" parameterType="com.hanthink.sw.model.SwVentureForecastModel" >
+	DELETE FROM MM_SW_FORECAST_WEEK_JV A WHERE A.JV_VERSION = #{jvVersion}
+	</delete>
+	<!--  删除版本号（MM_SW_FORECAST_VERSION）-->
+	<delete id="deleteVentureVersionJv" parameterType="com.hanthink.sw.model.SwVentureForecastModel" >
+	DELETE MM_SW_FORECAST_VERSION A WHERE A.VERSION = #{jvVersion} AND A.TYPE = 0 AND A.FORE_TYPE = 2
+	</delete>
+	<!--**根据版本删除数据结束******************************************  -->
+	
+	<!--**检索开始*****************************************************  -->
+	<!-- 删除上一次数据 -->
+	<delete id="deleteReleaseImp" parameterType="com.hanthink.sw.model.SwVentureForecastModel">
+		DELETE FROM MM_SW_FORECAST_REL_WEEK_IMP A WHERE A.CREATION_USER = #{creationUser}
+	</delete>
+	<!-- 检索，合资车数据合并到发布临时表 -->
+	<insert id="insertReleaseImpJv" parameterType="com.hanthink.sw.model.SwVentureForecastModel">
+	    INSERT INTO MM_SW_FORECAST_REL_WEEK_IMP
+				  (ID,
+				   FACTORY_CODE,
+				   FORE_TYPE,
+				   PLAN_DELIVERY,
+				   START_DATE,
+				   END_DATE,
+				   PHASE,
+				   PART_NO,
+				   ORDER_QTY,
+				   SUPPLIER_NO,
+				   MODEL_CODE,
+				   RELEASE_STATUS,
+				   OBJ_WEEK,
+				   PUBLISH_WEEK,
+				   ADVANCE_TIME,
+				   P_SUPPLIER,
+				   CREATION_USER,
+				   CREATION_TIME)
+				  SELECT SEQ_SW_FORECAST_REL_WEEK_IMP.NEXTVAL,
+				         A.FACTORY_CODE,
+				         '2',
+				         A.PLAN_DELIVERY,
+				         to_date(#{startDate,jdbcType=VARCHAR},'yyyy-mm-dd'),
+				         to_date(#{endDate,jdbcType=VARCHAR},'yyyy-mm-dd'),
+				         A.PHASE,
+				         A.PART_NO,
+				         A.ORDER_QTY,
+				         A.SUPPLIER_NO,
+				         A.MODEL_CODE,
+				         '0',
+				         #{objWeek,jdbcType=VARCHAR},
+				         #{publishWeek,jdbcType=VARCHAR},
+				         A.ADVANCE_TIME,
+				         A.P_SUPPLIER,
+				         #{creationUser,jdbcType=VARCHAR},
+				         SYSDATE
+				    FROM MM_SW_FORECAST_WEEK_JV A
+				   WHERE 1=1
+				   and A.JV_VERSION in
+		 <foreach collection="jvVersionList" item="jvVersion" index="index" open="(" separator="," close=")">
+		    #{jvVersion}
+		 </foreach>
+				   
+	</insert>
+	<!--检索，erp预测数据合并到发布临时表  -->
+	<insert id="insertReleaseImpErp" parameterType="com.hanthink.sw.model.SwVentureForecastModel">
+			INSERT INTO MM_SW_FORECAST_REL_WEEK_IMP
+			  (ID,
+			   FACTORY_CODE,
+			   FORE_TYPE,
+			   PLAN_DELIVERY,
+			   START_DATE,
+			   END_DATE,
+			   PHASE,
+			   UNLOAD_PORT,
+			   PART_NO,
+			   PART_UNIT,
+			   ORDER_QTY,
+			   SUPPLIER_NO,
+			   MODEL_CODE,
+			   LOGISTICS_MODE,
+
+			   CREATION_USER,
+			   CREATION_TIME,
+			   RELEASE_STATUS,
+
+			   WORKCENTER,
+			   OBJ_WEEK,
+			   PUBLISH_WEEK,
+			   ADVANCE_TIME,
+			   P_SUPPLIER,
+			   SEQ )
+		SELECT SEQ_SW_FORECAST_REL_WEEK_IMP.NEXTVAL,
+		       A.FACTORY_CODE,
+		       '2',
+		       A.PLAN_DELIVERY,
+		       A.START_DATE,
+		       A.END_DATE,
+		       A.PHASE,
+		       A.UNLOAD_PORT,
+		       A.PART_NO,
+		       A.PART_UNIT,
+		       A.ORDER_QTY,
+		       A.SUPPLIER_NO,
+
+		       A.MODEL_CODE,
+		       A.LOGISTICS_MODE,
+		       #{creationUser,jdbcType=VARCHAR},
+		       SYSDATE,
+		       '0',
+
+		       A.WORKCENTER,
+		       A.OBJ_WEEK,
+		       A.PUBLISH_WEEK,
+		       A.ADVANCE_TIME,
+		       A.P_SUPPLIER,
+		       SEQ
+		  FROM MM_SW_DEMAND_FORECAST A
+		  WHERE A.VERSION = #{erpVersion,jdbcType=VARCHAR}
+		  AND A.FORE_TYPE = 2
+	</insert> 
+	
+	<!--检索，分页查询统计后的数据  -->
+	<select id="queryTotalQty" parameterType="com.hanthink.sw.model.SwVentureForecastModel"
+		resultType="com.hanthink.sw.model.SwVentureForecastModel">
+	SELECT MAX(A.ID )               id,
+		       MAX(pd.code_value_name)  PHASE,
+		       A.FACTORY_CODE           factoryCode,
+		       A.SUPPLIER_NO            supplierNo,
+		       MAX(SUP.SUPPLIER_NAME)   supplierName,
+		       MAX(part.Sup_Factory)    supFactory,
+		       A.PART_NO                partNo,
+		       MAX(part.PART_SHORT_NO)  partShortNo,
+		       MAX(part.PART_NAME_CN)   partNameCn,
+		       MAX(MDD.CODE_VALUE_NAME) releaseStatus,
+		       A.FORE_TYPE         		foreType,
+		      TO_CHAR( (trunc(to_date(substr(A.OBJ_WEEK, 0, 10),'yyyy-mm-dd') ,'d'）+ 1),'mm/dd')
+		      || '~' ||
+		      to_char( (trunc(to_date(substr(A.OBJ_WEEK, 0, 10),'yyyy-mm-dd') ,'d') + 7 ),'mm/dd') objWeek,
+		       substr(MAX(A.PUBLISH_WEEK),0,10)      publishWeek,
+		       MAX(A.ADVANCE_TIME) advanceTime,
+		       W1.ORDER_QTY        weekOne,
+		       W2.ORDER_QTY        weekTwo,
+		       W3.ORDER_QTY        weekThree,
+		       W4.ORDER_QTY        weekFour
+		  FROM MM_SW_FORECAST_REL_WEEK_IMP A
+		  LEFT JOIN(
+		
+		SELECT SUM(A.ORDER_QTY) ORDER_QTY,
+		       A.PART_NO,
+		       max(a.plan_delivery),
+		       A.FACTORY_CODE,
+		       A.PHASE,
+		       A.SUPPLIER_NO,
+		       A.CREATION_USER
+		  FROM MM_SW_FORECAST_REL_WEEK_IMP A
+
+		  LEFT JOIN MM_PUB_PART_UDA part
+			 ON A.PART_NO = part.PART_NO 
+			and a.factory_code = part.factory_code
+			  
+		    LEFT JOIN (select trunc(to_date(SUBSTR(MAX(A.OBJ_WEEK), 0, 10),'yyyy-mm-dd') ,'d') + 1 
+		  		FIRST_WEEK from MM_SW_FORECAST_REL_WEEK_IMP A WHERE A.CREATION_USER = #{creationUser} 
+		  		and a.factory_code = #{factoryCode}) B 
+            		ON 1=1
+                       WHERE A.FORE_TYPE = 2
+                       AND B.FIRST_WEEK &lt;=
+                           A.PLAN_DELIVERY
+                       AND B.FIRST_WEEK + 7 &gt;
+                           A.PLAN_DELIVERY
+	    
+		 GROUP BY A.PART_NO, A.FACTORY_CODE, A.PHASE, A.SUPPLIER_NO, A.CREATION_USER <!-- W+1周数据 -->
+		) W1
+		ON  A.FACTORY_CODE = W1.FACTORY_CODE
+		AND A.PART_NO = W1.PART_NO
+		AND A.SUPPLIER_NO = W1.SUPPLIER_NO
+		AND A.PHASE = W1.PHASE
+		AND A.CREATION_USER = W1.CREATION_USER
+		
+		LEFT JOIN 
+		(SELECT SUM(A.ORDER_QTY) ORDER_QTY,
+		       A.PART_NO,
+		       max(a.plan_delivery),
+		       A.FACTORY_CODE,
+		       A.PHASE,
+		       A.SUPPLIER_NO,
+		       A.CREATION_USER
+		  FROM MM_SW_FORECAST_REL_WEEK_IMP A
+		  LEFT JOIN MM_PUB_PART_UDA part
+			ON A.PART_NO = part.PART_NO
+		   and a.factory_code = part.factory_code
+		   
+		  LEFT JOIN (select trunc(to_date(SUBSTR(MAX(A.OBJ_WEEK), 0, 10),'yyyy-mm-dd') ,'d') + 1 
+		  		FIRST_WEEK from MM_SW_FORECAST_REL_WEEK_IMP A WHERE A.CREATION_USER = #{creationUser} 
+		  		and a.factory_code = #{factoryCode}) B 
+            		ON 1=1
+                       WHERE A.FORE_TYPE = 2
+                       AND B.FIRST_WEEK + 7 &lt;=
+                           A.PLAN_DELIVERY
+                       AND B.FIRST_WEEK + 14 &gt;
+                           A.PLAN_DELIVERY
+
+		 GROUP BY A.PART_NO, A.FACTORY_CODE, A.PHASE, A.SUPPLIER_NO,A.CREATION_USER) W2  <!-- W+2周数据 -->
+		 ON A.FACTORY_CODE = W2.FACTORY_CODE
+		AND A.PART_NO = W2.PART_NO
+		AND A.SUPPLIER_NO = W2.SUPPLIER_NO
+		AND A.PHASE = W2.PHASE
+		AND A.CREATION_USER = W2.CREATION_USER
+		
+		LEFT JOIN 
+		(SELECT SUM(A.ORDER_QTY) ORDER_QTY,
+		       A.PART_NO,
+		       max(a.plan_delivery),
+		       A.FACTORY_CODE,
+		       A.PHASE,
+		       A.SUPPLIER_NO,
+		       A.CREATION_USER
+		  FROM MM_SW_FORECAST_REL_WEEK_IMP A
+		  LEFT JOIN MM_PUB_PART_UDA part
+					     ON A.PART_NO = part.PART_NO
+					    and a.factory_code = part.factory_code
+		  LEFT JOIN (select trunc(to_date(SUBSTR(MAX(A.OBJ_WEEK), 0, 10),'yyyy-mm-dd') ,'d') + 1 
+		  		FIRST_WEEK from MM_SW_FORECAST_REL_WEEK_IMP A WHERE A.CREATION_USER = #{creationUser} 
+		  		and a.factory_code = #{factoryCode}) B 
+            ON 1=1
+                       WHERE A.FORE_TYPE = 2
+                       AND B.FIRST_WEEK + 14 &lt;=
+                           A.PLAN_DELIVERY
+                       AND B.FIRST_WEEK + 21 &gt;
+                           A.PLAN_DELIVERY
+
+		 GROUP BY A.PART_NO, A.FACTORY_CODE, A.PHASE, A.SUPPLIER_NO,A.CREATION_USER) W3  <!-- W+3周数据 -->
+		 ON A.FACTORY_CODE = W3.FACTORY_CODE
+		AND A.PART_NO = W3.PART_NO
+		AND A.SUPPLIER_NO = W3.SUPPLIER_NO
+		AND A.PHASE = W3.PHASE
+		AND A.CREATION_USER = W3.CREATION_USER
+		
+		LEFT JOIN 
+		(SELECT SUM(A.ORDER_QTY) ORDER_QTY,
+		       A.PART_NO,
+		       max(a.plan_delivery),
+		       A.FACTORY_CODE,
+		       A.PHASE,
+		       A.SUPPLIER_NO,
+		       A.CREATION_USER
+		  FROM MM_SW_FORECAST_REL_WEEK_IMP A
+		  LEFT JOIN MM_PUB_PART_UDA part
+					     ON A.PART_NO = part.PART_NO
+					    and a.factory_code = part.factory_code
+					    
+		  LEFT JOIN (select trunc(to_date(SUBSTR(MAX(A.OBJ_WEEK), 0, 10),'yyyy-mm-dd') ,'d') + 1 
+		  		FIRST_WEEK from MM_SW_FORECAST_REL_WEEK_IMP A WHERE A.CREATION_USER = #{creationUser} 
+		  		and a.factory_code = #{factoryCode}) B 
+            ON 1=1
+                       WHERE A.FORE_TYPE = 2
+                       AND B.FIRST_WEEK + 21 &lt;=
+                           A.PLAN_DELIVERY
+                       AND B.FIRST_WEEK + 28 &gt;
+                           A.PLAN_DELIVERY
+		  
+		 GROUP BY A.PART_NO， A.FACTORY_CODE, A.PHASE, A.SUPPLIER_NO,A.CREATION_USER) W4  <!-- W+4周数据 -->
+		 ON A.FACTORY_CODE = W4.FACTORY_CODE
+		AND A.PART_NO = W4.PART_NO
+		AND A.SUPPLIER_NO = W4.SUPPLIER_NO
+		AND A.PHASE = W4.PHASE
+		AND A.CREATION_USER = W4.CREATION_USER
+		
+		LEFT JOIN (SELECT SUM(A.ORDER_QTY) ORDER_QTY,
+		                    A.PART_NO,
+		                    max(a.plan_delivery),
+		                    A.FACTORY_CODE,
+		                    A.PHASE,
+		                    A.SUPPLIER_NO,
+		                    A.CREATION_USER
+		               FROM MM_SW_FORECAST_REL_WEEK_IMP A
+		               LEFT JOIN MM_PUB_PART_UDA part
+					     ON A.PART_NO = part.PART_NO
+					    and a.factory_code = part.factory_code
+					    
+		               LEFT JOIN (select trunc(to_date(SUBSTR(MAX(A.OBJ_WEEK), 0, 10),'yyyy-mm-dd') ,'d') + 1 
+					  		FIRST_WEEK from MM_SW_FORECAST_REL_WEEK_IMP A WHERE A.CREATION_USER = #{creationUser} 
+					  		and a.factory_code = #{factoryCode}) B 
+			            ON 1=1
+                       WHERE A.FORE_TYPE = 2
+                       AND B.FIRST_WEEK + 28 &lt;=
+                           A.PLAN_DELIVERY
+                       AND B.FIRST_WEEK + 35 &gt;
+                           A.PLAN_DELIVERY
+	                    
+		              GROUP BY A.PART_NO,
+		              		   A.FACTORY_CODE,
+		                       A.PHASE,
+		                       A.SUPPLIER_NO,
+		                       A.CREATION_USER) W5
+		                       
+		    ON A.FACTORY_CODE = W5.FACTORY_CODE
+		   AND A.PART_NO = W5.PART_NO
+		   AND A.SUPPLIER_NO = W5.SUPPLIER_NO
+		   AND A.PHASE = W5.PHASE
+		   AND A.CREATION_USER = W5.CREATION_USER
+		   
+		   LEFT JOIN (SELECT SUM(A.ORDER_QTY) ORDER_QTY,
+		                    A.PART_NO,
+		                    max(a.plan_delivery),
+		                    A.FACTORY_CODE,
+		                    A.PHASE,
+		                    A.SUPPLIER_NO,
+		                    A.CREATION_USER
+		               FROM MM_SW_FORECAST_REL_WEEK_IMP A
+		               LEFT JOIN MM_PUB_PART_UDA part
+					     ON A.PART_NO = part.PART_NO
+					    and a.factory_code = part.factory_code
+					    
+		               LEFT JOIN (select trunc(to_date(SUBSTR(MAX(A.OBJ_WEEK), 0, 10),'yyyy-mm-dd') ,'d') + 1 
+					  		FIRST_WEEK from MM_SW_FORECAST_REL_WEEK_IMP A WHERE A.CREATION_USER = #{creationUser} 
+					  		and a.factory_code = #{factoryCode}) B 
+			            ON 1=1
+                       WHERE A.FORE_TYPE = 2
+                       AND B.FIRST_WEEK + 35 &lt;=
+                           A.PLAN_DELIVERY
+                       AND B.FIRST_WEEK + 42 &gt;
+                           A.PLAN_DELIVERY
+
+		              GROUP BY A.PART_NO, A.FACTORY_CODE,
+		                       A.VERSION,
+		                       A.PHASE,
+		                       A.SUPPLIER_NO,
+		                       A.CREATION_USER) W6
+		                       
+			    ON A.FACTORY_CODE = W6.FACTORY_CODE
+			   AND A.PART_NO = W6.PART_NO
+			   AND A.SUPPLIER_NO = W6.SUPPLIER_NO
+			   AND A.PHASE = W6.PHASE
+			   AND A.CREATION_USER = W6.CREATION_USER
+		
+		              left join mm_pub_part_uda part
+				            on part.part_no = A.part_no
+				           and a.factory_code = part.factory_code
+				           
+				          left join mm_pub_supplier sup
+				            on sup.supplier_no = a.supplier_no
+				            
+		              left join mm_pub_data_dict pd
+		                on A.PHASE = pd.code_value
+		               and pd.code_type = 'SW_PHASE'
+		               and a.factory_code = pd.factory_code
+
+		                 
+		              LEFT JOIN MM_PUB_DATA_DICT MDD
+		                 ON A.RELEASE_STATUS = MDD.CODE_VALUE
+		                 AND MDD.CODE_TYPE = 'SW_RELEASE_STATUS'
+		                 and a.factory_code = mdd.factory_code
+		       
+		WHERE A.FORE_TYPE = 2
+		 AND A.CREATION_USER = #{creationUser,jdbcType=VARCHAR}
+		 GROUP BY  A.FORE_TYPE,
+			       A.PHASE,
+			       A.PART_NO,
+			       A.SUPPLIER_NO,
+			       A.FACTORY_CODE,
+			       A.OBJ_WEEK,
+			       W1.ORDER_QTY,
+			       W2.ORDER_QTY,
+			       W3.ORDER_QTY,
+			       W4.ORDER_QTY,
+			       W5.ORDER_QTY, 
+			       W6.ORDER_QTY,
+			       A.CREATION_USER
+		ORDER BY A.SUPPLIER_NO ,A.PART_NO
+	</select>
+	
+	<!-- 查询erp下发的预测中最小日期，最大日期，对象周 -->
+	<select id="getExportModeMsg" parameterType="java.util.Map"
+		resultType="com.hanthink.sw.model.SwVentureForecastModel">
+		SELECT MIN(A.START_DATE) startDate, MAX(A.END_DATE) endDate, MAX(A.OBJ_WEEK) objWeek
+		  FROM MM_SW_DEMAND_FORECAST A
+		 WHERE A.VERSION = #{erpVersion}
+		   AND A.FORE_TYPE = 2
+	</select>
+	
+	<!-- 周预测导出 -->
+	<select id="queryVentureForecastWeekExportDataByPage" parameterType="java.util.Map"
+		resultType="java.util.Map">
+	SELECT    MAX(A.ID) id,
+		       <!-- A.VERSION version, -->
+		       MAX(pd.code_value_name)  PHASE,
+		       A.FACTORY_CODE 			factoryCode,
+		      <!--  MAX(A.UNLOAD_PORT) 	UNLOAD_PORT, -->
+		       A.SUPPLIER_NO 			SUPPLIER_NO,
+		       MAX(SUP.SUPPLIER_NAME) 	SUPPLIER_NAME,
+		       <!-- MAX(part.Sup_Factory) 	SUP_FACTORY, -->
+		       
+		       A.PART_NO 				PART_NO,
+		       MAX(part.PART_SHORT_NO)  PART_SHORT_NO,
+		       MAX(part.PART_NAME_CN)   PART_NAME_CN,
+		       MAX(MDD.CODE_VALUE_NAME) RELEASE_STATUS,
+		       
+		      TO_CHAR( (trunc(to_date(substr(A.OBJ_WEEK, 0, 10),'yyyy-mm-dd') ,'d'）+ 1),'mm/dd')
+		       || '~' ||
+		       to_char( (trunc(to_date(substr(A.OBJ_WEEK, 0, 10),'yyyy-mm-dd') ,'d') + 7 ),'mm/dd') OBJ_WEEK,
+		       
+		       W1.ORDER_QTY WEEK_ONE,
+		       W2.ORDER_QTY WEEK_TWO,
+		       W3.ORDER_QTY WEEK_THREE,
+		       W4.ORDER_QTY WEEK_FOUR,
+			   MAX(A.ADVANCE_TIME) ADVANCE_TIME,
+		       ${daySql} 
+		        A.FORE_TYPE FORE_TYPE
+		  FROM MM_SW_FORECAST_REL_WEEK_IMP A
+		  LEFT JOIN (
+		             
+		             SELECT SUM(A.ORDER_QTY) ORDER_QTY,
+		                     A.PART_NO,
+		                     max(a.plan_delivery),
+		                     A.FACTORY_CODE,
+		                     <!-- A.VERSION, -->
+		                     A.PHASE,
+		                     A.SUPPLIER_NO,
+		                     A.CREATION_USER
+		               FROM MM_SW_FORECAST_REL_WEEK_IMP A
+		               LEFT JOIN MM_PUB_PART_UDA part
+					     ON A.PART_NO = part.PART_NO
+					    and a.factory_code = part.factory_code
+					    
+		               LEFT JOIN (select trunc(to_date(SUBSTR(MAX(A.OBJ_WEEK), 0, 10),'yyyy-mm-dd') ,'d') + 1 
+					  		FIRST_WEEK from MM_SW_FORECAST_REL_WEEK_IMP A WHERE A.CREATION_USER = #{model.creationUser} 
+					  		and a.factory_code = #{model.factoryCode}) B 
+			            ON 1=1
+                       WHERE A.FORE_TYPE = 2
+                       AND B.FIRST_WEEK &lt;=
+                           A.PLAN_DELIVERY
+                       AND B.FIRST_WEEK + 7 &gt;
+                           A.PLAN_DELIVERY
+                           
+		               GROUP BY A.PART_NO,
+		              		    A.FACTORY_CODE,
+		                        <!-- A.VERSION, -->
+		                        A.PHASE,
+		                        A.SUPPLIER_NO,
+		                        A.CREATION_USER) W1
+		    ON A.FACTORY_CODE = W1.FACTORY_CODE
+		   AND A.PART_NO = W1.PART_NO
+		   AND A.SUPPLIER_NO = W1.SUPPLIER_NO
+		   AND A.PHASE = W1.PHASE
+		   AND A.CREATION_USER = W1.CREATION_USER
+		
+		  LEFT JOIN (SELECT SUM(A.ORDER_QTY) ORDER_QTY,
+		                    A.PART_NO,
+		                    max(a.plan_delivery),
+		                    A.FACTORY_CODE,
+		                    <!-- A.VERSION, -->
+		                    A.PHASE,
+		                    A.SUPPLIER_NO,
+		                    A.CREATION_USER
+		               FROM MM_SW_FORECAST_REL_WEEK_IMP A
+		               LEFT JOIN MM_PUB_PART_UDA part
+					     ON A.PART_NO = part.PART_NO
+					    and a.factory_code = part.factory_code
+					    
+		               LEFT JOIN (select trunc(to_date(SUBSTR(MAX(A.OBJ_WEEK), 0, 10),'yyyy-mm-dd') ,'d') + 1 
+					  		FIRST_WEEK from MM_SW_FORECAST_REL_WEEK_IMP A WHERE A.CREATION_USER = #{model.creationUser} 
+					  		and a.factory_code = #{model.factoryCode}) B 
+			            ON 1=1
+                       WHERE A.FORE_TYPE = 2
+                       AND B.FIRST_WEEK + 7 &lt;=
+                           A.PLAN_DELIVERY
+                       AND B.FIRST_WEEK + 14 &gt;
+                           A.PLAN_DELIVERY
+		                
+		              GROUP BY A.PART_NO,
+		              		   A.FACTORY_CODE,
+		                       <!-- A.VERSION, -->
+		                       A.PHASE,
+		                       A.SUPPLIER_NO,
+		                       A.CREATION_USER) W2
+		    ON A.FACTORY_CODE = W2.FACTORY_CODE
+		   AND A.PART_NO = W2.PART_NO
+		   AND A.SUPPLIER_NO = W2.SUPPLIER_NO
+		   AND A.PHASE = W2.PHASE
+		   AND A.CREATION_USER = W2.CREATION_USER
+		
+		  LEFT JOIN (SELECT SUM(A.ORDER_QTY) ORDER_QTY,
+		                    A.PART_NO,
+		                    max(a.plan_delivery),
+		                    A.FACTORY_CODE,
+		                    <!-- A.VERSION, -->
+		                    A.PHASE,
+		                    A.SUPPLIER_NO,
+		                    A.CREATION_USER
+		               FROM MM_SW_FORECAST_REL_WEEK_IMP A
+		               LEFT JOIN MM_PUB_PART_UDA part
+					     ON A.PART_NO = part.PART_NO
+					    and a.factory_code = part.factory_code
+					    
+		               LEFT JOIN (select trunc(to_date(SUBSTR(MAX(A.OBJ_WEEK), 0, 10),'yyyy-mm-dd') ,'d') + 1 
+					  		FIRST_WEEK from MM_SW_FORECAST_REL_WEEK_IMP A WHERE A.CREATION_USER = #{model.creationUser}
+					  		and a.factory_code = #{model.factoryCode}) B 
+			            ON 1=1
+                       WHERE A.FORE_TYPE = 2
+                       AND B.FIRST_WEEK + 14 &lt;=
+                           A.PLAN_DELIVERY
+                       AND B.FIRST_WEEK + 21 &gt;
+                           A.PLAN_DELIVERY
+		    
+		              GROUP BY A.PART_NO,
+		              		   A.FACTORY_CODE,
+		                       <!-- A.VERSION, -->
+		                       A.PHASE,
+		                       A.SUPPLIER_NO,
+		                       A.CREATION_USER) W3
+		    ON A.FACTORY_CODE = W3.FACTORY_CODE
+		   AND A.PART_NO = W3.PART_NO
+		   AND A.SUPPLIER_NO = W3.SUPPLIER_NO
+		   AND A.PHASE = W3.PHASE
+		   AND A.CREATION_USER = W3.CREATION_USER
+		
+		  LEFT JOIN (SELECT SUM(A.ORDER_QTY) ORDER_QTY,
+		                    A.PART_NO,
+		                    max(a.plan_delivery),
+		                    A.FACTORY_CODE,
+		                    <!-- A.VERSION, -->
+		                    A.PHASE,
+		                    A.SUPPLIER_NO,
+		                    A.CREATION_USER
+		               FROM MM_SW_FORECAST_REL_WEEK_IMP A
+		               LEFT JOIN MM_PUB_PART_UDA part
+					     ON A.PART_NO = part.PART_NO
+					    and a.factory_code = part.factory_code
+					    
+		               LEFT JOIN (select trunc(to_date(SUBSTR(MAX(A.OBJ_WEEK), 0, 10),'yyyy-mm-dd') ,'d') + 1 
+					  		FIRST_WEEK from MM_SW_FORECAST_REL_WEEK_IMP A WHERE A.CREATION_USER = #{model.creationUser}
+					  		and a.factory_code = #{model.factoryCode}) B 
+			            ON 1=1
+                       WHERE A.FORE_TYPE = 2
+                       AND B.FIRST_WEEK + 21 &lt;=
+                           A.PLAN_DELIVERY
+                       AND B.FIRST_WEEK + 28 &gt;
+                           A.PLAN_DELIVERY
+          
+		              GROUP BY A.PART_NO,
+		              		   A.FACTORY_CODE,
+		                       <!-- A.VERSION, -->
+		                       A.PHASE,
+		                       A.SUPPLIER_NO,
+		                       A.CREATION_USER) W4
+		                       
+		    ON A.FACTORY_CODE = W4.FACTORY_CODE
+		   AND A.PART_NO = W4.PART_NO
+		   AND A.SUPPLIER_NO = W4.SUPPLIER_NO
+		   AND A.PHASE = W4.PHASE
+		   AND A.CREATION_USER = W4.CREATION_USER
+		   
+		  
+		  LEFT JOIN (SELECT SUM(A.ORDER_QTY) ORDER_QTY,
+		                    A.PART_NO,
+		                    max(a.plan_delivery),
+		                    A.FACTORY_CODE,
+		                    <!-- A.VERSION, -->
+		                    A.PHASE,
+		                    A.SUPPLIER_NO,
+		                    A.CREATION_USER
+		               FROM MM_SW_FORECAST_REL_WEEK_IMP A
+		               LEFT JOIN MM_PUB_PART_UDA part
+					     ON A.PART_NO = part.PART_NO
+					    and a.factory_code = part.factory_code
+					    
+		               LEFT JOIN (select trunc(to_date(SUBSTR(MAX(A.OBJ_WEEK), 0, 10),'yyyy-mm-dd') ,'d') + 1 
+					  		FIRST_WEEK from MM_SW_FORECAST_REL_WEEK_IMP A WHERE A.CREATION_USER = #{model.creationUser}
+					  		and a.factory_code = #{model.factoryCode}) B 
+			            ON 1=1
+                       WHERE A.FORE_TYPE = 2
+                       AND B.FIRST_WEEK + 28 &lt;=
+                           A.PLAN_DELIVERY
+                       AND B.FIRST_WEEK + 35 &gt;
+                           A.PLAN_DELIVERY
+               
+		              GROUP BY A.PART_NO,
+		              		   A.FACTORY_CODE,
+		                       <!-- A.VERSION, -->
+		                       A.PHASE,
+		                       A.SUPPLIER_NO,
+		                       A.CREATION_USER) W5
+		                       
+		    ON A.FACTORY_CODE = W5.FACTORY_CODE
+		   AND A.PART_NO = W5.PART_NO
+		   AND A.SUPPLIER_NO = W5.SUPPLIER_NO
+		   AND A.PHASE = W5.PHASE
+		   AND A.CREATION_USER = W5.CREATION_USER
+		   
+		   
+		   LEFT JOIN (SELECT SUM(A.ORDER_QTY) ORDER_QTY,
+		                    A.PART_NO,
+		                    max(a.plan_delivery),
+		                    A.FACTORY_CODE,
+		                    <!-- A.VERSION, -->
+		                    A.PHASE,
+		                    A.SUPPLIER_NO,
+		                    A.CREATION_USER
+		               FROM MM_SW_FORECAST_REL_WEEK_IMP A
+		               LEFT JOIN MM_PUB_PART_UDA part
+					     ON A.PART_NO = part.PART_NO
+					    and a.factory_code = part.factory_code
+					    
+		               LEFT JOIN (select trunc(to_date(SUBSTR(MAX(A.OBJ_WEEK), 0, 10),'yyyy-mm-dd') ,'d') + 1 
+					  		FIRST_WEEK from MM_SW_FORECAST_REL_WEEK_IMP A WHERE A.CREATION_USER = #{model.creationUser}
+					  		and a.factory_code = #{model.factoryCode}) B 
+			            ON 1=1
+                       WHERE A.FORE_TYPE = 2
+                       AND B.FIRST_WEEK + 35 &lt;=
+                           A.PLAN_DELIVERY
+                       AND B.FIRST_WEEK + 42 &gt;
+                           A.PLAN_DELIVERY
+                  
+		              GROUP BY A.PART_NO,
+		              		   A.FACTORY_CODE,
+		                       <!-- A.VERSION, -->
+		                       A.PHASE,
+		                       A.SUPPLIER_NO,
+		                       A.CREATION_USER) W6
+		                       
+		    ON A.FACTORY_CODE = W6.FACTORY_CODE
+		   AND A.PART_NO = W6.PART_NO
+		   AND A.SUPPLIER_NO = W6.SUPPLIER_NO
+		   AND A.PHASE = W6.PHASE
+		   AND A.CREATION_USER = W6.CREATION_USER
+		
+		  LEFT JOIN (select FACTORY_CODE,
+		                    PART_NO,
+		                    SUPPLIER_NO,
+		                    fore_type,
+		                    
+		                    ${daySqlC}
+		                    
+		                    <!-- VERSION, -->
+		                    <!-- SUP_FACTORY, -->
+		                    PHASE,
+		                    CREATION_USER
+		               from (select SDF.FACTORY_CODE,
+		                            SDF.PART_NO,
+		                            SDF.SUPPLIER_NO,
+		                            <!-- PS.SUP_FACTORY, -->
+		                            SDF.PHASE,
+		                            fore_type,
+		                            <!-- VERSION, -->
+		                            TO_CHAR(SDF.PLAN_DELIVERY, 'YYYY-MM-DD') YEAR_MONTH_DAY,
+		                            sum(SDF.ORDER_QTY) MONTH_TTL,
+		                            SDF.CREATION_USER
+		                       from MM_SW_FORECAST_REL_WEEK_IMP SDF
+		                       LEFT JOIN MM_PUB_SUPPLIER PS
+		                         ON SDF.SUPPLIER_NO = PS.SUPPLIER_NO
+							   LEFT JOIN MM_PUB_PART_UDA part
+							     ON SDF.PART_NO = part.PART_NO
+							    and sdf.factory_code = part.factory_code
+							    
+		                      where SDF.PLAN_DELIVERY between
+		                            to_date(#{startDateStr,jdbcType=VARCHAR}, 'yyyy-mm-dd') and
+		                            to_date(#{endDateStr,jdbcType=VARCHAR}, 'yyyy-mm-dd') 
+		                        and SDF.FORE_TYPE = '2'
+		  		      		                     
+		                      group by SDF.FACTORY_CODE,
+		                               SDF.PART_NO,
+		                               SDF.SUPPLIER_NO,
+		                               <!-- PS.SUP_FACTORY, -->
+		                               SDF.PHASE,
+		                               fore_type,
+		                               <!-- VERSION, -->
+		                               TO_CHAR(SDF.PLAN_DELIVERY, 'YYYY-MM-DD'),
+		                               SDF.CREATION_USER)
+		              group by FACTORY_CODE,
+		                       PART_NO,
+		                       SUPPLIER_NO,
+		                       <!-- SUP_FACTORY, -->
+		                       PHASE,
+		                       <!-- VERSION, -->
+		                       fore_type,
+		                       CREATION_USER) C
+		                       
+		   ON A.FACTORY_CODE = C.FACTORY_CODE
+		   AND A.PART_NO = C.PART_NO
+		   AND A.SUPPLIER_NO = C.SUPPLIER_NO
+		   AND A.PHASE = C.PHASE
+		   AND A.CREATION_USER = C.CREATION_USER
+		
+		  left join mm_pub_part_uda part
+		    on part.part_no = A.part_no
+		   and a.factory_code = part.factory_code
+		   
+		  left join mm_pub_supplier sup
+		    on sup.supplier_no = a.supplier_no
+		    
+		  left join mm_pub_data_dict pd
+		    on A.PHASE = pd.code_value
+		   and pd.code_type = 'SW_PHASE'
+		   and a.factory_code = pd.factory_code
+
+		   
+		  LEFT JOIN MM_PUB_DATA_DICT MDD
+		    ON A.RELEASE_STATUS = MDD.CODE_VALUE
+		   AND MDD.CODE_TYPE = 'SW_RELEASE_STATUS'
+		   and a.factory_code = mdd.factory_code
+		
+		 where A.FORE_TYPE = '2'
+		 AND A.CREATION_USER = #{model.creationUser}
+		  
+		 GROUP BY A.FORE_TYPE,
+		          A.PHASE,
+
+		          A.PART_NO,
+		          A.SUPPLIER_NO,
+	
+		          A.OBJ_WEEK,
+		          W1.ORDER_QTY,
+		          W2.ORDER_QTY,
+		          W3.ORDER_QTY,
+		          W4.ORDER_QTY,
+		          W5.ORDER_QTY,
+		          W6.ORDER_QTY,
+		           ${daySql}
+		           A.FACTORY_CODE
+		        ORDER BY  A.SUPPLIER_NO, A.PART_NO
+	</select>
+	<!--**检索结束*******************************************************************  -->
+	
+	
+	<!--****发布开始*******************************************  -->
+	<!--  判断要发布的版本是否已发布至目标版本-->
+ 	<select id="selectIsReleaseVersion" parameterType="com.hanthink.sw.model.SwVentureForecastModel" 
+	  resultType="java.lang.Integer">
+		SELECT count(1) count
+		  FROM MM_SW_FORECAST_RELEASE A
+		  WHERE A.VERSION = #{version,jdbcType=VARCHAR}  
+		  AND A.FORE_TYPE = 2  	
+	</select> 
+	
+	<!--  根据目标版本号查询出MM_SW_DEMAND_FORECAST表中的相关信息-->
+	<select id="selectDemandForecasetByTagVersion" parameterType="com.hanthink.sw.model.SwVentureForecastModel" 
+	  resultType="com.hanthink.sw.model.SwVentureForecastModel">
+		SELECT MAX(A.OBJ_MONTH) 	objMonth,
+		       MAX(A.OBJ_WEEK)		objWeek,
+		       MAX(A.START_DATE)	startDate,
+		       MAX(A.END_DATE)		endDate
+	  FROM MM_SW_DEMAND_FORECAST A
+	  WHERE A.VERSION = #{erpVersion}
+	  AND A.FORE_TYPE = 2
+	 GROUP BY A.VERSION
+	</select>
+	
+	<!--  发布，数据写入到MM_SW_FORECAST_RELEASE表中-->
+	<insert id="insertReleaseVersion" >
+			INSERT INTO MM_SW_FORECAST_RELEASE
+			  (ID,
+			   FACTORY_CODE,
+			   FORE_TYPE,
+			   VERSION,
+			   PLAN_DELIVERY,
+			   START_DATE,
+			   END_DATE,
+			   PHASE,
+			   UNLOAD_PORT,
+			   PART_NO,
+			   PART_UNIT,
+			   ORDER_QTY,
+			   SUPPLIER_NO,
+			   SUPPLIER_NAME,
+			   SUP_FACTORY_ADDR,
+			   SUP_FACTORY,
+			   MODEL_CODE,
+			   LOGISTICS_MODE,
+		
+			   CREATION_USER,
+			   CREATION_TIME,
+			   
+			   RELEASE_STATUS,
+			   WORKCENTER,
+			   OBJ_WEEK,
+			   PUBLISH_WEEK,
+			   ADVANCE_TIME,
+			   P_SUPPLIER,
+			   SEQ)
+		SELECT SEQ_MM_SW_FORECAST_RELEASE.NEXTVAL,
+		       A.FACTORY_CODE,
+		       '2',
+		       #{version,jdbcType=VARCHAR},
+		       A.PLAN_DELIVERY,
+		       A.START_DATE,
+		       A.END_DATE,
+		       A.PHASE,
+		       A.UNLOAD_PORT,
+		       A.PART_NO,
+		       A.PART_UNIT,
+		       A.ORDER_QTY,
+		       A.SUPPLIER_NO,
+		       A.SUPPLIER_NAME,
+		       A.SUP_FACTORY_ADDR,
+		       A.SUP_FACTORY,
+		       A.MODEL_CODE,
+		       A.LOGISTICS_MODE,
+		       A.CREATION_USER,
+		       SYSDATE,
+		       '1',
+		       A.WORKCENTER,
+		       A.OBJ_WEEK,
+		       A.PUBLISH_WEEK,
+		       A.ADVANCE_TIME,
+		       A.P_SUPPLIER,
+		       A.SEQ
+		  FROM MM_SW_FORECAST_REL_WEEK_IMP A
+		  WHERE A.CREATION_USER = #{creationUser,jdbcType=VARCHAR}
+	</insert>
+	
+	<!--发布，写入发布记录表MM_SW_FORECAST_RECORD  -->
+	<insert id="insertForecastRecord" parameterType="com.hanthink.sw.model.SwVentureForecastModel"> 
+		INSERT INTO MM_SW_FORECAST_RECORD
+			  (FACTORY_CODE,
+			   FORE_TYPE,
+			   ERP_VERSION,
+			   JV_VERSION,
+			   VERSION,
+			   CREATION_USER,
+			   CREATION_TIME)
+			VALUES(
+			   #{factoryCode,jdbcType=VARCHAR},
+			   '2',
+			   #{erpVersion,jdbcType=VARCHAR},
+			   #{jvVersion,jdbcType=VARCHAR},
+			   #{version,jdbcType=VARCHAR},
+			   #{creationUser,jdbcType=VARCHAR},
+			   sysdate)
+	</insert>
+	
+	<!--发布,修改状态MM_SW_FORECAST_WEEK_JV  -->
+	<update id="updateJvReleaseStatus" parameterType="com.hanthink.sw.model.SwVentureForecastModel">
+	UPDATE MM_SW_FORECAST_WEEK_JV A SET A.RELEASE_STATUS = 1 WHERE A.JV_VERSION = #{jvVersion}
+	</update>
+	<update id="updateErpReleaseStatus" parameterType="com.hanthink.sw.model.SwVentureForecastModel">
+		  UPDATE MM_SW_DEMAND_FORECAST A
+		     SET A.RELEASE_STATUS = 1
+		   WHERE A.VERSION = #{erpVersion}
+		   AND A.FORE_TYPE = 2
+	</update>
+	<!--**发布结束**********************************  -->
+
+	<!--订购方版本号下拉框 -->
+	<select id="getJvVersion" parameterType="java.util.Map" 
+	resultType="com.hanthink.sw.model.SwVentureForecastModel">
+	SELECT A.VERSION || ' ' || A.JV_PLACE label, A.VERSION value
+	  FROM MM_SW_FORECAST_VERSION A
+	 WHERE A.FACTORY_CODE = #{factoryCode}
+ 	   AND A.TYPE = 0 	
+ 	   AND A.FORE_TYPE = 2
+	 <!-- 数据权限 -->
+	 <if test=" null != userType and userType == '6'.toString() ">
+	 <if test="null != userId and ''!= userId">
+      	AND A.JV_PLACE IN (SELECT V.VALUE_CODE FROM VIEW_SYS_USER_DATA_PERM V 
+      		WHERE V.USER_ID = #{userId} AND V.TYPE_CODE = 'JV_FORE_PLACE')
+      </if>
+      </if>
+      
+      <!--复选框订购方版本号只显示未发布的数据  -->
+      <if test="null != releaseStatus and '' != releaseStatus and '0'.toString()== releaseStatus">
+      AND NOT EXISTS
+      (SELECT 1 FROM MM_SW_FORECAST_RECORD B
+      	 WHERE A.VERSION = B.JV_VERSION AND B.FORE_TYPE = 2)
+      </if>
+      ORDER BY A.JV_PLACE ASC, A.VERSION DESC
+	</select>
+	
+	<!--ERP版本号下拉框 -->
+	<select id="getErpVersion" parameterType="java.util.Map" 
+	resultType="com.hanthink.sw.model.SwVentureForecastModel">
+	SELECT A.VERSION label, A.VERSION value
+	  FROM MM_SW_FORECAST_VERSION A
+	 WHERE A.FACTORY_CODE = #{factoryCode}
+ 	   AND A.TYPE = 1
+ 	   AND A.FORE_TYPE = 2
+ 	   
+      <if test="null != releaseStatus and '' != releaseStatus and '0'.toString()== releaseStatus">
+      AND NOT EXISTS
+      (SELECT 1 FROM MM_SW_FORECAST_RECORD B
+      	 WHERE A.VERSION = B.ERP_VERSION AND B.FORE_TYPE = 2)
+      </if>
+      
+      ORDER BY A.JV_PLACE ASC, A.VERSION DESC
+	</select>
+</mapper>

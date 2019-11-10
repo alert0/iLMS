@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.pub.model.PubOpeLogModel">
+		
+	<!-- 分页查询结果 /导出查询结果 -->
+			<select id="queryPubOpeLogForPage" parameterType="com.hanthink.pub.model.PubOpeLogModel" resultType="com.hanthink.pub.model.PubOpeLogModel">
+					SELECT A.ID id,
+					       TO_CHAR(A.TRX_TIME,'YYYY-MM-DD HH24:MI:SS') trxTimeStr,
+					       A.USER_ID  userId ,
+					       A.TABLE_NAME  tableName,
+					       A.FORM_NAME  formName,
+					       A.TRX_TYPE  trxType,
+					       A.OLD_VALUE  oldValue,
+					       A.LOCAL_IP  localIp,
+					       A.RECORD_KEY  recordKey,
+					       A.ID_COLUMN  idColumn,
+					       B.CODE_VALUE_NAME codeValueName
+					  FROM MM_PUB_OPE_LOG A
+					  LEFT JOIN MM_PUB_DATA_DICT B
+					  ON A.TRX_TYPE = B.CODE_VALUE
+					  AND B.CODE_TYPE = 'PUB_OPE_TYPE'
+					  AND B.FACTORY_CODE = A.FACTORY_CODE
+					  WHERE 1=1 
+					  <if test="tableName!=null and tableName!='' ">
+					  AND	A.TABLE_NAME LIKE CONCAT(#{tableName}, '%')
+					  </if>
+					  <if test="trxTimeStrStart != null and trxTimeStrStart != '' ">
+					  <![CDATA[ AND A.TRX_TIME >= TO_DATE(#{trxTimeStrStart},'yyyy-MM-dd hh24:mi:ss') ]]>
+					  </if>
+			          <if test="trxTimeStrEnd != null and trxTimeStrEnd != '' ">
+			          <![CDATA[ AND A.TRX_TIME <= TO_DATE(#{trxTimeStrEnd},'yyyy-MM-dd hh24:mi:ss') ]]>
+			          </if>
+					  <if test="trxType!=null and trxType!='' ">
+					  AND	A.TRX_TYPE LIKE CONCAT(#{trxType}, '%')
+					  </if>
+					  AND   A.FACTORY_CODE = #{factoryCode}
+					  ORDER BY A.TRX_TIME DESC
+	</select>
+	
+</mapper>

@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.jiso.jisoSupKB">
+	
+	<!-- 查询厂外同步出货地切换看板数据-->
+	<select id="queryJisoSupKB" parameterType="java.util.Map" 
+			resultType="java.util.Map">
+		SELECT * 
+			FROM (
+			  SELECT 
+			    TO_CHAR(SYSDATE, 'yyyy-mm-dd hh24:mi') CUR_TIME,
+			    PLAN_CODE,
+			    PARTGROUP_NO,
+			    PARTGROUP_NO AS PARTGROUP_NO_2,
+			    PARTGROUP_NAME,
+			    PARTGROUP_NAME AS PARTGROUP_NAME_2,
+			    SUPPLIER_NO  || SUP_FACTORY || ',' || ORDER_NO || ',' || DEAL_FLAG || ',' ||  to_char(DELIVERY_TIME, 'yyyy-mm-dd hh24:mi') as PO_INFO,
+			    po_col_no
+			  FROM(
+			    SELECT  
+			      T.PLAN_CODE,
+			      T.PARTGROUP_NO,
+			      G.PARTGROUP_NAME,
+			      T.SUPPLIER_NO,
+			      T.SUP_FACTORY,
+			      T.ROUTE_CODE,
+			      T.ORDER_NO,
+			      T.ORDER_SEQNO,
+			      T2.MAX_ORDER_SEQNO,
+			      OO.DELIVERY_TIME,
+			      CASE WHEN D.DEAL_FLAG IS NULL THEN 0 <!-- 未切换出货地 -->
+			        WHEN D.DEAL_FLAG = 0 AND T.ORDER_SEQNO >= T2.MAX_ORDER_SEQNO THEN 1  <!-- 切换出货地 -->
+			        WHEN D.DEAL_FLAG = 0 AND T.ORDER_SEQNO &lt; T2.MAX_ORDER_SEQNO THEN 3  <!-- 未派车处理 -->
+			        WHEN D.DEAL_FLAG = 1 THEN 2  <!-- 已派车处理 -->
+			      END DEAL_FLAG,
+			      row_number() over(partition by T.PLAN_CODE, T.PARTGROUP_NO order by T.ORDER_SEQNO asc) as po_col_no
+			    FROM MM_JISO_ORDER_SUP_KB T
+			    INNER JOIN MM_PUB_PLAN_CODE CD ON CD.PLAN_CODE = T.PLAN_CODE AND CD.FACTORY_CODE = #{factoryCode}
+			    JOIN (
+			      SELECT PLAN_CODE, PARTGROUP_NO, MAX(ORDER_SEQNO) MAX_ORDER_SEQNO
+			      FROM MM_JISO_ORDER_SUP_KB 
+			      GROUP BY PLAN_CODE, PARTGROUP_NO
+			    ) T2 ON T.PLAN_CODE = T2.PLAN_CODE 
+			      AND T.PARTGROUP_NO = T2.PARTGROUP_NO
+			      AND T.ORDER_SEQNO > (T2.MAX_ORDER_SEQNO - #{batchNum,jdbcType=NUMERIC})  <!-- 传入的查询批次数量 -->
+			    LEFT JOIN MM_JISO_PARTGROUP G ON G.PLAN_CODE = T.PLAN_CODE 
+			      AND G.PARTGROUP_NO = T.PARTGROUP_NO 
+			    LEFT JOIN MM_JISO_ORDER_SUP_KB_DEAL D ON D.PLAN_CODE = T.PLAN_CODE 
+			      AND D.PARTGROUP_NO = T.PARTGROUP_NO 
+			      AND D.ORDER_NO = T.ORDER_NO
+			      
+			      LEFT JOIN MM_JISO_ORDER OO ON OO.ORDER_NO = T.ORDER_NO
+			  )
+			)
+			pivot(max(PO_INFO)
+			   for po_col_no 
+			 <!-- in(1 po1, 2 po2) -->
+			 in( ${columnSql} )  <!-- 拼接的动态列字段 -->
+			)		
+	</select>
+	
+	<!-- 出货地切换看板-派车处理 -->
+	<update id="updateDealData" parameterType="java.util.Map">
+		UPDATE MM_JISO_ORDER_SUP_KB_DEAL SET 
+		  DEAL_FLAG = 1,
+		  DEAL_TIME = SYSDATE,
+		  DEAL_USER = #{DEAL_USER},
+		  DEAL_IP = #{DEAL_IP},
+		  LICENSE_PLATE_NUM = #{VEH_PLATE_NUM}
+		WHERE ORDER_NO = #{ORDER_NO}
+		  AND PARTGROUP_NO = #{PARTGROUP_NO}
+		  AND PLAN_CODE = #{PLAN_CODE}
+	</update>
+	
+	<!-- 出货地切换派车汇总 -->
+	<select id="queryJisoSupCarPage" parameterType="com.hanthink.jiso.model.JisoOrderModel"
+		resultType="com.hanthink.jiso.model.JisoOrderModel">
+		 SELECT T.PLAN_CODE planCode,
+		 	   T.SUP_FACTORY supFactory,
+		       T.PARTGROUP_NO partGroupNo,
+		       G.PARTGROUP_NAME partGroupName,
+		       T.SUPPLIER_NO supplierNo,
+		       T.ROUTE_CODE routeCode,
+		       D.DEAL_FLAG dealFlag,
+		       T.ORDER_NO orderNo,
+		       D.LICENSE_PLATE_NUM carNo,
+		       D.DEAL_TIME dealTime,
+		       D.CREATION_TIME creationTime,
+		       D.DEAL_USER dealUser,
+		       D.DEAL_IP dealIp
+		  FROM MM_JISO_ORDER_SUP_KB T
+		  INNER JOIN MM_PUB_PLAN_CODE C ON C.PLAN_CODE = T.PLAN_CODE AND C.FACTORY_CODE = #{factoryCode}
+		      INNER JOIN MM_JISO_ORDER_SUP_KB_DEAL D ON D.PLAN_CODE = T.PLAN_CODE 
+		            AND D.PARTGROUP_NO = T.PARTGROUP_NO AND T.ORDER_NO = D.ORDER_NO
+		       LEFT JOIN MM_JISO_PARTGROUP G ON G.PLAN_CODE = T.PLAN_CODE 
+		            AND G.PARTGROUP_NO = T.PARTGROUP_NO
+		 WHERE 1=1
+		<if test="null != orderNo and ''!= orderNo">
+			AND T.ORDER_NO = #{orderNo}
+		</if>
+		<if test="null != partGroupNo and ''!= partGroupNo">
+			AND T.PARTGROUP_NO = #{partGroupNo}
+		</if>
+		<if test="null != orderNo and ''!= orderNo">
+			AND T.ORDER_NO = #{orderNo}
+		</if>
+		<if test="null != creationTime and '' != creationTime">
+	   		AND D.CREATION_TIME &gt;= to_date(#{creationTime}, 'yyyy-mm-dd hh24:mi:ss')
+	   </if>
+	   <if test="null != creationTimeTo and '' != creationTimeTo">
+	   		AND D.CREATION_TIME &lt;= to_date(#{creationTimeTo}, 'yyyy-mm-dd hh24:mi:ss') + 1
+	   </if>
+		<if test="null != dealFlag and ''!= dealFlag">
+			AND D.DEAL_FLAG = #{dealFlag}
+		</if>
+	</select>
+	
+	<!-- 派车处理 -->
+	<update id="updateJisoSupCar" parameterType="com.hanthink.jiso.model.JisoOrderModel">
+		UPDATE MM_JISO_ORDER_SUP_KB_DEAL SET 
+			  DEAL_FLAG = 1,
+			  DEAL_TIME = SYSDATE,
+			  DEAL_USER = #{manuReqUser, jdbcType=VARCHAR},
+			  DEAL_IP = #{manuReqIp, jdbcType=VARCHAR},
+			  LICENSE_PLATE_NUM = #{carNo, jdbcType=VARCHAR}
+			WHERE ORDER_NO = #{orderNo, jdbcType=VARCHAR}
+			  AND PARTGROUP_NO = #{partGroupNo, jdbcType=VARCHAR}
+			  AND PLAN_CODE = #{planCode, jdbcType=VARCHAR}
+	</update>
+ 
+</mapper>

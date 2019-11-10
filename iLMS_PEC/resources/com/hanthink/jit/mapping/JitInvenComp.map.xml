@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.jit.model.JitInvenCompModel">
+
+	<!-- 批量导入数据写入到临时表 -->
+	<insert id="insertImportTempData" parameterType="java.util.List">
+		INSERT INTO MM_JIT_INVEN_COMP
+		  (ID,
+		   PLAN_CODE,
+		   PART_NO,
+		   VIN,
+		   ARR_BATCH_NO,
+		   ARR_PROCESS_NO,
+		   CURR_INVENTORY,
+		   SAFETY_INVENTORY,
+		   CREATION_TIME,
+		   IMP_UUID,
+		   CHECK_RESULT,
+		   CHECK_INFO,
+		   IMPORT_STATUS)
+		<foreach collection="list" item="item" index="index" separator=" UNION ALL ">
+			SELECT	PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_JIT_INVEN_COMP'),
+					#{item.planCode, jdbcType=VARCHAR},
+					#{item.partNo, jdbcType=VARCHAR},	
+					#{item.vin, jdbcType=VARCHAR},
+					#{item.arrBatchNo, jdbcType=VARCHAR},
+					#{item.arrProcessNo, jdbcType=VARCHAR},
+					#{item.currInventory, jdbcType=VARCHAR},
+					#{item.safetyInventory, jdbcType=VARCHAR},
+					SYSDATE,
+					#{item.impUuid, jdbcType=VARCHAR},
+					#{item.checkResult, jdbcType=VARCHAR},
+					#{item.checkInfo, jdbcType=VARCHAR},
+					#{item.importStatus, jdbcType=VARCHAR}
+				FROM DUAL
+		</foreach>
+	</insert>
+	
+	<!-- 检查导入临时表数据 -->
+	<parameterMap type="map" id="impCkParamMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="userName" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<select id="checkImportData" parameterMap="impCkParamMap" statementType="CALLABLE">
+		{CALL PKG_IMP_DEMO.USP_DEMO_TEST(?, ?, ?,  ?, ?)}
+	</select>
+	
+	<!-- 查询excel导入数据 -->
+	<select id="queryImportTempPage" parameterType="com.hanthink.jit.model.JitInvenCompModel"
+			resultType="com.hanthink.jit.model.JitInvenCompModel">
+	  SELECT T.ID id,     
+             T.IMPORT_STATUS importStatus,
+             T.CHECK_RESULT checkResult,
+             D.CODE_VALUE_NAME checkResultDesc,
+             T.CHECK_INFO checkInfo,
+             C.WORKCENTER workcenter,
+             DD.CODE_VALUE_NAME workcenterDesc,
+             T.PLAN_CODE planCode,
+             C.PLAN_CODE_DESC planCodeDesc,
+             T.PART_NO partNo,   
+             nvl(T.CHECK_PART_SHORT_NO, U.PART_SHORT_NO) partShortNo,
+             nvl(T.CHECK_PART_NAME, U.PART_NAME_CN) partName,
+             T.VIN vin,
+             PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(T.PLAN_CODE, T.CHECK_ARR_PRO_SEQNO) checkArrProSeqno,
+             T.CHECK_CAL_VIN checkCalVin,
+             PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(T.PLAN_CODE, T.CHECK_CAL_KB_PRO_SEQNO) checkCalKbProSeqno,
+             T.CURR_INVENTORY currInventory,
+             T.SAFETY_INVENTORY safetyInventory,
+             T.CHECK_PLAN_QTY checkPlanQty,
+             T.CHECK_ASSEMBLY_QTY checkAssemblyQty,
+             T.CURR_INVENTORY + T.CHECK_PLAN_QTY + T.SAFETY_INVENTORY - T.CHECK_ASSEMBLY_QTY diff
+        FROM MM_JIT_INVEN_COMP T
+        INNER JOIN MM_PUB_PLAN_CODE C ON C.PLAN_CODE = T.PLAN_CODE	
+        LEFT JOIN MM_PUB_DATA_DICT D ON D.CODE_VALUE = T.IMPORT_STATUS AND D.CODE_TYPE = 'PUB_EXEC_STATUS'
+             AND D.FACTORY_CODE = C.FACTORY_CODE	
+        LEFT JOIN MM_PUB_DATA_DICT DD ON DD.CODE_VALUE = C.WORKCENTER AND DD.CODE_TYPE = 'PUB_WORKCENTER' 
+            AND DD.FACTORY_CODE = C.FACTORY_CODE
+            <!-- i-LMS2019053001 mod by dtp -->
+        LEFT JOIN MM_PUB_PART_UDA U ON U.PART_NO = T.PART_NO AND U.FACTORY_CODE = #{factoryCode}
+		  WHERE C.FACTORY_CODE = #{factoryCode} AND T.IMP_UUID = #{uuid, jdbcType=VARCHAR}
+		  ORDER BY C.WORKCENTER,T.PLAN_CODE,T.PART_NO
+	</select>
+	
+	<!-- 拉动库存对比推算 -->
+	<parameterMap type="map" id="reckonParamMap">  
+		<parameter property="impUuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="result" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap>
+	<select id="isReckon" parameterMap="reckonParamMap" statementType="CALLABLE">
+		{CALL PKG_JIT_BASIC.USP_JIT_INVEN_COMP(?, ?, ?)}
+	</select>
+	
+	<!-- 根据UUID删除导入的临时数据 -->
+	<delete id="deleteImportTempDataByUUID" parameterType="java.lang.String">
+		DELETE FROM MM_JIT_INVEN_COMP WHERE IMP_UUID = #{value,jdbcType=VARCHAR}
+	</delete>
+	
+	<!-- 确认导入前查询是否还要校验结果未通过数据 -->
+	<select id="queryIsExistsCheckResultFalse" parameterType="java.lang.String" 
+		resultType="java.lang.Object">
+		SELECT COUNT(*)
+			FROM MM_JIT_INVEN_COMP T
+		WHERE T.IMP_UUID = #{uuid, jdbcType=VARCHAR} AND T.CHECK_RESULT = 0	
+	</select>
+	
+	<!-- 更新推算状态 -->
+	<update id="updateImportDataImpStatus">
+		UPDATE MM_JIT_INVEN_COMP SET 
+			IMPORT_STATUS = 1
+		WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		  AND CHECK_RESULT = 1
+		  AND IMPORT_STATUS = 0
+	</update>
+	
+	<!-- 根据工作中心获取当前最小最大批次号 -->
+	<select id="queryJitCurBatchByWorkcenter" parameterType="com.hanthink.jit.model.JitInvenCompModel"
+		resultType="com.hanthink.jit.model.JitInvenCompModel">
+		select distinct
+               pkg_pub.USF_GET_BATCHNO_BY_PRODSEQNO(veh.plan_code,
+                                             veh.kb_product_seqno) curBatch
+         from (select distinct a.factory_code,
+                                c.workcenter,
+                                c.plan_code,
+                                a.order_no,
+                                a.erp_order_no,
+                                a.pass_time,
+                                row_number() over(order by a.pass_time) + d.product_seqno - 1 kb_product_seqno
+                  from mm_pub_veh_pass  a,
+                       if_veh_lock_plan b,
+                       mm_pub_plan_code c,
+                       mm_mon_kb        d
+                 where b.factory_code = a.factory_code
+                   and b.factory_code = #{factoryCode}
+                   and b.order_no = a.order_no
+                   and c.factory_code = a.factory_code
+                   and c.workcenter = #{workcenter}
+                   and c.plan_code_type in ('JITO', 'JIT')
+                   and c.kb_id = d.id
+                   and b.order_status in (10, 15)
+                   and a.station_code = 'PA-OFF') veh	
+	</select>
+	
+	<!-- 获取计划差异 -->
+	<select id="queryJitPlanDiffPage" parameterType="java.util.Map" resultType="java.util.Map">
+		select tt.*, ud.part_short_no partShortNo, di.code_value_name workcenterDesc,
+				cc.plan_code_desc planCodeDesc
+		  from (select *
+		          from (select net_req.plan_code,
+		                       pkg_pub.USF_GET_BATCHNO_BY_PRODSEQNO(net_req.plan_code,
+		                                                             net_req.kb_product_seqno) as PO_INFO,
+		                       net_req.part_no,
+		                       nvl(sum(net_req.net_req_num), 0) - nvl(sum(pkg_req.require_num), 0) diff_req_num
+		                  from (select veh.plan_code,
+		                               veh.kb_product_seqno,
+		                               p.part_no,
+		                               nvl(sum(bom.num), 0) net_req_num
+		                          from (select distinct a.factory_code,
+		                                                c.workcenter,
+		                                                c.plan_code,
+		                                                a.order_no,
+		                                                a.erp_order_no,
+		                                                a.pass_time,
+		                                                row_number() over(order by a.pass_time) + d.product_seqno - 1 kb_product_seqno
+		                                  from mm_pub_veh_pass  a,
+		                                       if_veh_lock_plan b,
+		                                       mm_pub_plan_code c,
+		                                       mm_mon_kb        d
+		                                 where b.factory_code = a.factory_code
+		                                   and b.factory_code = #{factoryCode}
+		                                   and b.order_no = a.order_no
+		                                   and c.factory_code = a.factory_code
+		                                   and c.workcenter = #{workcenter}
+		                                   and c.plan_code_type in ('JITO', 'JIT')
+		                                   and c.kb_id = d.id
+		                                   and b.order_status in (10, 15)
+		                                   and a.station_code = 'PA-OFF') veh
+		                          left join mm_jit_part p
+		                            on p.plan_code = veh.plan_code
+		                           and p.eff_start &lt;= veh.pass_time
+		                           and p.eff_end &gt; veh.pass_time
+		                          left join mm_pub_order_bom bom
+		                            on veh.factory_code = bom.factory_code
+		                           and veh.erp_order_no = bom.order_no
+		                           and veh.workcenter = bom.workcenter
+		                           and p.part_no = bom.part_no
+		                         group by veh.plan_code,
+		                                  veh.kb_product_seqno,
+		                                  p.part_no) net_req
+		                  left join mm_jit_pkg_req pkg_req
+		                    on net_req.plan_code = pkg_req.plan_code
+		                   and net_req.kb_product_seqno = pkg_req.kb_product_seqno
+		                   and net_req.part_no = pkg_req.part_no
+		                 group by net_req.plan_code,
+		                          pkg_pub.USF_GET_BATCHNO_BY_PRODSEQNO(net_req.plan_code,
+		                                                                net_req.kb_product_seqno),
+		                          net_req.part_no)
+		        pivot(max(diff_req_num)
+		           FOR PO_INFO IN( ${columnSql} ))) tt
+		  <!-- i-LMS2019053001 mod by dtp -->
+		  left join mm_pub_part_uda ud on ud.part_no = tt.part_no and ud.factory_code = #{factoryCode}
+		  left join mm_pub_plan_code cc on cc.plan_code = tt.plan_code
+		  left join mm_pub_data_dict di on di.code_value = #{workcenter} 
+		  	and di.code_type = 'PUB_WORKCENTER' and di.factory_code = #{factoryCode}
+		  WHERE 1=1
+		  <if test="null != partShortNo and ''!= partShortNo ">
+		  	AND ud.part_short_no = #{partShortNo}
+		  </if>
+		  <if test="null != partNo and ''!= partNo ">
+		  	AND tt.part_no = #{partNo}
+		  </if>
+		  <if test="null != planCode and ''!= planCode ">
+		  	AND tt.plan_code = #{planCode}
+		  </if>
+	</select>
+	
+</mapper>

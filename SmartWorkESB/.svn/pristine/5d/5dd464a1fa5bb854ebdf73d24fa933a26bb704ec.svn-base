@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE validators PUBLIC
+        "-//Apache Struts//XWork Validator Definition 1.0//EN"
+        "http://struts.apache.org/dtds/xwork-validator-definition-1.0.dtd">
+<validators>
+
+    <!-- 通用验证 -->
+    <validator name="esb-required" class="com.smartwork.esb.action.validators.RequiredFieldValidator" />
+    <validator name="esb-required-string" class="com.smartwork.esb.action.validators.RequiredStringValidator" />
+    <validator name="esb-string-length" class="com.smartwork.esb.action.validators.StringLengthFieldValidator" />
+    <validator name="esb-array-length" class="com.smartwork.esb.action.validators.ArrayLengthFieldValidator" />
+    <validator name="esb-regex" class="com.smartwork.esb.action.validators.RegexFieldValidator" />
+    <validator name="esb-byte-range" class="com.smartwork.esb.action.validators.ByteRangeFieldValidator" />
+    <validator name="esb-short-range" class="com.smartwork.esb.action.validators.ShortRangeFieldValidator" />
+    <validator name="esb-int-range" class="com.smartwork.esb.action.validators.IntRangeFieldValidator" />
+    <validator name="esb-long-range" class="com.smartwork.esb.action.validators.LongRangeFieldValidator" />
+    <validator name="esb-double-range" class="com.smartwork.esb.action.validators.DoubleRangeFieldValidator" />
+   
+    <!-- 业务数据范围验证 -->
+    <validator name="esb-bool" class="com.smartwork.esb.action.validators.BoolFieldValidator" />
+    <validator name="esb-cron-expression" class="com.smartwork.esb.action.validators.CronExpressionFieldValidator" />
+    <validator name="esb-element-converter" class="com.smartwork.esb.action.validators.ElementConverterFieldValidator" />
+    <validator name="esb-element-creator" class="com.smartwork.esb.action.validators.ElementCreatorFieldValidator" />
+    <validator name="esb-element-field-type" class="com.smartwork.esb.action.validators.ElementFieldTypeFieldValidator" />
+    <validator name="esb-job-class" class="com.smartwork.esb.action.validators.JobClassFieldValidator" />
+    <validator name="esb-key-class" class="com.smartwork.esb.action.validators.KeyClassFieldValidator" />
+    <validator name="esb-receive-create-type" class="com.smartwork.esb.action.validators.ReceiveCreateTypeFieldValidator" />
+    <validator name="esb-receive-service-type" class="com.smartwork.esb.action.validators.ReceiveServiceTypeFieldValidator" />
+    <validator name="esb-receive-table-type" class="com.smartwork.esb.action.validators.ReceiveTableTypeFieldValidator" />
+    <validator name="esb-receive-transation-type" class="com.smartwork.esb.action.validators.ReceiveTransationTypeFieldValidator" />
+    <validator name="esb-receive-update-type" class="com.smartwork.esb.action.validators.ReceiveUpdateTypeFieldValidator" />
+    <validator name="esb-send-service-class" class="com.smartwork.esb.action.validators.SendServiceClassFieldValidator" />
+    <validator name="esb-send-service-type" class="com.smartwork.esb.action.validators.SendServiceTypeFieldValidator" />
+    <validator name="esb-timer-service-class" class="com.smartwork.esb.action.validators.TimerServiceClassFieldValidator" />
+    <validator name="esb-timer-service-type" class="com.smartwork.esb.action.validators.TimerServiceTypeFieldValidator" />
+   
+    <!-- 默认验证 -->
+    <validator name="required" class="com.opensymphony.xwork2.validator.validators.RequiredFieldValidator"/>
+    <validator name="requiredstring" class="com.opensymphony.xwork2.validator.validators.RequiredStringValidator"/>
+    <validator name="int" class="com.opensymphony.xwork2.validator.validators.IntRangeFieldValidator"/>
+    <validator name="long" class="com.opensymphony.xwork2.validator.validators.LongRangeFieldValidator"/>
+    <validator name="short" class="com.opensymphony.xwork2.validator.validators.ShortRangeFieldValidator"/>
+    <validator name="double" class="com.opensymphony.xwork2.validator.validators.DoubleRangeFieldValidator"/>
+    <validator name="date" class="com.opensymphony.xwork2.validator.validators.DateRangeFieldValidator"/>
+    <validator name="expression" class="com.opensymphony.xwork2.validator.validators.ExpressionValidator"/>
+    <validator name="fieldexpression" class="com.opensymphony.xwork2.validator.validators.FieldExpressionValidator"/>
+    <validator name="email" class="com.opensymphony.xwork2.validator.validators.EmailValidator"/>
+    <validator name="url" class="com.opensymphony.xwork2.validator.validators.URLValidator"/>
+    <validator name="visitor" class="com.opensymphony.xwork2.validator.validators.VisitorFieldValidator"/>
+    <validator name="conversion" class="com.opensymphony.xwork2.validator.validators.ConversionErrorFieldValidator"/>
+    <validator name="stringlength" class="com.opensymphony.xwork2.validator.validators.StringLengthFieldValidator"/>
+    <validator name="regex" class="com.opensymphony.xwork2.validator.validators.RegexFieldValidator"/>
+    <validator name="conditionalvisitor" class="com.opensymphony.xwork2.validator.validators.ConditionalVisitorFieldValidator"/>
+</validators>        

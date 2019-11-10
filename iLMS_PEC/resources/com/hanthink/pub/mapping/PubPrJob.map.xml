@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.pub.model.PubPrJobModel">
+
+	<insert id="create" parameterType="com.hanthink.pub.model.PubPrJobModel">
+	   INSERT INTO MM_PR_JOB
+				  (ID,
+				   JOB_NAME,
+				   DESCRIPTION,
+				   PRINT_TYPE,
+				   JOB_TYPE,
+				   COPIES,
+				   CLASSES,
+				   PRINTER_NAME,
+				   UPDATE_SQL,
+				   CREATION_TIME,
+				   CREATION_USER,
+				   FACTORY_CODE
+				   )
+				VALUES
+				  (SEQ_MM_PR_JOB.NEXTVAL,
+				   #{jobName,jdbcType=VARCHAR},
+				   #{description,jdbcType=VARCHAR},
+				   #{printType,jdbcType=VARCHAR},
+				   #{jobType,jdbcType=VARCHAR},
+				   #{copies,jdbcType=NUMERIC},
+				   #{classes,jdbcType=VARCHAR},
+				   #{printerName,jdbcType=VARCHAR},
+				   #{updateSql,jdbcType=VARCHAR},
+				   sysdate,
+				   #{creationUser,jdbcType=VARCHAR},
+				   #{factoryCode,jdbcType=VARCHAR}
+				  )
+	 </insert>
+
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="queryPubPrJobForPage" parameterType="com.hanthink.pub.model.PubPrJobModel" resultType="com.hanthink.pub.model.PubPrJobModel">
+            SELECT   T.JOB_NAME  jobName, 
+			         T.DESCRIPTION  description,
+			         T.PRINT_TYPE   printType,
+			         A.CODE_VALUE_NAME  codeValueName,
+			         T.JOB_TYPE  jobType,
+			         T.COPIES  copies,
+			         T.CLASSES  classes,
+			         D.PRINTER_NAME printerName,
+			         T.UPDATE_SQL updateSql,
+			         T.ID  id
+			    FROM MM_PR_JOB T
+		   LEFT JOIN MM_PUB_DATA_DICT A 
+			      ON T.PRINT_TYPE= A.CODE_VALUE
+			     AND A.CODE_TYPE = 'PR_TASK_TYPE'
+			     AND A.FACTORY_CODE = T.FACTORY_CODE
+		   LEFT JOIN MM_PR_PRINTER D 
+			      ON T.PRINTER_NAME = D.PRINTER_NAME
+		         AND T.FACTORY_CODE = D.FACTORY
+		       WHERE 1=1 
+			<if test="jobName!=null and jobName!='' ">
+			AND	T.JOB_NAME LIKE CONCAT(#{jobName}, '%')
+			</if>
+			<if test="description!=null and description!='' ">
+			AND	T.DESCRIPTION LIKE CONCAT(#{description}, '%')
+			</if>
+			<if test="printType!=null and printType!='' ">
+			AND	D.PRINT_TYPE LIKE CONCAT(#{printType}, '%')
+			</if>
+			AND T.FACTORY_CODE = #{factoryCode}
+			ORDER BY T.ID
+	</select>
+	
+	<!-- 修改方法 -->
+	<update id="update" parameterType="com.hanthink.pub.model.PubPrJobModel">
+		UPDATE MM_PR_JOB
+		   SET JOB_NAME =  #{jobName,jdbcType=VARCHAR},
+		       DESCRIPTION =  #{description,jdbcType=VARCHAR},
+		       PRINT_TYPE =  #{printType,jdbcType=VARCHAR},
+		       JOB_TYPE = #{jobType,jdbcType=VARCHAR},
+		       COPIES =  #{copies,jdbcType=NUMERIC},
+		       CLASSES = #{classes,jdbcType=VARCHAR},
+		       PRINTER_NAME = #{printerName,jdbcType=VARCHAR},
+		       UPDATE_SQL = #{updateSql,jdbcType=VARCHAR},
+		       LAST_MODIFIED_USER = #{lastModifiedUser,jdbcType=VARCHAR},
+		       LAST_MODIFIED_TIME = sysdate,
+		       LAST_MODIFIED_IP = #{lastModifiedIp,jdbcType=VARCHAR},
+		       FACTORY_CODE = #{factoryCode,jdbcType=VARCHAR}
+		 WHERE ID = #{id}
+	</update>
+	
+	<!-- 删除方法 -->
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM MM_PR_JOB 
+		WHERE 1=1
+		AND ID=#{id}
+	</delete>
+	
+	<!-- 单条/批量数据删除 -->
+	<delete id="deleteByIds" parameterType="java.lang.String">
+		DELETE FROM MM_PR_JOB
+		WHERE ID IN
+		<foreach item="aryIds" collection="array" open="(" separator="," close=")">
+			#{aryIds,jdbcType=VARCHAR}
+		</foreach>
+	</delete>
+	
+</mapper>

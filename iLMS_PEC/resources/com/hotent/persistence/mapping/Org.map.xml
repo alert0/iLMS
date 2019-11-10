@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.org.persistence.model.Org">
+	<resultMap id="Org" type="com.hotent.org.persistence.model.Org">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="name" column="name_" jdbcType="VARCHAR"/>
+		<result property="parentId" column="parent_id_" jdbcType="VARCHAR"/>
+		<result property="orderNo" column="order_no_" jdbcType="NUMERIC"/>
+		<result property="code" column="code_" jdbcType="VARCHAR"/>
+		<result property="grade" column="grade_" jdbcType="VARCHAR"/>
+		<result property="demId" column="dem_id_" jdbcType="VARCHAR"/>
+		<result property="path" column="path_" jdbcType="VARCHAR"/>
+		<result property="pathName" column="path_name_" jdbcType="VARCHAR"/>
+		<result property="isMaster" column="is_master_" jdbcType="NUMERIC"/>
+		<result property="wxOrgId" column="wx_org_Id" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<resultMap id="OrgTree" type="com.hotent.org.persistence.model.Org"  extends="Org">
+		<result property="isIsParent" column="isIsParent"></result>
+	</resultMap>
+	<resultMap id="OrgUserId" type="com.hotent.org.persistence.model.Org"  extends="Org">
+			<collection property="userList" ofType="java.lang.String">
+				<result property="userId" column="user_id"/>  
+			</collection>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.org.persistence.model.Org">
+		INSERT INTO sys_org
+		(id_,name_,parent_id_,order_no_,code_,grade_,dem_id_,path_,path_name_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR}, #{parentId,jdbcType=VARCHAR}, #{orderNo,jdbcType=NUMERIC}, #{code,jdbcType=VARCHAR}, #{grade,jdbcType=VARCHAR},#{demId,jdbcType=VARCHAR},#{path,jdbcType=VARCHAR},#{pathName,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="OrgTree">
+		select  o.* ,
+( case (select count(*)  from sys_org p where p.parent_id_=o.id_ and p.id_!=p.parent_id_ ) when 0 then 0 else 1 end )isIsParent  
+		from  sys_org o   
+		where 1=1 and o.ID_ = #{id} ;
+	</select>
+		
+	<select id="getByCode"   parameterType="java.lang.String" resultMap="Org">
+		SELECT * FROM sys_org 
+		WHERE 
+		code_=#{code}
+	</select>
+	
+	<select id="getOrgListByUser"   parameterType="java.lang.String" resultMap="Org">
+		SELECT distinct org.*,orguser.is_master_ FROM  sys_org_user orguser 
+		inner join sys_org org on org.id_=orguser.org_id_
+		WHERE 1=1
+		<if test="userId!=null">
+			and orguser.user_id_=#{userId}
+	   </if>
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="Org">
+		SELECT * FROM sys_org
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY order_no_ asc
+		</if>
+	</select>
+	
+	<select id="getByParentId" parameterType="string"  resultMap="OrgTree" >
+		select  id_  ,parent_id_,name_, ( case (select count(*)  from sys_org p where p.parent_id_=o.id_ and p.id_!=p.parent_id_) when 0 then 0 else 1 end )isIsParent  
+		from  sys_org o   
+		where 1=1  and parent_id_=#{pid}  order by order_no_ asc
+	</select>
+	
+	
+	<update id="update" parameterType="com.hotent.org.persistence.model.Org">
+		UPDATE sys_org SET
+		name_=#{name,jdbcType=VARCHAR},
+		parent_id_=#{parentId,jdbcType=VARCHAR},
+		order_no_=#{orderNo,jdbcType=NUMERIC},
+		code_=#{code,jdbcType=VARCHAR},
+		grade_=#{grade,jdbcType=VARCHAR},
+		dem_id_=#{demId,jdbcType=VARCHAR},
+		path_=#{path,jdbcType=VARCHAR},
+		path_name_=#{pathName,jdbcType=VARCHAR},
+		wx_org_Id=#{wxOrgId,jdbcType=VARCHAR}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_org 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	
+	<select id="getByOrgName" parameterType="java.lang.String" resultMap="Org">
+		select * from sys_org where name_ = #{orgName}
+	</select>
+	<select id="getByPathName" parameterType="java.lang.String" resultMap="Org">
+		select * from sys_org where path_name_ = #{pathName}
+	</select>
+	
+	<select id="getByParentAndDem" resultMap="OrgTree">
+		select  o.*, 
+		( case (select count(*)  from sys_org p where p.parent_id_=o.id_ and p.id_!=p.parent_id_ and p.DEM_ID_ = #{demId}) when 0 then 0 else 1 end )isIsParent  
+		from  sys_org o   
+		where 1=1  and parent_id_=#{parentId} and o.DEM_ID_ =#{demId}
+		ORDER BY o.ORDER_NO_;
+	</select>
+	
+	<select id="getByDemIdAndSonId" parameterType="java.util.Map" resultMap="Org">
+		select  o.* from  sys_org o   
+		where o.ID_ =(select og.PARENT_ID_ from sys_org og where og.ID_= #{sonId} AND og.DEM_ID_= #{demId});
+	</select>
+	<select id="getOrgIdUserId" parameterType="java.lang.String" resultMap="OrgUserId">
+		select  o.*,su.USER_ID_ as user_id  
+		from  sys_org o LEFT JOIN sys_org_user su ON o.ID_ = su.ORG_ID_
+		where 1=1  and o.ID_=#{id} order by order_no_ asc
+	</select>
+</mapper>

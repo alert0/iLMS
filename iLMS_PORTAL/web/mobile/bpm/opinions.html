@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html ng-app="myApp">
+<head>
+<title>X5手机平台</title>
+<meta charset="utf-8">
+<script src="../assets/js/importJs.js"></script>
+
+<script type="text/javascript">
+var runId=HtUtil.getParameter("runId");
+var myApp = angular.module("myApp", ['base','mobileDirective']);
+myApp.controller("opinionListCtrl",['$scope','baseService','$sce', function(scope,baseService,$sce) {
+	baseService.postForm(__ctx+"/mobile/bpm/flowOpinions",{runId:runId}).then(function(data){
+		scope.dataList = data;
+	})
+}]);
+</script>
+</head>
+<body ng-controller="opinionListCtrl">
+<div class="page">
+	<div class="content">
+	  	<div class="list-block media-list">
+		   <ul>
+		      <li ng-repeat="opinion in dataList">
+		          <div class="item-inner item-content">
+		            <div class="item-title-row">
+		              <div class="item-title">{{opinion.taskName}}</div>
+		              <div class="item-after"><a href="#" class="button">{{opinion.statusVal}}</a></div>
+		            </div>
+		            <div class="item-title-row" ng-if="opinion.auditorName">
+		              <div class="item-title">{{opinion.auditorName}}</div>
+		              <div class="item-after" >{{opinion.completeTime|date:'yyyy-MM-dd HH:mm:ss'}}</div>
+		            </div>
+		            <div class="item-title-row" ng-if="!opinion.auditorName"> 
+		              <div class="item-title">{{opinion.qualfiedNames}}</div>
+		              <div class="item-after">候选人待处理</div>
+		            </div>
+		            <div class="item-text">意见：{{opinion.opinion}}</div>
+		          </div>
+		      </li>
+		    </ul>
+	  	</div>
+	</div>
+</div>
+
+</body>
+</html>

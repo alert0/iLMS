@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.mon.model.MonAllowDeviationModel">
+
+	<!-- 允许误差查询 -->
+	<select id="queryAllowDeviationPage"
+		parameterType="com.hanthink.mon.model.MonAllowDeviationModel"
+		resultType="com.hanthink.mon.model.MonAllowDeviationModel">
+		select
+		<!-- id -->
+		T.ID id,
+		<!-- 集货路线 -->
+		T.ROUTE_CODE routeCode,
+		<!-- 误差时间 -->
+		T.ERROR_DATE errorDate
+		from
+		MM_MON_ALLOW_DEVIATION T
+		where 1 = 1
+		<!-- 集货线路 模糊查询 -->
+		<if test="null != routeCode and '' != routeCode">
+			AND T.ROUTE_CODE LIKE '%' || #{routeCode} || '%'
+		</if>
+	</select>
+
+	<!-- 允许误差数据增加 -->
+	<insert id="create"
+		parameterType="com.hanthink.mon.model.MonAllowDeviationModel">
+		INSERT INTO MM_MON_ALLOW_DEVIATION
+		(ID,
+		ROUTE_CODE,
+		ERROR_DATE)
+		VALUES
+		(SEQ_MM_MON_ALLOW_DEVIATION.NEXTVAL,
+		#{routeCode},
+		#{errorDate})
+	</insert>
+
+	<!-- 修改方法 -->
+	<update id="update"
+		parameterType="com.hanthink.mon.model.MonAllowDeviationModel">
+		UPDATE MM_MON_ALLOW_DEVIATION SET
+		ROUTE_CODE= #{routeCode},
+		ERROR_DATE= #{errorDate}
+		WHERE 1=1
+		AND ID=#{id}
+	</update>
+
+	<!-- 删除方法 -->
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM MM_MON_ALLOW_DEVIATION
+		WHERE 1=1
+		AND ID=#{id}
+	</delete>
+
+
+	<!-- 单条/批量数据删除 -->
+	<delete id="deleteByIds" parameterType="java.lang.String">
+		DELETE FROM MM_MON_ALLOW_DEVIATION
+		WHERE ID IN
+		<foreach item="aryIds" collection="array" open="("
+			separator="," close=")">
+			#{aryIds}
+		</foreach>
+	</delete>
+
+
+	<!-- 将数据写入到临时表 -->
+	<insert id="insertAllowDeviationImportTempData"
+		parameterType="java.util.List">
+		INSERT INTO MM_MON_ALLOW_DEVIATION_IMP
+		(ID,FACTORY_CODE,ROUTE_CODE,ERROR_DATE,IMP_UUID,CHECK_RESULT,CHECK_INFO,IMPORT_STATUS,PK_ID)
+		<foreach collection="list" item="item" index="index"
+			separator=" UNION ALL ">
+			SELECT
+			<!-- 无法直接使用序号 -->
+			PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_MON_ALLOW_DEVIATION_IMP'),
+			#{item.factoryCode,jdbcType=VARCHAR},
+			#{item.routeCode,jdbcType=VARCHAR},
+			#{item.errorDate,jdbcType=VARCHAR},
+			#{item.uuid,jdbcType=VARCHAR},
+			#{item.checkResult,jdbcType=VARCHAR},
+			#{item.checkInfo,jdbcType=VARCHAR},
+			#{item.importStatus,jdbcType=VARCHAR},
+			PKG_PUB.USF_GET_SEQUENCE('SEQ_IMPORT_DATA_TEMP')
+			FROM DUAL
+		</foreach>
+	</insert>
+
+
+	<!-- 检查导入临时表数据 -->
+	<parameterMap type="map" id="impCkParamMap">
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN" />
+		<parameter property="userName" jdbcType="VARCHAR" mode="IN" />
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN" />
+		<parameter property="errorFlag" jdbcType="VARCHAR"
+			mode="OUT" />
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT" />
+	</parameterMap>
+	<select id="checkMonAllowDeviationImportData"
+		parameterMap="impCkParamMap" statementType="CALLABLE">
+		<!-- 存储过程 -->
+		{CALL PKG_MP_CHECK.USP_MON_ALLOWDEVIATION_CHECK(?, ?, ?, ?,?)}
+	</select>
+
+
+	<!-- 查询临时表数据 -->
+	<select id="queryMonAllowDeviationImportTempData"
+		parameterType="java.util.Map"
+		resultType="com.hanthink.mon.model.MonAllowDeviationModelImport">
+		SELECT A.FACTORY_CODE factoryCode,
+		A.ROUTE_CODE routeCode,
+		A.ERROR_DATE errorDate,
+		A.IMP_UUID uuid,
+		A.CHECK_RESULT checkResult,
+		A.CHECK_INFO checkInfo,
+		A.IMPORT_STATUS importStatus,
+		B.CODE_VALUE_NAME codeValueNameB,
+		C.CODE_VALUE_NAME codeValueNameC
+		FROM MM_MON_ALLOW_DEVIATION_IMP A
+		LEFT JOIN MM_PUB_DATA_DICT B
+		ON A.CHECK_RESULT = B.CODE_VALUE
+		AND B.CODE_TYPE ='PUB_IMP_CK_RESULT'
+		AND B.FACTORY_CODE = A.FACTORY_CODE
+		LEFT JOIN MM_PUB_DATA_DICT C
+		ON A.IMPORT_STATUS = C.CODE_VALUE
+		AND C.CODE_TYPE ='PUB_IMP_STATUS'
+		AND C.FACTORY_CODE = A.FACTORY_CODE
+		WHERE A.IMP_UUID = #{uuid,jdbcType=VARCHAR}
+	</select>
+
+	<!-- 导入临时数据写入到正式表 -->
+	<insert id="insertMonAllowDeviationImportData"
+		parameterType="java.util.Map">
+		INSERT INTO MM_MON_ALLOW_DEVIATION
+		(ID,
+		ROUTE_CODE,
+		ERROR_DATE,
+		FACTORY_CODE)
+		<!-- 表缺少CREATION_USER -->
+		<!-- 表缺少CREATION_TIME -->
+		(SELECT SEQ_MM_MON_ALLOW_DEVIATION.NEXTVAL,
+		ROUTE_CODE,
+		ERROR_DATE,
+		FACTORY_CODE
+		FROM MM_MON_ALLOW_DEVIATION_IMP
+		WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR}
+		AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR}
+		AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR}
+		AND OPE_TYPE = 'I')
+	</insert>
+
+	<!-- 更新临时表数据导入状态 -->
+	<update id="updateMonAllowDeviationImportDataImpStatus"
+		parameterType="java.util.Map">
+		UPDATE MM_MON_ALLOW_DEVIATION_IMP SET IMPORT_STATUS =
+		#{IMPORT_STATUS_YES,jdbcType=VARCHAR}
+		WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR}
+		AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR}
+		AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR}
+	</update>
+
+	<!-- 根据UUID删除导入的临时数据 -->
+	<delete id="deleteAllowDeviationImportTempDataByUUID"
+		parameterType="java.lang.String">
+		DELETE FROM MM_MON_ALLOW_DEVIATION_IMP WHERE IMP_UUID =
+		#{value,jdbcType=VARCHAR}
+	</delete>
+
+	<!-- 查询需要更新的数据 -->
+	<select id="queryUpdateDataFromMonAllowDeviationImp"
+		parameterType="java.util.Map" resultType="java.lang.String">
+		SELECT A.ID
+		FROM MM_MON_ALLOW_DEVIATION_IMP A
+		WHERE A.OPE_TYPE = 'U'
+		AND A.IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR}
+		AND A.IMP_UUID = #{uuid,jdbcType=VARCHAR}
+		AND A.CHECK_RESULT = #{checkResult,jdbcType=VARCHAR}
+	</select>
+
+	<!-- 更新正式表数据 -->
+	<update id="updateMonAllowDeviationImportData"
+		parameterType="java.util.Map">
+		<!-- UPDATE MM_MON_ALLOW_DEVIATION A SET (ROUTE_CODE, ERROR_DATE) = (SELECT 
+			B.ROUTE_CODE, B.ERROR_DATE FROM MM_MON_ALLOW_DEVIATION_IMP B WHERE B.IMP_UUID 
+			= #{uuid,jdbcType = VARCHAR} AND B.CHECK_RESULT =#{checkResult,jdbcType = 
+			VARCHAR} AND B.IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR} AND B.OPE_TYPE 
+			= 'U' AND B.BUSI_ID = A.ID) WHERE EXISTS(SELECT 1 FROM MM_MON_ALLOW_DEVIATION_IMP 
+			B WHERE B.ROUTE_CODE = A.ROUTE_CODE) -->
+		merge into MM_MON_ALLOW_DEVIATION A USING (SELECT
+		B.ROUTE_CODE,B.ERROR_DATE FROM MM_MON_ALLOW_DEVIATION_IMP B WHERE
+		 B.IMP_UUID = #{uuid}
+		AND B.CHECK_RESULT = #{checkResult}
+		AND B.IMPORT_STATUS = #{importStatus}
+		AND  B.OPE_TYPE = 'U' ) C ON (A.ROUTE_CODE=C.ROUTE_CODE)
+		WHEN MATCHED THEN
+		UPDATE SET A.ERROR_DATE=C.ERROR_DATE
+	</update>
+
+
+
+	<!-- 查询临时表中的数据是否可以导入 -->
+	<select id="queryMonAllowDeviationImportFlag"
+		parameterType="java.lang.String" resultType="java.lang.String">
+		WITH TEMPA AS
+		(SELECT COUNT(1) s
+		FROM MM_MON_ALLOW_DEVIATION_IMP A
+		WHERE A.CHECK_RESULT = 0
+		AND A.IMP_UUID = #{VALUE}),
+		TEMPB AS
+		(SELECT COUNT(1) S
+		FROM MM_MON_ALLOW_DEVIATION_IMP B
+		WHERE B.IMP_UUID = #{VALUE})
+		SELECT CASE
+		WHEN A.S >= B.S THEN
+		0
+		ELSE
+		1
+		END AS FLAG
+		FROM TEMPA A, TEMPB B
+	</select>
+
+
+	<!-- 查询可导入数据 -->
+	<select id="queryForInsertList" parameterType="java.util.Map"
+		resultType="com.hanthink.mon.model.MonAllowDeviationModelImport">
+		SELECT A.FACTORY_CODE factoryCode,
+		A.ROUTE_CODE routeCode,
+		A.ERROR_DATE errorDate,
+		A.IMP_UUID uuid,
+		A.CHECK_RESULT checkResult,
+		A.CHECK_INFO checkInfo,
+		A.IMPORT_STATUS importStatus
+		FROM MM_MON_ALLOW_DEVIATION_IMP A
+		WHERE IMP_UUID = #{uuid}
+		AND IMPORT_STATUS = #{importStatus}
+		AND CHECK_RESULT = #{checkResult}
+	</select>
+
+	<!-- 判断集货路线是否存在 -->
+	<select id="queryIsExist" parameterType="com.hanthink.mon.model.MonAllowDeviationModel"
+		resultType="com.hanthink.mon.model.MonAllowDeviationModel">
+		SELECT
+			 T.ID id,
+			 T.ROUTE_CODE routeCode,
+			 T.ERROR_DATE errorDate
+		FROM MM_MON_ALLOW_DEVIATION T
+			 WHERE  T.ROUTE_CODE = #{routeCode}
+	</select>
+
+</mapper>

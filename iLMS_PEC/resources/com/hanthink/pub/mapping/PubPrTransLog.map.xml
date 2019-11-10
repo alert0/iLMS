@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.pub.model.PubPrTransLogModel">
+		
+	<!-- 分页查询结果 /导出查询结果 -->
+			<select id="queryPubPrTransLogForPage" parameterType="com.hanthink.pub.model.PubPrTransLogModel" resultType="com.hanthink.pub.model.PubPrTransLogModel">
+					SELECT A.ID  id,
+					       A.TRX_LEVEL  trxLevel,
+					       A.TRX_TYPE  trxType,
+					       A.CATEGORY  category,
+					       A.SOURCE  source,
+					       A.TRX_NAME  trxName,
+					       TO_CHAR(A.ENTRY_TIME,'YYYY-MM-DD HH24:MI:SS') entryTimeStr,
+					       A.CONTENT  content,
+					       A.PRINTER_NAME  printerName
+					  FROM MM_PR_TRANSACTION_LOG A
+					  WHERE 1=1 
+					  AND A.FACTORY_CODE = #{factoryCode} 
+					  <if test="content!=null and content!='' ">
+					  AND	A.CONTENT LIKE CONCAT(#{content}, '%')
+					  </if>
+					  <if test="entryTimeStrStart != null and entryTimeStrStart != '' ">
+					  <![CDATA[ AND A.ENTRY_TIME >= TO_DATE(#{entryTimeStrStart},'yyyy-MM-dd hh24:mi:ss') ]]>
+					  </if>
+			          <if test="entryTimeStrEnd != null and entryTimeStrEnd != '' ">
+			          <![CDATA[ AND A.ENTRY_TIME <= TO_DATE(#{entryTimeStrEnd},'yyyy-MM-dd hh24:mi:ss') ]]>
+			          </if>
+					  <if test="printerName!=null and printerName!='' ">
+					  AND	A.PRINTER_NAME LIKE CONCAT(#{printerName}, '%')
+					  </if>
+					  ORDER BY A.ID
+	</select>
+	
+</mapper>

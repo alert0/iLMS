@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="
+        http://www.springframework.org/schema/beans     
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+        http://www.springframework.org/schema/context 
+        http://www.springframework.org/schema/context/spring-context.xsd" default-autowire="byType">
+       
+	<context:annotation-config />
+
+ 	<!-- 系统默认数据源 -->
+	
+	
+	<bean id="dataSource_Default" class="com.alibaba.druid.pool.DruidDataSource" init-method="init" destroy-method="close"> 
+	      <!-- 基本属性 url、user、password -->
+	      <property name="url" value="${jdbc.url}" />
+	      <property name="username" value="${jdbc.username}" />
+	      <property name="password" value="${jdbc.password}" />
+	
+	      <!-- 配置初始化大小、最小、最大 -->
+	      <property name="initialSize" value="${db.minimumConnectionCount}" />
+	      <property name="minIdle" value="${db.minimumConnectionCount}" /> 
+	      <property name="maxActive" value="${db.maximumConnectionCount}" />
+	
+	      <!-- 配置获取连接等待超时的时间 -->
+	      <property name="maxWait" value="60000" />
+	
+	      <!-- 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位是毫秒 -->
+	      <property name="timeBetweenEvictionRunsMillis" value="60000" />
+	
+	      <!-- 配置一个连接在池中最小生存的时间，单位是毫秒 -->
+	      <property name="minEvictableIdleTimeMillis" value="300000" />
+	
+	      <property name="validationQuery" value="select * from ACT_GE_PROPERTY" />
+	      <property name="testWhileIdle" value="true" />
+	      <property name="testOnBorrow" value="false" />
+	      <property name="testOnReturn" value="false" />
+	
+	      <!-- 打开PSCache，并且指定每个连接上PSCache的大小 -->
+	      <property name="poolPreparedStatements" value="true" />
+	      <property name="maxPoolPreparedStatementPerConnectionSize" value="20" />
+	
+	      <!-- 配置监控统计拦截的filters -->
+	      <property name="filters" value="stat" /> 
+	      <!-- 连接泄漏监测 -->
+	      <property name="removeAbandoned" value="true" /> <!-- 打开removeAbandoned功能 -->
+		  <property name="removeAbandonedTimeout" value="28800" /> <!-- 28800秒，也就是8小时，一个连接超过8小时会自动删除这个连接 -->
+		  <property name="logAbandoned" value="true" /> <!-- 关闭abanded连接时输出错误日志 -->
+		  
+	  </bean>
+	
+	
+	<!-- 动态数据源配置 -->
+	<bean id="dataSource" class="com.hotent.base.db.datasource.DynamicDataSource">
+		<property name="targetDataSources"  >
+			<map>
+    			<entry key="dataSource_Default" value-ref="dataSource_Default" />
+   			</map>
+		</property>
+		<property name="defaultTargetDataSource" ref="dataSource_Default" />
+	</bean>
+
+	<bean id="transactionManager"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+
+	<bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.HtSqlSessionFactoryBean">
+		<property name="configLocation" value="classpath:/conf/configuration.xml"/>
+		<property name="dataSource" ref="dataSource" />
+		<property name="mappingAllLocation" value="classpath*:conf/x5-mapping-all.xml"/>
+	</bean>
+
+	<bean id="sqlSessionTemplate" class="org.mybatis.spring.SqlSessionTemplate" scope="prototype">
+		<constructor-arg index="0" ref="sqlSessionFactory" />
+	</bean>
+	
+	<!-- 方言 -->
+	<bean id="dialect" class="com.hotent.base.db.table.factory.DialectFactoryBean">
+		<property name="dbType" value="${jdbc.dbType}"/>
+	</bean>
+	
+	<!-- 表创建器 -->
+	<bean id="tableOperator" class="com.hotent.base.db.table.factory.TableOperatorFactoryBean">
+		<property name="dbType" value="${jdbc.dbType}"/>
+		<property name="jdbcTemplate" ref="jdbcTemplate"/>
+		<property name="dialect" ref="dialect"></property>
+	</bean>
+	
+	<!-- 索引操作类  -->
+	<bean id="indexOperator" class="com.hotent.base.db.table.factory.IndexOperatorFactoryBean">
+		<property name="dbType" value="${jdbc.dbType}"/>
+		<property name="jdbcTemplate" ref="jdbcTemplate"/>
+		<property name="dialect" ref="dialect"></property>
+	</bean>
+	
+	<bean id="tableMeta" class="com.hotent.base.db.table.factory.TableMetaFactoryBean">
+		<property name="dbType" value="${jdbc.dbType}"/>
+		<property name="jdbcTemplate" ref="jdbcTemplate"/>
+	</bean>
+	
+	<!-- 数据库通用操作类 -->
+	<bean id="commonDao" class="com.hotent.base.db.mybatis.CommonDao"></bean>
+	
+
+</beans>

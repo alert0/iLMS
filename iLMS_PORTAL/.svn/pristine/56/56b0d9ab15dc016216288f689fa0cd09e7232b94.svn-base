@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.pup.model.PupMakePlanModel">
+	
+	<select id="queryForPage" parameterType="com.hanthink.pup.model.PupMakePlanPageModel" resultType="com.hanthink.pup.model.PupMakePlanModel">
+		SELECT MPRC.ID id,
+			   MPRC.AREA area,
+			   MPRC.PICKUP_TYPE pickupType,
+			   MPRC.CAR_TYPE carType,
+			   MPRC.ROUTE_CODE routeCode,
+			   MPRC.TOTAL_NO totalNo,
+			   MPRC.MERGE_NO mergeNo,
+			   MPRC.TODAY_NO todayNo,
+			   TO_CHAR(MPRC.PICK_TIME,'yyyy-MM-dd') pickDate,
+			   TO_CHAR(MPRC.PICK_TIME,'hh24:mi:ss') pickTime,
+			   TO_CHAR(MPRC.ARRIVE_TIME,'yyyy-MM-dd') arriveDate,
+			   TO_CHAR(MPRC.ARRIVE_TIME,'hh24:mi:ss') arriveTime,
+			   TO_CHAR(MPRC.ASSEMBLE_TIME,'yyyy-MM-dd') assembleDate,
+			   TO_CHAR(MPRC.ASSEMBLE_TIME,'hh24:mi:ss') assembleTime,
+			   TO_CHAR(MPRC.ADJ_PICKUP_TIME,'yyyy-MM-dd') adjPickupDate,
+			   TO_CHAR(MPRC.ADJ_PICKUP_TIME,'hh24:mi:ss') adjPickupTime,
+			   MPRC.UNLOAD_PLACE unloadPlace,
+			   MPRC.FACTORY_CODE factoryCode,
+			   MPRC.MERGE_NUM mergeNum,
+			   TO_CHAR(MPRC.WORKDAY,'yyyy-MM-dd') workday,
+			   TO_CHAR(MPRC.CREATION_TIME,'yyyy-MM-dd hh24:mi:ss') creationTime
+		FROM MM_PUP_ROUTE_CAL MPRC
+		WHERE 1=1
+		<if test="pickupType != null">
+			AND  MPRC.PICKUP_TYPE = #{pickupType}
+		</if>
+		<if test="area != null">
+			AND  MPRC.AREA = #{area}
+		</if>
+		<if test="routeCode != null">
+			AND  MPRC.ROUTE_CODE = #{routeCode}
+		</if>
+		<if test="carType != null">
+			AND  MPRC.CAR_TYPE = #{carType}
+		</if>
+		<if test="pickDateStart != null">
+			AND  MPRC.PICK_TIME >= TO_DATE(#{pickDateStart},'yyyy-MM-dd hh24:mi:ss')
+		</if>
+		<if test="pickDateEnd != null">
+			AND  MPRC.PICK_TIME <![CDATA[<=]]> TO_DATE(#{pickDateEnd},'yyyy-MM-dd hh24:mi:ss')
+		</if>
+	</select>
+	
+	<!-- 生成物流计划 -->
+	<parameterMap type="java.util.HashMap" id="sheduleParameters">  
+		<parameter property="factoryCode" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="returnCode" jdbcType="INTEGER" mode="OUT"/>    
+	</parameterMap> 
+	<select id="makeLogisticsPlan" parameterMap="sheduleParameters" statementType="CALLABLE">
+		{call PKG_PUP_MAIN.USP_PUP_GEN(?,?)}
+	</select>
+	
+	<!-- 导出范围趟次表 -->
+	<select id="queryTripTimes" parameterType="java.lang.String" resultType="com.hanthink.pup.model.PupMakePlanModel">
+		SELECT MPR.AREA area,
+			   MPR.SUP_FACTORY supFactory,
+			   MPR.UNLOAD_PORT unloadPort,
+			   MPR.PICKUP_TYPE pickupType,
+			   MPR.CAR_TYPE carType,
+			   MPR.ROUTE_CODE routeCode,
+			   MPR.TOTAL_NO totalNo,
+			   MPR.START_SORT_ID startSortId,
+			   MPR.END_SORT_ID endSortId,
+			   MPR.TOKEN_NUM tokenNum
+		FROM MM_PUP_ROUTE_CAL_TEMP MPR
+		WHERE MPR.FACTORY_CODE = #{factoryCode}
+	</select>
+	<!-- 导出取货时间数据 -->
+	<select id="queryPickupTimes" parameterType="java.lang.String" resultType="com.hanthink.pup.model.PupMakePlanModel">
+		SELECT MPR.AREA area,
+			   MPR.UNLOAD_PLACE unloadPlace,
+			   MPR.PICKUP_TYPE pickupType,
+			   MPR.CAR_TYPE carType,
+			   MPR.ROUTE_CODE routeCode,
+			   MPR.TOTAL_NO totalNo,
+			   MPR.MERGE_NO mergeNo,
+			   TO_CHAR(MPR.WORKDAY,'yyyy-MM-dd') workDay,
+			   MPR.TODAY_NO todayNo,
+			   TO_CHAR(MPR.PICK_TIME,'yyyy-MM-dd') pickDate,
+			   TO_CHAR(MPR.PICK_TIME,'hh24:mi:ss') pickTime,
+			   TO_CHAR(MPR.ARRIVE_TIME,'yyyy-MM-dd') arriveDate,
+			   TO_CHAR(MPR.ARRIVE_TIME,'hh24:mi:ss') arriveTime,
+			   TO_CHAR(MPR.ASSEMBLE_TIME,'yyyy-MM-dd') assembleDate,
+			   TO_CHAR(MPR.ASSEMBLE_TIME,'hh24:mi:ss') assembleTime,
+			   null isMerge
+		FROM MM_PUP_ROUTE_CAL MPR
+		WHERE FACTORY_CODE = #{factoryCode}
+	</select>
+	<select id="queryPlanDCS" parameterType="java.lang.String" resultType="com.hanthink.pup.model.PupMakePlanModel">
+		SELECT MPOC.PICKUP_TYPE pickupType,
+	         MPOC.AREA area,
+	         MPOC.CAR_TYPE carType,
+	         MPOC.ROUTE_CODE routeCode,
+	         MPOC.TOTAL_NO totalNo,
+	         MPOC.MERGE_NO mergeNo,
+	         MPOC.SUP_FACTORY supFactory,
+	         MPS.SUPPLIER_NAME supplierName,
+	         MSO.ORDER_NO orderNo,
+	         MSO.PURCHASE_NO purchaseNo,
+	         TO_CHAR(MPOC.WORKDAY,'yyyy-MM-dd') workDay,
+	         MPOC.TODAY_NO todayNo,
+	         TO_CHAR(MPOC.PICK_DATE,'yyyy-MM-dd') pickDate,
+	         TO_CHAR(MPOC.PICK_DATE,'hh24:mi:ss') pickTime,
+	         TO_CHAR(MPOC.ARRIVE_DATE,'yyyy-MM-dd') arriveDate,
+	         TO_CHAR(MPOC.ARRIVE_DATE,'hh24:mi:ss') arriveTime,
+	         TO_CHAR(MPOC.ASSEMBLE_DATE,'yyyy-MM-dd') assembleDate,
+	         TO_CHAR(MPOC.ASSEMBLE_DATE,'hh24:mi:ss') assembleTime,
+	         null purposes,
+	         MPOC.WWL_MANAGER wwlManager,
+	         MPOC.NWL_MANAGER nwlManager
+	    FROM MM_PUP_ORDER_CAL MPOC
+	       LEFT JOIN MM_PUB_SUPPLIER MPS
+	       ON MPOC.SUPPLIER_NO = MPS.SUPPLIER_NO
+	       LEFT JOIN MM_SW_ORDER MSO
+	       ON MSO.SUPPLIER_NO = MPOC.SUPPLIER_NO
+	    WHERE MPOC.FACTORY_CODE = #{factoryCode}
+	</select>
+	<!-- 导出供应商备货数数据 -->
+	<select id="querySupplierStockNum" parameterType="com.hanthink.pup.model.PupMakePlanPageModel" resultType="com.hanthink.pup.model.PupMakePlanModel">
+		SELECT  MPRC.AREA area,
+	        MPRC.CAR_TYPE carType,
+	        MPRC.TOTAL_NO totalNo,
+	        MPRC.MERGE_NO mergeNo,
+	        MPRC.SUP_FACTORY supFactory,
+	        MPS.SUPPLIER_NAME supplierName,
+	        MPRC.ORDER_NO orderNo,
+	        MPRC.PURCHASE_NO purchaseNo,
+	        MPRC.WORKDAY workDay,
+	        MPRC.TODAY_NO todayNo,
+	        TO_CHAR( MPRC.PICK_DATE,'yyyy-MM-dd') pickDate,
+	        TO_CHAR( MPRC.PICK_DATE,'hh24:mi:ss') pickTime,
+	        TO_CHAR( MPRC.ARRIVE_DATE,'yyyy-MM-dd') arriveDate,
+	        TO_CHAR( MPRC.ARRIVE_DATE,'hh24:mi:ss') arriveTime,
+	        TO_CHAR( MPRC.ASSEMBLE_DATE,'yyyy-MM-dd') assembleDate,
+	        TO_CHAR( MPRC.ASSEMBLE_DATE,'hh24:mi:ss') assembleTime,
+	        NULL purposes,
+	        MPRC.WWL_MANAGER wwlManager,
+	        MPRC.NWL_MANAGER nwlManager,
+	        NULL confirmDay
+		 FROM MM_PUP_ORDER_CAL MPRC
+	       LEFT JOIN MM_PUB_SUPPLIER MPS
+	       ON MPRC.SUPPLIER_NO = MPS.SUPPLIER_NO
+	    WHERE 1=1
+		<if test="pickupType != null">
+			AND  MPRC.PICKUP_TYPE = #{pickupType}
+		</if>
+		<if test="area != null">
+			AND  MPRC.AREA = #{area}
+		</if>
+		<if test="routeCode != null">
+			AND  MPRC.ROUTE_CODE = #{routeCode}
+		</if>
+		<if test="carType != null">
+			AND  MPRC.CAR_TYPE = #{carType}
+		</if>
+		<if test="pickDateStart != null">
+			AND  MPRC.PICK_TIME >= TO_DATE(#{pickDateStart},'yyyy-MM-dd hh24:mi:ss')
+		</if>
+		<if test="pickDateEnd != null">
+			AND  MPRC.PICK_TIME <![CDATA[<=]]> TO_DATE(#{pickDateEnd},'yyyy-MM-dd hh24:mi:ss')
+		</if> 
+	</select>
+	<!-- 导出取货数据查询 -->
+	<select id="queryPickData" parameterType="java.lang.String" resultType="com.hanthink.pup.model.PupMakePlanModel">
+		SELECT MPOC.PICKUP_TYPE pickupType,
+			   MPOC.AREA area,
+			   MPOC.CAR_TYPE carType,
+			   MPOC.ROUTE_CODE routeCode,
+			   MPOC.TOTAL_NO totalNo,
+			   MPOC.MERGE_NO mergeNo,
+			   MPOC.SUP_FACTORY supFactory,
+			   MPS.SUPPLIER_NAME supplierName,
+			   MPOC.ORDER_NO orderNo,
+			   MPOC.PURCHASE_NO purchaseNo,
+			   TO_CHAR(MPOC.WORKDAY,'yyyy-MM-dd') workDay,
+			   MPOC.TODAY_NO todayNo,
+			   TO_CHAR(MPOC.PICK_DATE,'yyyy-MM-dd') pickDate,
+			   TO_CHAR(MPOC.PICK_DATE,'hh24:mi:ss') pickTime,
+			   TO_CHAR(MPOC.ARRIVE_DATE,'yyyy-MM-dd') arriveDate,
+			   TO_CHAR(MPOC.ARRIVE_DATE,'hh24:mi:ss') arriveTime,
+			   TO_CHAR(MPOC.ASSEMBLE_DATE,'yyyy-MM-dd') assembleDate,
+			   TO_CHAR(MPOC.ASSEMBLE_DATE,'hh24:mi:ss') assembleTime,
+			   TO_CHAR(MPOC.REC_DATE,'yyyy-MM-dd') recDate,
+			   MPR.WARE_CODE wareCode,
+			   MPR.REC_SHIFT_A recShiftA,
+			   MPR.REC_SHIFT_B recShiftB,
+			   null purposes,
+			   MPR.WWL_MANAGER wwlManager,
+			   MPR.NWL_MANAGER nwlManager
+		FROM MM_PUP_ORDER_CAL MPOC
+			 LEFT JOIN MM_PUP_ROUTE MPR
+			 ON MPOC.ROUTE_CODE = MPR.ROUTE_CODE
+			 AND MPOC.CAR_TYPE = MPR.CAR_TYPE
+			 AND MPOC.UNLOAD_PORT = MPR.UNLOAD_PORT
+			 LEFT JOIN MM_PUB_SUPPLIER MPS
+			 ON MPOC.SUPPLIER_NO = MPS.SUPPLIER_NO
+		WHERE MPOC.FACTORY_CODE = #{factoryCode}
+	</select>
+</mapper>

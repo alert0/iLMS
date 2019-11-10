@@ -1,0 +1,311 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hanthink.sw.model.SwZGJOrderModel">
+	
+	<!-- 查询支给件订单 -->
+	<select id="queryZGJOrderPage" parameterType="com.hanthink.sw.model.SwZGJOrderModel"
+		resultType="com.hanthink.sw.model.SwZGJOrderModel">
+		SELECT T.PURCHASE_NO purchaseNo,
+		       T.ORDER_NO orderNo,
+		       T.SUPPLIER_NO supplierNo,
+		       T.SUP_FACTORY supFactory,
+		       S.SUPPLIER_NAME supplierName,
+		       TO_CHAR(T.ORDER_DATE, 'YYYY-MM-DD') orderDate,
+		       TO_CHAR(T.ARRIVE_DATE, 'YYYY-MM-DD') arriveDate,
+		       T.DEPOT_NO depotNo,
+		       D.CODE_VALUE_NAME receiveStatus,
+		       D1.CODE_VALUE_NAME deliveryStatus,
+		       D2.CODE_VALUE_NAME downloadStatus,
+		       D3.CODE_VALUE_NAME printStatus,
+		       T.PRINT_TIME printTime
+		  FROM MM_SW_ORDER T
+		LEFT JOIN MM_PUB_SUPPLIER S ON S.SUPPLIER_NO = T.SUPPLIER_NO
+		LEFT JOIN MM_PUB_DATA_DICT D ON D.CODE_VALUE = T.RECEIVE_STATUS AND D.CODE_TYPE = 'PUB_ARRIVE_STATUS'
+		LEFT JOIN MM_PUB_DATA_DICT D1 ON D1.CODE_VALUE = T.DELIVERY_STATUS AND D1.CODE_TYPE = 'PUB_DELIVERY_STATUS'
+		LEFT JOIN MM_PUB_DATA_DICT D2 ON D2.CODE_VALUE = T.DOWNLOAD_STATUS AND D2.CODE_TYPE = 'PUP_DOWNLOAD_STATUS'
+		LEFT JOIN MM_PUB_DATA_DICT D3 ON D3.CODE_VALUE = T.PRINT_STATUS AND D3.CODE_TYPE = 'PUB_PRINT_STATUS'
+		WHERE T.ORDER_TYPE = '01' AND T.ZG_FLAG = '1'
+		 <!-- 支给件订单,一级供应商查询二级供应商数据 -->
+ 		  <if test="supplierNoAuth != null and '' != supplierNoAuth">
+			AND (T.SUPPLIER_NO = #{supplierNoAuth} OR T.DEPOT_NO = #{supplierNoAuth})
+		  </if>
+		  <if test="supplierNo != null and '' != supplierNo">
+			AND T.SUPPLIER_NO = #{supplierNo}
+		  </if>
+	      <if test="null != arriveDate and '' != arriveDate">
+	  	    AND T.ARRIVE_DATE &gt;= to_date(#{arriveDate}, 'yyyy-mm-dd hh24:mi:ss')
+	  	  </if>
+	  	  <if test="null != arriveDateTo and '' != arriveDateTo">
+	  	    AND T.ARRIVE_DATE &lt; to_date(#{arriveDateTo}, 'yyyy-mm-dd hh24:mi:ss') + 1
+	  	  </if>
+		 <if test="supFactory != null and '' != supFactory">
+			AND T.SUP_FACTORY = #{supFactory}
+		 </if>
+		 <if test="orderNo != null and '' != orderNo">
+			AND T.ORDER_NO = #{orderNo}
+		 </if>
+		 <if test="printStatus != null and '' != printStatus">
+			AND T.PRINT_STATUS = #{printStatus}
+		 </if>
+		 <if test="downloadStatus != null and '' != downloadStatus">
+			AND T.DOWNLOAD_STATUS = #{downloadStatus}
+		 </if>
+		 <if test="deliveryStatus != null and '' != deliveryStatus">
+			AND T.DELIVERY_STATUS = #{deliveryStatus}
+		 </if>
+		 <if test="receiveStatus != null and '' != receiveStatus">
+			AND T.RECEIVE_STATUS = #{receiveStatus}
+		 </if>
+		 ORDER BY T.CREATION_TIME DESC
+	</select>
+	
+	
+	<!-- 支给件更新本次发货数  -->
+	<update id="updateZGJDetailForPrint" parameterType="com.hanthink.sw.model.SwZGJOrderModel">
+		UPDATE MM_SW_ORDER_DETAIL T
+		   SET T.TOTAL_DELIV_QTY = #{totalDelivQty},
+		       T.DELIVERY_STATUS = #{deliveryStatus},
+           	   T.CURRENT_QTY = #{currentQty}
+		 WHERE T.PURCHASE_NO = #{purchaseNo}
+		   AND T.PURCHASE_ROWNO = #{purchaseRowNo}
+	</update>  
+	
+	<!-- 查询订单明细 -->
+	<select id="queryZGJOrderDetailPage" parameterType="com.hanthink.sw.model.SwZGJOrderModel"
+		resultType="com.hanthink.sw.model.SwZGJOrderModel">
+		SELECT 
+			 A.DELIVERY_STATUS   deliveryStatus, 
+	         A.ORDER_NO          orderNo,
+	         A.PURCHASE_NO       purchaseNo,
+	         A.PURCHASE_ROWNO    purchaseRowNo,
+	         A.PART_NO           partNo,
+	         NVL(B.PART_NAME_CN, P.PART_NAME_CN)  partName,
+	         NVL(B.PART_SHORT_NO, P.PART_SHORT_NO) partShortNo,
+	         A.ORDER_QTY         orderQty,
+	         A.STANDARD_PACKAGE  standardPackage,
+	         ceil(A.ORDER_QTY / A.STANDARD_PACKAGE) xs,
+	         A.ARRIVE_NUM         arriveNum,
+	         C.CODE_VALUE_NAME    receiveStatusDesc,
+	         A.TOTAL_REC_QTY      totalRecQty,
+	         nvl(A.TOTAL_DELIV_QTY, 0) totalDelivQty,
+	         (A.ORDER_QTY - nvl(A.TOTAL_DELIV_QTY, 0))  currentQty,
+	         C.CODE_VALUE_NAME  receiveStatus
+	      FROM MM_SW_ORDER_DETAIL A
+	      LEFT JOIN MM_PUB_PART_UDA B ON A.PART_NO = B.PART_NO
+	      LEFT JOIN MM_PUB_PART P ON P.PART_NO = A.PART_NO
+	      LEFT JOIN MM_PUB_DATA_DICT C ON C.CODE_TYPE = 'PUB_ARRIVE_STATUS'  AND TO_CHAR(A.RECEIVE_STATUS) = C.CODE_VALUE
+	      LEFT JOIN MM_SW_ORDER D
+	        ON A.PURCHASE_NO = D.PURCHASE_NO
+	     WHERE 1 = 1
+	     <if test="null != orderNoStr and ''!=orderNoStr ">
+		 	AND A.ORDER_NO IN (
+		 		<foreach collection="orderNoStr.split(',')" item="item" index="index" separator=",">
+		 			#{item}
+		 		</foreach>
+		 		)
+		 </if>
+		 <if test="null != purchaseNoStr and ''!=purchaseNoStr ">
+		 	AND A.PURCHASE_NO IN (
+		 		<foreach collection="purchaseNoStr.split(',')" item="item" index="index" separator=",">
+		 			#{item}
+		 		</foreach>
+		 		)
+		 </if>
+		<if test="purchaseNo != null and '' != purchaseNo">
+			AND A.PURCHASE_NO = #{purchaseNo}
+		</if>
+		<if test="orderNo != null and '' != orderNo">
+			AND D.ORDER_NO = #{orderNo}
+		</if>
+		<if test="supplierNo != null and '' != supplierNo">
+			AND D.SUPPLIER_NO = #{supplierNo}
+		</if>
+		<if test="supplierName != null and '' != supplierName">
+			AND B.SUPPLIER_NAME LIKE '%' ||  #{supplierName} || '%'
+		</if>
+		<if test="depotNo != null and '' != depotNo">
+			AND D.DEPOT_NO = #{depotNo}
+		</if>
+		<if test="orderDate != null and '' != orderDate">
+			AND TO_CHAR(D.ORDER_DATE,'YYYY-MM-DD') = #{orderDate}
+		</if>
+		<if test="partName != null and '' != partName">
+			AND B.PART_NAME_CN LIKE CONCAT( #{partName}, '%')
+		</if>
+		<if test="partShortNo != null and '' != partShortNo">
+			AND B.PART_SHORT_NO = #{partShortNo}
+		</if>
+		<if test="partNo != null and '' != partNo">
+			AND A.PART_NO LIKE  #{partNo} || '%'
+		</if>
+		ORDER BY A.PURCHASE_NO,A.PURCHASE_ROWNO
+	</select>
+	
+	<!-- 查询订单打印信息 -->
+	<select id="queryZGJOrderPrintDetailList" parameterType="com.hanthink.sw.model.SwZGJOrderModel"
+		resultType="com.hanthink.pub.model.PubPrintOrderModel">
+		SELECT T.PURCHASE_NO purchaseOrderno,
+	           T.ORDER_NO orderNo,
+	           to_char(O.ARRIVE_DATE, 'yyyy-mm-dd') arriveTime,
+	           S.SUPPLIER_NAME supplierName,
+	           O.SUPPLIER_NO supplierNo,
+	           T.PART_NO partNo,
+	           P.PART_NAME_CN partName,
+	           nvl(U.PART_SHORT_NO, P.PART_SHORT_NO) partShortNo,
+	           ceil(T.ORDER_QTY / T.STANDARD_PACKAGE) xs,
+	           T.ORDER_QTY requireNum,
+	           T.STANDARD_PACKAGE standardPackage,
+	           (SELECT SUM(ceil(DE.ORDER_QTY / DE.STANDARD_PACKAGE))
+	              FROM MM_SW_ORDER_DETAIL DE
+	             WHERE DE.ORDER_NO = #{orderNo} ) labelPageNum
+	      FROM MM_SW_ORDER_DETAIL T
+	    LEFT JOIN MM_SW_ORDER O ON O.ORDER_NO = T.ORDER_NO
+	    LEFT JOIN MM_PUB_SUPPLIER S ON S.SUPPLIER_NO = O.SUPPLIER_NO
+	    LEFT JOIN MM_PUB_PART_UDA U ON U.PART_NO = T.PART_NO
+	    LEFT JOIN MM_PUB_PART P ON P.PART_NO = T.PART_NO
+		WHERE T.ORDER_NO = #{orderNo}
+		      ORDER BY T.ORDER_ROWNO
+	</select>
+	
+	<!-- 查询标签打印信息 -->
+	<select id="querySwZGJOrderPrintLabelList" parameterType="com.hanthink.sw.model.SwZGJOrderModel" 
+		resultType="com.hanthink.sw.model.SwZGJOrderModel">
+		SELECT   T.PURCHASE_NO purchaseOrderno,
+				T.PURCHASE_ROWNO purchaseRowNo,
+               T.ORDER_NO orderNo,
+               S.SUPPLIER_NAME supplierName,
+               O.SUPPLIER_NO supplierNo,
+               T.PART_NO partNo,
+               nvl(P.PART_NAME_CN, U.PART_NAME_CN) partName,
+               P.PART_NAME_CN partName,
+               nvl(U.PART_SHORT_NO, P.PART_SHORT_NO) partShortNo,
+               (CASE WHEN T.CURRENT_QTY IS NOT NULL OR T.CURRENT_QTY &lt;&gt; 0 THEN T.CURRENT_QTY
+                     ELSE T.ORDER_QTY
+                     END) requireNum,
+               T.STANDARD_PACKAGE standardPackage,
+               ceil((CASE WHEN T.CURRENT_QTY IS NOT NULL OR T.CURRENT_QTY &lt;&gt; 0 THEN T.CURRENT_QTY
+                     ELSE T.ORDER_QTY
+                     END)/ T.STANDARD_PACKAGE) xs,
+               <!-- 
+               to_char(O.ORDER_DATE, 'hh24:mi') orderTimeHhmi,
+                -->
+               to_char(O.ORDER_DATE, 'YYYY/MM/DD') orderTimeYmd,
+               to_char(O.ARRIVE_DATE, 'YYYY/MM/DD') arriveTime,
+               T.ORDER_QTY orderQty
+          FROM MM_SW_ORDER_DETAIL T
+        LEFT JOIN MM_SW_ORDER O ON O.ORDER_NO = T.ORDER_NO
+        LEFT JOIN MM_PUB_SUPPLIER S ON S.SUPPLIER_NO = O.SUPPLIER_NO 
+        LEFT JOIN MM_PUB_PART_UDA U ON U.PART_NO = T.PART_NO
+        LEFT JOIN MM_PUB_PART P ON P.PART_NO = T.PART_NO
+	    WHERE T.ORDER_NO = #{orderNo} ORDER BY T.ORDER_ROWNO, T.PURCHASE_ROWNO
+	</select>
+	
+	
+	<!-- 更新订单打印状态 -->
+	<update id="updatePrintInfo" parameterType="com.hanthink.sw.model.SwZGJOrderModel">
+		UPDATE MM_SW_ORDER T
+	      SET 
+	           T.PRINT_STATUS = '1',
+	           T.PRINT_TIME = SYSDATE
+	    WHERE T.ORDER_NO = #{orderNo} AND T.PRINT_STATUS &lt;&gt; '1'
+	</update>
+	
+	<!-- 支给件选择导出 -->
+	<select id="querySelectZGJOrderList" parameterType="com.hanthink.sw.model.SwZGJOrderModel"
+		resultType="com.hanthink.sw.model.SwZGJOrderModel">
+		SELECT T.PURCHASE_NO purchaseNo,
+         DE.PURCHASE_ROWNO purchaseRowNo,
+             T.ORDER_NO orderNo,
+             T.SUPPLIER_NO supplierNo,
+             T.SUP_FACTORY supFactory,
+             S.SUPPLIER_NAME supplierName,
+             TO_CHAR(T.ORDER_DATE, 'YYYY-MM-DD') orderDate,
+             TO_CHAR(T.ARRIVE_DATE, 'YYYY-MM-DD') arriveDate,
+             T.DEPOT_NO depotNo,
+             DE.PURCHASE_ROWNO ,
+             DE.PART_NO partNo,
+             P.PART_NAME_CN partName,
+             nvl(U.Part_Short_No, P.PART_SHORT_NO) partShortNo,
+             DE.STANDARD_PACKAGE standardPackage,
+             DE.ORDER_QTY orderQty,
+             ceil(DE.ORDER_QTY / DE.STANDARD_PACKAGE) xs,
+             NVL(DE.ARRIVE_NUM, 0)  arriveNum,
+             D.CODE_VALUE_NAME receiveStatusDesc
+        FROM MM_SW_ORDER T
+      LEFT JOIN MM_PUB_SUPPLIER S ON S.SUPPLIER_NO = T.SUPPLIER_NO
+      LEFT JOIN MM_PUB_DATA_DICT D ON D.CODE_VALUE = T.RECEIVE_STATUS AND D.CODE_TYPE = 'PUB_ARRIVE_STATUS'
+      LEFT JOIN MM_SW_ORDER_DETAIL DE ON DE.ORDER_NO = T.ORDER_NO
+      LEFT JOIN MM_PUB_PART_UDA U ON U.PART_NO = DE.PART_NO
+      LEFT JOIN MM_PUB_PART P ON P.PART_NO = DE.PART_NO
+      WHERE T.ORDER_TYPE = '01' AND T.ZG_FLAG = '1'
+	    <if test="null != orderNoStr and ''!=orderNoStr ">
+		 	AND T.ORDER_NO IN (
+		 		<foreach collection="orderNoStr.split(',')" item="item" index="index" separator=",">
+		 			#{item}
+		 		</foreach>
+		 		)
+		 </if>
+		 <if test="null != purchaseNoStr and ''!=purchaseNoStr ">
+		 	AND T.PURCHASE_NO IN (
+		 		<foreach collection="purchaseNoStr.split(',')" item="item" index="index" separator=",">
+		 			#{item}
+		 		</foreach>
+		 		)
+		 </if>
+		 <if test="supplierNoAuth != null and '' != supplierNoAuth">
+			AND (T.SUPPLIER_NO = #{supplierNoAuth} OR T.DEPOT_NO = #{supplierNoAuth})
+		  </if>
+		  <if test="supplierNo != null and '' != supplierNo">
+			AND T.SUPPLIER_NO = #{supplierNo}
+		  </if>
+	      <if test="null != arriveDate and '' != arriveDate">
+	  	    AND T.ARRIVE_DATE &gt;= to_date(#{arriveDate}, 'yyyy-mm-dd hh24:mi:ss')
+	  	  </if>
+	  	  <if test="null != arriveDateTo and '' != arriveDateTo">
+	  	    AND T.ARRIVE_DATE &lt; to_date(#{arriveDateTo}, 'yyyy-mm-dd hh24:mi:ss') + 1
+	  	  </if>
+		 <if test="supFactory != null and '' != supFactory">
+			AND T.SUP_FACTORY = #{supFactory}
+		 </if>
+		 <if test="orderNo != null and '' != orderNo">
+			AND T.ORDER_NO = #{orderNo}
+		 </if>
+		 <if test="printStatus != null and '' != printStatus">
+			AND T.PRINT_STATUS = #{printStatus}
+		 </if>
+		 <if test="downloadStatus != null and '' != downloadStatus">
+			AND T.DOWNLOAD_STATUS = #{downloadStatus}
+		 </if>
+		 <if test="deliveryStatus != null and '' != deliveryStatus">
+			AND T.DELIVERY_STATUS = #{deliveryStatus}
+		 </if>
+		 <if test="receiveStatus != null and '' != receiveStatus">
+			AND T.RECEIVE_STATUS = #{receiveStatus}
+		 </if>
+		ORDER BY T.PURCHASE_NO, DE.PURCHASE_ROWNO
+	</select>
+	
+	<!-- 导出excel更新下载状态 -->
+	<update id="updateDownloadStatus" parameterType="com.hanthink.sw.model.SwZGJOrderModel">
+		UPDATE MM_SW_ORDER T
+	       SET T.DOWNLOAD_STATUS = '1', T.DOWNLOAD_TIME = SYSDATE
+	     WHERE T.DOWNLOAD_STATUS &lt;&gt; '1'
+	     <if test="null != orderNoStr and ''!=orderNoStr ">
+		 	AND T.ORDER_NO IN (
+		 		<foreach collection="orderNoStr.split(',')" item="item" index="index" separator=",">
+		 			#{item}
+		 		</foreach>
+		 		)
+		 </if>
+	</update>
+	
+	<!-- 更新主表发货状态 -->
+	<update id="updateOrderDeliveryStatus" parameterType="com.hanthink.sw.model.SwZGJOrderModel">
+		UPDATE MM_SW_ORDER T
+		   SET T.DELIVERY_STATUS = #{deliveryStatus}
+		 WHERE T.PURCHASE_NO = #{purchaseNo}
+	</update>
+	
+	
+</mapper>

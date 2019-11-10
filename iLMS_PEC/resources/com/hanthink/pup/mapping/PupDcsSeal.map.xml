@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.pup.model.PupDcsSealModel">
+
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="queryPupDcsSealForPage" parameterType="com.hanthink.pup.model.PupDcsSealModel"
+		resultType="com.hanthink.pup.model.PupDcsSealModel">
+		SELECT A.SEAL_NO         sealNo,
+		       A.DEAL_FLAG       dealFlag,
+		       B.CODE_VALUE_NAME dealFlagStr
+		  FROM MM_PUP_DCS_SEAL A
+		  LEFT JOIN MM_PUB_DATA_DICT B
+		    ON B.CODE_TYPE = 'PUP_SEAL_DEAL_FLAG'
+		   AND A.DEAL_FLAG = B.CODE_VALUE
+		   <!-- i-LMS20190603 mod by 林卓 -->
+		   AND B.FACTORY_CODE = A.FACTORY_CODE
+		WHERE A.FACTORY_CODE = #{factoryCode}
+		<if test="sealNo!=null and sealNo!='' ">
+			AND A.SEAL_NO LIKE CONCAT(#{sealNo}, '%')
+		</if>
+		<if test="dealFlag!=null and dealFlag!='' ">
+			AND A.DEAL_FLAG = #{dealFlag}
+		</if>
+		ORDER BY A.DEAL_FLAG, TO_NUMBER(A.SEAL_NO)
+	</select>
+	
+	<!-- 删除所有未使用的封条号数据 -->
+	<delete id="batchDelDcsSeal" parameterType="java.lang.String">
+		DELETE FROM MM_PUP_DCS_SEAL A WHERE A.DEAL_FLAG = 0 AND A.FACTORY_CODE = #{factoryCode}
+	</delete>
+	
+	<!-- 根据UUID删除临时表的数据 -->
+	<delete id="deleteDcsSealByUUID" parameterType="java.lang.String">
+		DELETE FROM MM_PUP_DCS_SEAL_IMP A WHERE A.IMP_UUID = #{uuid}
+	</delete>
+	
+	<!-- 导入临时数据 -->
+	<insert id="insertImportTempData" parameterType="com.hanthink.pup.model.PupDcsSealModelImport">
+		INSERT INTO MM_PUP_DCS_SEAL_IMP
+		  (SEAL_NO,
+		   DEAL_FLAG,
+		   FACTORY_CODE,
+		   CREATION_USER,
+		   CREATION_TIME,
+		   IMP_UUID,
+		   CHECK_RESULT,
+		   CHECK_INFO,
+		   OPE_TYPE)
+		<foreach collection="list" item="item" index="index" separator=" UNION ALL ">
+			SELECT 
+		   		#{item.sealNo, jdbcType=VARCHAR},
+		   		'0',
+		   		#{item.factoryCode, jdbcType=VARCHAR},
+		   		#{item.createUser, jdbcType=VARCHAR},
+		   	 	SYSDATE,
+		   	 	#{item.uuid, jdbcType=VARCHAR},
+		   	 	#{item.checkResult, jdbcType=VARCHAR},
+		   	 	#{item.checkInfo, jdbcType=VARCHAR},
+		   	 	#{item.opeType, jdbcType=VARCHAR}
+			FROM DUAL
+    	</foreach>
+	</insert>
+	
+	<!-- 检查导入临时表数据 -->
+	<parameterMap type="map" id="impCkParamMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="userName" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<!-- 校验导入的封条号数据 -->
+	<select id="checkImportData" parameterMap="impCkParamMap" statementType="CALLABLE">
+		{CALL PKG_PUP_CHECK.USP_PUP_DCS_SEAL_CHECK(?, ?, ?,  ?,?)}
+	</select>
+	
+	<!-- 查询临时表中的数据是否可以导入 -->
+	<select id="queryIsImportFlag" parameterType="java.lang.String" resultType="java.lang.String">
+		WITH TEMPA AS
+		 (SELECT COUNT(1) s
+		    FROM MM_PUP_DCS_SEAL_IMP A
+		   WHERE A.CHECK_RESULT = 0
+		     AND A.IMP_UUID = #{VALUE})
+		SELECT CASE
+		         WHEN A.S > 0 THEN
+		          0
+		         ELSE
+		          1
+		       END AS FLAG
+		  FROM TEMPA A
+	</select>
+	
+	<!-- 查询临时表数据 -->
+	<select id="queryPupDcsSealImportTempData" parameterType="java.util.Map" resultType="com.hanthink.pup.model.PupDcsSealModelImport">
+			SELECT A.SEAL_NO         sealNo,
+		       A.DEAL_FLAG       dealFlag,
+		       B.CODE_VALUE_NAME dealFlagStr,
+		       A.CHECK_INFO checkInfo,
+		       A.OPE_TYPE opeType,
+		       D.CODE_VALUE_NAME checkResult,
+		       E.CODE_VALUE_NAME importStatus
+		  FROM MM_PUP_DCS_SEAL_IMP A
+		  LEFT JOIN MM_PUB_DATA_DICT B
+		    ON B.CODE_TYPE = 'PUP_SEAL_DEAL_FLAG'
+		   AND A.DEAL_FLAG = B.CODE_VALUE
+		   <!-- i-LMS20190603 mod by 林卓 -->
+		   AND B.FACTORY_CODE = A.FACTORY_CODE
+		  LEFT JOIN MM_PUB_DATA_DICT D
+		    ON A.CHECK_RESULT = D.CODE_VALUE
+		   AND D.CODE_TYPE = 'PUB_IMP_CK_RESULT'
+		   <!-- i-LMS20190603 mod by 林卓 -->
+		   AND D.FACTORY_CODE = A.FACTORY_CODE
+		  LEFT JOIN MM_PUB_DATA_DICT E
+		    ON A.IMPORT_STATUS = E.CODE_VALUE
+		   AND E.CODE_TYPE = 'PUB_IMP_STATUS'
+		   <!-- i-LMS20190603 mod by 林卓 -->
+		   AND E.FACTORY_CODE = A.FACTORY_CODE
+		 WHERE A.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		 ORDER BY A.CHECK_RESULT, TO_NUMBER(A.SEAL_NO)
+	</select>
+	
+	<!-- 查询可导入数据 -->
+	<select id="queryForInsertList" parameterType="java.util.Map" resultType="com.hanthink.pup.model.PupDcsSealModelImport">
+		SELECT *
+		FROM  MM_PUP_DCS_SEAL_IMP
+		WHERE IMP_UUID = #{uuid}
+			  AND IMPORT_STATUS = #{importStatus}
+			  AND CHECK_RESULT = #{checkResult}
+	</select>
+	
+	<!-- 根据UUID删除临时表的数据 -->
+	<delete id="deleteNotUseDcsSeal" parameterType="java.util.Map">
+		DELETE FROM MM_PUP_DCS_SEAL A
+		 WHERE A.FACTORY_CODE = #{factoryCode}
+		   AND A.DEAL_FLAG = 0
+	</delete>
+	
+	<!-- 导入临时数据 -->
+	<insert id="insertPupDcsSealFromTemp" parameterType="java.util.Map">
+		INSERT INTO MM_PUP_DCS_SEAL
+		  (SEAL_NO, DEAL_FLAG, FACTORY_CODE, CREATION_USER, CREATION_TIME)
+		SELECT B.SEAL_NO, 0, #{factoryCode, jdbcType = VARCHAR}, B.CREATION_USER, SYSDATE
+		  FROM MM_PUP_DCS_SEAL_IMP B
+		 WHERE B.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		   AND B.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		   AND B.IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+	</insert>
+	
+	<!-- 更新导入状态 -->
+	<update id="updateImportStatus" parameterType="java.util.Map">
+		UPDATE MM_PUP_DCS_SEAL_IMP A
+		   SET A.IMPORT_STATUS = 1
+		 WHERE A.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+	</update>
+</mapper>

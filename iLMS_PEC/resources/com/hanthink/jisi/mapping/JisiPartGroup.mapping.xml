@@ -1,0 +1,311 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hanthink.jisi.model.JisiPartGroupModel">
+
+	<!-- 通过信息点类型和工厂查询出信息点 -->
+	<select id="getPlanCode" parameterType="com.hanthink.jisi.model.JisiPartGroupModel" resultType="java.lang.String">
+	SELECT A.PLAN_CODE FROM MM_PUB_PLAN_CODE A WHERE A.FACTORY_CODE = #{factoryCode} AND A.PLAN_CODE_TYPE = #{planCodeType}
+	</select>
+	
+	<!-- 厂内同步零件组维护分页查询 -->
+	 <select id="queryJisiPartGroupForPage" parameterType="com.hanthink.jisi.model.JisiPartGroupModel" resultType="com.hanthink.jisi.model.JisiPartGroupModel">
+		SELECT A.ID                 id,
+		       A.PLAN_CODE          planCode,
+		       A.PARTGROUP_NO       partGroupNo,
+		       A.PARTGROUP_NAME     partGroupName,
+		       A.PRINTER_ID         printerId,
+		       B.DESCRIPTION        printerIdDesc,
+		       A.PRINT_LOCATION     printLocation,
+		       A.IS_AUTO_PRINT      isAutoPrint,
+		       D.CODE_VALUE_NAME    isAutoPrintName,
+		       to_char(A.EFF_START , 'yyyy-mm-dd') effStart,
+		       to_char(A.EFF_END  , 'yyyy-mm-dd') effEnd,
+		       A.CREATION_USER      creationUser,
+		       A.LAST_MODIFIED_USER lastModifiedUser,
+		       A.LAST_MODIFIED_IP   lastModifiedIp
+		  FROM MM_JISI_PARTGROUP A  
+		  INNER JOIN MM_PUB_PLAN_CODE C 
+		  	ON C.PLAN_CODE = A.PLAN_CODE
+		  LEFT JOIN MM_PR_PRINTER B
+    		ON A.PRINTER_ID = B.ID
+    		  LEFT JOIN MM_PUB_DATA_DICT D
+		    ON A.IS_AUTO_PRINT = D.CODE_VALUE
+		   AND D.CODE_TYPE = 'PUB_TRUE_FALSE'
+		   AND D.FACTORY_CODE = #{factoryCode}
+		 WHERE C.FACTORY_CODE = #{factoryCode}
+		 <if test="partGroupNo != null and partGroupNo != ''">
+		 	AND A.PARTGROUP_NO LIKE CONCAT(#{partGroupNo},'%')
+		 </if>
+		 <if test="partGroupName != null and partGroupName != ''">
+		 	AND A.PARTGROUP_NAME LIKE CONCAT(#{partGroupName},'%')
+		 </if>
+		  ORDER BY A.ID DESC
+	 </select>
+	 
+	 <!-- 删除零件组维护 -->
+	 <delete id="remove" parameterType="java.lang.String">
+	 DELETE FROM MM_JISI_PARTGROUP A WHERE A.ID = #{id}
+	 </delete>
+	 
+	 <!-- 新增厂内同步零件组维护 -->
+	 <insert id="create" parameterType="com.hanthink.jisi.model.JisiPartGroupModel">
+	  INSERT INTO MM_JISI_PARTGROUP
+		  (ID,
+		   PLAN_CODE,
+		   PARTGROUP_NO,
+		   PARTGROUP_NAME,
+		   PRINTER_ID,
+		   PRINT_LOCATION,
+		   IS_AUTO_PRINT,
+		   EFF_START,
+		   EFF_END,
+		   CREATION_USER,
+		   CREATION_TIME)
+		VALUES
+		  (SEQ_MM_JISI_PARTGROUP.NEXTVAL, 
+		  #{planCode,jdbcType = VARCHAR}, 
+		  #{partGroupNo,jdbcType = VARCHAR},
+		  #{partGroupName,jdbcType = VARCHAR},
+		  #{printerId,jdbcType = VARCHAR}, 
+		  #{printLocation,jdbcType = VARCHAR},
+		  #{isAutoPrint,jdbcType = VARCHAR},
+		  TO_DATE(#{effStart,jdbcType = VARCHAR},'yyyy-mm-dd HH24:mi:ss'),
+		  TO_DATE(#{effEnd,jdbcType = VARCHAR},'yyyy-mm-dd HH24:mi:ss'),
+		  #{creationUser,jdbcType = VARCHAR},
+		  SYSDATE)
+	 </insert>
+	 
+	 <!-- 修改零件组信息维护 -->
+	 <update id="update" parameterType="com.hanthink.jisi.model.JisiPartGroupModel">
+			 UPDATE MM_JISI_PARTGROUP
+				   SET PLAN_CODE = #{planCode,jdbcType = VARCHAR}, 
+				       PARTGROUP_NO = #{partGroupNo,jdbcType = VARCHAR}, 
+				       PARTGROUP_NAME = #{partGroupName,jdbcType = VARCHAR},
+				       PRINTER_ID = #{printerId,jdbcType = VARCHAR},
+				       PRINT_LOCATION = #{printLocation,jdbcType = VARCHAR},
+				       IS_AUTO_PRINT = #{isAutoPrint,jdbcType = VARCHAR},
+				       EFF_START = TO_DATE(#{effStart,jdbcType = VARCHAR},'yyyy-mm-dd HH24:mi:ss'),
+				       EFF_END = TO_DATE(#{effEnd,jdbcType = VARCHAR},'yyyy-mm-dd HH24:mi:ss'),
+				       CREATION_TIME = SYSDATE,
+				       LAST_MODIFIED_USER = #{creationUser,jdbcType = VARCHAR},
+				       LAST_MODIFIED_TIME = SYSDATE
+				 WHERE ID = #{id,jdbcType = VARCHAR}
+	 </update>
+	 
+	 <!-- 导入之前删除临时表中上次导入的数据 -->
+	 <delete id="deleteJisiPartGroupImportTempDataByUUID" parameterType="java.lang.String">
+		DELETE FROM MM_JISI_PARTGROUP_IMP
+		WHERE
+		IMP_UUID = #{uuid}
+	</delete>
+	
+	<!-- 文件数据写入到临时表 -->
+	<insert id="insertJisiPartGroupIntoTempData" parameterType = "java.util.List">
+			INSERT INTO MM_JISI_PARTGROUP_IMP
+				  (ID,
+				   PLAN_CODE,
+				   PARTGROUP_NO,
+				   PARTGROUP_NAME,
+				   PRINT_LOCATION,
+				   IS_AUTO_PRINT,
+				   EFF_START,
+				   EFF_END,
+				   IMP_UUID,
+				   CHECK_RESULT,
+				   CHECK_INFO,
+				   IMPORT_STATUS,
+				   OPE_TYPE )
+		<foreach  collection="list" item="item" index="index" separator=" UNION ALL" >
+			SELECT #{item.id,jdbcType=VARCHAR},
+				 #{item.planCode,jdbcType=VARCHAR},
+				 #{item.partGroupNo,jdbcType=VARCHAR},
+				 #{item.partGroupName,jdbcType=VARCHAR},
+				 #{item.printLocation,jdbcType=VARCHAR},
+				 #{item.isAutoPrint,jdbcType=VARCHAR},
+				 TO_DATE(#{item.effStart,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss'),
+				 TO_DATE(#{item.effEnd,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss'),
+				 #{item.uuid,jdbcType=VARCHAR},
+				 #{item.checkResult,jdbcType=VARCHAR},
+				 #{item.checkInfo,jdbcType=VARCHAR},
+				 #{item.importStatus,jdbcType=VARCHAR},
+				 #{item.opeType,jdbcType=VARCHAR}  FROM DUAL
+			<!-- FROM MM_PR_PRINTER B WHERE B.PRINTER_NAME = #{item.printerName} -->
+		</foreach>
+	</insert>
+	
+	<!-- 根据打印机名称修改临时表中打印机字段为打印机id -->
+	<update id="updateJisiPartGroupPrintId" parameterType="com.hanthink.jisi.model.JisiPartGroupModel" >
+	UPDATE MM_JISI_PARTGROUP_IMP A SET 
+	A.PRINTER_ID = (SELECT DISTINCT B.ID FROM MM_PR_PRINTER B WHERE B.PRINTER_NAME = #{printerName,jdbcType=VARCHAR}) 
+	WHERE A.ID = #{id}
+	</update>
+	
+	<!-- 检查导入临时表的数据 -->
+	<parameterMap type="map" id="impCkParamMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="userName" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap>
+	<select id="checkJisiPartGroupImportDataInformation" parameterMap="impCkParamMap" statementType="CALLABLE">
+		{CALL PKG_PUB_CHECK.JISI_PART_GROUP_CHECK(?, ?, ?,  ?,?)}
+	</select>
+	
+	<!-- 查询导入状态 -->
+	<select id="queryJisiPartGroupImportFlag" parameterType="java.lang.String" resultType="java.lang.String">
+		WITH TEMPA AS
+		 (SELECT COUNT(1) s
+		    FROM MM_JISI_PARTGROUP_IMP A
+		   WHERE A.CHECK_RESULT = 0
+		     AND A.IMP_UUID = #{uuid}),
+		TEMPB AS
+		 (SELECT COUNT(1) S
+		    FROM MM_JISI_PARTGROUP_IMP B
+		   WHERE B.IMP_UUID = #{uuid})
+		SELECT CASE
+		         WHEN A.S >= B.S THEN
+		          0
+		         ELSE
+		          1
+		       END AS FLAG
+		  FROM TEMPA A, TEMPB B
+	</select>
+	
+	<!-- 查询临时表的数据 -->
+	<select id="queryImportInformationForPage" parameterType="java.util.Map" resultType="com.hanthink.jisi.model.JisiPartGroupModel">
+		SELECT A.ID             id,
+		       A.PLAN_CODE      planCode,
+		       A.PARTGROUP_NO   partGroupNo,
+		       A.PARTGROUP_NAME partGroupName,
+		       A.PRINTER_ID     printerId,
+		       A.PRINT_LOCATION printLocation,
+		       A.IS_AUTO_PRINT  isAutoPrint,
+		       to_char(A.EFF_START , 'yyyy-mm-dd') effStart,
+		       to_char(A.EFF_END  , 'yyyy-mm-dd') effEnd,
+		       A.IMP_UUID       uuid,
+		       A.CHECK_RESULT   checkResult,
+		       A.CHECK_INFO     checkInfo,
+		       A.IMPORT_STATUS  importStatus,
+		       D.CODE_VALUE_NAME importStatusDesc,
+		       DD.CODE_VALUE_NAME checkResultDesc,
+		       A.OPE_TYPE       opeType,
+		       B.PRINTER_NAME   printerName,
+		       C.CODE_VALUE_NAME isAutoPrintName
+		  FROM MM_JISI_PARTGROUP_IMP A
+		  LEFT JOIN MM_PR_PRINTER B
+		    ON A.PRINTER_ID = B.ID
+		    LEFT JOIN MM_PUB_DATA_DICT C
+		    ON A.IS_AUTO_PRINT = C.CODE_VALUE
+		   AND C.CODE_TYPE = 'PUB_TRUE_FALSE'
+		   AND C.FACTORY_CODE = #{factoryCode}
+		   LEFT JOIN MM_PUB_DATA_DICT D ON D.CODE_VALUE = A.IMPORT_STATUS AND D.CODE_TYPE = 'PUB_IMP_STATUS'
+              AND D.FACTORY_CODE = #{factoryCode}
+           LEFT JOIN MM_PUB_DATA_DICT DD ON DD.CODE_VALUE = A.CHECK_RESULT AND DD.CODE_TYPE = 'PUB_IMP_CK_RESULT'
+              AND DD.FACTORY_CODE = #{factoryCode}
+		 WHERE A.IMP_UUID = #{uuid}	
+	</select>
+	
+	<!-- 查询正确数据的条数 -->
+	<select id="getCountForImport" parameterType="java.util.Map" resultType="java.lang.Integer">
+		SELECT COUNT(*) FROM MM_JISI_PARTGROUP_IMP
+		WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		  AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+		  AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR}
+	</select>
+	<!-- 删除前一次的计划数据 -->
+	<delete id="deleteRegulaData" parameterType="java.util.Map">
+		DELETE FROM MM_JISI_PARTGROUP
+	</delete>
+	
+	<!-- 将临时表校验通过的数据写到正式表 -->
+	<insert id="insertTempDataToRegula" parameterType="java.util.Map">
+		MERGE INTO MM_JISI_PARTGROUP A
+	      USING(
+	           SELECT * FROM MM_JISI_PARTGROUP_IMP B
+	           WHERE B.IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+	                AND B.CHECK_RESULT = #{checkResult,jdbcType=VARCHAR}
+				    AND B.IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR}) C              
+	      ON (C.PLAN_CODE=A.PLAN_CODE AND A.PARTGROUP_NO = C.PARTGROUP_NO)
+	      WHEN MATCHED THEN
+	           UPDATE SET 
+	                  PARTGROUP_NAME = C.PARTGROUP_NAME,
+	                  PRINTER_ID = C.PRINTER_ID,
+	                  PRINT_LOCATION = C.PRINT_LOCATION,
+	                  IS_AUTO_PRINT = C.IS_AUTO_PRINT,
+	                  EFF_START = C.EFF_START,
+	                  EFF_END = C.EFF_END,
+	                  LAST_MODIFIED_TIME = SYSDATE
+	     WHEN NOT MATCHED THEN
+	       INSERT
+	       (
+	           ID,
+	           PLAN_CODE,
+	           PARTGROUP_NO,
+	           PARTGROUP_NAME,
+	           PRINTER_ID,
+	           PRINT_LOCATION,
+	           IS_AUTO_PRINT,
+	           EFF_START,
+	           EFF_END,
+	           CREATION_USER,
+	           CREATION_TIME
+	       )VALUES(
+	           PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_JISI_PARTGROUP'),
+	           C.PLAN_CODE,
+	           C.PARTGROUP_NO,
+	           C.PARTGROUP_NAME,
+	           C.PRINTER_ID,
+	           C.PRINT_LOCATION,
+	           C.IS_AUTO_PRINT,
+	           C.EFF_START,
+	           C.EFF_END,
+	           #{creationUser,jdbcType = VARCHAR},
+	           SYSDATE
+	       )
+		<!-- INSERT INTO MM_JISI_PARTGROUP
+		(ID,PLAN_CODE,PARTGROUP_NO,PARTGROUP_NAME,PRINTER_ID,PRINT_LOCATION,IS_AUTO_PRINT,
+		 EFF_START,EFF_END,CREATION_USER,CREATION_TIME)
+		 
+		SELECT  SEQ_MM_JISI_PARTGROUP.NEXTVAL,PLAN_CODE,PARTGROUP_NO,PARTGROUP_NAME,PRINTER_ID,PRINT_LOCATION,IS_AUTO_PRINT,EFF_START,
+		 EFF_END,#{creationUser,jdbcType=VARCHAR},sysdate
+		FROM MM_JISI_PARTGROUP_IMP
+		WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		  AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+		  AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR} -->
+	</insert>
+	
+	<!-- 修改已导入正式表的数据的导入状态 -->
+	<update id="updateImportStatus" parameterType="java.util.Map">
+		UPDATE MM_JISI_PARTGROUP_IMP SET 
+			IMPORT_STATUS = #{IMPORT_STATUS_YES,jdbcType=VARCHAR} 
+		WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		  AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+		  AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR} 
+	</update>
+	
+<!-- 	 删除已导入正式表的数据 
+	<delete id="deleteImportedTempData" parameterType="java.util.Map">
+		DELETE FROM MM_JISI_PARTGROUP_IMP
+		WHERE
+		IMPORT_STATUS = '1'
+	</delete>
+	查询需要修改的数据
+	<select id="queryUpdateDataFromImportPlan" parameterType="java.util.Map" resultType="java.lang.String">
+		SELECT A.ID,A.FACTORY_CODE,A.SORT_ID,A.ORDER_NO, A.CAR_TYPE, A.MARK,A.MIX_SORT_ID,
+		       A.SINGLE_SORT_ID,A.AFOFF_TIME
+		FROM MM_PUP_PRO_PLAN_IMP A
+		WHERE A.OPE_TYPE = 'U'
+		   AND A.IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		   AND A.CHECK_RESULT = '0'
+	</select> -->
+	
+	<!-- 查询导入校验结果是否包含不通过 -->
+	<select id="queryIsExistsCheckResultFalse" parameterType="java.lang.String"
+		resultType="java.lang.Object">
+		SELECT COUNT(*)
+				FROM MM_JISI_PARTGROUP_IMP T
+			WHERE T.IMP_UUID = #{uuid, jdbcType=VARCHAR} AND T.CHECK_RESULT = 0		
+	</select>
+</mapper>

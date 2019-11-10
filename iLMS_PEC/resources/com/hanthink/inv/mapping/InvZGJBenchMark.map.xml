@@ -1,0 +1,850 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.inv.model.InvZGJBenchMarkModel">
+
+	<!-- 分页数据查询 -->
+	<select id="queryBenchMarkForPage" parameterType="com.hanthink.inv.model.InvZGJBenchMarkModel" 
+			resultType="com.hanthink.inv.model.InvZGJBenchMarkModel">
+		SELECT A.ID id,
+		       A.FACTORY_CODE factoryCode,
+		       A.WARE_CODE wareCode,
+		       A.PART_NO partNo,
+		       A.STOCK stock,
+		       A.FLAG flag,
+		       DECODE(A.FLAG, 0, '未处理', 1, '已处理') flagStr,
+		       B.PART_NAME_CN partName,
+		       B.PART_SHORT_NO partShortNo,
+		       C.WARE_NAME wareName
+		  FROM MM_INV_BENCHMARK A
+		  LEFT JOIN MM_PUB_PART_UDA B
+		    ON A.PART_NO = B.PART_NO
+		    <!-- i-LMS2019053001 mod by 赵明健  -->
+		   AND A.FACTORY_CODE = B.FACTORY_CODE
+		  LEFT JOIN MM_INV_WAREHOUSE C
+		    ON A.WARE_CODE = C.WARE_CODE
+		   AND A.FACTORY_CODE = C.FACTORY_CODE
+		 WHERE A.FACTORY_CODE = #{factoryCode}
+		  <if test="wareCode != null and wareCode != ''">
+		  	AND A.WARE_CODE = #{wareCode}
+		  </if>
+		  <if test="partNo != null and partNo != ''">
+		  	AND A.PART_NO LIKE CONCAT(#{partNo}, '%')
+		  </if>
+		  <if test="partShortNo != null and partShortNo != ''">
+		  	AND B.PART_SHORT_NO = #{partShortNo}
+		  </if>
+		  <if test="partName != null and partName != ''">
+		  	AND B.PART_NAME_CN LIKE CONCAT(#{partName}, '%')
+		  </if>
+		  <if test="wareName != null and wareName != ''">
+		  	AND C.WARE_NAME LIKE CONCAT(#{wareName}, '%')
+		  </if>
+		  <if test="flagStr != null and flagStr != ''">
+		  	AND A.FLAG = #{flagStr}
+		  </if>
+	</select>
+	
+	<!-- 更新W-1周库存数据 -->
+	<update id="updateObj" parameterType="com.hanthink.inv.model.InvZGJBenchMarkModel">
+		UPDATE MM_INV_BENCHMARK A
+		   SET A.STOCK              = #{stock},
+		       A.LAST_MODIFIED_USER = #{lastModifyUser},
+		       A.LAST_MODIFIED_TIME = SYSDATE
+		 WHERE A.ID = #{id}
+		 	AND A.FACTORY_CODE = #{factoryCode}
+	</update>
+	
+	<!-- 新增W-1周库存数据 -->
+	<insert id="addObj" parameterType="com.hanthink.inv.model.InvZGJBenchMarkModel">
+		INSERT INTO MM_INV_BENCHMARK
+		  (ID, FACTORY_CODE, WARE_CODE, PART_NO, STOCK, FLAG)
+		VALUES
+		  (SEQ_MM_INV_BENCHMARK.NEXTVAL,
+		   #{factoryCode},
+		   #{wareCode},
+		   #{partNo},
+		   #{stock},
+		   1)
+	</insert>
+	
+	<!-- 查询这个零件和仓库的对应关系是否存在 -->
+	<select id="queryIsSupportPart" parameterType="com.hanthink.inv.model.InvZGJBenchMarkModel"
+	resultType="java.lang.Integer">
+		SELECT count(1)
+		  FROM MM_PUB_SUPPORTING_PART A
+		 WHERE A.NEXT_PLACEMENT = #{wareCode}
+		   AND A.PART_NO = #{partNo}
+		   AND A.FACTORY_CODE = #{factoryCode}
+	</select>
+	
+	<!-- 查询是否存在该W-1周数据 -->
+	<select id="queryIsExistsBenchMark" parameterType="com.hanthink.inv.model.InvZGJBenchMarkModel"
+	resultType="java.lang.Integer">
+		SELECT COUNT(1)
+		  FROM MM_INV_BENCHMARK A
+		 WHERE A.WARE_CODE = #{wareCode}
+		   AND A.PART_NO = #{partNo}
+		   AND A.FACTORY_CODE = #{factoryCode}
+	</select>
+	
+	<!-- 批量删除W-1周库存基准数据 -->
+	<delete id="delBatchObj" parameterType="java.lang.String">
+		DELETE FROM MM_INV_BENCHMARK A WHERE A.ID IN
+		<foreach item="arrayIds" collection="array" open="(" separator="," close=")">
+			#{arrayIds,jdbcType=VARCHAR}
+		</foreach>
+	</delete>
+	
+	<!-- 生成W-1周数据  -->
+	<parameterMap type="map" id="generateBenchMarkMap">  
+		<parameter property="factoryCode" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="calUser" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="outCode" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<select id="generateBenchMark" parameterMap="generateBenchMarkMap" statementType="CALLABLE">
+		{CALL PKG_MP_MAIN.USP_INV_STOCK_GEN(?, ?, ?)}
+	</select>
+	
+	
+	<!--  导入开始*******************************************************************-->
+	<delete id="deleteImportTempDataByUUID" parameterType="java.lang.String">
+	delete from mm_inv_benchmark_imp a where a.imp_uuid = #{uuid}
+	</delete>
+	
+	<!-- 批量导入数据写入到临时表 -->
+	<insert id="insertImportTempData" parameterType="java.util.List">
+		INSERT INTO MM_INV_BENCHMARK_IMP
+		  	 (ID,
+              IMP_UUID,
+              FACTORY_CODE,
+              WARE_CODE,
+              PART_NO,
+              STOCK,
+              FLAG,
+              CREATION_USER,
+              CREATION_TIME,
+              CHECK_RESULT,
+              CHECK_INFO,
+              IMPORT_STATUS,
+              OPE_TYPE)
+		<foreach collection="list" item="item" index="index" separator=" UNION ALL ">
+			SELECT 
+			 PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_INV_BENCHMARK_IMP'),
+			 #{item.uuid,jdbcType=VARCHAR},
+			 #{item.factoryCode,jdbcType=VARCHAR},
+			 #{item.wareCode,jdbcType=VARCHAR},
+			 #{item.partNo,jdbcType=VARCHAR},
+			 #{item.stock,jdbcType=VARCHAR},
+			 '0',
+			 #{item.creationUser,jdbcType=VARCHAR},
+			 sysdate,
+			 #{item.checkResult,jdbcType=VARCHAR}, 
+			 #{item.checkInfo,jdbcType=VARCHAR}, 
+			 #{item.importStatus,jdbcType=VARCHAR},
+			 'I'
+			FROM DUAL 
+    	</foreach>
+	</insert>
+	
+	<!-- 检查导入临时表数据 -->
+	<parameterMap type="map" id="impCkParamMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="userName" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<select id="checkImportData" parameterMap="impCkParamMap" statementType="CALLABLE">
+		{CALL PKG_PUB_CHECK.USP_INV_ZGJBEN_CHECK(?, ?, ?,  ?,?)}
+	</select>
+	
+	<!-- 查询临时表中的数据是否可以导入 -->
+	<select id="queryIsImportFlag" parameterType="java.lang.String" resultType="java.lang.String">
+		WITH TEMPA AS
+		 (SELECT COUNT(1) s
+		    FROM MM_INV_BENCHMARK_IMP A
+		   WHERE A.CHECK_RESULT = 0
+		     AND A.IMP_UUID = #{VALUE}),
+		TEMPB AS
+		 (SELECT COUNT(1) S
+		    FROM MM_INV_BENCHMARK_IMP B
+		   WHERE B.IMP_UUID = #{VALUE})
+		SELECT CASE
+		         WHEN A.S >= B.S THEN
+		          0
+		         ELSE
+		          1
+		       END AS FLAG
+		  FROM TEMPA A, TEMPB B
+	</select>
+	
+	<!-- 查询导入的临时数据 -->
+	<select id="queryImportTempData" parameterType="java.util.Map" 
+			resultType="com.hanthink.inv.model.InvZGJBenchMarkModel">
+			SELECT A.ID					id,
+			       A.IMP_UUID			uuid,
+			       A.FACTORY_CODE		factoryCode,
+			       A.WARE_CODE			wareCode,
+			       A.PART_NO			partNo,
+			       A.STOCK				stock,
+			       A.FLAG				flag,
+			       A.CAL_USER			calUser,
+			       A.CAL_TIME			calTime,
+			       A.CREATION_USER		creationUser,
+			       A.CREATION_TIME		creationTime,
+			       A.CHECK_RESULT		checkResult,
+			       A.CHECK_INFO			checkInfo,
+			       A.IMPORT_STATUS		importStatus,
+			       A.OPE_TYPE 			opeType,
+			       H.CODE_VALUE_NAME 	checkResultStr,
+		       	   G.CODE_VALUE_NAME 	importStatusStr
+      	 FROM MM_INV_BENCHMARK_IMP A 
+      	 
+      	 LEFT JOIN MM_PUB_DATA_DICT H
+		    ON A.CHECK_RESULT = H.CODE_VALUE
+		   AND H.CODE_TYPE = 'PUB_IMP_CK_RESULT'
+		   AND H.FACTORY_CODE = A.FACTORY_CODE
+		  LEFT JOIN MM_PUB_DATA_DICT G
+		    ON A.IMPORT_STATUS = G.CODE_VALUE
+		   AND G.CODE_TYPE = 'PUB_IMP_STATUS'
+		   AND G.FACTORY_CODE = A.FACTORY_CODE
+		   
+		 WHERE A.IMP_UUID = #{uuid}
+		 ORDER BY A.CHECK_RESULT ASC, A.CHECK_INFO, A.PART_NO
+	</select>
+	
+	<!-- 查询临时表数据，导出 -->
+	<select id="queryTempDataForExport" parameterType="java.util.Map" 
+			resultType="com.hanthink.inv.model.InvZGJBenchMarkModel">
+		  SELECT A.ID					id,
+			       A.IMP_UUID			uuid,
+			       A.FACTORY_CODE		factoryCode,
+			       A.WARE_CODE			wareCode,
+			       A.PART_NO			partNo,
+			       A.STOCK				stock,
+			       A.FLAG				flag,
+			       A.CAL_USER			calUser,
+			       A.CAL_TIME			calTime,
+			       A.CREATION_USER		creationUser,
+			       A.CREATION_TIME		creationTime,
+			       A.CHECK_RESULT		checkResult,
+			       A.CHECK_INFO			checkInfo,
+			       A.IMPORT_STATUS		importStatus,
+			       A.OPE_TYPE 			opeType,
+			       H.CODE_VALUE_NAME 	checkResultStr,
+		       	   G.CODE_VALUE_NAME 	importStatusStr
+      	 FROM MM_INV_BENCHMARK_IMP A 
+      	 
+      	 LEFT JOIN MM_PUB_DATA_DICT H
+		    ON A.CHECK_RESULT = H.CODE_VALUE
+		   AND H.CODE_TYPE = 'PUB_IMP_CK_RESULT'
+		   AND H.FACTORY_CODE = A.FACTORY_CODE
+		  LEFT JOIN MM_PUB_DATA_DICT G
+		    ON A.IMPORT_STATUS = G.CODE_VALUE
+		   AND G.CODE_TYPE = 'PUB_IMP_STATUS'
+		   AND G.FACTORY_CODE = A.FACTORY_CODE
+		   
+		 WHERE A.IMP_UUID = #{uuid}
+		 ORDER BY A.CHECK_RESULT, A.CHECK_INFO, A.PART_NO
+	</select>
+	
+	<!-- 查询可导入数据 -->
+	<select id="queryForInsertList" parameterType="java.util.Map" 
+			resultType="com.hanthink.inv.model.InvZGJBenchMarkModel">
+	   SELECT A.id
+		  FROM MM_INV_BENCHMARK_IMP A
+		 WHERE A.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		   AND A.IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+		   AND A.CHECK_RESULT = #{checkResult, jdbcType = VARCHAR}
+	</select>
+	
+	<!-- 拿出ID,查询哪些数据需要修改 -->
+	<select id="queryUpdateDataFromImp" parameterType="java.util.Map" resultType="java.lang.String">
+		SELECT A.ID id
+		  FROM MM_INV_BENCHMARK_IMP A
+		 WHERE A.OPE_TYPE = 'U'
+		   AND A.IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR} 
+		   AND A.IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		   AND A.CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+	</select>
+	
+	<!-- 更新导入的方法 -->
+	<update id="updateImportData" parameterType="java.util.Map" >
+		  UPDATE MM_INV_BENCHMARK A
+		   SET (   A.FACTORY_CODE,
+			       A.WARE_CODE,
+			       A.PART_NO,
+			       A.STOCK,
+			       A.FLAG,
+			       A.LAST_MODIFIED_USER,
+			       A.LAST_MODIFIED_TIME) =
+		       (SELECT B.FACTORY_CODE,
+				       B.WARE_CODE,
+				       B.PART_NO,
+				       B.STOCK,
+				       B.FLAG,
+				       B.LAST_MODIFIED_USER,
+				       SYSDATE
+		          FROM MM_INV_BENCHMARK_IMP B
+		         WHERE B.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		           AND B.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		           AND B.IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+		           AND B.OPE_TYPE = 'U'
+		           AND A.FACTORY_CODE = B.FACTORY_CODE
+		           AND A.WARE_CODE = B.WARE_CODE
+		           AND A.PART_NO = B.PART_NO)
+		 WHERE EXISTS
+		 (SELECT 1
+		          FROM MM_INV_BENCHMARK_IMP C
+		         WHERE C.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		           AND C.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		           AND C.IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+		           AND C.OPE_TYPE = 'U'
+		           AND A.FACTORY_CODE = B.FACTORY_CODE
+		           AND A.WARE_CODE = B.WARE_CODE
+		           AND A.PART_NO = B.PART_NO)
+	</update>
+	
+	<!-- 导入临时数据写入到正式表 -->
+	<insert id="insertImportData" parameterType="java.util.Map" >
+		INSERT INTO MM_INV_BENCHMARK
+		  (ID,
+           FACTORY_CODE,
+           WARE_CODE,
+           PART_NO,
+           STOCK,
+           FLAG,
+           CREATION_USER,
+           CREATION_TIME)
+		  (SELECT PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_INV_BENCHMARK'),
+		          A.FACTORY_CODE,
+		          A.WARE_CODE,
+		          A.PART_NO,
+		          A.STOCK,
+		          '0',
+		          #{creationUser,jdbcType = VARCHAR},
+		          SYSDATE
+		     FROM MM_INV_BENCHMARK_IMP A
+		    WHERE IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		      AND CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		      AND IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+		      AND OPE_TYPE = 'I')
+	</insert>
+	
+	<!-- 更新临时表数据导入状态 -->
+	<update id="updateImportDataImpStatus" parameterType="java.util.Map">
+		UPDATE MM_INV_BENCHMARK_IMP
+		   SET IMPORT_STATUS = #{IMPORT_STATUS_YES, jdbcType = VARCHAR}
+		 WHERE IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		   AND CHECK_RESULT = #{checkResult, jdbcType = VARCHAR}
+		   AND IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+	</update>
+	
+	
+	<!-- 确认处理数据开始 ***************************************************************************-->
+	<!-- 处理时，如果未处理的数据已存在则将原来已处理状态的数据的基准库存更新 -->
+	<update id="dealStockUpdateExists" parameterType="com.hanthink.inv.model.InvZGJBenchMarkModel">
+		update mm_inv_benchmark a
+		   set 
+		   a.deal_user = #{dealUser,jdbcType=VARCHAR},
+		   a.ip_addr = #{ipAddr,jdbcType=VARCHAR},
+		   a.stock =
+		       (select b.stock
+		          from mm_inv_benchmark b
+		         where b.flag = 0
+		           and b.factory_code = a.factory_code
+		           and b.ware_code = a.ware_code
+		           and b.part_no = a.part_no)
+		 where 1=1
+		   <if test="partNo != null and partNo != ''">
+		   and a.part_no = #{partNo}
+		   </if>
+		   <if test="wareCode != null and wareCode != ''">
+		   and a.ware_code = #{wareCode}
+		   </if>
+		   <if test="wareName != null and wareName != ''">
+		   and a.ware_code in 
+		   (select iw.ware_code from MM_INV_WAREHOUSE iw where iw.ware_name LIKE CONCAT(#{wareName}, '%'))
+		   </if>
+		   <if test="partShortNo != null and partShortNo != ''">
+		   <!-- i-LMS2019053001 mod by 赵明健  -->
+		   and a.part_no in (select ud.part_no from mm_pub_part_uda ud where ud.part_short_no = #{partShortNo} and ud.factory_code = #{factoryCode})
+		   </if>
+		   <if test="partName != null and partName != ''">
+		   <!-- i-LMS2019053001 mod by 赵明健  -->
+		   and a.part_no in 
+		   (select pu.part_no from mm_pub_part_uda pu where pu.part_name_cn like CONCAT(#{partName}, '%') and pu.factory_code = #{factoryCode})
+		   </if>
+		   and a.flag = 1
+		   and exists (select 1
+		          from mm_inv_benchmark c
+		         where a.factory_code = c.factory_code
+		           and a.ware_code = c.ware_code
+		           and a.part_no = c.part_no
+		           and c.flag = 0)
+ 
+	</update>
+	
+	<!-- 将未处理且在已处理（原来的数据）数据中不存在的更新标识为已处理 -->
+	<update id="dealStockNotUpdateExists" parameterType="com.hanthink.inv.model.InvZGJBenchMarkModel">
+		update mm_inv_benchmark a
+			   set 
+			   a.deal_user = #{dealUser,jdbcType=VARCHAR},
+		   	   a.ip_addr = #{ipAddr,jdbcType=VARCHAR},
+			   a.flag = 1
+			 where not exists (select 1
+			          from mm_inv_benchmark b
+			         where b.flag = 1
+			           and a.factory_code = b.factory_code
+			           and a.ware_code = b.ware_code
+			           and a.part_no = b.part_no)
+		  <if test="partNo != null and partNo != ''">
+		   and a.part_no like CONCAT(#{partNo},%)
+		   </if>
+		   <if test="wareCode != null and wareCode != ''">
+		   and a.ware_code = #{wareCode}
+		   </if>
+		   <if test="wareName != null and wareName != ''">
+		   and a.ware_code in 
+		   (select iw.ware_code from MM_INV_WAREHOUSE iw where iw.ware_name LIKE CONCAT(#{wareName}, '%'))
+		   </if>
+		   <if test="partShortNo != null and partShortNo != ''">
+		   <!-- i-LMS2019053001 mod by 赵明健  -->
+		   and a.part_no in (select ud.part_no from mm_pub_part_uda ud where ud.part_short_no = #{partShortNo} and ud.factory_code = #{factoryCode})
+		   </if>
+		   <if test="partName != null and partName != ''">
+		   <!-- i-LMS2019053001 mod by 赵明健  -->
+		   and a.part_no in 
+		   (select pu.part_no from mm_pub_part_uda pu where pu.part_name_cn like CONCAT(#{partName}, '%') and pu.factory_code = #{factoryCode})
+		   </if>
+	</update>
+	
+	<!--  上面两步执行完成后，将处理标识为未处理的删除（这里剩下的数据则为原来存在的数据，更新基准库存后该数据多余出来）-->
+	<delete id="dealStockDeleteExists" parameterType="com.hanthink.inv.model.InvZGJBenchMarkModel">
+		delete from mm_inv_benchmark a
+		 where a.flag = 0
+		   and exists (select 1
+		          from mm_inv_benchmark b
+		         where b.flag = 1
+		           and b.factory_code = a.factory_code
+		           and b.ware_code = a.ware_code
+		           and b.part_no = a.part_no)
+		   <if test="partNo != null and partNo != ''">
+		   and a.part_no like CONCAT(#{partNo},%)
+		   </if>
+		   <if test="wareCode != null and wareCode != ''">
+		   and a.ware_code = #{wareCode}
+		   </if>
+		   <if test="wareName != null and wareName != ''">
+		   and a.ware_code in 
+		   (select iw.ware_code from MM_INV_WAREHOUSE iw where iw.ware_name LIKE CONCAT(#{wareName}, '%'))
+		   </if>
+		   <if test="partShortNo != null and partShortNo != ''">
+		   <!-- i-LMS2019053001 mod by 赵明健  -->
+		   and a.part_no in (select ud.part_no from mm_pub_part_uda ud where ud.part_short_no = #{partShortNo} and ud.factory_code = #{factoryCode})
+		   </if>
+		   <if test="partName != null and partName != ''">
+		   <!-- i-LMS2019053001 mod by 赵明健  -->
+		   and a.part_no in 
+		   (select pu.part_no from mm_pub_part_uda pu where pu.part_name_cn like CONCAT(#{partName}, '%') and pu.factory_code = #{factoryCode})
+		   </if>
+	</delete>
+	
+	
+	<!--  支给件推算周维护开始************************************************************************************-->
+	<!-- 分页查询/导出支给件推算周 -->
+	<select id="queryWeekCalForPage" parameterType="com.hanthink.inv.model.InvZGJBenchMarkModel" 
+			resultType="com.hanthink.inv.model.InvZGJBenchMarkModel">
+		SELECT  A.ID				id,
+				A.WARE_CODE			wareCode,
+				A.PART_NO			partNO,
+				A.CAL_WEEK			calWeek,
+				B.WARE_NAME			wareName,
+				P.PART_NAME_CN		partName,
+				U.PART_SHORT_NO		partShortNo
+			 FROM MM_INV_WEEK_CAL A 
+			LEFT JOIN MM_INV_WAREHOUSE B 
+			 ON A.WARE_CODE = B.WARE_CODE
+			LEFT JOIN MM_PUB_PART P
+			  ON A.PART_NO = P.PART_NO
+			  <!-- i-LMS2019053001 mod by 赵明健  -->
+			  AND P.FACTORY_CODE = A.FACTORY_CODE
+			LEFT JOIN MM_PUB_PART_UDA U
+			 ON A.PART_NO = U.PART_NO
+			 <!-- i-LMS2019053001 mod by 赵明健  -->
+			 AND U.FACTORY_CODE = A.FACTORY_CODE
+			WHERE 1=1
+			<if test="wareCode != null and wareCode != ''">
+			AND A.WARE_CODE = #{wareCode}
+			</if>
+			<if test="partNo != null and partNo != ''">
+			AND A.PART_NO LIKE CONCAT(#{partNo},'%')
+			</if>
+			<if test="wareName != null and wareName != ''">
+			AND B.WARE_NAME LIKE CONCAT(#{wareName},'%')
+			</if>
+			<if test="partShortNo != null and partShortNo != ''">
+			AND U.PART_SHORT_NO = #{partShortNo}
+			</if>
+			<if test="partName != null and partName != ''">
+			AND AND P.PART_NAME_CN LIKE CONCAT(#{partName},'%')
+			</if>
+	</select>
+	
+	<!--  查询仓库代码下拉框-->
+	<select id="selectUnloadWare"  parameterType="java.util.Map" 
+			resultType="com.hanthink.inv.model.InvZGJBenchMarkModel">
+		select a.ware_code value, a.ware_name label
+		  from mm_inv_warehouse a
+		 where a.factory_code = #{factoryCode,jdbcType=VARCHAR}
+		   and a.ware_code is not null
+	</select>
+	
+	<!-- 获取零件号 -->
+	<select id="handleListPartNo" parameterType="com.hanthink.inv.model.InvZGJBenchMarkModel" resultType="com.hanthink.inv.model.InvZGJBenchMarkModel">
+         SELECT P.PART_NO			partNo, 
+         		U.PART_NAME_CN		partName, 
+         		U.PART_SHORT_NO		partShortNo
+			  FROM MM_PUB_SUPPORTING_PART P
+			  LEFT JOIN MM_PUB_PART_UDA U
+			    ON P.PART_NO = U.PART_NO
+			    <!-- i-LMS2019053001 mod by 赵明健  -->
+			   AND P.FACTORY_CODE = U.FACTORY_CODE
+		 WHERE P.FACTORY_CODE = #{factoryCode}
+		 <if test="partNo != null and '' != partNo">
+		 AND P.PART_NO like CONCAT(#{partNo}, '%')
+		 </if>
+		 <if test="partName != null and '' != partName">
+		 AND P.PART_NAME_CN like CONCAT(#{partName}, '%')
+		 </if>
+		 <if test="partShortNo != null and '' != partShortNo">
+		 AND U.PART_SHORT_NO = #{partShortNo}
+		 </if>
+	</select>
+	
+	<!-- 新增支给件推算周维护数据 -->
+	<insert id="insertWeekCal" parameterType="com.hanthink.inv.model.InvZGJBenchMarkModel" >
+	insert into mm_inv_week_cal(id,
+                            factory_code,
+                            ware_code,
+                            part_no,
+                            cal_week,
+                            creation_time,
+                            creation_user
+                            )
+					values(
+                            seq_mm_inv_week_cal.nextval,
+                            #{factoryCode,jdbcType=VARCHAR},
+                            #{wareCode,jdbcType=VARCHAR},
+                            #{partNo,jdbcType=VARCHAR},
+                            #{calWeek,jdbcType=VARCHAR},
+                            sysdate,
+                            #{creationUser,jdbcType=VARCHAR})
+	</insert>
+	
+	<!--  修改推算周数据-->
+	<update id="updateWeekCalObj" parameterType="com.hanthink.inv.model.InvZGJBenchMarkModel" > 
+			UPDATE MM_INV_WEEK_CAL A SET 
+				A.CAL_WEEK = #{calWeek,jdbcType=VARCHAR} ,
+				A.LAST_MODIFIED_TIME = SYSDATE,
+				A.LAST_MODIFIED_USER = #{lastModified,jdbcType=VARCHAR}
+				WHERE A.ID = #{id,jdbcType=VARCHAR}
+				AND A.FACTORY_CODE = #{factoryCode,jdbcType=VARCHAR}
+	</update>
+	
+	<!--  删除支给件推算周数据-->
+	<delete id="delBatchWeekCalObj" > 
+		DELETE FROM MM_INV_WEEK_CAL A WHERE A.ID IN
+			<foreach item="arrayIds" collection="array" open="(" separator="," close=")">
+				#{arrayIds,jdbcType=VARCHAR}
+			</foreach>
+	</delete>
+	
+	<!--  支给件推算周导入开始*******************************************************************-->
+	<delete id="deleteImportTempDataWeekCalByUUID" parameterType="java.lang.String">
+	delete from MM_INV_WEEK_CAL_IMP a where a.imp_uuid = #{uuid}
+	</delete>
+	
+	<!-- 批量导入数据写入到临时表 -->
+	<insert id="insertImportTempDataWeekCal" parameterType="java.util.List">
+		INSERT INTO MM_INV_WEEK_CAL_IMP
+		  	 (IMP_UUID,
+              FACTORY_CODE,
+              WARE_CODE,
+              PART_NO,
+              CAL_WEEK,
+              CREATION_USER,
+              CREATION_TIME,
+              CHECK_RESULT,
+              CHECK_INFO,
+              IMPORT_STATUS,
+              OPE_TYPE)
+		<foreach collection="list" item="item" index="index" separator=" UNION ALL ">
+			SELECT 
+			 #{item.uuid,jdbcType=VARCHAR},
+			 #{item.factoryCode,jdbcType=VARCHAR},
+			 #{item.wareCode,jdbcType=VARCHAR},
+			 #{item.partNo,jdbcType=VARCHAR},
+			 #{item.calWeek,jdbcType=VARCHAR},
+			 #{item.creationUser,jdbcType=VARCHAR},
+			 sysdate,
+			 #{item.checkResult,jdbcType=VARCHAR}, 
+			 #{item.checkInfo,jdbcType=VARCHAR}, 
+			 #{item.importStatus,jdbcType=VARCHAR},
+			 'I'
+			FROM DUAL 
+    	</foreach>
+	</insert>
+	
+	<!-- 检查导入临时表数据 -->
+	<parameterMap type="map" id="impWeekCalCkParamMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="userName" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<select id="checkImportDataWeekCal" parameterMap="impWeekCalCkParamMap" statementType="CALLABLE">
+		{CALL PKG_INV_CHECK.USP_INV_WEEK_CAL_CHECK(?, ?, ?,  ?,?)}
+	</select>
+	
+	<!-- 查询临时表中的数据是否可以导入 -->
+	<select id="queryIsImportFlagWeekCal" parameterType="java.lang.String" resultType="java.lang.String">
+		WITH TEMPA AS
+		 (SELECT COUNT(1) s
+		    FROM MM_INV_WEEK_CAL_IMP A
+		   WHERE A.CHECK_RESULT = 0
+		     AND A.IMP_UUID = #{VALUE}),
+		TEMPB AS
+		 (SELECT COUNT(1) S
+		    FROM MM_INV_WEEK_CAL_IMP B
+		   WHERE B.IMP_UUID = #{VALUE})
+		SELECT CASE
+		         WHEN A.S >= B.S THEN
+		          0
+		         ELSE
+		          1
+		       END AS FLAG
+		  FROM TEMPA A, TEMPB B
+	</select>
+	
+	<!-- 查询导入的临时数据 -->
+	<select id="queryImportTempDataWeekCal" parameterType="java.util.Map" 
+			resultType="com.hanthink.inv.model.InvZGJBenchMarkModel">
+			SELECT A.IMP_UUID			uuid,
+			       A.FACTORY_CODE		factoryCode,
+			       A.WARE_CODE			wareCode,
+			       A.PART_NO			partNo,
+			       A.CAL_WEEK			calWeek,
+			       A.CREATION_USER		creationUser,
+			       A.CREATION_TIME		creationTime,
+			       A.CHECK_RESULT		checkResult,
+			       A.CHECK_INFO			checkInfo,
+			       A.IMPORT_STATUS		importStatus,
+			       A.OPE_TYPE 			opeType,
+			       H.CODE_VALUE_NAME 	checkResultStr,
+		       	   G.CODE_VALUE_NAME 	importStatusStr
+      	 FROM MM_INV_WEEK_CAL_IMP A 
+      	 
+      	 LEFT JOIN MM_PUB_DATA_DICT H
+		    ON A.CHECK_RESULT = H.CODE_VALUE
+		   AND H.CODE_TYPE = 'PUB_IMP_CK_RESULT'
+		   AND H.FACTORY_CODE = A.FACTORY_CODE
+		  LEFT JOIN MM_PUB_DATA_DICT G
+		    ON A.IMPORT_STATUS = G.CODE_VALUE
+		   AND G.CODE_TYPE = 'PUB_IMP_STATUS'
+		   AND G.FACTORY_CODE = A.FACTORY_CODE
+		   
+		 WHERE A.IMP_UUID = #{uuid}
+		 ORDER BY A.CHECK_RESULT ASC, A.CHECK_INFO, A.PART_NO
+	</select>
+	
+	<!-- 查询临时表数据，导出 -->
+	<select id="queryTempDataForExportWeekCal" parameterType="java.util.Map" 
+			resultType="com.hanthink.inv.model.InvZGJBenchMarkModel">
+		  SELECT   A.IMP_UUID			uuid,
+			       A.FACTORY_CODE		factoryCode,
+			       A.WARE_CODE			wareCode,
+			       A.PART_NO			partNo,
+			       A.CAL_WEEK			calWeek,
+			       A.CREATION_USER		creationUser,
+			       A.CREATION_TIME		creationTime,
+			       A.CHECK_RESULT		checkResult,
+			       A.CHECK_INFO			checkInfo,
+			       A.IMPORT_STATUS		importStatus,
+			       A.OPE_TYPE 			opeType,
+			       H.CODE_VALUE_NAME 	checkResultStr,
+		       	   G.CODE_VALUE_NAME 	importStatusStr
+      	 FROM MM_INV_WEEK_CAL_IMP A 
+      	 
+      	 LEFT JOIN MM_PUB_DATA_DICT H
+		    ON A.CHECK_RESULT = H.CODE_VALUE
+		   AND H.CODE_TYPE = 'PUB_IMP_CK_RESULT'
+		   AND H.FACTORY_CODE = A.FACTORY_CODE
+		  LEFT JOIN MM_PUB_DATA_DICT G
+		    ON A.IMPORT_STATUS = G.CODE_VALUE
+		   AND G.CODE_TYPE = 'PUB_IMP_STATUS'
+		   AND G.FACTORY_CODE = A.FACTORY_CODE
+		   
+		 WHERE A.IMP_UUID = #{uuid}
+		 ORDER BY A.CHECK_RESULT, A.CHECK_INFO, A.PART_NO
+	</select>
+	
+	<!-- 查询可导入数据 -->
+	<select id="queryForInsertListWeekCal" parameterType="java.util.Map" 
+			resultType="com.hanthink.inv.model.InvZGJBenchMarkModel">
+	   SELECT A.WARE_CODE wareCode,A.PART_NO partNo
+		  FROM MM_INV_WEEK_CAL_IMP A
+		 WHERE A.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		   AND A.IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+		   AND A.CHECK_RESULT = #{checkResult, jdbcType = VARCHAR}
+	</select>
+	
+	<!-- 拿出ID,查询哪些数据需要修改 -->
+<!-- 	<select id="queryUpdateDataFromImpWeekCal" parameterType="java.util.Map" resultType="java.lang.String">
+		SELECT A.ID id
+		  FROM MM_INV_WEEK_CAL_IMP A
+		 WHERE A.OPE_TYPE = 'U'
+		   AND A.IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR} 
+		   AND A.IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		   AND A.CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+	</select> -->
+	
+	<!-- 更新导入的方法 -->
+	<update id="updateImportDataWeekCal" parameterType="java.util.Map" >
+		  UPDATE MM_INV_WEEK_CAL A
+		   SET (   A.FACTORY_CODE,
+			       A.WARE_CODE,
+			       A.PART_NO,
+			       A.CAL_WEEK,
+			       A.LAST_MODIFIED_USER,
+			       A.LAST_MODIFIED_TIME) =
+		       (SELECT B.FACTORY_CODE,
+				       B.WARE_CODE,
+				       B.PART_NO,
+				       B.CAL_WEEK,
+				       B.LAST_MODIFIED_USER,
+				       SYSDATE
+		          FROM MM_INV_WEEK_CAL_IMP B
+		         WHERE B.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		           AND B.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		           AND B.IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+		           AND B.OPE_TYPE = 'U'
+		           AND A.FACTORY_CODE = B.FACTORY_CODE
+		           AND A.WARE_CODE = B.WARE_CODE
+		           AND A.PART_NO = B.PART_NO)
+		 WHERE EXISTS
+		 (SELECT 1
+		          FROM MM_INV_WEEK_CAL_IMP C
+		         WHERE C.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		           AND C.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		           AND C.IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+		           AND C.OPE_TYPE = 'U'
+		           AND A.FACTORY_CODE = C.FACTORY_CODE
+		           AND A.WARE_CODE = C.WARE_CODE
+		           AND A.PART_NO = C.PART_NO)
+	</update>
+	
+	<!-- 导入临时数据写入到正式表 -->
+	<insert id="insertImportDataWeekCal" parameterType="java.util.Map" >
+		INSERT INTO MM_INV_WEEK_CAL
+		  (ID,
+           FACTORY_CODE,
+           WARE_CODE,
+           PART_NO,
+           CAL_WEEK,
+           CREATION_USER,
+           CREATION_TIME)
+		  (SELECT PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_INV_WEEK_CAL'),
+		          A.FACTORY_CODE,
+		          A.WARE_CODE,
+		          A.PART_NO,
+		          A.CAL_WEEK,
+		          #{creationUser,jdbcType = VARCHAR},
+		          SYSDATE
+		     FROM MM_INV_WEEK_CAL_IMP A
+		    WHERE IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		      AND CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		      AND IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+		      AND OPE_TYPE = 'I')
+	</insert>
+	
+	<!-- 更新临时表数据导入状态 -->
+	<update id="updateImportDataImpStatusWeekCal" parameterType="java.util.Map">
+		UPDATE MM_INV_WEEK_CAL_IMP
+		   SET IMPORT_STATUS = #{IMPORT_STATUS_YES, jdbcType = VARCHAR}
+		 WHERE IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		   AND CHECK_RESULT = #{checkResult, jdbcType = VARCHAR}
+		   AND IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+	</update>
+	
+	
+	<!--  *支给件缺件查询*************************************************************-->
+	
+	<!-- 获取支给件差异数据  -->
+	<parameterMap type="map" id="getZGJDifferenceMap">  
+		<parameter property="factoryCode" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="account" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="outCode" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<select id="getZGJDifference" parameterMap="getZGJDifferenceMap" statementType="CALLABLE">
+		{CALL PKG_INV_MAIN.USP_INV_GET_DIFFERENCE(?, ?, ?)}
+	</select>
+	
+	<!--  分页/导出查询主列表数据-->
+	<select id="queryWeekCalForPageDifference" parameterType="com.hanthink.inv.model.InvZGJBenchMarkModel" 
+			resultType="com.hanthink.inv.model.InvZGJBenchMarkModel">
+			select ib.part_no			partNo,
+		       ib.ware_code				wareCode,
+		       ib.stock					stock,
+		       dif.use_num				useNum,
+		       ib.factory_code			factoryCode,
+		       nvl(ib.stock, 0) - nvl(dif.use_num, 0) diffeNum,
+		       case
+		         when nvl(ib.stock, 0) - nvl(dif.use_num, 0) &gt; 0 then
+		          '正常'
+		         when nvl(ib.stock, 0) - nvl(dif.use_num, 0) &lt;= 0 then
+		          '异常'
+		       end 						diffeFlag,
+		       p.part_name_cn			partName,
+		       uda.part_short_no		partShortNo,
+		       iw.ware_name				wareName,
+		       dif.weekDay          	weekDay,
+		       decode(dif.week,'','',null,'','第'|| dif.week ||'周')   week,
+		       uda.sup_factory          supFactory,
+               ps.supplier_no           supplierNo
+		  from mm_inv_benchmark ib
+		  left join (select di.part_no,
+		                    di.ware_code,
+		                    sum(di.use_num) use_num,
+		                    di.factory_code,
+		                    trunc(di.af_date, 'd') + 1 weekDay,
+		                    to_char(di.af_date, 'ww') - to_char(sysdate, 'ww') week
+		               from mm_inv_difference di
+		              where di.af_date > trunc(sysdate, 'd') + 7
+		              group by trunc(di.af_date, 'd'),
+		                       di.part_no,
+		                       di.ware_code,
+		                       di.factory_code,
+		                       to_char(di.af_date, 'ww')) dif
+		    on ib.ware_code = dif.ware_code
+		   and ib.part_no = dif.part_no
+		   and ib.factory_code = dif.factory_code
+		  left join mm_pub_part p
+		    on ib.part_no = p.part_no
+		    <!-- i-LMS2019053001 mod by 赵明健  -->
+		   and ib.factory_code = p.factory_code
+		  left join mm_pub_part_uda uda
+		    on ib.part_no = uda.part_no
+		    <!-- i-LMS2019053001 mod by 赵明健  -->
+		    and uda.factory_code = ib.factory_code
+		  left join mm_pub_part_supplier ps
+            on uda.part_no = ps.part_no
+            <!-- i-LMS2019053001 mod by 赵明健  -->
+		   and ib.factory_code = PS.factory_code
+		  left join mm_inv_warehouse iw
+		    on ib.ware_code = iw.ware_code
+		   and ib.factory_code = iw.factory_code
+		
+	</select>
+</mapper>

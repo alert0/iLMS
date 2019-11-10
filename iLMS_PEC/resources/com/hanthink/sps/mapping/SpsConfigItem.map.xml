@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.sps.model.SpsConfigItemModel">
+
+	<!-- 配置项代码新增唯一性查询 -->
+	<select id="querySpsConfigCodeisUnquie" parameterType="com.hanthink.sps.model.SpsConfigItemModel"
+		resultType="com.hanthink.sps.model.SpsConfigItemModel">
+		SELECT A.CONFIG_CODE configCode FROM MM_SPS_CONFIG A WHERE
+			A.CONFIG_CODE =	#{configCode} AND A.FACTORY_CODE = #{factoryCode}
+	</select>
+
+
+	<!-- 配置项代码分页查询 -->
+	<select id="querySpsConfigItemPage" parameterType="com.hanthink.sps.model.SpsConfigItemModel"
+		resultType="com.hanthink.sps.model.SpsConfigItemModel">
+		SELECT A.ID              id,
+		       A.FACTORY_CODE         factory,
+		       A.PRODUCTION_LINE productionLine,
+		       A.CONFIG_CODE     configCode,
+		       A.CONFIG_DESC     configDesc,
+		       A.CONFIG_TYPE     configType,
+		       B.CODE_VALUE_NAME codeValueName,
+		       A.CONFIG_VALUE    configValue
+		  FROM MM_SPS_CONFIG A
+		  LEFT JOIN MM_PUB_DATA_DICT B
+		    ON A.CONFIG_TYPE = B.CODE_VALUE
+		   AND B.CODE_TYPE = 'SPS_CONFIG_TYPE' AND B.FACTORY_CODE = A.FACTORY_CODE
+		 WHERE 1 = 1 AND A.FACTORY_CODE = #{factoryCode}
+		<if test="null != configCode and '' != configCode">
+			AND A.CONFIG_CODE LIKE '%' || #{configCode} || '%'
+		</if>
+		<if test="null != configDesc and '' != configDesc">
+			AND A.CONFIG_DESC LIKE '%' || #{configDesc} || '%'
+		</if>
+		<if test="null != configType and '' != configType">
+			AND A.CONFIG_TYPE = #{configType}
+		</if>
+		ORDER BY A.CONFIG_CODE
+	</select>
+
+	<!-- 配置项代码新增 -->
+	<insert id="insertConfigItem" parameterType="com.hanthink.sps.model.SpsConfigItemModel">
+		INSERT INTO
+		MM_SPS_CONFIG A
+		(A.ID,A.CREATION_USER,A.FACTORY_CODE,A.PRODUCTION_LINE,
+		A.CONFIG_CODE,
+		A.CONFIG_DESC,
+		A.CONFIG_TYPE,
+		A.CONFIG_VALUE,
+		A.CREATION_TIME) VALUES
+		(SEQ_MM_SPS_CONFIG.NEXTVAL,#{creationUser,jdbcType=VARCHAR},#{factory,jdbcType=VARCHAR},#{productionLine,jdbcType=VARCHAR},
+		#{configCode,jdbcType=VARCHAR},
+		#{configDesc,jdbcType=VARCHAR},
+		#{configType,jdbcType=VARCHAR},
+		#{configValue,jdbcType=VARCHAR},
+		SYSDATE)
+	</insert>
+
+	<!-- 配置项代码批量删除 -->
+	<delete id="deleteConfigItemByBatch" parameterType="java.util.List">
+		DELETE FROM MM_SPS_CONFIG A WHERE A.ID IN
+		<foreach collection="list" item="con" index="index" open="("
+			separator="," close=")">
+			#{con.id}
+		</foreach>
+	</delete>
+
+	<!-- 更新配置项代码 -->
+	<update id="updateConfigItem" parameterType="com.hanthink.sps.model.SpsConfigItemModel">
+		UPDATE MM_SPS_CONFIG
+		A SET A.CONFIG_DESC =
+		#{configDesc,jdbcType=VARCHAR},A.CONFIG_TYPE =
+		#{configType,jdbcType=VARCHAR},A.CONFIG_VALUE =
+		#{configValue,jdbcType=VARCHAR},A.LAST_MODIFIED_USER =
+		#{lastModifiedUser,jdbcType=VARCHAR},A.LAST_MODIFIED_IP =
+		SYS_CONTEXT('USERENV',
+		'IP_ADDRESS'),A.LAST_MODIFIED_TIME = SYSDATE
+		WHERE
+		A.CONFIG_CODE
+		=#{configCode}
+	</update>
+
+
+	<!-- 新增配置项代码到临时表 -->
+	<insert id="insertSpsConfigItemTempData" parameterType="java.util.List">
+		INSERT INTO MM_SPS_CONFIG_IMP
+			(ID,
+			FACTORY_CODE,
+			PRODUCTION_LINE,
+			CONFIG_CODE,
+			CONFIG_DESC,
+			CONFIG_TYPE,
+			CONFIG_VALUE,
+			CHECK_RESULT,
+			CHECK_INFO,
+			IMP_UUID,
+			IMPORT_STATUS)
+		<foreach collection="list" item="item" index="index" separator=" UNION ALL ">
+			SELECT 
+				PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_SPS_CONFIG_IMP'),
+				#{item.factory,jdbcType=VARCHAR},
+				#{item.productionLine,jdbcType=VARCHAR},
+				#{item.configCode,jdbcType=VARCHAR},
+				#{item.configDesc,jdbcType=VARCHAR},
+				#{item.configType,jdbcType=VARCHAR},
+				#{item.configValue,jdbcType=VARCHAR},
+				#{item.checkResult,jdbcType=VARCHAR},
+				#{item.checkInfo,jdbcType=VARCHAR},
+				#{item.uuid},
+				#{item.importStatus,jdbcType=VARCHAR}
+			FROM DUAL
+		</foreach>
+	</insert>
+
+	<!-- 查询导入临时数据 -->
+	<select id="querySpsConfigTemp" parameterType="com.hanthink.sps.model.SpsConfigItemModel"
+		resultType="com.hanthink.sps.model.SpsConfigItemModel">
+		SELECT T.FACTORY_CODE         factory,
+             PRODUCTION_LINE productionLine,
+             CONFIG_CODE     configCode,
+             CONFIG_DESC     configDesc,
+             CONFIG_TYPE     configType,
+             CONFIG_VALUE    configValue,
+             D.CODE_VALUE_NAME codeValueName,
+             DD.CODE_VALUE_NAME importStatus,
+             DDD.CODE_VALUE_NAME checkResult,
+             CHECK_INFO      checkInfo
+        FROM MM_SPS_CONFIG_IMP T
+        LEFT JOIN MM_PUB_DATA_DICT D ON D.CODE_VALUE = T.CONFIG_TYPE AND D.CODE_TYPE = 'SPS_CONFIG_TYPE'
+             AND D.FACTORY_CODE = #{factoryCode}
+         LEFT JOIN MM_PUB_DATA_DICT DD ON DD.CODE_VALUE = T.IMPORT_STATUS AND DD.CODE_TYPE = 'PUB_IMP_STATUS'
+                  AND DD.FACTORY_CODE = #{factoryCode}
+         LEFT JOIN MM_PUB_DATA_DICT DDD ON DDD.CODE_VALUE = T.CHECK_RESULT AND DDD.CODE_TYPE = 'PUB_IMP_CK_RESULT'
+            AND DDD.FACTORY_CODE = #{factoryCode}
+       WHERE T.IMP_UUID = #{uuid}
+	</select>
+
+	<!-- 查询导入临时数据是否存在满足校验且未导入的 -->
+	<select id="querySpsConfigNotImport" parameterType="com.hanthink.sps.model.SpsConfigItemModel"
+		resultType="com.hanthink.sps.model.SpsConfigItemModel">
+		SELECT FACTORY_CODE factory,
+		PRODUCTION_LINE productionLine,
+		CONFIG_CODE configCode,
+		CONFIG_DESC configDesc,
+		CONFIG_TYPE configType,
+		CONFIG_VALUE configValue,
+		CHECK_RESULT checkResult,
+		CHECK_INFO checkInfo
+		FROM MM_SPS_CONFIG_IMP WHERE IMPORT_STATUS = '0' AND CHECK_RESULT =
+		'1'
+
+	</select>
+
+	<!-- 检查导入临时表数据 -->
+	<parameterMap type="map" id="impCkParamMap">
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/> 
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT" />
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT" />
+	</parameterMap>
+	<!-- 调用存储过程校验批量导出零件余量 -->
+	<select id="checkImportData" parameterMap="impCkParamMap" statementType="CALLABLE">
+		{CALL PKG_PUB_CHECK.USP_SPS_CONFIG_ITEM_CHECK(?, ?, ?)}
+	</select>
+
+	<delete id="removeSpsConfigItemTemp">
+	DELETE FROM MM_SPS_CONFIG_IMP
+	</delete>
+	
+	<!-- SPS配置项导入正式表,有则更新,无则新增 -->
+	<update id="insertImportData" parameterType="java.util.Map">
+		MERGE INTO MM_SPS_CONFIG A
+			USING (SELECT *
+			         FROM MM_SPS_CONFIG_IMP B
+			        WHERE B.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+			          AND B.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+			          AND B.IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}) C
+			ON (A.CONFIG_CODE = C.CONFIG_CODE AND A.FACTORY_CODE = C.FACTORY_CODE AND A.PRODUCTION_LINE = C.PRODUCTION_LINE)
+			WHEN MATCHED THEN
+			  UPDATE
+			     SET CONFIG_DESC  = C.CONFIG_DESC,
+			         CONFIG_TYPE  = C.CONFIG_TYPE,
+			         CONFIG_VALUE = C.CONFIG_VALUE,
+			         LAST_MODIFIED_USER = #{lastModifiedUser, jdbcType = VARCHAR},
+			         LAST_MODIFIED_IP = #{lastModifiedIp, jdbcType = VARCHAR},
+			         LAST_MODIFIED_TIME = SYSDATE
+			WHEN NOT MATCHED THEN
+			  INSERT
+			    (ID,
+			     FACTORY_CODE,
+			     PRODUCTION_LINE,
+			     CONFIG_CODE,
+			     CONFIG_DESC,
+			     CONFIG_TYPE,
+			     CONFIG_VALUE,
+			     CREATION_USER,
+			     CREATION_TIME,
+			     LAST_MODIFIED_USER,
+			     LAST_MODIFIED_IP,
+			     LAST_MODIFIED_TIME)
+			  VALUES (PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_SPS_CONFIG'), 
+			  	C.FACTORY_CODE, 
+			  	C.PRODUCTION_LINE, 
+			  	C.CONFIG_CODE, 
+			  	C.CONFIG_DESC, 
+			    C.CONFIG_TYPE, 
+			    C.CONFIG_VALUE, 
+			    #{lastModifiedUser, jdbcType = VARCHAR},
+			    SYSDATE,
+			    #{lastModifiedUser, jdbcType = VARCHAR},
+			    #{lastModifiedIp, jdbcType = VARCHAR},
+			    SYSDATE)
+	</update>
+	
+	<!-- 更新临时表数据导入状态 -->
+	<update id="updateImportStatus">
+		UPDATE MM_SPS_CONFIG_IMP SET IMPORT_STATUS = #{IMPORT_STATUS_YES,jdbcType=VARCHAR} 
+			WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		    AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+		    AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR} 
+	</update>
+	
+	<!-- 根据UUID删除导入的临时数据 -->
+	<delete id="deleteImportTempDataByUUID" parameterType="java.lang.String">
+		DELETE FROM MM_SPS_CONFIG_IMP WHERE IMP_UUID = #{value,jdbcType=VARCHAR}
+	</delete>
+	
+	<!-- 配置项删除(判断配置项代码是否有配置明细) -->
+	<select id="querySpsConfigDetailList" parameterType="java.util.List"
+		resultType="com.hanthink.sps.model.SpsConfigDetailModel">
+		SELECT C.ID id,
+		       C.CONFIG_CODE configCode
+		FROM MM_SPS_CONFIG_DETAIL T
+		INNER JOIN MM_SPS_CONFIG C ON C.ID = T.CONFIG_ID
+		WHERE T.CONFIG_ID IN 
+		<foreach collection="list" item="con" index="index" open="("
+			separator="," close=")">
+			#{con.id}
+		</foreach>
+	</select>
+	
+	<!-- 查询导入校验结果是否包含不通过 -->
+	<select id="queryIsExistsCheckResultFalse" parameterType="java.lang.String"
+		resultType="java.lang.Object">
+		SELECT COUNT(*)
+				FROM MM_SPS_CONFIG_IMP T
+			WHERE T.IMP_UUID = #{uuid, jdbcType=VARCHAR} AND T.CHECK_RESULT = 0		
+	</select>
+	
+</mapper>

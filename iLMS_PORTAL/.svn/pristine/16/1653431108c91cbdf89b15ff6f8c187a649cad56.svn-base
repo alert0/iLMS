@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html class="login loginPage">
+<head >
+  <meta charset="UTF-8">
+  <title>登录手机端</title>
+  <script type="text/javascript" src="assets/js/importJs.js"></script>
+  <script type="text/javascript">
+  importCss(loginCss)
+  function login(){
+	  	var account=$("#account").val();
+	  	var password=$("#password").val();
+	  	var rememberMe=1; 
+	  	var data={account:account,password:password,rememberMe:rememberMe,subscribe:1};
+	  	$.post(__ctx +"/login/valid",data,function(data){
+	  		if(data.success){
+	  			localStorage.setItem("currentAccount", account);
+	  			location.href="index.html";
+	  		}
+	  		else{
+	  			$.alert(data.message);
+	  		}
+	  	});
+  }
+  function reset(){
+  	$("#account").val("");
+  	$("#password").val("");
+  	$('#rememberMe').attr("checked",false);
+  }
+  </script>
+</head>
+<body class="page">
+		<div class="mc">
+			<div class="login-logo">
+			<img src="assets/img/logo.png"/>
+		</div>
+		<div class="login-title">
+			<!-- <span class="cn-text">开始崭新一天的</span><br />兴奇生活<br />
+			<span class="en-text">
+				Opens a new day of <br />HKM Life
+			</span> -->
+			<img src="assets/img/svg/text.svg"/>
+		</div>
+		<div class="form">
+			<form  method="post">
+				<input id="account" type="text" value="" placeholder="Username"/>
+				<input id="password" type="password" value="" placeholder="Password"/>
+				<button type="button" onclick="login()" class="btn-submit">登录</button>
+				
+				<div style="display: none;" class="item-content">
+		         <div class="item-media"><i class="icon icon-form-toggle"></i></div>
+		         <div class="item-inner">
+		           <div class="item-title label">记住密码</div>
+		           <div class="item-input">
+		             <label class="label-switch">
+		               <input type="checkbox" id="rememberMe" type="checkbox" value="1">
+		               <div class="checkbox"></div>
+		             </label>
+		           </div>
+		         </div>
+		       </div>
+			</form>
+		</div>
+	</body>
+	<script type="text/javascript">
+		$(document).ready(function () {
+		 　　$('.mc').height($('body')[0].clientHeight);
+		 });
+	</script>
+</html>

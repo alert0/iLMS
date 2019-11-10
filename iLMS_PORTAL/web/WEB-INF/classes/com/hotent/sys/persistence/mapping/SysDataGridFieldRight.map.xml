@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.sys.persistence.model.SysDataGridFieldRight">
+	<resultMap id="SysDataGridFieldRight" type="com.hotent.sys.persistence.model.SysDataGridFieldRight">
+		<id property="rightId" column="right_id_" jdbcType="VARCHAR"/>
+		<result property="gridId" column="grid_id_" jdbcType="VARCHAR"/>
+		<result property="fieldId" column="field_id_" jdbcType="VARCHAR"/>
+		<result property="permission" column="permission_" jdbcType="VARCHAR"/>
+		<result property="rightRemark" column="right_remark_" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.sys.persistence.model.SysDataGridFieldRight">
+		INSERT INTO sys_datagrid_field_right
+		(right_id_,grid_id_,field_id_,permission_,right_remark_)
+		VALUES 
+		(#{rightId,jdbcType=VARCHAR}, #{gridId,jdbcType=VARCHAR}, #{fieldId,jdbcType=VARCHAR}, #{permission,jdbcType=VARCHAR}, #{rightRemark,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="SysDataGridFieldRight">
+		SELECT * FROM sys_datagrid_field_right 
+		WHERE 
+		right_id_=#{rightId}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="SysDataGridFieldRight">
+		SELECT * FROM sys_datagrid_field_right
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY right_id_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.sys.persistence.model.SysDataGridFieldRight">
+		UPDATE sys_datagrid_field_right SET
+		grid_id_=#{gridId,jdbcType=VARCHAR},
+		field_id_=#{fieldId,jdbcType=VARCHAR},
+		permission_=#{permission,jdbcType=VARCHAR},
+		right_remark_=#{rightRemark,jdbcType=VARCHAR}
+		WHERE
+		right_id_=#{rightId}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_datagrid_field_right 
+		WHERE
+		right_id_=#{rightId}
+	</delete>
+		
+	<delete id="removeByGridId" parameterType="java.lang.String">
+		DELETE FROM sys_datagrid_field_right 
+		WHERE
+		grid_id_=#{gridId}
+	</delete>
+	
+	
+</mapper>

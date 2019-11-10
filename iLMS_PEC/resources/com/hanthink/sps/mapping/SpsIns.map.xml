@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.sps.model.SpsInsModel">
+	
+	<!-- SPS指示票查询 -->
+	<select id="querySpsInsPage" parameterType="com.hanthink.sps.model.SpsInsModel"
+			resultType="com.hanthink.sps.model.SpsInsModel">
+		SELECT 
+	        T.INS_NO insNo,
+	        T.PLAN_CODE planCode,
+	        C.PLAN_CODE_DESC planCodeDesc,
+	        T.VIN vin,
+	        T.MODEL_CODE modelCode,
+	        T.WC_SEQNO wcSeqno,
+	        to_char(T.PASS_TIME, 'yyyy-mm-dd hh24:mi:ss') passTime,
+	        M.MOULD_CODE mouldCode,
+	        M.VERSION version,
+	        M.MOULD_NAME mouldName,
+	        P.PRINTER_NAME printerName,
+	        D.CODE_VALUE_NAME printStatus,
+	        to_char(T.PRINT_TIME , 'yyyy-mm-dd hh24:mi:ss') printTime
+	      FROM MM_SPS_INS T
+	      INNER JOIN MM_PUB_PLAN_CODE C ON C.PLAN_CODE = T.PLAN_CODE
+	      LEFT JOIN MM_SPS_MOULD M ON M.ID = T.MOULD_ID
+	      LEFT JOIN MM_PR_PRINTER P ON P.ID = M.PRINTER_ID
+	      LEFT JOIN MM_PUB_DATA_DICT D ON D.CODE_VALUE = T.PRINT_STATUS 
+	        AND D.CODE_TYPE = 'PUB_PRINT_STATUS' AND D.FACTORY_CODE = C.FACTORY_CODE
+	      WHERE C.FACTORY_CODE = #{factoryCode}
+	      <!-- 过滤试打印指示票 -->
+	       AND T.INS_NO NOT IN(
+	            SELECT I.INS_NO FROM MM_SPS_TEST_PRINT_IMP I
+	        )
+		<if test="null != vin and '' != vin">
+	      AND T.VIN LIKE CONCAT('%', #{vin})
+	    </if>
+		<!-- 车身序号 -->
+	    <if test="null != wcSeqno and '' != wcSeqno">
+	      AND T.WC_SEQNO = #{wcSeqno}
+	    </if>
+	    <if test="null != passTime and '' != passTime">
+      	  AND T.PASS_TIME &gt;= to_date(#{passTime}, 'yyyy-mm-dd hh24:mi:ss')
+        </if>
+        <if test="null != passTimeTo and '' != passTimeTo">
+      	  AND T.PASS_TIME &lt;= to_date(#{passTimeTo}, 'yyyy-mm-dd hh24:mi:ss')
+        </if>
+        <if test="null != printer and ''!= printer">
+          AND M.PRINTER_ID = #{printer}
+        </if>
+	    <if test="null != printStatus and '' != printStatus">
+	      AND T.PRINT_STATUS = #{printStatus}
+	    </if>
+	</select>
+	
+	<!-- 查询SPS指示票明细 -->
+	<select id="querySpsInsDetailPage" parameterType="com.hanthink.sps.model.SpsInsDetailModel"
+			resultType="com.hanthink.sps.model.SpsInsDetailModel">
+		SELECT T.INS_NO insNo,
+			  T.MOULD_PLACE mouldPlace,
+			  T.CONFIG_CODE configCode,
+			  T.CONFIG_DESC configDesc,
+			  D.CODE_VALUE_NAME configType,
+			  T.PART_NO partNo,
+			  T.PART_NAME partName,
+			  T.QUANTITY quantity,
+			  T.SHOW_VALUE showValue
+			  FROM MM_SPS_INS_DETAIL T
+			  LEFT JOIN MM_PUB_DATA_DICT D ON D.CODE_VALUE = T.CONFIG_TYPE
+			       AND D.CODE_TYPE = 'SPS_CONFIG_TYPE' AND D.FACTORY_CODE = #{factoryCode}
+	    WHERE T.INS_NO = #{insNo}	
+	</select>
+	
+	<!-- 查询SPS指示票明细 (打印)-->
+	<select id="querySpsInsDetailList" parameterType="com.hanthink.sps.model.SpsInsModel"
+			resultType="com.hanthink.sps.model.SpsInsDetailModel">
+		SELECT T.INS_NO insNo,
+			  T.MOULD_PLACE mouldPlace,
+			  T.CONFIG_CODE configCode,
+			  T.CONFIG_DESC configDesc,
+			  D.CODE_VALUE_NAME configType,
+			  T.PART_NO partNo,
+			  T.PART_NAME partName,
+			  T.QUANTITY quantity,
+			  T.SHOW_VALUE showValue
+			  FROM MM_SPS_INS_DETAIL T
+			  LEFT JOIN MM_PUB_DATA_DICT D ON D.CODE_VALUE = T.CONFIG_TYPE
+			       AND D.CODE_TYPE = 'SPS_CONFIG_TYPE' AND D.FACTORY_CODE = #{factoryCode}
+	    WHERE T.INS_NO = #{insNo}	
+	</select>
+	
+	<!-- 加载打印机下拉框 -->
+	<select id="loadPrinterComboData" parameterType="com.hanthink.pub.model.PubDataDictModel"
+			resultType="com.hanthink.pub.model.PubDataDictModel">
+		SELECT DISTINCT
+		       T.ID codeValue,
+		       T.PRINTER_NAME codeValueName
+		FROM MM_PR_PRINTER T
+		WHERE T.ACTIVE = '1'
+		<!-- 根据打印机分组获取打印机数据字典 -->
+		<if test="null != codeType and '' != codeType">
+			AND T.PRINTER_GROUP = #{codeType}
+		</if>
+		AND T.FACTORY = #{factoryCode}  
+	</select>
+	
+	<!-- 更新sps指示票打印状态 -->
+	<update id="updatePrintInfo" parameterType="java.util.List">
+		<foreach collection="list" item="item" index="index" open="" close="" separator=";">
+			UPDATE MM_SPS_INS T 
+			<set>
+				 T.PRINT_STATUS = 1,
+			     T.PRINT_TIME = SYSDATE,
+			     T.PRINT_USER = #{item.printUser, jdbcType=VARCHAR}
+			</set> 
+			<where>
+				T.INS_NO = #{item.insNo}
+			</where>
+		</foreach>
+	</update>
+	
+	<!-- 修改SPS指示票打印状态 -->
+	<update id="updateSpsInsPrintStatus" parameterType="com.hanthink.sps.model.SpsInsModel">
+		UPDATE MM_SPS_INS T
+			SET T.PRINT_STATUS = 0,
+			    T.IS_LOAD = 0,
+			    T.PRINT_TIME = NULL
+		WHERE T.INS_NO = #{insNo}
+	</update>
+	
+	<!-- 更新sps指示票打印状态(MODEL) -->
+	<update id="updatePrintInfoModel" parameterType="com.hanthink.sps.model.SpsInsModel">
+		UPDATE MM_SPS_INS T SET 
+				 T.PRINT_STATUS = 1,
+			     T.PRINT_TIME = SYSDATE,
+			     T.PRINT_USER_IP = #{printIp, jdbcType=VARCHAR},
+				 T.PRINT_USER = #{printUser, jdbcType=VARCHAR}
+		WHERE T.INS_NO = #{insNo} AND T.PRINT_STATUS = 0
+	</update>
+
+</mapper>

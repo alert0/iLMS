@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.mp.model.MpSupplierSortModel">
+		
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="queryMpSupplierSortForPage" parameterType="com.hanthink.mp.model.MpSupplierSortModel" resultType="com.hanthink.mp.model.MpSupplierSortModel">
+		SELECT a.SUPPLIER_NO supplierNo 
+		   ,a.SUP_FACTORY supFactory 
+		   ,b.SUPPLIER_NAME supplierName 
+		   ,a.UNLOAD_PORT unloadPort 
+		   ,a.GROUP_ID groupId 
+		   ,a.DR_SORT_ID_START drSortIdStart
+		   ,a.DR_SORT_ID_END drSortIdEnd
+		   ,TO_CHAR(a.FINAL_UNDERLINE_TIME_START, 'YYYY-MM-DD HH24:MI:SS')    finalUnderlineTimeStartStr
+		   ,TO_CHAR(a.FINAL_UNDERLINE_TIME_END, 'YYYY-MM-DD HH24:MI:SS')     finalUnderlineTimeEndStr
+		   ,a.CAL_STATUS calStatus
+		   ,c.CODE_VALUE_NAME codeValueName
+		   FROM MM_MP_SUPPLIER_SORT a 
+		   LEFT JOIN MM_PUB_SUPPLIER b 
+		   ON b.SUPPLIER_NO = a.SUPPLIER_NO
+		   LEFT JOIN MM_PUB_DATA_DICT c
+		   ON c.CODE_TYPE = 'MP_CAL_STATUS'
+		   AND c.CODE_VALUE = a.CAL_STATUS
+		   AND c.FACTORY_CODE = a.FACTORY_CODE
+		WHERE 1=1 
+		<if test="supplierNo!=null and supplierNo!='' ">
+		AND	a.SUPPLIER_NO = #{supplierNo}
+		</if>
+		<if test="supFactory!=null and supFactory!='' ">
+		AND	a.SUP_FACTORY = #{supFactory}
+		</if>
+		<if test="finalUnderlineTimeStartStrStart != null and finalUnderlineTimeStartStrStart != ''">
+		<![CDATA[ AND a.FINAL_UNDERLINE_TIME_START >= TO_DATE(#{finalUnderlineTimeStartStrStart},'yyyy-MM-dd HH24:mi:ss') ]]>
+		</if>
+        <if test="finalUnderlineTimeStartStrEnd != null and finalUnderlineTimeStartStrEnd != ''">
+        <![CDATA[ AND a.FINAL_UNDERLINE_TIME_START <= TO_DATE(#{finalUnderlineTimeStartStrEnd},'yyyy-MM-dd HH24:mi:ss') ]]>
+        </if>
+		<if test="unloadPort!=null and unloadPort!='' ">
+		AND	a.UNLOAD_PORT = #{unloadPort}
+		</if>
+		AND a.FACTORY_CODE = #{factoryCode}
+		UNION ALL
+		SELECT a.SUPPLIER_NO supplierNo 
+		,a.SUP_FACTORY supFactory 
+		,b.SUPPLIER_NAME supplierName 
+		,a.UNLOAD_PORT unloadPort 
+		,a.GROUP_ID groupId 
+		,a.DR_SORT_ID_START drSortIdStart
+		,a.DR_SORT_ID_END drSortIdEnd
+		,TO_CHAR(a.FINAL_UNDERLINE_TIME_START, 'YYYY-MM-DD HH24:MI:SS') finalUnderlineTimeStartStr
+		,TO_CHAR(a.FINAL_UNDERLINE_TIME_END, 'YYYY-MM-DD HH24:MI:SS') finalUnderlineTimeEndStr
+		,a.CAL_STATUS calStatus
+		,c.CODE_VALUE_NAME codeValueName
+		FROM MM_MP_SUPPLIER_SORT_TEMP a 
+		LEFT JOIN MM_PUB_SUPPLIER b 
+		ON b.SUPPLIER_NO = a.SUPPLIER_NO
+		LEFT JOIN MM_PUB_DATA_DICT c
+		ON c.CODE_TYPE = 'MP_CAL_STATUS'
+		AND c.CODE_VALUE = a.CAL_STATUS
+		AND c.FACTORY_CODE = a.FACTORY_CODE
+	    WHERE 1=1 
+		<if test="supplierNo!=null and supplierNo!='' ">
+		AND	a.SUPPLIER_NO LIKE CONCAT(#{supplierNo}, '%')
+		</if>
+		<if test="supFactory!=null and supFactory!='' ">
+		AND	a.SUP_FACTORY LIKE CONCAT(#{supFactory}, '%')
+		</if>
+		<if test="finalUnderlineTimeStartStrStart != null and finalUnderlineTimeStartStrStart != ''">
+		<![CDATA[ AND a.FINAL_UNDERLINE_TIME_START >= TO_DATE(#{finalUnderlineTimeStartStrStart},'yyyy-MM-dd HH24:mi:ss') ]]>
+		</if>
+        <if test="finalUnderlineTimeStartStrEnd != null and finalUnderlineTimeStartStrEnd != ''">
+        <![CDATA[ AND a.FINAL_UNDERLINE_TIME_START <= TO_DATE(#{finalUnderlineTimeStartStrEnd},'yyyy-MM-dd HH24:mi:ss') ]]>
+        </if>
+		<if test="unloadPort!=null and unloadPort!='' ">
+		AND	a.UNLOAD_PORT LIKE CONCAT(#{unloadPort}, '%')
+		</if>
+		AND a.FACTORY_CODE = #{factoryCode}
+		ORDER BY  1,2,4,5
+	</select>
+	
+	<!-- 获取计算队列 -->
+	<select id="getUnloadPort" parameterType="java.util.Map" resultType="com.hanthink.base.model.DictVO">
+		SELECT DISTINCT UNLOAD_PORT valueKey, UNLOAD_PORT valueName FROM MM_MP_PART 
+	</select>
+	
+</mapper>

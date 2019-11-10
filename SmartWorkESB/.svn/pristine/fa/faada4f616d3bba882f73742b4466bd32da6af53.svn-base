@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+<title>SmartWorkESB</title>
+<link href="../zui/css/zui.min.css?v=1.0" rel="stylesheet">
+<link href="../zui/lib/datagrid/zui.datagrid.min.css?v=1.0" rel="stylesheet">
+<link href="../zui/lib/uploader/zui.uploader.min.css?v=1.0" rel="stylesheet">
+<link href="../zui/lib/chosen/chosen.min.css?v=1.0" rel="stylesheet">
+<link href="../css/comm.css?v=1.0" rel="stylesheet">
+<style type="text/css">
+html, body {
+    overflow: visible;
+    overflow-x: hidden;
+    height: 100%;
+}
+
+.my-query {
+    overflow: visible;
+    line-height: 25px;
+}
+
+.my-result-ifconfig {
+    height: 292px;
+}
+
+.my-result-queryconfig, 
+.my-result-receiveconfig, 
+.my-result-param,
+.my-result-generalparam,
+.my-result-element {
+    height: 400px;
+}
+
+.my-location {
+    position: absolute;
+    z-index: 99;
+    right: 20px;
+    width: 40px;
+    opacity: 1;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.my-location i {
+    margin-left: -3px;
+}
+
+.my-result-templategroup {
+    width: 325px;
+    height: 200px;
+}
+
+.my-result-templateparam {
+    margin-left: 326px;
+    height: 200px;
+}
+
+.my-result-selectparam {
+    height: 200px;
+}
+
+textarea[name="content"] {
+    height: 240px;
+    word-wrap:normal;
+}
+
+.tab-content {
+    border-left: 1px #ddd solid;
+    border-bottom: 1px #ddd solid;
+    border-right: 1px #ddd solid;
+    padding-top: 10px;
+    border-radius: 0px 0px 4px 4px;
+}
+
+.my-tab-checkbox {
+    position: absolute;
+    z-index: 9;
+    color: rgb(128, 128, 128);
+    top: 10px;
+    left: 5px;
+}
+
+.my-tab-checkbox + a {
+    width: 100px;
+}
+
+.my-fieldtype-container {
+    height: 54px;
+}
+</style>
+
+</head>
+<body>
+
+  <ul class="nav nav-primary nav-stacked my-location">
+    <li><a href="#top"><i class="icon icon-arrow-up"></i></a></li>
+    <li><a href="#middle"><i class="icon icon-arrow-down"></i></a></li>
+  </ul>
+
+  <!-- 查询条件 -->
+  <a name="top"></a>
+  <form class="form-inline my-top my-query my-query-ifconfig">
+    <div class="form-group">
+      <div class="input-control">
+        <input name="ifCode" type="text" class="form-control" placeholder="接口代码" />
+      </div>
+    </div>
+    <div class="form-group">
+      <div class="input-control">
+        <input name="ifName" type="text" class="form-control" placeholder="接口名称">
+      </div>
+    </div>
+    <button btnname="search" type="button" class="btn btn-default">
+      <i class="icon icon-search"></i><span>查询</span>
+    </button>
+    <button btnname="add" type="button" class="btn btn-primary">
+      <i class="icon icon-file-o"></i><span>新增</span>
+    </button>
+    <button btnname="copy" type="button" class="btn btn-primary">
+      <i class="icon icon-copy"></i><span>复制</span>
+    </button>
+    <button btnname="modify" type="button" class="btn btn-info">
+      <i class="icon icon-edit"></i><span>修改</span>
+    </button>
+    <button btnname="delete" type="button" class="btn btn-warning">
+      <i class="icon icon-trash"></i><span>删除</span>
+    </button>
+    <div class="uploader">
+      <button btnname="import" type="button" class="btn btn-info uploader-btn-browse">
+        <i class="icon icon-upload-alt"></i><span>导入</span>
+      </button>
+    </div>
+    <button btnname="export" type="button" class="btn btn-info">
+      <i class="icon icon-download-alt"></i><span>导出</span>
+    </button>
+  </form>
+
+  <!-- 查询结果表格 -->
+  <div class="my-result-ifconfig datagrid datagrid-striped">
+    <div class="datagrid-container"></div>
+    <div class="pager"></div>
+  </div>
+
+  <!--  -->
+  <a name="middle"></a>
+  <ul class="nav nav-tabs" style="margin-top: 5px;">
+    <li class="active"><a href="javascript:void(0);" data-target="#tabParam" data-toggle="tab">接口参数</a></li>
+    <li><a href="javascript:void(0);" data-target="#tabGeneralParam" data-toggle="tab">通用参数</a></li>
+  </ul>
+  <div class="tab-content">
+    <div class="tab-pane fade active in" id="tabParam">
+      <!-- 查询条件 -->
+      <form my-ref="config" class="form-inline my-top my-query my-query-param">
+        <div class="form-group">
+          <div class="input-control has-label-left my-word4">
+            <input name="ifCode" type="text" readonly="readonly" class="form-control">
+            <label class="input-control-label-left">接口代码:</label>
+          </div>
+        </div>
+        
+        <button btnname="template" type="button" class="btn btn-primary">
+          <i class="icon icon-file-o"></i><span>参数模板</span>
+        </button>
+        <button btnname="add" type="button" class="btn btn-primary">
+          <i class="icon icon-file-o"></i><span>新增</span>
+        </button>
+        <button btnname="save" type="button" class="btn btn-primary">
+          <i class="icon icon-save"></i><span>保存</span>
+        </button>
+        <button btnname="modify" type="button" class="btn btn-info">
+          <i class="icon icon-edit"></i><span>修改</span>
+        </button>
+        <button btnname="delete" type="button" class="btn btn-warning">
+          <i class="icon icon-trash"></i><span>删除</span>
+        </button>
+      </form>
+
+      <!-- 查询结果表格 -->
+      <div class="my-result-param datagrid datagrid-striped">
+        <div class="datagrid-container"></div>
+      </div>
+    </div>
+
+    <div class="tab-pane fade" id="tabGeneralParam">
+      <!-- 查询条件 -->
+      <form my-ref="config" class="form-inline my-top my-query my-query-generalparam">
+        <div class="form-group">
+          <div class="input-control has-label-left my-word4">
+            <input name="toSysName" type="text" readonly="readonly" class="form-control">
+            <label class="input-control-label-left">对方系统:</label>
+          </div>
+        </div>
+        <button btnname="template" type="button" class="btn btn-info">
+          <i class="icon icon-file-o"></i><span>参数模板</span>
+        </button>
+        <button btnname="add" type="button" class="btn btn-primary">
+          <i class="icon icon-file-o"></i><span>新增</span>
+        </button>
+        <button btnname="save" type="button" class="btn btn-primary">
+          <i class="icon icon-save"></i><span>保存</span>
+        </button>
+        <button btnname="modify" type="button" class="btn btn-info">
+          <i class="icon icon-edit"></i><span>修改</span>
+        </button>
+        <button btnname="delete" type="button" class="btn btn-warning">
+          <i class="icon icon-trash"></i><span>删除</span>
+        </button>
+      </form>
+
+      <!-- 查询结果表格 -->
+      <div class="my-result-generalparam datagrid datagrid-striped">
+        <div class="datagrid-container"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 编辑接口配置 -->
+  <div class="modal fade" id="my-dialog-ifconfig">
+    <div class="modal-dialog my-form-dialog3">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title"></h4>
+        </div>
+        <div class="modal-body">
+          <form class="form-inline">
+            <div class="form-group">
+              <div class="input-control has-label-left has-icon-right my-tip-question my-word4">
+                <input name="ifCode" update="false" type="text" regex="^[\-_A-Za-z0-9]+$" required="required" maxlength="20" class="form-control" id="id-config-ifCode">
+                <label for="id-config-ifCode" class="input-control-label-left">接口代码:</label>
+                <label class="input-control-label-right" my-tip-title="EN">?</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="input-control has-label-left my-word4">
+                <input name="ifName" type="text" maxlength="255" required="required" class="form-control" id="id-config-ifName">
+                <label for="id-config-ifName" class="input-control-label-left">接口名称:</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="input-control has-label-left has-icon-right my-tip-question my-word4">
+                <input name="toSysName" type="text" regex="^[\-_A-Za-z0-9]+$" maxlength="64" required="required" class="form-control" id="id-config-toSysName">
+                <label for="id-config-toSysName" class="input-control-label-left">对方系统:</label>
+                <label class="input-control-label-right" my-tip-title="EN">?</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <select name="serviceType" required="required" class="chosen-select input-control has-label-left my-word4" id="id-config-serviceType">
+                <option value=""></option>
+              </select>
+              <label for="id-config-serviceType_chosen" class="input-control-label-left">服务类型:</label>
+            </div>
+            <div class="form-group">
+              <div class="input-control has-label-left my-word5 two-width">
+                <input name="serviceClass" type="text" maxlength="255" class="form-control" id="id-config-serviceClass">
+                <label for="id-config-serviceClass" class="input-control-label-left">服务实现类:</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="input-control has-label-left my-word4">
+                <input name="dbProc" type="text" maxlength="255" class="form-control" id="id-config-dbProc">
+                <label for="id-config-dbProc" class="input-control-label-left">存储过程:</label>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button btnname="ok" type="button" class="btn btn-primary">
+            <i class="icon icon-check"></i>保存
+          </button>
+          <button btnname="cancel" type="button" class="btn btn-default">
+            <i class="icon icon-times"></i>取消
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 复制接口配置 -->
+  <div class="modal fade" id="my-dialog-copy-ifconfig">
+    <div class="modal-dialog my-form-dialog3">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title"></h4>
+        </div>
+        <div class="modal-body">
+          <form class="form-inline">
+            <div class="form-group">
+              <div class="input-control has-label-left has-icon-right my-tip-question my-word5">
+                <input name="srcIfCode" type="text" readonly="readonly"  class="form-control" id="id-copy-config-srcifCode">
+                <label for="id-copy-config-srcIfCode" class="input-control-label-left">源接口代码:</label>
+              </div>
+            </div>
+            <div class="form-group " style="width: 300px;">
+            </div>
+            <div class="form-group">
+              <div class="input-control has-label-left has-icon-right my-tip-question my-word5">
+                <input name="newIfCode" type="text" regex="^[\-_A-Za-z0-9]+$" required="required" maxlength="20" class="form-control" id="id-copy-config-ifCode">
+                <label for="id-copy-config-ifCode" class="input-control-label-left">新接口代码:</label>
+                <label class="input-control-label-right" my-tip-title="EN">?</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="input-control has-label-left my-word5">
+                <input name="newIfName" type="text" maxlength="255" required="required" class="form-control" id="id-copy-config-ifName">
+                <label for="id-copy-config-ifName" class="input-control-label-left">新接口名称:</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="input-control has-label-left has-icon-right my-tip-question my-word5">
+                <input name="newToSysName" type="text" regex="^[\-_A-Za-z0-9]+$" maxlength="64" required="required" class="form-control" id="id-copy-config-toSysName">
+                <label for="id-copy-config-toSysName" class="input-control-label-left">新对方系统:</label>
+                <label class="input-control-label-right" my-tip-title="EN">?</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="input-control has-label-left my-word6 three-width">
+                <input name="newServiceClass" type="text" maxlength="255" class="form-control" id="id-copy-config-serviceClass">
+                <label for="id-copy-config-serviceClass" class="input-control-label-left">新服务实现类:</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="input-control has-label-left my-word5">
+                <input name="newDbProc" type="text" maxlength="255" class="form-control" id="id-copy-config-dbProc">
+                <label for="id-copy-config-dbProc" class="input-control-label-left">新存储过程:</label>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button btnname="ok" type="button" class="btn btn-primary">
+            <i class="icon icon-check"></i>复制
+          </button>
+          <button btnname="cancel" type="button" class="btn btn-default">
+            <i class="icon icon-times"></i>取消
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 编辑接口参数 -->
+  <div class="modal fade" id="my-dialog-config-param">
+    <div class="modal-dialog my-form-dialog3">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title"></h4>
+        </div>
+        <div class="modal-body">
+          <form class="form-inline">
+            <div class="form-group">
+              <div class="input-control has-label-left has-icon-right my-tip-question my-word4 onetwo-width">
+                <input name="paramCode" type="text" regex="^[\-_A-Za-z0-9]+$" maxlength="64" required="required" class="form-control" id="id-config-param-paramCode">
+                <label for="id-config-param-paramCode" class="input-control-label-left">参数编码:</label>
+                <label class="input-control-label-right" my-tip-title="EN">?</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="input-control has-label-left my-word4 onetwo-width">
+                <input name="paramName" type="text" maxlength="64" required="required" class="form-control" id="id-config-param-paramName">
+                <label for="id-config-param-paramName" class="input-control-label-left">参数名称:</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="input-control has-label-left has-icon-right my-tip-question my-word4 onetwo-width">
+                <input name="paramGroup" type="text" regex="^[\-_A-Za-z0-9]+$" maxlength="64" required="required" class="form-control" id="id-config-param-paramGroup" > 
+                <label for="id-config-param-paramGroup" class="input-control-label-left">参数分组:</label>
+                <label class="input-control-label-right" my-tip-title="EN">?</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="input-control has-label-left my-word4 onetwo-width">
+                <div class="checkbox form-control">
+                  <label>
+                    <input type="checkbox" name="editAble" update="false" value="1" id="id-config-param-editAble"><span>可编辑</span>
+                  </label>
+                </div>
+                <label for="id-config-param-editAble" class="input-control-label-left">编辑类型:</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="input-control has-label-left my-word3 three-width">
+                <input name="paramValue" type="text" maxlength="512" class="form-control" id="id-config-param-paramValue">
+                <label for="id-config-param-paramValue" class="input-control-label-left">参数值:</label>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <div class="input-control has-label-left my-word2 three-width">
+                <input name="paramDesc" type="text" maxlength="255" class="form-control" id="id-config-param-paramDesc">
+                <label for="id-config-param-paramDesc" class="input-control-label-left">备注:</label>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button btnname="ok" type="button" class="btn btn-primary">
+            <i class="icon icon-check"></i>确定
+          </button>
+          <button btnname="cancel" type="button" class="btn btn-default">
+            <i class="icon icon-times"></i>取消
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 从参数模板选择 -->
+  <div class="modal fade" id="my-dialog-config-templateparam">
+    <div class="modal-dialog my-form-dialog4">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title"></h4>
+        </div>
+        <div class="modal-body">
+          <ul class="nav nav-tabs">
+            <li class="active"><a href="javascript:void(0);" data-toggle="tab">参数模板【双击选择】</a></li>
+          </ul>
+          <div class="tab-content">
+            <div class="tab-pane fade active in">
+              
+              <!-- 参数模版分组查询结果表格 -->
+              <div class="my-left my-result-templategroup datagrid datagrid-striped">
+                <div class="datagrid-container"></div>
+              </div>
+            
+              <!-- 参数模版查询结果表格 -->
+              <div class="my-right my-result-templateparam datagrid datagrid-striped">
+                <div class="datagrid-container"></div>
+              </div>
+              
+            </div>
+          </div>
+          
+          <ul class="nav nav-tabs" style="margin-top: 5px;">
+            <li class="active"><a href="javascript:void(0);" data-toggle="tab">已选择参数【双击删除】</a></li>
+          </ul>
+          <div class="tab-content">
+            <div class="tab-pane fade active in">
+              <!-- 选择参数查询结果表格 -->
+              <div class="my-result-selectparam datagrid datagrid-striped">
+                <div class="datagrid-container"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button btnname="ok" type="button" class="btn btn-primary">
+            <i class="icon icon-check"></i>确定
+          </button>
+          <button btnname="cancel" type="button" class="btn btn-default">
+            <i class="icon icon-times"></i>取消
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script src="../zui/lib/jquery/jquery.js?v=1.0"></script>
+  <script src="../zui/lib/jquery/jquery.validate.min.js?v=1.0"></script>
+  <script src="../zui/lib/jquery/localization/messages_zh.min.js?v=1.0"></script>
+  <script src="../zui/js/zui.min.js?v=1.0"></script>
+  <script src="../zui/lib/datagrid/zui.datagrid.min.js?v=1.0"></script>
+  <script src="../zui/lib/uploader/zui.uploader.min.js?v=1.0"></script>
+  <script src="../zui/lib/chosen/chosen.min.js?v=1.0"></script>
+  <script src="../js/extension.js?v=1.0"></script>
+  <script src="time_config.js?v=1.0"></script>
+</body>
+</html>

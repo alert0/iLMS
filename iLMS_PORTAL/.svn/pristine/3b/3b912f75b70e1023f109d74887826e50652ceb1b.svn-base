@@ -1,0 +1,518 @@
+package com.hanthink.sw.controller;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.ibatis.session.RowBounds;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.hanthink.sw.manager.SwNonStandardManager;
+import com.hanthink.sw.manager.impl.SwNonStandardManagerImpl;
+import com.hanthink.sw.model.SwNonStandardModel;
+import com.hanthink.sw.util.NonStandExportUtil;
+import com.hanthink.util.constant.Constant;
+import com.hanthink.util.excel.ExcelUtil;
+import com.hotent.base.api.model.ResultMessage;
+import com.hotent.base.core.util.string.StringUtil;
+import com.hotent.base.core.web.GenericController;
+import com.hotent.base.core.web.RequestUtil;
+import com.hotent.base.db.mybatis.domain.DefaultPage;
+import com.hotent.base.db.mybatis.domain.PageJson;
+import com.hotent.base.db.mybatis.domain.PageList;
+import com.hotent.org.api.model.IUser;
+import com.hotent.sys.persistence.manager.FileManager;
+import com.hotent.sys.util.ContextUtil;
+
+import sun.net.www.content.audio.wav;
+
+@Controller
+@RequestMapping("/sw/nonStandard")
+public class SwNonStandardController extends GenericController {
+
+	@Resource
+	private SwNonStandardManager manager;
+	@Resource
+	private FileManager fileManager;
+
+	private static Logger log = LoggerFactory.getLogger(SwNonStandardController.class);
+	
+	public SwNonStandardController() {
+		
+	}
+
+	/**
+	 * 订单查询
+	 * 
+	 * @param request
+	 * @param reponse
+	 * @param model
+	 * @return
+	 * @throws Exception Lxh
+	 */
+	@RequestMapping("/queryNonStandardPage")
+	public @ResponseBody PageJson queryNonStandardPage(HttpServletRequest request, HttpServletResponse reponse,
+			@ModelAttribute("model") SwNonStandardModel model) throws Exception {
+		DefaultPage p = new DefaultPage(new RowBounds(getQueryFilter(request).getPage().getStartIndex(),
+				getQueryFilter(request).getPage().getPageSize()));
+		IUser user = ContextUtil.getCurrentUser();
+		model.setFactoryCode(user.getCurFactoryCode());
+		if (Constant.PUB_USER_FLAG_SU.equals(user.getUserType())) {
+			model.setSupplierNo(user.getSupplierNo());
+		}
+		PageList<SwNonStandardModel> pageList = (PageList<SwNonStandardModel>) manager.queryNonStandardPage(model, p);
+		return new PageJson(pageList);
+	}
+
+	/**
+	 * 实物图片上传
+	 * 
+	 * @param request
+	 * @param response
+	 * @author luoxq
+	 * @throws Exception
+	 * @DATE 2019年03月10日 下午3:08:53
+	 */
+	@RequestMapping("uploadSignProFile")
+	public void uploadSignProFile(HttpServletRequest request, HttpServletResponse response, SwNonStandardModel model)
+			throws Exception {
+		try {
+			String picIds = RequestUtil.getString(request, "picIds");
+			String checkResult = model.getCheckResult();
+			if (StringUtil.isEmpty(model.getId()) || StringUtil.isEmpty(picIds)) {
+				writeResultMessage(response.getWriter(), "参数获取失败", "参数获取失败", ResultMessage.FAIL);
+			}
+			// 获取检查历史记录表自增序列ID
+			String checkId = manager.getSeqCheck();
+
+			model.setCheckId(checkId);
+			if (checkResult == null || checkResult == "" || "未检查".equals(checkResult)) {
+				manager.deleteNonStandPic(model); // 如果未进行检查操作，删除上次上次的图片信息和写入到检查表的信息
+
+			}
+			String[] picIdArr = picIds.split(",");
+			for (String picId : picIdArr) {
+				model.setPicId(picId);
+				manager.uploadSignProFile(model); // 图片信息写入到图片关系表中
+			}
+
+			// 更新主表中实物上传状态为已上传
+			model.setPicUploadStatus(SwNonStandardModel.PIC_UPLOAD_STATUS_YES);
+			manager.updateNonStandard(model);
+
+			manager.insertIntoNonStandCheck(model, RequestUtil.getIpAddr(request)); // 数据写入到历史记录检查表中
+			writeResultMessage(response.getWriter(), "保存成功", "保存成功", ResultMessage.SUCCESS);
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.error(e.toString());
+			throw new Exception("系统错误,请联系管理员");
+		}
+	}
+
+	/**
+	 * 
+	 * @Description: 根据id查询对应的图片id
+	 * @param @param request
+	 * @param @param reponse
+	 * @param @param model
+	 * @param @return
+	 * @param @throws Exception
+	 * @return PageJson
+	 * @throws @author luoxq
+	 * @date 2019年3月5日 下午4:03:47
+	 */
+	@RequestMapping("/getUploadPicIdBy")
+	public @ResponseBody List<SwNonStandardModel> getUploadPicIdBy(HttpServletRequest request,
+			HttpServletResponse reponse) throws Exception {
+		String id = RequestUtil.getString(request, "id");
+		Map<String, String> map = new HashMap<String, String>();
+		map.put("id", id);
+		List<SwNonStandardModel> list = (List<SwNonStandardModel>) manager.getUploadPicIdBy(map);
+		return list;
+	}
+
+	/**
+	 * 
+	 * @Description: 根据对象获取图片id
+	 * @param @param model
+	 * @param @param request
+	 * @param @param reponse
+	 * @param @return
+	 * @param @throws Exception
+	 * @return List<SwNonStandardModel>
+	 * @throws @author luoxq
+	 * @date 2019年3月10日 下午9:21:05
+	 */
+	@RequestMapping("/getUploadPicIdByModel")
+	public @ResponseBody List<SwNonStandardModel> getUploadPicIdByModel(SwNonStandardModel model,
+			HttpServletRequest request, HttpServletResponse reponse) throws Exception {
+		try {
+
+			List<SwNonStandardModel> list = (List<SwNonStandardModel>) manager.getUploadPicIdByModel(model);
+			return list;
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.error(e.toString());
+			throw new Exception("系统错误,请联系管理员");
+		}
+
+	}
+
+	/**
+	 * 
+	 * @Description: 在检查的时候通过销售单号，销售单行号，零件号获取到效果图
+	 * @param @param model
+	 * @param @param request
+	 * @param @param reponse
+	 * @param @return
+	 * @param @throws Exception
+	 * @return List<SwNonStandardModel>
+	 * @throws @author luoxq
+	 * @date 2019年3月10日 下午2:50:51
+	 */
+	@RequestMapping("/getEffectPicByModel")
+	public @ResponseBody List<SwNonStandardModel> getEffectPicByModel(SwNonStandardModel model,
+			HttpServletRequest request, HttpServletResponse reponse) throws Exception {
+		try {
+//			SwNonStandardController sw = new SwNonStandardController();
+			String factoryCode = ContextUtil.getCurrentUser().getCurFactoryCode();
+			Map<String, String> map = new HashMap<String, String>();
+			Map<String, String> map2 = new HashMap<String, String>();
+			map.put("factoryCode", factoryCode);
+			map.put("paramsCode", "PORT");
+			map2.put("paramsCode", "SW_NON_IP");
+			map2.put("factoryCode", factoryCode);
+			String port = manager.getParamsByString(map);
+			String ipAddr = manager.getParamsByString(map2);
+			NonStandExportUtil nse = new NonStandExportUtil();
+			String imgPath = request.getRealPath("/css/img/");
+			
+//			int num=t.indexOf(".metadata");
+//			String imgPath=t.substring(1,num).replace('/', '\\')+"iLMS_PORTAL\\web\\css\\img\\";
+			//String ipArr = RequestUtil.getIpAddr(request);
+//			int port = request.getServerPort();
+			List<SwNonStandardModel> models = new ArrayList<SwNonStandardModel>();
+
+			List<SwNonStandardModel> list = (List<SwNonStandardModel>) manager.queryNonStandDetail(model);
+
+			File file = new File(imgPath);
+
+			if (file != null && file.exists() && file.isDirectory()) {
+				File[] files = file.listFiles();
+				// if(files !=null){ //此方法判断错误。
+				if (files != null && files.length > 0) { // 此方法判断OK,需要使用数组的长度来判断。
+					SwNonStandardController.delAllFile(imgPath);
+				}
+			}
+			for (int i = 0; i < list.size(); i++) {
+				if ("2".equals(list.get(i).getFeatureType())) {
+					String url = list.get(i).getFeatureValue();
+					String picSuffix = url.substring(url.lastIndexOf("."));
+					String imgName = list.get(i).getSaleNo() + list.get(i).getPartNo() + i + picSuffix;
+					String tagImgPath = imgPath +"/"+ imgName; //图片下载到本地路径
+					
+					nse.saveToFile(list.get(i).getFeatureValue(), tagImgPath);
+					String tagUrl = "http://"  + ipAddr + ":" + port + "/css/img/" +imgName;
+					list.get(i).setFeatureValue(tagUrl);
+				}
+				models.add(list.get(i));
+			}
+
+			return models;
+		} catch (
+
+		Exception e) {
+			e.printStackTrace();
+			log.error(e.toString());
+			throw new Exception("系统错误,请联系管理员");
+		}
+
+	}
+
+	/**
+	 * 
+	 * @Description: 检查提交
+	 * @param @param request
+	 * @param @param reponse
+	 * @param @param model
+	 * @param @throws Exception
+	 * @return void
+	 * @throws @author luoxq
+	 * @date 2019年3月6日 下午4:09:44
+	 */
+	@RequestMapping("/submitFeedback")
+	public void submitFeedback(HttpServletRequest request, HttpServletResponse reponse, SwNonStandardModel model)
+			throws Exception {
+		ResultMessage message = null;
+		try {
+			IUser user = ContextUtil.getCurrentUser();
+			model.setChecker(user.getAccount());
+			String feedBackPicIds = RequestUtil.getString(request, "feedBackPicIds");
+			String[] feedbackPicArr = feedBackPicIds.split(",");
+			model.setFeedbackPicArr(feedbackPicArr);
+			manager.submitFeedback(model);
+			message = new ResultMessage(ResultMessage.SUCCESS, "检查结果提交成功");
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.error(e.toString());
+			throw new Exception("系统错误,请联系管理员");
+//		message = new ResultMessage(ResultMessage.FAIL, "发布失败");
+		}
+		writeResultMessage(reponse.getWriter(), message);
+	}
+
+	/**
+	 * 
+	 * @Description: 定制化信息下载
+	 * @param @param model
+	 * @param @param request
+	 * @param @param response
+	 * @return void
+	 * @throws @author luoxq
+	 * @date 2019年3月8日 下午5:45:26
+	 */
+	@RequestMapping("exportNonStandDetail")
+	private void exportNonStandDetail(SwNonStandardModel model, HttpServletRequest request,
+			HttpServletResponse response) {
+
+		List<SwNonStandardModel> list = manager.queryNonStandDetail(model);
+		if (null == list || list.size() < 1) {
+			try {
+				ExcelUtil.downloadFileError(request, response, "没有定制化信息");
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			return;
+		}
+
+		Map<String, String> paramMap = new HashMap<String, String>();
+		String exportFileName = "定制化信息【" + model.getSaleNo() + "-" + model.getSaleRowNo() + "-" + model.getPartNo()
+				+ "】" + ExcelUtil.EXCEL_XLSX;
+		response.setContentType("application/vnd.ms-excel;charset=utf-8");
+		String downName = null;
+		try {
+			if (request.getHeader("user-agent").toLowerCase().contains("msie")
+					|| request.getHeader("user-agent").toLowerCase().contains("like gecko")) {
+				downName = URLEncoder.encode(exportFileName, "UTF-8");
+			} else {
+				downName = new String(exportFileName.getBytes("UTF-8"), "ISO_8859_1");
+			}
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+			log.error(e.toString());
+			ExcelUtil.exportException(e, request, response);
+			return;
+		}
+		response.setHeader("Content-disposition", "attachment; filename=" + downName);
+
+		NonStandExportUtil exportUtil = new NonStandExportUtil(fileManager);
+		try {
+			exportUtil.exportPkgProposalNormalCom(list, paramMap, response.getOutputStream());
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.error(e.toString());
+			return;
+		}
+
+	}
+
+	/**
+	 * 多条记录下载，进行打包
+	 * 
+	 * @param idArr
+	 * @param request
+	 * @param response
+	 * @author ZUOSL
+	 * @DATE 2019年1月8日 下午4:31:29
+	 */
+//	@SuppressWarnings("resource")
+	@RequestMapping("exportMultNonStandard")
+	private void exportMultProposalFile(HttpServletRequest request, HttpServletResponse response) {
+		String nonStandardStr = RequestUtil.getString(request, "nonStandardStr");
+		NonStandExportUtil exportUtil = new NonStandExportUtil(fileManager);
+
+		// 导出设置
+		String ymdhms = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+		String exportFileName = "定制化信息【" + ymdhms + "】.rar";
+		response.setContentType("application/vnd.ms-excel;charset=utf-8");
+		String downName = null;
+		try {
+			if (request.getHeader("user-agent").toLowerCase().contains("msie")
+					|| request.getHeader("user-agent").toLowerCase().contains("like gecko")) {
+				downName = URLEncoder.encode(exportFileName, "UTF-8");
+			} else {
+				downName = new String(exportFileName.getBytes("UTF-8"), "ISO_8859_1");
+			}
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+			log.error(e.toString());
+			ExcelUtil.exportException(e, request, response);
+			return;
+		}
+		response.setHeader("Content-disposition", "attachment; filename=" + downName);
+
+		byte[] buffer = new byte[4096];
+		ZipOutputStream out = null;
+		try {
+			out = new ZipOutputStream(response.getOutputStream());
+		} catch (IOException e) {
+			e.printStackTrace();
+			log.error("获取output异常：" + e.toString());
+			return;
+		}
+
+		Map<String, String> paramMap = new HashMap<String, String>();
+
+		String[] models = nonStandardStr.split(",");
+		// 遍历提案信息 生成提案书文件
+		for (String modelArr : models) {
+			String[] modelSrr = modelArr.split("-");
+			SwNonStandardModel model = new SwNonStandardModel();
+			model.setSaleNo(modelSrr[0]);
+			model.setSaleRowNo(modelSrr[1]);
+			model.setPartNo(modelSrr[2]);
+			List<SwNonStandardModel> list = manager.queryNonStandDetail(model);
+			if (list == null) {
+				continue;
+			}
+
+			// 文件打包
+			String tmpFileName = "定制化信息【" + model.getSaleNo() + "-" + model.getSaleRowNo() + "-" + model.getPartNo()
+					+ "】" + ExcelUtil.EXCEL_XLSX;
+			try {
+				ByteArrayOutputStream baos = new ByteArrayOutputStream();
+				exportUtil.exportPkgProposalNormalCom(list, paramMap, baos);
+
+				InputStream in = new ByteArrayInputStream(baos.toByteArray());
+				out.putNextEntry(new ZipEntry(tmpFileName));
+				int len = 0;
+				while ((len = in.read(buffer)) > 0) {
+					out.write(buffer, 0, len);
+				}
+				out.closeEntry();
+				in.close();
+				baos.close();
+			} catch (Exception e) {
+				e.printStackTrace();
+				log.error("打包文件导出异常：" + e.toString());
+				return;
+			}
+
+		}
+
+		try {
+			if (null != out) {
+				out.close();
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+			log.error("关闭out异常：" + e.toString());
+			return;
+		}
+
+	}
+
+	/**
+	 * 
+	 * @Description: 检查记录查看
+	 * @param @param request
+	 * @param @param reponse
+	 * @param @param model
+	 * @param @return
+	 * @param @throws Exception
+	 * @return PageJson
+	 * @throws @author luoxq
+	 * @date 2019年3月11日 上午12:44:51
+	 */
+	@RequestMapping("/selectDetail")
+	public @ResponseBody PageJson selectDetail(HttpServletRequest request, HttpServletResponse reponse,
+			@ModelAttribute("model") SwNonStandardModel model) throws Exception {
+		DefaultPage p = new DefaultPage(new RowBounds(getQueryFilter(request).getPage().getStartIndex(),
+				getQueryFilter(request).getPage().getPageSize()));
+		IUser user = ContextUtil.getCurrentUser();
+		model.setFactoryCode(user.getCurFactoryCode());
+
+		PageList<SwNonStandardModel> pageList = (PageList<SwNonStandardModel>) manager.selectDetail(model, p);
+		return new PageJson(pageList);
+	}
+
+	/**
+	 * 
+	 * @Description: 根据检查记录id获取实物图
+	 * @param @param model
+	 * @param @param request
+	 * @param @param reponse
+	 * @param @return
+	 * @param @throws Exception
+	 * @return List<SwNonStandardModel>
+	 * @throws @author luoxq
+	 * @date 2019年3月12日 上午1:21:21
+	 */
+	@RequestMapping("/getUploadPicIdByCheckId")
+	public @ResponseBody List<SwNonStandardModel> getUploadPicIdByCheckId(HttpServletRequest request,
+			HttpServletResponse reponse) throws Exception {
+		try {
+			String checkId = RequestUtil.getString(request, "checkId");
+			List<SwNonStandardModel> list = (List<SwNonStandardModel>) manager.getUploadPicIdByCheckId(checkId);
+			return list;
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.error(e.toString());
+			throw new Exception("系统错误,请联系管理员");
+		}
+
+	}
+	
+	
+	//删除指定文件夹下所有文件
+	//param path 文件夹完整绝对路径
+	   public static boolean delAllFile(String path) {
+	       boolean flag = false;
+	       File file = new File(path);
+	       if (!file.exists()) {
+	         return flag;
+	       }
+	       if (!file.isDirectory()) {
+	         return flag;
+	       }
+	       String[] tempList = file.list();
+	       File temp = null;
+	       for (int i = 0; i < tempList.length; i++) {
+	          if (path.endsWith(File.separator)) {
+	             temp = new File(path + tempList[i]);
+	          } else {
+	              temp = new File(path + File.separator + tempList[i]);
+	          }
+	          if (temp.isFile()) {
+	             temp.delete();
+	          }
+	          if (temp.isDirectory()) {
+	             delAllFile(path + "/" + tempList[i]);//先删除文件夹里面的文件
+	             flag = true;
+	          }
+	       }
+	       return flag;
+	     }	  
+
+}

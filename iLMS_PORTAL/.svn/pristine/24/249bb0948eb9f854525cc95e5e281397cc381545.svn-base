@@ -1,0 +1,47 @@
+.personal {
+    background: url(image/process%20management.png);
+    padding: 0;
+}
+
+.business-object {
+    background: url(image/process%20management.png);
+}
+
+.Form-Manager {
+    background: url(image/process%20management.png);
+}
+
+.auxiliary-flow {
+    background: url(image/process%20management.png);
+}
+
+.process-management {
+    background: url(image/process%20management.png);
+}
+/*顶端菜单的图标icon*/
+.work_pic {
+    background: url(image/nav-icon_03.png);
+    padding: 0;
+}
+
+.flow-pic {
+    background: url(image/nav-icon_07.png);
+}
+
+.admin-group{
+    background: url(image/nav-icon_05.png);
+}
+
+.Settings {
+    background: url(image/nav-icon_09.png);
+}
+
+.process-management {
+    background: url(image/process%20management.png);
+}
+
+/*左侧树状图标*/
+.dengjiico{
+	background: url(image/dengjiico.png);
+}
+

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.jit.model.JitRealKbBatchModel">
+		
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="queryJitRealKbBatchForPage" parameterType="com.hanthink.jit.model.JitRealKbBatchModel" resultType="com.hanthink.jit.model.JitRealKbBatchModel">
+		SELECT A.PLAN_CODE planCode,
+	           C.PLAN_CODE_DESC planCodeDesc,
+	           A.ORDER_ID orderId,
+	           TO_CHAR(A.REAL_KB_TIME, 'YYYY-MM-DD HH24:MI:SS') realKbTimeStr,
+	           A.REAL_KB_PRODUCT_SEQNO realKbProductSeqno,
+	           B.VIN vin,
+	           B.SORTID sortid,
+	           B.PASS_TIME passTime,
+	           D.CODE_VALUE_NAME stationCode
+	      FROM MM_JIT_REAL_KB_BATCH A
+	      INNER JOIN MM_PUB_PLAN_CODE C ON A.PLAN_CODE = C.PLAN_CODE
+	      INNER JOIN MM_JIT_VEH_QUEUE B ON A.PLAN_CODE = B.PLAN_CODE AND B.ORDER_NO = A.ORDER_ID
+	      LEFT JOIN MM_PUB_DATA_DICT D ON C.STATION_CODE = D.CODE_VALUE AND D.CODE_TYPE = 'MON_KB_STATION' AND D.FACTORY_CODE = C.FACTORY_CODE
+	     WHERE 1 = 1
+		 <if test="null != planCode and '' != planCode">
+		 	AND A.PLAN_CODE = #{planCode}
+		 </if>
+		  <if test="null != vin and '' != vin">
+		   AND  B.VIN LIKE '%' || #{vin}
+		  </if> 
+		  <if test="realKbTimeStrStart != null and realKbTimeStrStart != ''">
+		  <![CDATA[ AND A.REAL_KB_TIME >= TO_DATE(#{realKbTimeStrStart},'yyyy-MM-dd hh24:mi:ss') ]]>
+		  </if>
+	      <if test="realKbTimeStrEnd != null and realKbTimeStrEnd != ''">
+	      <![CDATA[ AND A.REAL_KB_TIME <= TO_DATE(#{realKbTimeStrEnd},'yyyy-MM-dd hh24:mi:ss') ]]>
+	      </if>
+		   ORDER BY B.PASS_TIME ASC
+	</select>
+	
+</mapper>

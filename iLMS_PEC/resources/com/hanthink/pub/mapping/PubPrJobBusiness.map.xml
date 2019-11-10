@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.pub.model.PubPrJobBusinessModel">
+
+	<insert id="create" parameterType="com.hanthink.pub.model.PubPrJobBusinessModel">
+	   INSERT INTO MM_PR_JOB_BUSINESS
+				  (ID,
+				   BUSINESS,
+				   JOB_NAME,
+				   DESCRIPTION,
+				   PRINT_INTERVAL,
+				   ACTIVE,
+				   CREATION_TIME,
+				   CREATION_USER,
+				   FACTORY_CODE
+				   )
+				VALUES
+				  (SEQ_MM_PR_JOB_BUSINESS.NEXTVAL,
+				   #{business,jdbcType=VARCHAR},
+				   #{jobName,jdbcType=VARCHAR},
+				   #{description,jdbcType=VARCHAR},
+				   #{printInterval,jdbcType=NUMERIC},
+				   #{active,jdbcType=VARCHAR},
+				   sysdate,
+				   #{creationUser,jdbcType=VARCHAR},
+				   #{factoryCode,jdbcType=VARCHAR}
+				   )
+	 </insert>
+
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="queryPubPrJobBusinessForPage" parameterType="com.hanthink.pub.model.PubPrJobBusinessModel" resultType="com.hanthink.pub.model.PubPrJobBusinessModel">
+	            SELECT T.BUSINESS       business,
+			           D.JOB_NAME       jobName,
+			           T.PRINT_INTERVAL printInterval,
+			           T.ACTIVE         active,
+			           T.DESCRIPTION    description,
+			           A.CODE_VALUE_NAME  codeValueName,
+			           T.ID             id
+			      FROM MM_PR_JOB_BUSINESS T
+			 LEFT JOIN MM_PR_JOB D
+			        ON T.JOB_NAME = D.JOB_NAME
+			       AND T.FACTORY_CODE = D.FACTORY_CODE
+			 LEFT JOIN MM_PUB_DATA_DICT A
+			        ON A.CODE_TYPE = 'PUB_TRUE_FALSE'
+			       AND A.CODE_VALUE = T.ACTIVE
+			       AND A.FACTORY_CODE = T.FACTORY_CODE
+			     WHERE 1=1 
+				<if test="business!=null and business!='' ">
+				AND	T.BUSINESS LIKE CONCAT(#{business}, '%')
+				</if>
+				<if test="jobName!=null and jobName!='' ">
+				AND	D.JOB_NAME LIKE CONCAT(#{jobName}, '%')
+				</if>
+				AND T.FACTORY_CODE = #{factoryCode}
+			ORDER BY T.BUSINESS
+	</select>
+	
+	<!-- 修改方法 -->
+	<update id="update" parameterType="com.hanthink.pub.model.PubPrJobBusinessModel">
+	    UPDATE MM_PR_JOB_BUSINESS
+		   SET BUSINESS =  #{business,jdbcType=VARCHAR},
+		       JOB_NAME =  #{jobName,jdbcType=VARCHAR},
+		       DESCRIPTION = #{description,jdbcType=VARCHAR},
+		       PRINT_INTERVAL =  #{printInterval,jdbcType=NUMERIC},
+		       ACTIVE =  #{active,jdbcType=VARCHAR},
+		       LAST_MODIFIED_USER =  #{lastModifiedUser,jdbcType=VARCHAR},
+		       LAST_MODIFIED_TIME =  sysdate,
+		       LAST_MODIFIED_IP =  #{lastModifiedIp,jdbcType=VARCHAR}
+		       FACTORY_CODE = #{factoryCode}
+		 WHERE ID = #{id}
+	</update>
+	
+	<!-- 删除方法 -->
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM MM_PR_JOB_BUSINESS 
+		WHERE 1=1
+		AND ID=#{id}
+	</delete>
+	
+	<!-- 单条/批量数据删除 -->
+	<delete id="deleteByIds" parameterType="java.lang.String">
+		DELETE FROM MM_PR_JOB_BUSINESS
+		WHERE ID IN
+		<foreach item="aryIds" collection="array" open="(" separator="," close=")">
+			#{aryIds,jdbcType=VARCHAR}
+		</foreach>
+	</delete>
+	
+</mapper>

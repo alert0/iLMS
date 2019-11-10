@@ -1,0 +1,2116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.sw.model.SwDemandForecastModel">
+
+	<!-- 分页查询数据 -->
+     <select id="queryJisoDemandPage" parameterType="com.hanthink.sw.model.SwDemandForecastModel" resultType="com.hanthink.sw.model.SwDemandForecastModel">
+				SELECT A.ID				   id,
+					   A.VERSION           version,
+		               pd.code_value_name  PHASE,
+		               A.FACTORY_CODE      factoryCode,
+		               A.UNLOAD_PORT       unloadPort,
+		               A.SUPPLIER_NO       supplierNo,
+		               SUP.SUPPLIER_NAME   supplierName,
+		               part.SUP_FACTORY       supFactory,
+		               A.MODEL_CODE        modelCode,
+		               MP.CODE_VALUE_NAME  logisticsMode,
+		               A.PART_NO           partNo,
+		               part.PART_SHORT_NO  partShortNo,
+		               part.PART_NAME_CN   partNameCn,
+		               PDD.CODE_VALUE_NAME feedbackStatus,
+		               MDD.CODE_VALUE_NAME releaseStatus,
+		               A.FEEDBACK_REMARK   feedbackRemark,
+		               A.FORE_TYPE         foreType,
+		               A.PUBLISH_MONTH     publishMonth,
+       				   A.OBJ_MONTH		   objMonth,
+		               B.monthOne          monthOne,
+		               B.monthTwo          monthTwo,
+		               B.monthThree        monthThree
+		          FROM (select DFW.FACTORY_CODE,
+		                       DFW.PART_NO,
+		                       DFW.SUPPLIER_NO,
+		                       PSW.SUP_FACTORY,
+		                       DFW.PHASE,
+		                       DFW.VERSION VERSION,
+		                       max(DFW.FEEDBACK_STATUS) FEEDBACK_STATUS,
+		                       max(DFW.RELEASE_STATUS) RELEASE_STATUS,
+		                       FORE_TYPE,
+		                       max(DFW.ID) ID,
+		                       max(DFW.FEEDBACK_REMARK) FEEDBACK_REMARK,
+		                       max(DFW.PUBLISH_MONTH) 	PUBLISH_MONTH,
+               				   max(DFW.OBJ_MONTH)  		OBJ_MONTH,
+		                       max(DFW.UNLOAD_PORT) 	UNLOAD_PORT,
+		                       max(DFW.MODEL_CODE) 		MODEL_CODE,
+		                       max(DFW.LOGISTICS_MODE) 	LOGISTICS_MODE,
+		                       min(DFW.CREATION_USER) 	CREATION_USER,
+		                       min(DFW.CREATION_TIME) 	CREATION_TIME,
+		                       min(DFW.DOWNLOAD_STATUS) DOWNLOAD_STATUS,
+		                       max(DFW.DOWNLOAD_TIME) 	DOWNLOAD_TIME,
+		                       NVL(DFW.P_SUPPLIER,'#')		    P_SUPPLIER
+		                  from MM_SW_DEMAND_FORECAST DFW
+		                  LEFT JOIN MM_PUB_SUPPLIER PSW
+		                    ON DFW.SUPPLIER_NO = PSW.SUPPLIER_NO
+		                 group by DFW.FACTORY_CODE,
+		                          DFW.PART_NO,
+		                          DFW.SUPPLIER_NO,
+		                          PSW.SUP_FACTORY,
+		                          DFW.PHASE,
+		                          DFW.VERSION,
+		                          DFW.FORE_TYPE,
+		                          NVL(DFW.P_SUPPLIER,'#')) A
+		          LEFT JOIN (select FACTORY_CODE,
+		                           PART_NO,
+		                           SUPPLIER_NO,
+		                           VERSION,
+		                           SUM(DECODE(YEAR_MONTH,
+		                                      to_char(add_months(to_date(substr(VERSION,
+		                                                                        0,
+		                                                                        6),
+		                                                                 'yyyymm'),
+		                                                         1),
+		                                              'yyyymm'),
+		                                      MONTH_TTL,
+		                                      '')) monthOne,
+		                           SUM(DECODE(YEAR_MONTH,
+		                                      to_char(add_months(to_date(substr(VERSION,
+		                                                                        0,
+		                                                                        6),
+		                                                                 'yyyymm'),
+		                                                         2),
+		                                              'yyyymm'),
+		                                      MONTH_TTL,
+		                                      '')) monthTwo,
+		                           SUM(DECODE(YEAR_MONTH,
+		                                      to_char(add_months(to_date(substr(VERSION,
+		                                                                        0,
+		                                                                        6),
+		                                                                 'yyyymm'),
+		                                                         3),
+		                                              'yyyymm'),
+		                                      MONTH_TTL,
+		                                      '')) monthThree,
+		                           SUP_FACTORY,
+		                           PHASE
+		                      from (select DFW.FACTORY_CODE,
+		                                   DFW.PART_NO,
+		                                   DFW.SUPPLIER_NO,
+		                                   PSW.SUP_FACTORY,
+		                                   DFW.PHASE,
+		                                   DFW.VERSION,
+		                                   TO_CHAR(DFW.PLAN_DELIVERY, 'YYYYMM') YEAR_MONTH,
+		                                   sum(ORDER_QTY) MONTH_TTL,
+		                                   NVL(DFW.P_SUPPLIER,'#') P_SUPPLIER
+		                              from MM_SW_DEMAND_FORECAST DFW
+		                              LEFT JOIN MM_PUB_SUPPLIER PSW
+		                                ON DFW.SUPPLIER_NO = PSW.SUPPLIER_NO
+		                             where FORE_TYPE = '1'
+		                             group by DFW.FACTORY_CODE,
+		                                      DFW.PART_NO,
+		                                      DFW.SUPPLIER_NO,
+		                                      PSW.SUP_FACTORY,
+		                                      DFW.PHASE,
+		                                      DFW.VERSION,
+		                                      TO_CHAR(DFW.PLAN_DELIVERY, 'YYYYMM'),
+		                                      NVL(DFW.P_SUPPLIER,'#'))
+		                     group by FACTORY_CODE,
+		                              PART_NO,
+		                              SUPPLIER_NO,
+		                              SUP_FACTORY,
+		                              PHASE,
+		                              VERSION,
+		                              P_SUPPLIER) B
+		            ON B.FACTORY_CODE = A.FACTORY_CODE
+		           AND B.PART_NO = A.PART_NO
+		           AND B.SUPPLIER_NO = A.SUPPLIER_NO
+		           AND NVL(B.SUP_FACTORY, '#') = NVL(A.SUP_FACTORY, '#')
+		           AND B.PHASE = A.PHASE
+		           AND B.VERSION = A.VERSION
+		          left join mm_pub_part_uda part
+		            on part.part_no = A.part_no
+		          left join mm_pub_supplier sup
+		            on sup.supplier_no = a.supplier_no
+		          left join mm_pub_data_dict pd
+		            on A.PHASE = pd.code_value
+		           and pd.code_type = 'SW_PHASE'
+		          left join mm_pub_data_dict dd
+		            on A.DOWNLOAD_STATUS = dd.code_value
+		           and dd.code_type = 'PUP_DOWNLOAD_STATUS'
+		          LEFT JOIN MM_PUB_DATA_DICT MP
+		            ON A.LOGISTICS_MODE = MP.CODE_VALUE
+		           AND MP.CODE_TYPE = 'PUB_MM_MODEL'
+		          LEFT JOIN MM_PUB_DATA_DICT PDD
+		             ON A.FEEDBACK_STATUS = PDD.CODE_VALUE
+		             AND PDD.CODE_TYPE = 'SW_FEEDBACK_STATUS'
+		          LEFT JOIN MM_PUB_DATA_DICT MDD
+		             ON A.RELEASE_STATUS = MDD.CODE_VALUE
+		             AND MDD.CODE_TYPE = 'SW_RELEASE_STATUS'
+         
+					WHERE 1=1 
+					
+				  <!-- 数据权限 -->
+			      <if test="null != userType and '4'.toString() == userType">
+				      <if test="null != userId and ''!= userId">
+				      	
+				      	AND part.SUP_FACTORY IN (SELECT V.VALUE_CODE FROM VIEW_SYS_USER_DATA_PERM V 
+				      		WHERE V.USER_ID = #{userId} AND V.TYPE_CODE = 'SW_SUP_FACTORY')
+				      </if>
+			      </if>
+                  <if test="arriveStarTime !=null and arriveStarTime!='' ">
+				  <![CDATA[ AND A.PLAN_DELIVERY>= TO_DATE(#{arriveStarTime},'yyyy-MM-dd') ]]>
+				  </if>
+				  <if test="arriveEndTime !=null and arriveEndTime!='' ">
+				  <![CDATA[ AND A.PLAN_DELIVERY <= TO_DATE(#{arriveEndTime},'yyyy-MM-dd') ]]>
+				  </if>
+				  <if test="partNo !=null and partNo !='' ">
+				  AND A.PART_NO like CONCAT(#{partNo}, '%')
+				  </if>
+				  <if test="partShortNo !=null and partShortNo !='' ">
+				  AND PART.PART_SHORT_NO like CONCAT(#{partShortNo}, '%')
+				  </if>
+				  <if test="foreType !=null and foreType!='' ">
+				  AND A.FORE_TYPE =#{foreType}
+				  </if>
+				  <if test="supplierNo !=null and supplierNo!='' ">
+				  AND (A.SUPPLIER_NO = #{supplierNo} 
+	  				  <if test="null != userType and '2'.toString() == userType">
+					  OR A.P_SUPPLIER = #{supplierNo}
+					  </if>)
+				  </if>
+
+				  <if test="supFactory != null and '' != supFactory">
+					AND A.SUP_FACTORY = #{supFactory}
+				  </if>
+				  <if test="releaseStatus !=null and releaseStatus!='' ">
+				  AND A.RELEASE_STATUS = #{releaseStatus}
+				  </if>
+				  <if test="feedbackStatus !=null and feedbackStatus!='' ">
+				  AND A.FEEDBACK_STATUS =#{feedbackStatus}
+				  </if>
+				  <if test="downloadStatus !=null and downloadStatus!='' ">
+				  AND A.DOWNLOAD_STATUS =#{downloadStatus}
+				  </if>
+				  
+				  <if test="version !=null and version !='' ">
+				  AND A.VERSION  = #{version}
+				  </if>
+				  
+				  <if test="logisticsMode !=null and logisticsMode !='' ">
+				  AND A.LOGISTICS_MODE  = #{logisticsMode}
+				  </if>
+				  
+				  <if test="publishMonth !=null and publishMonth !='' ">
+				  AND A.PUBLISH_MONTH  = #{publishMonth}
+				  </if>
+				  <if test="objMonth !=null and objMonth !='' ">
+				  AND A.OBJ_MONTH  = #{objMonth}
+				  </if>
+				  <if test="phase !=null and phase !='' ">
+				  AND A.PHASE  = #{phase}
+				  </if>
+				  <if test="null != pSupplier and '' != pSupplier and '1'.toString() == pSupplier" >
+				  AND A.P_SUPPLIER != '#'
+				  </if> 
+				  <if test="null != pSupplier and '' != pSupplier and '0'.toString() == pSupplier" >
+					  AND A.P_SUPPLIER = '#'
+				  </if> 
+
+				  ORDER BY A.VERSION DESC,A.SUPPLIER_NO ASC ,A.PART_NO
+    </select> 
+    
+    
+    <!-- 预测数据界面，发布功能 -->
+    <update id="publishDemandForecast" parameterType="com.hanthink.sw.model.SwDemandForecastModel">
+    		UPDATE MM_SW_DEMAND_FORECAST T SET T.RELEASE_STATUS = #{releaseStatus,jdbcType=VARCHAR} 
+    		WHERE T.VERSION = #{version,jdbcType=VARCHAR} 
+    			 AND T.FORE_TYPE = #{foreType,jdbcType=VARCHAR}
+    </update>
+    
+    <!-- 预测数据界面，反馈功能 -->
+    <update id="feedbackDemandForecast" parameterType="com.hanthink.sw.model.SwDemandForecastModel">
+            UPDATE MM_SW_DEMAND_FORECAST T SET 
+            T.FEEDBACK_STATUS = #{model.feedbackStatus,jdbcType=VARCHAR},
+            T.FEEDBACK_REMARK = #{model.feedbackRemark,jdbcType=VARCHAR},
+            T.LAST_MODIFIED_TIME = SYSDATE
+            WHERE 
+			 (T.PART_NO ,
+			 T.SUPPLIER_NO, 
+			 T.VERSION, 
+			 T.PHASE,
+			 NVL(T.UNLOAD_PORT,'#')) IN 
+			       (SELECT  A.PART_NO, A.SUPPLIER_NO, A.VERSION, A.PHASE, NVL(A.UNLOAD_PORT,'#')
+			          FROM MM_SW_DEMAND_FORECAST A
+			         WHERE A.ID IN
+			 <foreach collection="ids" item="id" index="index" open="(" separator="," close=")">
+			     #{id}
+			 </foreach>)
+		    AND T.FORE_TYPE = #{model.foreType,jdbcType=VARCHAR}
+    </update>
+    
+
+    
+    
+    <!-- 查询登录用户类型 -->
+    <select id="getUserType" parameterType="com.hanthink.sw.model.SwDemandForecastModel" resultType="com.hanthink.sw.model.SwDemandForecastModel">
+	    SELECT A.USER_TYPE userType, A.SUPPLIER_NO supplierNo
+		  FROM SYS_USER A
+		 WHERE A.ACCOUNT_ = #{account} 
+    </select>
+    
+    	<!-- 查询导出数据（作者：时来） -->
+    	<select id="queryDemandForecastExportData" parameterType="java.util.Map" resultType="java.util.Map">
+		SELECT 
+		  A.VERSION,
+		  pd.code_value_name PHASE, 
+		 <!--  A.PHASE,  -->
+		  '' COMPANY, 
+		  A.FACTORY_CODE,
+		  A.UNLOAD_PORT,
+		  A.SUPPLIER_NO,
+		  SUP.SUPPLIER_NAME,
+		  part.SUP_FACTORY, 
+		  A.MODEL_CODE,
+		  MP.CODE_VALUE_NAME LOGISTICS_MODE,
+		  <!-- A.LOGISTICS_MODE, -->
+		  A.PART_NO,
+		  part.PART_SHORT_NO, 
+		  part.PART_NAME_CN,
+		  A.PUBLISH_MONTH,
+          A.OBJ_MONTH,
+       	  D.monthOne	MONTH_ONE,
+		  D.monthTwo	MONTH_TWO,
+		  D.monthThree	MONTH_THREE,
+		  ${monthSql} 
+		  
+		  ${daySql} 
+		  
+		  A.CREATION_USER,
+		  
+		  to_char(A.CREATION_TIME,'yyyy-mm-dd') CREATION_TIME,
+		  A.FEEDBACK_REMARK,
+	      PDD.CODE_VALUE_NAME FEEDBACK_STATUS,
+	      MDD.CODE_VALUE_NAME RELEASE_STATUS 
+		  
+		FROM (
+		  select
+		   DFW.FACTORY_CODE,
+		   DFW.PART_NO,
+		   DFW.SUPPLIER_NO,
+		   PSW.SUP_FACTORY,
+		   DFW.PHASE,
+		   DFW.VERSION VERSION,
+           max(DFW.PUBLISH_MONTH) PUBLISH_MONTH,
+           max(DFW.OBJ_MONTH)  OBJ_MONTH,
+		   max(DFW.UNLOAD_PORT) UNLOAD_PORT,
+		   max(DFW.MODEL_CODE) MODEL_CODE,
+		   max(DFW.LOGISTICS_MODE) LOGISTICS_MODE,
+		   min(DFW.CREATION_USER) CREATION_USER,
+		   min(DFW.CREATION_TIME) CREATION_TIME,
+		   min(DFW.DOWNLOAD_STATUS) DOWNLOAD_STATUS,
+		   max(DFW.DOWNLOAD_TIME) DOWNLOAD_TIME,
+		    
+		   MAX(DFW.FEEDBACK_STATUS) FEEDBACK_STATUS,
+	       MAX(DFW.FEEDBACK_REMARK) FEEDBACK_REMARK,
+	       MAX(DFW.RELEASE_STATUS)  RELEASE_STATUS,
+	       NVL(DFW.P_SUPPLIER,'#')		P_SUPPLIER
+		  from MM_SW_DEMAND_FORECAST DFW
+		  LEFT JOIN MM_PUB_SUPPLIER PSW
+		  	ON DFW.SUPPLIER_NO = PSW.SUPPLIER_NO
+		  left join mm_pub_part_uda  part
+             on DFW.PART_NO = part.PART_NO
+		  where DFW.PLAN_DELIVERY between to_date(#{startDateStr},'yyyy-mm-dd') and to_date(#{endDateStr},'yyyy-mm-dd') <!--界面输入的起始月份，三个月区间内-->
+		  	
+		  			  <!-- 数据权限 -->
+	      <if test="null != model.userType and '4'.toString() == model.userType">
+		      <if test="null != model.userId and ''!= model.userId">
+		      	AND part.SUP_FACTORY IN (SELECT V.VALUE_CODE FROM VIEW_SYS_USER_DATA_PERM V 
+		      		WHERE V.USER_ID = #{model.userId} AND V.TYPE_CODE = 'SW_SUP_FACTORY')
+		      </if>
+	      </if>
+		  	
+		  	<if test="model.supplierNo !=null and model.supplierNo!='' ">
+				  AND (DFW.SUPPLIER_NO = #{model.supplierNo}
+				  	<if test="null != model.userType and '2'.toString() == model.userType">
+					  OR DFW.P_SUPPLIER = #{model.supplierNo}
+				   	</if> )
+			</if>
+
+			<if test="model.releaseStatus !=null and model.releaseStatus !='' ">
+				  AND DFW.RELEASE_STATUS = #{model.releaseStatus}
+			 </if>
+			 <if test="model.partNo !=null and model.partNo !='' ">
+				  AND DFW.PART_NO like CONCAT(#{model.partNo}, '%')
+			 </if>
+			 <if test="model.logisticsMode !=null and model.logisticsMode !='' ">
+				  AND DFW.LOGISTICS_MODE  = #{model.logisticsMode}
+			 </if>
+			 <if test="model.version !=null and model.version !='' ">
+				  AND DFW.VERSION = #{model.version}
+			  </if>
+			  <if test="model.supFactory != null and '' != model.supFactory">
+					AND PSW.SUP_FACTORY = #{model.supFactory}
+			  </if>
+			  <if test="publishMonth !=null and publishMonth !='' ">
+			  AND DFW.PUBLISH_MONTH  = #{publishMonth}
+			  </if>
+			  <if test="objMonth !=null and objMonth !='' ">
+			  AND DFW.OBJ_MONTH  = #{objMonth}
+			  </if>
+
+		      <if test="model.arriveStarTime !=null and model.arriveStarTime!='' ">
+			  <![CDATA[ AND DFW.PLAN_DELIVERY>= TO_DATE(#{model.arriveStarTime},'yyyy-MM-dd') ]]>
+			  </if>
+			  <if test="model.arriveEndTime !=null and model.arriveEndTime!='' ">
+			  <![CDATA[ AND DFW.PLAN_DELIVERY <= TO_DATE(#{model.arriveEndTime},'yyyy-MM-dd') ]]>
+			  </if>
+			  
+			  <if test="null != model.pSupplier and '' != model.pSupplier and '1'.toString() == model.pSupplier" >
+				  AND DFW.P_SUPPLIER != '#'
+			  </if> 
+			  <if test="null != model.pSupplier and '' != model.pSupplier and '0'.toString() == model.pSupplier" >
+				  AND DFW.P_SUPPLIER IS NULL
+			  </if> 
+
+		  group by DFW.FACTORY_CODE, DFW.PART_NO, DFW.SUPPLIER_NO, PSW.SUP_FACTORY, DFW.PHASE,DFW.VERSION,DFW.P_SUPPLIER
+		) A
+		LEFT JOIN (
+		  select 
+		   FACTORY_CODE,
+		   PART_NO,
+		   SUPPLIER_NO,
+		   
+		   ${monthSqlB}
+		   
+		   SUP_FACTORY,
+		   PHASE
+		  from(
+		    select 
+		     DFW.FACTORY_CODE,
+		     DFW.PART_NO,
+		     DFW.SUPPLIER_NO,
+		     PSW.SUP_FACTORY,
+		     DFW.PHASE,
+		     TO_CHAR(DFW.PLAN_DELIVERY,'YYYY-MM') YEAR_MONTH,
+		     sum(ORDER_QTY) MONTH_TTL,
+		     NVL(DFW.P_SUPPLIER,'#') 		P_SUPPLIER
+		    from MM_SW_DEMAND_FORECAST DFW
+             LEFT JOIN MM_PUB_SUPPLIER  PSW
+             ON DFW.SUPPLIER_NO = PSW.SUPPLIER_NO
+            left join mm_pub_part_uda  part
+             on DFW.PART_NO = part.PART_NO
+		    where DFW.PLAN_DELIVERY between to_date(#{startDateStr},'yyyy-mm-dd') and to_date(#{endDateStr},'yyyy-mm-dd') <!--界面输入的起始月份，三个月区间内 -->
+		      and FORE_TYPE = '1' <!--月总量 -->
+		      
+		     		  <!-- 数据权限 -->
+	      <if test="null != model.userType and '4'.toString() == model.userType">
+		      <if test="null != model.userId and ''!= model.userId">
+		      	AND part.SUP_FACTORY IN (SELECT V.VALUE_CODE FROM VIEW_SYS_USER_DATA_PERM V 
+		      		WHERE V.USER_ID = #{model.userId} AND V.TYPE_CODE = 'SW_SUP_FACTORY')
+		      </if>
+	      </if>
+		     
+		      <if test="model.supplierNo !=null and model.supplierNo!='' ">
+				  AND (DFW.SUPPLIER_NO = #{model.supplierNo}
+				  <if test="null != model.userType and '2'.toString() == model.userType">
+					  OR DFW.P_SUPPLIER = #{model.supplierNo}
+				  </if>)
+			  </if>
+
+			  <if test="model.releaseStatus !=null and model.releaseStatus != '' ">
+				  AND DFW.RELEASE_STATUS = #{model.releaseStatus}
+			  </if>
+			  <if test="model.partNo !=null and model.partNo !='' ">
+				  AND DFW.PART_NO like CONCAT(#{model.partNo}, '%')
+			  </if>
+			  <if test="model.logisticsMode !=null and model.logisticsMode !='' ">
+				  AND DFW.LOGISTICS_MODE  = #{model.logisticsMode}
+			  </if>
+			  <if test="model.version !=null and model.version !='' ">
+				  AND DFW.VERSION  = #{model.version}
+			  </if>
+			  <if test="model.supFactory != null and '' != model.supFactory">
+					AND PSW.SUP_FACTORY = #{model.supFactory}
+			  </if>
+			  <if test="model.publishMonth !=null and model.publishMonth !='' ">
+			  		AND DFW.PUBLISH_MONTH  = #{model.publishMonth}
+			  </if>
+			  <if test="model.objMonth !=null and model.objMonth !='' ">
+			  		AND DFW.OBJ_MONTH  = #{model.objMonth}
+			  </if>
+			  <if test="null != model.pSupplier and '' != model.pSupplier and '1'.toString() == model.pSupplier" >
+				  AND DFW.P_SUPPLIER != '#'
+			  </if> 
+			  <if test="null != model.pSupplier and '' != model.pSupplier and '0'.toString() == model.pSupplier" >
+				  AND DFW.P_SUPPLIER = '#'
+			  </if> 
+
+			  <if test="model.arriveStarTime !=null and model.arriveStarTime!='' ">
+			  <![CDATA[ AND DFW.PLAN_DELIVERY>= TO_DATE(#{model.arriveStarTime},'yyyy-MM-dd') ]]>
+			  </if>
+			  <if test="model.arriveEndTime !=null and model.arriveEndTime!='' ">
+			  <![CDATA[ AND DFW.PLAN_DELIVERY <= TO_DATE(#{model.arriveEndTime},'yyyy-MM-dd') ]]>
+			  </if>
+		    group by DFW.FACTORY_CODE, DFW.PART_NO, DFW.SUPPLIER_NO, PSW.SUP_FACTORY, DFW.PHASE, TO_CHAR(DFW.PLAN_DELIVERY,'YYYY-MM'),DFW.P_SUPPLIER
+		  )
+		  group by FACTORY_CODE, PART_NO, SUPPLIER_NO, SUP_FACTORY, PHASE,P_SUPPLIER
+		) B ON B.FACTORY_CODE = A.FACTORY_CODE 
+		        AND B.PART_NO = A.PART_NO
+		        AND B.SUPPLIER_NO = A.SUPPLIER_NO
+		        AND B.SUP_FACTORY = A.SUP_FACTORY
+		        AND B.PHASE = A.PHASE
+		LEFT JOIN (
+		  select 
+		   FACTORY_CODE,
+		   PART_NO,
+		   SUPPLIER_NO,
+		   
+		   ${daySqlC}
+		   
+		   SUP_FACTORY,
+		   PHASE
+		  from(
+		    select 
+		     SDF.FACTORY_CODE,
+		     SDF.PART_NO,
+		     SDF.SUPPLIER_NO,
+		     PS.SUP_FACTORY,
+		     SDF.PHASE,
+		     TO_CHAR(SDF.PLAN_DELIVERY,'YYYY-MM-DD') YEAR_MONTH_DAY,
+		     sum(SDF.ORDER_QTY) MONTH_TTL,
+		     NVL(SDF.P_SUPPLIER,'#') P_SUPPLIER
+		    from MM_SW_DEMAND_FORECAST SDF
+		     LEFT JOIN MM_PUB_SUPPLIER PS
+             ON SDF.SUPPLIER_NO = PS.SUPPLIER_NO
+           left join mm_pub_part_uda  part
+             on SDF.PART_NO = part.PART_NO
+		    where SDF.PLAN_DELIVERY between to_date(#{startDateStr},'yyyy-mm-dd') and to_date(#{endDateStr},'yyyy-mm-dd') <!--界面输入的起始月份，三个月区间内 -->
+		      and SDF.FORE_TYPE = '1' <!--月预测下日明细 -->
+		      
+		  <!-- 数据权限 -->
+	      <if test="null != model.userType and '4'.toString() == model.userType">
+		      <if test="null != model.userId and ''!= model.userId">
+		      	AND part.SUP_FACTORY IN (SELECT V.VALUE_CODE FROM VIEW_SYS_USER_DATA_PERM V 
+		      		WHERE V.USER_ID = #{model.userId} AND V.TYPE_CODE = 'SW_SUP_FACTORY')
+		      </if>
+	      </if>
+		      
+		      <if test="model.supplierNo !=null and model.supplierNo!='' ">
+				  AND (SDF.SUPPLIER_NO = #{model.supplierNo}
+				  <if test="null != model.userType and '2'.toString() == model.userType">
+					  OR SDF.P_SUPPLIER = #{model.supplierNo}
+				  </if>)
+			  </if>
+
+			  <if test="model.releaseStatus !=null and model.releaseStatus != '' ">
+				  AND SDF.RELEASE_STATUS = #{model.releaseStatus}
+			  </if>
+			  <if test="model.partNo !=null and model.partNo !='' ">
+				  AND SDF.PART_NO like CONCAT(#{model.partNo}, '%')
+			  </if>
+			  <if test="model.logisticsMode !=null and model.logisticsMode !='' ">
+				  AND SDF.LOGISTICS_MODE  = #{model.logisticsMode}
+			  </if>
+			  <if test="model.version !=null and model.version !='' ">
+				  AND SDF.VERSION  = #{model.version}
+			  </if>
+			  <if test="model.supFactory != null and '' != model.supFactory">
+					AND PS.SUP_FACTORY = #{model.supFactory}
+			  </if>
+			  <if test="model.publishMonth !=null and model.publishMonth !='' ">
+			  		AND SDF.PUBLISH_MONTH  = #{model.publishMonth}
+			  </if>
+			  <if test="model.objMonth !=null and model.objMonth !='' ">
+			  		AND SDF.OBJ_MONTH  = #{model.objMonth}
+			  </if>
+			   <if test="null != model.pSupplier and '' != model.pSupplier and '1'.toString() == model.pSupplier" >
+				  AND SDF.P_SUPPLIER != '#'
+			  </if> 
+			  <if test="null != model.pSupplier and '' != model.pSupplier and '0'.toString() == model.pSupplier" >
+				  AND SDF.P_SUPPLIER = '#'
+			  </if> 
+
+			  <if test="model.arriveStarTime !=null and model.arriveStarTime!='' ">
+			  <![CDATA[ AND SDF.PLAN_DELIVERY>= TO_DATE(#{model.arriveStarTime},'yyyy-MM-dd') ]]>
+			  </if>
+			  <if test="model.arriveEndTime !=null and model.arriveEndTime!='' ">
+			  <![CDATA[ AND SDF.PLAN_DELIVERY <= TO_DATE(#{model.arriveEndTime},'yyyy-MM-dd') ]]>
+			  </if>
+		    group by SDF.FACTORY_CODE, SDF.PART_NO, SDF.SUPPLIER_NO, PS.SUP_FACTORY, SDF.PHASE, TO_CHAR(SDF.PLAN_DELIVERY,'YYYY-MM-DD'),NVL(SDF.P_SUPPLIER,'#')
+		  )
+		  group by FACTORY_CODE, PART_NO, SUPPLIER_NO, SUP_FACTORY, PHASE,P_SUPPLIER
+		) C ON C.FACTORY_CODE = A.FACTORY_CODE 
+		        AND C.PART_NO = A.PART_NO
+		        AND C.SUPPLIER_NO = A.SUPPLIER_NO
+		        AND C.SUP_FACTORY = A.SUP_FACTORY
+		        AND C.PHASE = A.PHASE
+		        
+		 LEFT JOIN (select FACTORY_CODE,
+		                           PART_NO,
+		                           SUPPLIER_NO,
+		                           VERSION,
+		                           SUM(DECODE(YEAR_MONTH,
+		                                      to_char(add_months(to_date(substr(VERSION,
+		                                                                        0,
+		                                                                        6),
+		                                                                 'yyyymm'),
+		                                                         1),
+		                                              'yyyymm'),
+		                                      MONTH_TTL,
+		                                      '')) monthOne,
+		                           SUM(DECODE(YEAR_MONTH,
+		                                      to_char(add_months(to_date(substr(VERSION,
+		                                                                        0,
+		                                                                        6),
+		                                                                 'yyyymm'),
+		                                                         2),
+		                                              'yyyymm'),
+		                                      MONTH_TTL,
+		                                      '')) monthTwo,
+		                           SUM(DECODE(YEAR_MONTH,
+		                                      to_char(add_months(to_date(substr(VERSION,
+		                                                                        0,
+		                                                                        6),
+		                                                                 'yyyymm'),
+		                                                         3),
+		                                              'yyyymm'),
+		                                      MONTH_TTL,
+		                                      '')) monthThree,
+		                           SUP_FACTORY,
+		                           PHASE
+		                      from (select DFW.FACTORY_CODE,
+		                                   DFW.PART_NO,
+		                                   DFW.SUPPLIER_NO,
+		                                   PSW.SUP_FACTORY,
+		                                   DFW.PHASE,
+		                                   DFW.VERSION,
+		                                   TO_CHAR(DFW.PLAN_DELIVERY, 'YYYYMM') YEAR_MONTH,
+		                                   sum(ORDER_QTY) MONTH_TTL,
+		                                   NVL(DFW.P_SUPPLIER,'#') P_SUPPLIER
+		                              from MM_SW_DEMAND_FORECAST DFW
+		                              LEFT JOIN MM_PUB_SUPPLIER PSW
+		                                ON DFW.SUPPLIER_NO = PSW.SUPPLIER_NO
+		                             where FORE_TYPE = '1'
+		                             group by DFW.FACTORY_CODE,
+		                                      DFW.PART_NO,
+		                                      DFW.SUPPLIER_NO,
+		                                      PSW.SUP_FACTORY,
+		                                      DFW.PHASE,
+		                                      DFW.VERSION,
+		                                      TO_CHAR(DFW.PLAN_DELIVERY, 'YYYYMM'),
+		                                      NVL(DFW.P_SUPPLIER,'#'))
+		                     group by FACTORY_CODE,
+		                              PART_NO,
+		                              SUPPLIER_NO,
+		                              SUP_FACTORY,
+		                              PHASE,
+		                              VERSION,
+		                              P_SUPPLIER) D
+		 ON D.FACTORY_CODE = A.FACTORY_CODE
+         AND D.PART_NO = A.PART_NO
+         AND D.SUPPLIER_NO = A.SUPPLIER_NO
+         AND NVL(B.SUP_FACTORY, '#') = NVL(A.SUP_FACTORY, '#')
+         AND D.PHASE = A.PHASE
+         AND D.VERSION = A.VERSION
+		                              
+		left join mm_pub_part_uda part on part.part_no = A.part_no
+		left join mm_pub_supplier sup on sup.supplier_no = a.supplier_no
+		left join mm_pub_data_dict pd 
+		   on A.PHASE = pd.code_value
+		   and pd.code_type = 'SW_PHASE'
+		left join mm_pub_data_dict dd 
+		   on A.DOWNLOAD_STATUS = dd.code_value
+		   and dd.code_type = 'PUP_DOWNLOAD_STATUS'
+		LEFT JOIN MM_PUB_DATA_DICT MP
+   			ON A.LOGISTICS_MODE = MP.CODE_VALUE
+   			AND MP.CODE_TYPE = 'PUB_MM_MODEL'
+   		LEFT JOIN MM_PUB_DATA_DICT PDD
+	        ON A.FEEDBACK_STATUS = PDD.CODE_VALUE
+	       AND PDD.CODE_TYPE = 'SW_FEEDBACK_STATUS'
+	    LEFT JOIN MM_PUB_DATA_DICT MDD
+	        ON A.RELEASE_STATUS = MDD.CODE_VALUE
+	       AND MDD.CODE_TYPE = 'SW_RELEASE_STATUS'
+   		ORDER BY A.VERSION DESC ,A.SUPPLIER_NO ASC ,A.PART_NO DESC
+	</select>
+	
+	<!-- 查询月预测发布版本号下拉框值 -->
+	<select id="getVersion" parameterType="java.util.Map" resultType="com.hanthink.sw.model.SwDemandForecastModel">
+		SELECT DISTINCT A.VERSION value, A.VERSION label
+		  FROM MM_SW_DEMAND_FORECAST A
+		 WHERE A.FACTORY_CODE = #{factoryCode,jdbcType=VARCHAR}
+		   AND A.FORE_TYPE = #{foreType,jdbcType = VARCHAR}
+		 ORDER BY A.VERSION DESC
+	</select>
+	
+	<!-- 给发布版本号下拉框默认值 -->
+	<select id="getDefaultVersion" parameterType="java.util.Map" resultType="com.hanthink.sw.model.SwDemandForecastModel">
+		SELECT DISTINCT MAX(A.VERSION) value, MAX(A.VERSION) label
+	      FROM MM_SW_DEMAND_FORECAST A
+	     WHERE A.FACTORY_CODE = #{factoryCode,jdbcType=VARCHAR} 
+	     AND A.FORE_TYPE = #{foreType,jdbcType = VARCHAR}
+	      ORDER BY A.VERSION DESC
+	</select>
+	
+	
+	<!-- 以下为周度预测 ************************************************************************************-->
+	<!-- 分页查询周预测数据 -->
+	<select id="queryDemandWeekPage" parameterType="com.hanthink.sw.model.SwDemandForecastModel" resultType="com.hanthink.sw.model.SwDemandForecastModel">
+		SELECT MAX(A.ID )               id,
+		       A.VERSION                version,
+		       MAX(pd.code_value_name)  PHASE,
+		       A.FACTORY_CODE           factoryCode,
+		       MAX(A.UNLOAD_PORT)       unloadPort,
+		       A.SUPPLIER_NO            supplierNo,
+		       MAX(SUP.SUPPLIER_NAME)   supplierName,
+		       MAX(part.Sup_Factory)    supFactory,
+		       MAX(A.MODEL_CODE)        modelCode,
+		       MAX(MP.CODE_VALUE_NAME)  logisticsMode,
+		       A.PART_NO                partNo,
+		       MAX(part.PART_SHORT_NO)  partShortNo,
+		       MAX(part.PART_NAME_CN)   partNameCn,
+		       MAX(PDD.CODE_VALUE_NAME) feedbackStatus,
+		       MAX(MDD.CODE_VALUE_NAME) releaseStatus,
+		       MAX(A.FEEDBACK_REMARK)   feedbackRemark,
+		       A.FORE_TYPE         		foreType,
+		       <!-- substr(A.OBJ_WEEK,0,10)         objWeek, -->
+		      TO_CHAR( (trunc(to_date(substr(A.OBJ_WEEK, 0, 10),'yyyy-mm-dd') ,'d'）+ 1),'mm/dd')
+		      || '~' ||
+		      to_char( (trunc(to_date(substr(A.OBJ_WEEK, 0, 10),'yyyy-mm-dd') ,'d') + 7 ),'mm/dd') objWeek,
+		       substr(A.PUBLISH_WEEK,0,10)      publishWeek,
+		       MAX(A.ADVANCE_TIME) advanceTime,
+		       W1.ORDER_QTY        weekOne,
+		       <!-- NVL(W1.ORDER_QTY,NVL(W2.ORDER_QTY,NVL(W3.ORDER_QTY,NVL(W4.ORDER_QTY,NVL(W5.ORDER_QTY,W6.ORDER_QTY))))) weekOne, -->
+		       W2.ORDER_QTY        weekTwo,
+		       <!-- NVL(W2.ORDER_QTY,NVL(W3.ORDER_QTY,NVL(W4.ORDER_QTY,NVL(W5.ORDER_QTY,W6.ORDER_QTY)))) weekTwo, -->
+		       W3.ORDER_QTY        weekThree,
+		       <!-- NVL(W3.ORDER_QTY,NVL(W4.ORDER_QTY,NVL(W5.ORDER_QTY,W6.ORDER_QTY))) weekThree, -->
+		       W4.ORDER_QTY        weekFour
+		       <!-- NVL(W4.ORDER_QTY,NVL(W5.ORDER_QTY,W6.ORDER_QTY)) weekFour -->
+		  FROM MM_SW_DEMAND_FORECAST A
+		  LEFT JOIN(
+		
+		SELECT SUM(A.ORDER_QTY) ORDER_QTY,
+		       A.PART_NO,
+		       max(a.plan_delivery),
+		       A.FACTORY_CODE,
+		       A.VERSION,
+		       A.PHASE,
+		       A.SUPPLIER_NO
+		  FROM MM_SW_DEMAND_FORECAST A
+<!-- 		 WHERE A.FORE_TYPE = 2
+		   AND TO_DATE(SUBSTR(A.OBJ_WEEK, 0, 10), 'yyyy-mm-dd')  &lt;= A.PLAN_DELIVERY
+		   AND TO_DATE(SUBSTR(A.OBJ_WEEK, 0, 10), 'yyyy-mm-dd') + 7 &gt;
+		       A.PLAN_DELIVERY -->
+		  LEFT JOIN MM_PUB_PART_UDA part
+			 ON A.PART_NO = part.PART_NO   
+		    LEFT JOIN (select trunc(to_date(SUBSTR(MAX(A.OBJ_WEEK), 0, 10),'yyyy-mm-dd') ,'d') + 1 
+		  		FIRST_WEEK from MM_SW_DEMAND_FORECAST A ) B 
+            		ON 1=1
+                       WHERE A.FORE_TYPE = 2
+                       AND B.FIRST_WEEK &lt;=
+                           A.PLAN_DELIVERY
+                       AND B.FIRST_WEEK + 7 &gt;
+                           A.PLAN_DELIVERY
+		  <!-- 数据权限 -->
+	      <if test="null != userType and '4'.toString() == userType">
+		      <if test="null != userId and ''!= userId">
+		      	AND part.SUP_FACTORY IN (SELECT V.VALUE_CODE FROM VIEW_SYS_USER_DATA_PERM V 
+		      		WHERE V.USER_ID = #{userId} AND V.TYPE_CODE = 'SW_SUP_FACTORY')
+		      </if>
+	      </if>
+	      
+		   <if test="partNo !=null and partNo !='' ">
+		  AND A.PART_NO like CONCAT(#{partNo}, '%')
+		  </if>
+
+		  <if test="foreType !=null and foreType!='' ">
+		  AND A.FORE_TYPE =#{foreType}
+		  </if>
+		  <if test="supplierNo !=null and supplierNo!='' ">
+		  AND (A.SUPPLIER_NO = #{supplierNo}
+	  		  <if test="null != userType and '2'.toString() == userType">
+			  OR A.P_SUPPLIER = #{supplierNo}
+		  	  </if>	)
+		  </if>
+
+		  <if test="releaseStatus !=null and releaseStatus!='' ">
+		  AND A.RELEASE_STATUS = #{releaseStatus}
+		  </if>
+		  <if test="feedbackStatus !=null and feedbackStatus!='' ">
+		  AND A.FEEDBACK_STATUS =#{feedbackStatus}
+		  </if>
+		  <if test="downloadStatus !=null and downloadStatus!='' ">
+		  AND A.DOWNLOAD_STATUS =#{downloadStatus}
+		  </if>
+		  
+		  <if test="version !=null and version !='' ">
+		  AND A.VERSION  = #{version}
+		  </if>
+		  
+		  <if test="logisticsMode !=null and logisticsMode !='' ">
+		  AND A.LOGISTICS_MODE = #{logisticsMode}
+		  </if>
+		  
+		  <if test="publishWeek !=null and publishWeek !='' ">
+		  AND TO_DATE(#{publishWeek},'yyyy-mm-dd') BETWEEN (trunc(to_date(substr(A.PUBLISH_WEEK, 0, 10),'yyyy-mm-dd') ,'d'）+ 1)
+		  AND (trunc(to_date(substr(A.PUBLISH_WEEK, 0, 10),'yyyy-mm-dd') ,'d') + 7 )
+		  </if>
+		  <if test="objWeek !=null and objWeek !='' ">
+		  AND to_date(#{objWeek},'yyyy-mm-dd') BETWEEN (trunc(to_date(substr(A.OBJ_WEEK, 0, 10),'yyyy-mm-dd') ,'d'）+ 1)
+		  AND  (trunc(to_date(substr(A.OBJ_WEEK, 0, 10),'yyyy-mm-dd') ,'d') + 7 )
+		  </if>
+		  
+		  <if test="phase !=null and phase !='' ">
+		  AND A.PHASE  = #{phase}
+		  </if>
+		   <if test="null != pSupplier and '' != pSupplier and '1'.toString() == pSupplier" >
+			  AND A.P_SUPPLIER IS NOT NULL
+		  </if> 
+		  <if test="null != pSupplier and '' != pSupplier and '0'.toString() == pSupplier" >
+			  AND A.P_SUPPLIER IS NULL
+		  </if> 
+	    
+		 GROUP BY A.PART_NO, A.FACTORY_CODE, A.VERSION, A.PHASE, A.SUPPLIER_NO  <!-- W+1周数据 -->
+		) W1
+		ON A.VERSION = W1.VERSION
+		AND A.FACTORY_CODE = W1.FACTORY_CODE
+		AND A.PART_NO = W1.PART_NO
+		AND A.SUPPLIER_NO = W1.SUPPLIER_NO
+		AND A.PHASE = W1.PHASE
+		
+		LEFT JOIN 
+		(SELECT SUM(A.ORDER_QTY) ORDER_QTY,
+		       A.PART_NO,
+		       max(a.plan_delivery),
+		       A.FACTORY_CODE,
+		       A.VERSION,
+		       A.PHASE,
+		       A.SUPPLIER_NO
+		  FROM MM_SW_DEMAND_FORECAST A
+		  LEFT JOIN MM_PUB_PART_UDA part
+			ON A.PART_NO = part.PART_NO
+		  LEFT JOIN (select trunc(to_date(SUBSTR(MAX(A.OBJ_WEEK), 0, 10),'yyyy-mm-dd') ,'d') + 1 
+		  		FIRST_WEEK from MM_SW_DEMAND_FORECAST A ) B 
+            		ON 1=1
+                       WHERE A.FORE_TYPE = 2
+                       AND B.FIRST_WEEK + 7 &lt;=
+                           A.PLAN_DELIVERY
+                       AND B.FIRST_WEEK + 14 &gt;
+                           A.PLAN_DELIVERY
+           <!-- 数据权限 -->
+	      <if test="null != userType and '4'.toString() == userType">
+		      <if test="null != userId and ''!= userId">
+		      	AND part.SUP_FACTORY IN (SELECT V.VALUE_CODE FROM VIEW_SYS_USER_DATA_PERM V 
+		      		WHERE V.USER_ID = #{userId} AND V.TYPE_CODE = 'SW_SUP_FACTORY')
+		      </if>
+	      </if> 
+	                             
+           <if test="partNo !=null and partNo !='' ">
+		  AND A.PART_NO like CONCAT(#{partNo}, '%')
+		  </if>
+
+		  <if test="foreType !=null and foreType!='' ">
+		  AND A.FORE_TYPE =#{foreType}
+		  </if>
+		  <if test="supplierNo !=null and supplierNo!='' ">
+		  AND (A.SUPPLIER_NO = #{supplierNo}
+			  <if test="null != userType and '2'.toString() == userType">
+					  OR A.P_SUPPLIER = #{supplierNo}
+			  </if>	)
+		  </if>
+
+		  <if test="releaseStatus !=null and releaseStatus!='' ">
+		  AND A.RELEASE_STATUS = #{releaseStatus}
+		  </if>
+		  <if test="feedbackStatus !=null and feedbackStatus!='' ">
+		  AND A.FEEDBACK_STATUS =#{feedbackStatus}
+		  </if>
+		  <if test="downloadStatus !=null and downloadStatus!='' ">
+		  AND A.DOWNLOAD_STATUS =#{downloadStatus}
+		  </if>
+		  
+		  <if test="version !=null and version !='' ">
+		  AND A.VERSION  = #{version}
+		  </if>
+		  
+		  <if test="logisticsMode !=null and logisticsMode !='' ">
+		  AND A.LOGISTICS_MODE = #{logisticsMode}
+		  </if>
+		  
+		  <if test="publishWeek !=null and publishWeek !='' ">
+		  AND TO_DATE(#{publishWeek},'yyyy-mm-dd') BETWEEN (trunc(to_date(substr(A.PUBLISH_WEEK, 0, 10),'yyyy-mm-dd') ,'d'）+ 1)
+		  AND (trunc(to_date(substr(A.PUBLISH_WEEK, 0, 10),'yyyy-mm-dd') ,'d') + 7 )
+		  </if>
+		  <if test="objWeek !=null and objWeek !='' ">
+		  AND to_date(#{objWeek},'yyyy-mm-dd') BETWEEN (trunc(to_date(substr(A.OBJ_WEEK, 0, 10),'yyyy-mm-dd') ,'d'）+ 1)
+		  AND  (trunc(to_date(substr(A.OBJ_WEEK, 0, 10),'yyyy-mm-dd') ,'d') + 7 )
+		  </if>
+		  
+		  <if test="phase !=null and phase !='' ">
+		  AND A.PHASE  = #{phase}
+		  </if>
+		  
+		  <if test="null != pSupplier and '' != pSupplier and '1'.toString() == pSupplier" >
+			  AND A.P_SUPPLIER IS NOT NULL
+		  </if> 
+		  <if test="null != pSupplier and '' != pSupplier and '0'.toString() == pSupplier" >
+			  AND A.P_SUPPLIER IS NULL
+		  </if> 
+		  
+		    
+<!-- 		 WHERE A.FORE_TYPE = 2
+		   AND TO_DATE(SUBSTR(A.OBJ_WEEK, 0, 10), 'yyyy-mm-dd') + 7 &lt;=
+		       A.PLAN_DELIVERY
+		   AND TO_DATE(SUBSTR(A.OBJ_WEEK, 0, 10), 'yyyy-mm-dd') + 14 &gt;
+		       A.PLAN_DELIVERY -->
+		 GROUP BY A.PART_NO, A.FACTORY_CODE, A.VERSION, A.PHASE, A.SUPPLIER_NO) W2  <!-- W+2周数据 -->
+		 ON A.VERSION = W2.VERSION
+		AND A.FACTORY_CODE = W2.FACTORY_CODE
+		AND A.PART_NO = W2.PART_NO
+		AND A.SUPPLIER_NO = W2.SUPPLIER_NO
+		AND A.PHASE = W2.PHASE
+		
+		LEFT JOIN 
+		(SELECT SUM(A.ORDER_QTY) ORDER_QTY,
+		       A.PART_NO,
+		       max(a.plan_delivery),
+		       A.FACTORY_CODE,
+		       A.VERSION,
+		       A.PHASE,
+		       A.SUPPLIER_NO
+		  FROM MM_SW_DEMAND_FORECAST A
+		  LEFT JOIN MM_PUB_PART_UDA part
+					     ON A.PART_NO = part.PART_NO
+		  LEFT JOIN (select trunc(to_date(SUBSTR(MAX(A.OBJ_WEEK), 0, 10),'yyyy-mm-dd') ,'d') + 1 
+		  		FIRST_WEEK from MM_SW_DEMAND_FORECAST A ) B 
+            ON 1=1
+                       WHERE A.FORE_TYPE = 2
+                       AND B.FIRST_WEEK + 14 &lt;=
+                           A.PLAN_DELIVERY
+                       AND B.FIRST_WEEK + 21 &gt;
+                           A.PLAN_DELIVERY
+           <!-- 数据权限 -->
+	      <if test="null != userType and '4'.toString() == userType">
+		      <if test="null != userId and ''!= userId">
+		      	AND part.SUP_FACTORY IN (SELECT V.VALUE_CODE FROM VIEW_SYS_USER_DATA_PERM V 
+		      		WHERE V.USER_ID = #{userId} AND V.TYPE_CODE = 'SW_SUP_FACTORY')
+		      </if>
+	      </if>
+	                   
+          <if test="partNo !=null and partNo !='' ">
+		  AND A.PART_NO like CONCAT(#{partNo}, '%')
+		  </if>
+
+		  <if test="foreType !=null and foreType!='' ">
+		  AND A.FORE_TYPE =#{foreType}
+		  </if>
+		  <if test="supplierNo !=null and supplierNo!='' ">
+		  AND (A.SUPPLIER_NO = #{supplierNo}
+			   <if test="null != userType and '2'.toString() == userType">
+					  OR A.P_SUPPLIER = #{supplierNo}
+			  </if>	)	
+		  </if>
+		  
+
+		  <if test="releaseStatus !=null and releaseStatus!='' ">
+		  AND A.RELEASE_STATUS = #{releaseStatus}
+		  </if>
+		  <if test="feedbackStatus !=null and feedbackStatus!='' ">
+		  AND A.FEEDBACK_STATUS =#{feedbackStatus}
+		  </if>
+		  <if test="downloadStatus !=null and downloadStatus!='' ">
+		  AND A.DOWNLOAD_STATUS =#{downloadStatus}
+		  </if>
+		  
+		  <if test="version !=null and version !='' ">
+		  AND A.VERSION  = #{version}
+		  </if>
+		  
+		  <if test="logisticsMode !=null and logisticsMode !='' ">
+		  AND A.LOGISTICS_MODE = #{logisticsMode}
+		  </if>
+		  
+		  <if test="publishWeek !=null and publishWeek !='' ">
+		  AND TO_DATE(#{publishWeek},'yyyy-mm-dd') BETWEEN (trunc(to_date(substr(A.PUBLISH_WEEK, 0, 10),'yyyy-mm-dd') ,'d'）+ 1)
+		  AND (trunc(to_date(substr(A.PUBLISH_WEEK, 0, 10),'yyyy-mm-dd') ,'d') + 7 )
+		  </if>
+		  <if test="objWeek !=null and objWeek !='' ">
+		  AND to_date(#{objWeek},'yyyy-mm-dd') BETWEEN (trunc(to_date(substr(A.OBJ_WEEK, 0, 10),'yyyy-mm-dd') ,'d'）+ 1)
+		  AND  (trunc(to_date(substr(A.OBJ_WEEK, 0, 10),'yyyy-mm-dd') ,'d') + 7 )
+		  </if>
+		  
+		  <if test="phase !=null and phase !='' ">
+		  AND A.PHASE  = #{phase}
+		  </if> 
+		  
+		  <if test="null != pSupplier and '' != pSupplier and '1'.toString() == pSupplier" >
+			  AND A.P_SUPPLIER IS NOT NULL
+		  </if> 
+		  <if test="null != pSupplier and '' != pSupplier and '0'.toString() == pSupplier" >
+			  AND A.P_SUPPLIER IS NULL
+		  </if> 
+		  
+		                  
+<!-- 		 WHERE A.FORE_TYPE = 2
+		   AND TO_DATE(SUBSTR(A.OBJ_WEEK, 0, 10), 'yyyy-mm-dd') + 14 &lt;=
+		       A.PLAN_DELIVERY
+		   AND TO_DATE(SUBSTR(A.OBJ_WEEK, 0, 10), 'yyyy-mm-dd') + 21 &gt;
+		       A.PLAN_DELIVERY -->
+		 GROUP BY A.PART_NO, A.FACTORY_CODE, A.VERSION, A.PHASE, A.SUPPLIER_NO) W3  <!-- W+3周数据 -->
+		 ON A.VERSION = W3.VERSION
+		AND A.FACTORY_CODE = W3.FACTORY_CODE
+		AND A.PART_NO = W3.PART_NO
+		AND A.SUPPLIER_NO = W3.SUPPLIER_NO
+		AND A.PHASE = W3.PHASE
+		
+		LEFT JOIN 
+		(SELECT SUM(A.ORDER_QTY) ORDER_QTY,
+		       A.PART_NO,
+		       max(a.plan_delivery),
+		       A.FACTORY_CODE,
+		       A.VERSION,
+		       A.PHASE,
+		       A.SUPPLIER_NO
+		  FROM MM_SW_DEMAND_FORECAST A
+		  LEFT JOIN MM_PUB_PART_UDA part
+					     ON A.PART_NO = part.PART_NO
+		  LEFT JOIN (select trunc(to_date(SUBSTR(MAX(A.OBJ_WEEK), 0, 10),'yyyy-mm-dd') ,'d') + 1 
+		  		FIRST_WEEK from MM_SW_DEMAND_FORECAST A ) B 
+            ON 1=1
+                       WHERE A.FORE_TYPE = 2
+                       AND B.FIRST_WEEK + 21 &lt;=
+                           A.PLAN_DELIVERY
+                       AND B.FIRST_WEEK + 28 &gt;
+                           A.PLAN_DELIVERY
+		  
+<!-- 		 WHERE A.FORE_TYPE = 2
+		   AND TO_DATE(SUBSTR(A.OBJ_WEEK, 0, 10), 'yyyy-mm-dd') + 14 &lt;=
+		       A.PLAN_DELIVERY
+		   AND TO_DATE(SUBSTR(A.OBJ_WEEK, 0, 10), 'yyyy-mm-dd') + 21 &gt;
+		       A.PLAN_DELIVERY -->
+		 GROUP BY A.PART_NO， A.FACTORY_CODE, A.VERSION, A.PHASE, A.SUPPLIER_NO) W4  <!-- W+4周数据 -->
+		 ON A.VERSION = W4.VERSION
+		AND A.FACTORY_CODE = W4.FACTORY_CODE
+		AND A.PART_NO = W4.PART_NO
+		AND A.SUPPLIER_NO = W4.SUPPLIER_NO
+		AND A.PHASE = W4.PHASE
+		
+		LEFT JOIN (SELECT SUM(A.ORDER_QTY) ORDER_QTY,
+		                    A.PART_NO,
+		                    max(a.plan_delivery),
+		                    A.FACTORY_CODE,
+		                    A.VERSION,
+		                    A.PHASE,
+		                    A.SUPPLIER_NO
+		               FROM MM_SW_DEMAND_FORECAST A
+		               LEFT JOIN MM_PUB_PART_UDA part
+					     ON A.PART_NO = part.PART_NO
+		               LEFT JOIN (select trunc(to_date(SUBSTR(MAX(A.OBJ_WEEK), 0, 10),'yyyy-mm-dd') ,'d') + 1 
+					  		FIRST_WEEK from MM_SW_DEMAND_FORECAST A ) B 
+			            ON 1=1
+                       WHERE A.FORE_TYPE = 2
+                       AND B.FIRST_WEEK + 28 &lt;=
+                           A.PLAN_DELIVERY
+                       AND B.FIRST_WEEK + 35 &gt;
+                           A.PLAN_DELIVERY
+		  <!-- 数据权限 -->
+	      <if test="null != userType and '4'.toString() == userType">
+		      <if test="null != userId and ''!= userId">
+		      	AND part.SUP_FACTORY IN (SELECT V.VALUE_CODE FROM VIEW_SYS_USER_DATA_PERM V 
+		      		WHERE V.USER_ID = #{userId} AND V.TYPE_CODE = 'SW_SUP_FACTORY')
+		      </if>
+	      </if>
+	      
+		  <if test="partNo !=null and partNo !='' ">
+		  AND A.PART_NO like CONCAT(#{partNo}, '%')
+		  </if>
+
+		  <if test="foreType !=null and foreType!='' ">
+		  AND A.FORE_TYPE =#{foreType}
+		  </if>
+		  <if test="supplierNo !=null and supplierNo!='' ">
+		  AND (A.SUPPLIER_NO = #{supplierNo}
+		  		  <if test="null != userType and '2'.toString() == userType">
+				  OR A.P_SUPPLIER = #{supplierNo}
+		  		</if>	)
+		  </if>
+
+		  <if test="releaseStatus !=null and releaseStatus!='' ">
+		  AND A.RELEASE_STATUS = #{releaseStatus}
+		  </if>
+		  <if test="feedbackStatus !=null and feedbackStatus!='' ">
+		  AND A.FEEDBACK_STATUS =#{feedbackStatus}
+		  </if>
+		  <if test="downloadStatus !=null and downloadStatus!='' ">
+		  AND A.DOWNLOAD_STATUS =#{downloadStatus}
+		  </if>
+		  
+		  <if test="version !=null and version !='' ">
+		  AND A.VERSION  = #{version}
+		  </if>
+		  
+		  <if test="logisticsMode !=null and logisticsMode !='' ">
+		  AND A.LOGISTICS_MODE = #{logisticsMode}
+		  </if>
+		  
+		  <if test="publishWeek !=null and publishWeek !='' ">
+		  AND TO_DATE(#{publishWeek},'yyyy-mm-dd') BETWEEN (trunc(to_date(substr(A.PUBLISH_WEEK, 0, 10),'yyyy-mm-dd') ,'d'）+ 1)
+		  AND (trunc(to_date(substr(A.PUBLISH_WEEK, 0, 10),'yyyy-mm-dd') ,'d') + 7 )
+		  </if>
+		  <if test="objWeek !=null and objWeek !='' ">
+		  AND to_date(#{objWeek},'yyyy-mm-dd') BETWEEN (trunc(to_date(substr(A.OBJ_WEEK, 0, 10),'yyyy-mm-dd') ,'d'）+ 1)
+		  AND  (trunc(to_date(substr(A.OBJ_WEEK, 0, 10),'yyyy-mm-dd') ,'d') + 7 )
+		  </if>
+		  
+		  <if test="phase !=null and phase !='' ">
+		  AND A.PHASE  = #{phase}
+		  </if>
+		  
+		  <if test="null != pSupplier and '' != pSupplier and '1'.toString() == pSupplier" >
+			  AND A.P_SUPPLIER IS NOT NULL
+		  </if> 
+		  <if test="null != pSupplier and '' != pSupplier and '0'.toString() == pSupplier" >
+			  AND A.P_SUPPLIER IS NULL
+		  </if> 
+		  
+	                    
+		              GROUP BY A.PART_NO， A.FACTORY_CODE,
+		                       A.VERSION,
+		                       A.PHASE,
+		                       A.SUPPLIER_NO) W5
+		                       
+		    ON A.VERSION = W5.VERSION
+		   AND A.FACTORY_CODE = W5.FACTORY_CODE
+		   AND A.PART_NO = W5.PART_NO
+		   AND A.SUPPLIER_NO = W5.SUPPLIER_NO
+		   AND A.PHASE = W5.PHASE
+		   
+		   
+		   LEFT JOIN (SELECT SUM(A.ORDER_QTY) ORDER_QTY,
+		                    A.PART_NO,
+		                    max(a.plan_delivery),
+		                    A.FACTORY_CODE,
+		                    A.VERSION,
+		                    A.PHASE,
+		                    A.SUPPLIER_NO
+		               FROM MM_SW_DEMAND_FORECAST A
+		               LEFT JOIN MM_PUB_PART_UDA part
+					     ON A.PART_NO = part.PART_NO
+		               LEFT JOIN (select trunc(to_date(SUBSTR(MAX(A.OBJ_WEEK), 0, 10),'yyyy-mm-dd') ,'d') + 1 
+					  		FIRST_WEEK from MM_SW_DEMAND_FORECAST A ) B 
+			            ON 1=1
+                       WHERE A.FORE_TYPE = 2
+                       AND B.FIRST_WEEK + 35 &lt;=
+                           A.PLAN_DELIVERY
+                       AND B.FIRST_WEEK + 42 &gt;
+                           A.PLAN_DELIVERY
+			  <!-- 数据权限 -->
+	      <if test="null != userType and '4'.toString() == userType">
+		      <if test="null != userId and ''!= userId">
+		      	AND part.SUP_FACTORY IN (SELECT V.VALUE_CODE FROM VIEW_SYS_USER_DATA_PERM V 
+		      		WHERE V.USER_ID = #{userId} AND V.TYPE_CODE = 'SW_SUP_FACTORY')
+		      </if>
+	      </if>
+	      
+		  <if test="partNo !=null and partNo !='' ">
+		  AND A.PART_NO like CONCAT(#{partNo}, '%')
+		  </if>
+
+		  <if test="foreType !=null and foreType!='' ">
+		  AND A.FORE_TYPE =#{foreType}
+		  </if>
+		  <if test="supplierNo !=null and supplierNo!='' ">
+		  AND (A.SUPPLIER_NO = #{supplierNo}
+		  		  <if test="null != userType and '2'.toString() == userType">
+				  OR A.P_SUPPLIER = #{supplierNo}
+		  		</if>)		
+		  </if>
+
+		  <if test="releaseStatus !=null and releaseStatus!='' ">
+		  AND A.RELEASE_STATUS = #{releaseStatus}
+		  </if>
+		  <if test="feedbackStatus !=null and feedbackStatus!='' ">
+		  AND A.FEEDBACK_STATUS =#{feedbackStatus}
+		  </if>
+		  <if test="downloadStatus !=null and downloadStatus!='' ">
+		  AND A.DOWNLOAD_STATUS =#{downloadStatus}
+		  </if>
+		  
+		  <if test="version !=null and version !='' ">
+		  AND A.VERSION  = #{version}
+		  </if>
+		  
+		  <if test="logisticsMode !=null and logisticsMode !='' ">
+		  AND A.LOGISTICS_MODE = #{logisticsMode}
+		  </if>
+		  
+<!-- 		  <if test="publishWeek !=null and publishWeek !='' ">
+		  AND A.PUBLISH_WEEK  like CONCAT (#{publishWeek}, '%')
+		  </if>
+		  <if test="objWeek !=null and objWeek !='' ">
+		  AND A.OBJ_WEEK  like CONCAT (#{objWeek}, '%') 
+		  </if> -->
+		  
+		  <if test="publishWeek !=null and publishWeek !='' ">
+		  AND to_date(#{publishWeek},'yyyy-mm-dd') BETWEEN (trunc(to_date(substr(A.PUBLISH_WEEK, 0, 10),'yyyy-mm-dd') ,'d'）+ 1)
+		  AND (trunc(to_date(substr(A.PUBLISH_WEEK, 0, 10),'yyyy-mm-dd') ,'d') + 7 )
+		  </if>
+		  <if test="objWeek !=null and objWeek !='' ">
+		  AND to_date(#{objWeek},'yyyy-mm-dd') BETWEEN (trunc(to_date(substr(A.OBJ_WEEK, 0, 10),'yyyy-mm-dd') ,'d'）+ 1)
+		  AND (trunc(to_date(substr(A.OBJ_WEEK, 0, 10),'yyyy-mm-dd') ,'d') + 7 )
+		  </if>
+		  
+		  <if test="phase !=null and phase !='' ">
+		  AND A.PHASE  = #{phase}
+		  </if>
+		  
+		  <if test="null != pSupplier and '' != pSupplier and '1'.toString() == pSupplier" >
+			  AND A.P_SUPPLIER IS NOT NULL
+		  </if> 
+		  <if test="null != pSupplier and '' != pSupplier and '0'.toString() == pSupplier" >
+			  AND A.P_SUPPLIER IS NULL
+		  </if> 
+		  
+                    
+		              GROUP BY A.PART_NO, A.FACTORY_CODE,
+		                       A.VERSION,
+		                       A.PHASE,
+		                       A.SUPPLIER_NO) W6
+		                       
+		    ON A.VERSION = W6.VERSION
+		   AND A.FACTORY_CODE = W6.FACTORY_CODE
+		   AND A.PART_NO = W6.PART_NO
+		   AND A.SUPPLIER_NO = W6.SUPPLIER_NO
+		   AND A.PHASE = W6.PHASE
+		
+		              left join mm_pub_part_uda part
+				            on part.part_no = A.part_no
+				          left join mm_pub_supplier sup
+				            on sup.supplier_no = a.supplier_no
+		              left join mm_pub_data_dict pd
+		                on A.PHASE = pd.code_value
+		               and pd.code_type = 'SW_PHASE'
+		              left join mm_pub_data_dict dd
+		                on A.DOWNLOAD_STATUS = dd.code_value
+		               and dd.code_type = 'PUP_DOWNLOAD_STATUS'
+		              LEFT JOIN MM_PUB_DATA_DICT MP
+		                ON A.LOGISTICS_MODE = MP.CODE_VALUE
+		               AND MP.CODE_TYPE = 'PUB_MM_MODEL'
+		              LEFT JOIN MM_PUB_DATA_DICT PDD
+		                 ON A.FEEDBACK_STATUS = PDD.CODE_VALUE
+		                 AND PDD.CODE_TYPE = 'SW_FEEDBACK_STATUS'
+		              LEFT JOIN MM_PUB_DATA_DICT MDD
+		                 ON A.RELEASE_STATUS = MDD.CODE_VALUE
+		                 AND MDD.CODE_TYPE = 'SW_RELEASE_STATUS'
+		       
+		WHERE A.FORE_TYPE = 2
+		
+		  <!-- 数据权限 -->
+	      <if test="null != userType and '4'.toString() == userType">
+		      <if test="null != userId and ''!= userId">
+		      	AND part.SUP_FACTORY IN (SELECT V.VALUE_CODE FROM VIEW_SYS_USER_DATA_PERM V 
+		      		WHERE V.USER_ID = #{userId} AND V.TYPE_CODE = 'SW_SUP_FACTORY')
+		      </if>
+	      </if>
+		
+		  <if test="partNo !=null and partNo !='' ">
+		  AND A.PART_NO like CONCAT(#{partNo}, '%')
+		  </if>
+		  <if test="partShortNo !=null and partShortNo !='' ">
+		  AND PART.PART_SHORT_NO =#{partShortNo}
+		  </if>
+		  <if test="foreType !=null and foreType!='' ">
+		  AND A.FORE_TYPE =#{foreType}
+		  </if>
+		  <if test="supplierNo !=null and supplierNo!='' ">
+		  AND (A.SUPPLIER_NO = #{supplierNo}
+			  <if test="null != userType and '2'.toString() == userType">
+					  OR A.P_SUPPLIER = #{supplierNo}
+			  </if>)	
+		  </if>
+
+		  <if test="supFactory != null and '' != supFactory">
+			AND part.SUP_FACTORY = #{supFactory}
+		  </if>
+		  <if test="releaseStatus !=null and releaseStatus!='' ">
+		  AND A.RELEASE_STATUS = #{releaseStatus}
+		  </if>
+		  <if test="feedbackStatus !=null and feedbackStatus!='' ">
+		  AND A.FEEDBACK_STATUS =#{feedbackStatus}
+		  </if>
+		  <if test="downloadStatus !=null and downloadStatus!='' ">
+		  AND A.DOWNLOAD_STATUS =#{downloadStatus}
+		  </if>
+		  
+		  <if test="version !=null and version !='' ">
+		  AND A.VERSION  = #{version}
+		  </if>
+		  
+		  <if test="logisticsMode !=null and logisticsMode !='' ">
+		  AND A.LOGISTICS_MODE  = #{logisticsMode}
+		  </if>
+		  
+<!-- 		  <if test="publishWeek !=null and publishWeek !='' ">
+		  AND A.PUBLISH_WEEK like CONCAT (#{publishWeek},'%') 
+		  </if>
+		  <if test="objWeek !=null and objWeek !='' ">
+		  AND A.OBJ_WEEK  like CONCAT (#{objWeek}, '%') 
+		  </if> -->
+		  
+		  <if test="publishWeek !=null and publishWeek !='' ">
+		  AND to_date(#{publishWeek},'yyyy-mm-dd') BETWEEN (trunc(to_date(substr(A.PUBLISH_WEEK, 0, 10),'yyyy-mm-dd') ,'d'）+ 1)
+		  AND (trunc(to_date(substr(A.PUBLISH_WEEK, 0, 10),'yyyy-mm-dd') ,'d') + 7 )
+		  </if>
+		  <if test="objWeek !=null and objWeek !='' ">
+		  AND TO_DATE(#{objWeek},'yyyy-mm-dd') between (trunc(to_date(substr(A.OBJ_WEEK, 0, 10),'yyyy-mm-dd') ,'d'）+ 1)
+		  AND  (trunc(to_date(substr(A.OBJ_WEEK, 0, 10),'yyyy-mm-dd') ,'d') + 7 )
+		  </if>
+		  
+		  <if test="phase !=null and phase !='' ">
+		  AND A.PHASE  = #{phase}
+		  </if>
+		  
+		  <if test="null != pSupplier and '' != pSupplier and '1'.toString() == pSupplier" >
+			  AND A.P_SUPPLIER IS NOT NULL
+		  </if> 
+		  <if test="null != pSupplier and '' != pSupplier and '0'.toString() == pSupplier" >
+			  AND A.P_SUPPLIER IS NULL
+		  </if> 
+		  
+		  	  
+		GROUP BY A.VERSION,
+		       A.FORE_TYPE,
+		       A.PHASE,
+		       A.UNLOAD_PORT,
+		       A.PART_NO,
+		       A.SUPPLIER_NO,
+		       A.MODEL_CODE,
+		       A.LOGISTICS_MODE,
+		       A.FACTORY_CODE,
+		       A.OBJ_WEEK,
+		       A.PUBLISH_WEEK,
+		       W1.ORDER_QTY,
+		       W2.ORDER_QTY,
+		       W3.ORDER_QTY,
+		       W4.ORDER_QTY,
+		       W5.ORDER_QTY, 
+		       W6.ORDER_QTY
+	ORDER BY A.VERSION DESC ,A.SUPPLIER_NO ,A.PART_NO
+	</select>
+	
+	<!-- 通过版本获取对象周 -->
+	<select id="getObjWeekByVersion" parameterType="java.lang.String" resultType="java.lang.String">
+	SELECT SUBSTR(MAX(A.OBJ_WEEK),0,10) objWeek FROM MM_SW_DEMAND_FORECAST A WHERE A.VERSION = #{version}
+	</select>
+	
+	<!-- 周预测数据导出 -->
+	<select id="queryDemandForecastWeekExportData" parameterType="java.util.Map" resultType="java.util.Map">
+		SELECT MAX(A.ID) id,
+		       A.VERSION version,
+		       MAX(pd.code_value_name) PHASE,
+		       A.FACTORY_CODE factoryCode,
+		       MAX(A.UNLOAD_PORT) UNLOAD_PORT,
+		       A.SUPPLIER_NO SUPPLIER_NO,
+		       MAX(SUP.SUPPLIER_NAME) SUPPLIER_NAME,
+		       MAX(part.Sup_Factory) SUP_FACTORY,
+		       MAX(A.MODEL_CODE) MODEL_CODE,
+		       MAX(MP.CODE_VALUE_NAME) LOGISTICS_MODE,
+		       A.PART_NO PART_NO,
+		       MAX(part.PART_SHORT_NO) PART_SHORT_NO,
+		       MAX(part.PART_NAME_CN) PART_NAME_CN,
+		       MAX(PDD.CODE_VALUE_NAME) FEEDBACK_STATUS,
+		       MAX(MDD.CODE_VALUE_NAME) RELEASE_STATUS,
+		       MAX(A.FEEDBACK_REMARK) FEEDBACK_REMARK,
+		       
+		      TO_CHAR( (trunc(to_date(substr(A.OBJ_WEEK, 0, 10),'yyyy-mm-dd') ,'d'）+ 1),'mm/dd')
+		       || '~' ||
+		       to_char( (trunc(to_date(substr(A.OBJ_WEEK, 0, 10),'yyyy-mm-dd') ,'d') + 7 ),'mm/dd') OBJ_WEEK,
+		       
+		       <!-- substr(A.OBJ_WEEK, 0, 10) OBJ_WEEK, -->
+		       substr(A.PUBLISH_WEEK, 0, 10) PUBLISH_WEEK,
+		       W1.ORDER_QTY WEEK_ONE,
+		       <!-- NVL(W1.ORDER_QTY,NVL(W2.ORDER_QTY,NVL(W3.ORDER_QTY,NVL(W4.ORDER_QTY,NVL(W5.ORDER_QTY,W6.ORDER_QTY))))) WEEK_ONE, -->
+		       W2.ORDER_QTY WEEK_TWO,
+		       <!-- NVL(W2.ORDER_QTY,NVL(W3.ORDER_QTY,NVL(W4.ORDER_QTY,NVL(W5.ORDER_QTY,W6.ORDER_QTY)))) WEEK_TWO, -->
+		       W3.ORDER_QTY WEEK_THREE,
+		       <!-- NVL(W3.ORDER_QTY,NVL(W4.ORDER_QTY,NVL(W5.ORDER_QTY,W6.ORDER_QTY))) WEEK_THREE, -->
+		       W4.ORDER_QTY WEEK_FOUR,
+		       <!-- NVL(W4.ORDER_QTY,NVL(W5.ORDER_QTY,W6.ORDER_QTY)) WEEK_FOUR, -->
+			   MAX(A.ADVANCE_TIME) ADVANCE_TIME,
+		       ${daySql} 
+		        A.FORE_TYPE FORE_TYPE
+		  FROM MM_SW_DEMAND_FORECAST A
+		  LEFT JOIN (
+		             
+		             SELECT SUM(A.ORDER_QTY) ORDER_QTY,
+		                     A.PART_NO,
+		                     max(a.plan_delivery),
+		                     A.FACTORY_CODE,
+		                     A.VERSION,
+		                     A.PHASE,
+		                     A.SUPPLIER_NO
+		               FROM MM_SW_DEMAND_FORECAST A
+		               LEFT JOIN MM_PUB_PART_UDA part
+					     ON A.PART_NO = part.PART_NO
+		               LEFT JOIN (select trunc(to_date(SUBSTR(MAX(A.OBJ_WEEK), 0, 10),'yyyy-mm-dd') ,'d') + 1 
+					  		FIRST_WEEK from MM_SW_DEMAND_FORECAST A ) B 
+			            ON 1=1
+                       WHERE A.FORE_TYPE = 2
+                       AND B.FIRST_WEEK &lt;=
+                           A.PLAN_DELIVERY
+                       AND B.FIRST_WEEK + 7 &gt;
+                           A.PLAN_DELIVERY
+                           
+		              GROUP BY A.PART_NO， A.FACTORY_CODE,
+		                        A.VERSION,
+		                        A.PHASE,
+		                        A.SUPPLIER_NO) W1
+		    ON A.VERSION = W1.VERSION
+		   AND A.FACTORY_CODE = W1.FACTORY_CODE
+		   AND A.PART_NO = W1.PART_NO
+		   AND A.SUPPLIER_NO = W1.SUPPLIER_NO
+		   AND A.PHASE = W1.PHASE
+		
+		  LEFT JOIN (SELECT SUM(A.ORDER_QTY) ORDER_QTY,
+		                    A.PART_NO,
+		                    max(a.plan_delivery),
+		                    A.FACTORY_CODE,
+		                    A.VERSION,
+		                    A.PHASE,
+		                    A.SUPPLIER_NO
+		               FROM MM_SW_DEMAND_FORECAST A
+		               LEFT JOIN MM_PUB_PART_UDA part
+					     ON A.PART_NO = part.PART_NO
+		               LEFT JOIN (select trunc(to_date(SUBSTR(MAX(A.OBJ_WEEK), 0, 10),'yyyy-mm-dd') ,'d') + 1 
+					  		FIRST_WEEK from MM_SW_DEMAND_FORECAST A ) B 
+			            ON 1=1
+                       WHERE A.FORE_TYPE = 2
+                       AND B.FIRST_WEEK + 7 &lt;=
+                           A.PLAN_DELIVERY
+                       AND B.FIRST_WEEK + 14 &gt;
+                           A.PLAN_DELIVERY
+		             <!--  WHERE A.FORE_TYPE = 2
+		                AND TO_DATE(SUBSTR(A.OBJ_WEEK, 0, 10), 'yyyy-mm-dd') + 7  &lt;=
+		                    A.PLAN_DELIVERY
+		                AND TO_DATE(SUBSTR(A.OBJ_WEEK, 0, 10), 'yyyy-mm-dd') + 14 &gt;
+		                    A.PLAN_DELIVERY -->
+		                 
+		  <if test="null != model.userType and '4'.toString() == model.userType">
+		      <if test="null != model.userId and ''!= model.userId">
+		      	AND part.SUP_FACTORY IN (SELECT V.VALUE_CODE FROM VIEW_SYS_USER_DATA_PERM V 
+		      		WHERE V.USER_ID = #{model.userId} AND V.TYPE_CODE = 'SW_SUP_FACTORY')
+		      </if>
+	      </if>
+		   
+		   <if test="model.partNo !=null and model.partNo !='' ">
+		  AND A.PART_NO like CONCAT(#{model.partNo}, '%')
+		  </if>
+
+		  <if test="model.foreType !=null and model.foreType!='' ">
+		  AND A.FORE_TYPE =#{model.foreType}
+		  </if>
+		  <if test="model.supplierNo !=null and model.supplierNo!='' ">
+		  AND (A.SUPPLIER_NO = #{model.supplierNo}
+			  <if test="null != model.userType and '2'.toString() == model.userType">
+					  OR A.P_SUPPLIER = #{model.supplierNo}
+			  </if>)
+		  </if>
+
+		  <if test="model.releaseStatus !=null and model.releaseStatus!='' ">
+		  AND A.RELEASE_STATUS = #{model.releaseStatus}
+		  </if>
+		  <if test="model.feedbackStatus !=null and model.feedbackStatus!='' ">
+		  AND A.FEEDBACK_STATUS =#{model.feedbackStatus}
+		  </if>
+		  <if test="model.downloadStatus !=null and model.downloadStatus!='' ">
+		  AND A.DOWNLOAD_STATUS =#{model.downloadStatus}
+		  </if>
+		  
+		  <if test="model.version !=null and model.version !='' ">
+		  AND A.VERSION  = #{model.version}
+		  </if>
+		  
+		  <if test="model.logisticsMode !=null and model.logisticsMode !='' ">
+		  AND A.LOGISTICS_MODE = #{model.logisticsMode}
+		  </if>
+		  
+<!-- 		  <if test="model.publishWeek !=null and model.publishWeek !='' ">
+		  AND A.PUBLISH_WEEK  like CONCAT (#{model.publishWeek}, '%')
+		  </if>
+		  <if test="model.objWeek !=null and model.objWeek !='' ">
+		  AND A.OBJ_WEEK  like CONCAT (#{model.objWeek}, '%') 
+		  </if> -->
+		  
+		  <if test="model.publishWeek !=null and model.publishWeek !='' ">
+		  AND to_date(#{model.publishWeek},'yyyy-mm-dd') BETWEEN (trunc(to_date(substr(A.PUBLISH_WEEK, 0, 10),'yyyy-mm-dd') ,'d'）+ 1)
+		  AND (trunc(to_date(substr(A.PUBLISH_WEEK, 0, 10),'yyyy-mm-dd') ,'d') + 7 )
+		  </if>
+		  <if test="model.objWeek !=null and model.objWeek !='' ">
+		  AND TO_DATE(#{model.objWeek},'yyyy-mm-dd') between (trunc(to_date(substr(A.OBJ_WEEK, 0, 10),'yyyy-mm-dd') ,'d'）+ 1)
+		   
+		  AND  (trunc(to_date(substr(A.OBJ_WEEK, 0, 10),'yyyy-mm-dd') ,'d') + 7 )
+		  </if>
+		  
+		  <if test="model.phase !=null and model.phase !='' ">
+		  AND A.PHASE  = #{model.phase}
+		  </if>
+		  
+		  <if test="null != model.pSupplier and '' != model.pSupplier and '1'.toString() == model.pSupplier" >
+			  AND A.P_SUPPLIER IS NOT NULL
+		  </if> 
+		  <if test="null != model.pSupplier and '' != model.pSupplier and '0'.toString() == model.pSupplier" >
+			  AND A.P_SUPPLIER IS NULL
+		  </if> 
+		  
+		  
+		  		                    
+		              GROUP BY A.PART_NO， A.FACTORY_CODE,
+		                       A.VERSION,
+		                       A.PHASE,
+		                       A.SUPPLIER_NO) W2
+		    ON A.VERSION = W2.VERSION
+		   AND A.FACTORY_CODE = W2.FACTORY_CODE
+		   AND A.PART_NO = W2.PART_NO
+		   AND A.SUPPLIER_NO = W2.SUPPLIER_NO
+		   AND A.PHASE = W2.PHASE
+		
+		  LEFT JOIN (SELECT SUM(A.ORDER_QTY) ORDER_QTY,
+		                    A.PART_NO,
+		                    max(a.plan_delivery),
+		                    A.FACTORY_CODE,
+		                    A.VERSION,
+		                    A.PHASE,
+		                    A.SUPPLIER_NO
+		               FROM MM_SW_DEMAND_FORECAST A
+		               LEFT JOIN MM_PUB_PART_UDA part
+					     ON A.PART_NO = part.PART_NO
+		               LEFT JOIN (select trunc(to_date(SUBSTR(MAX(A.OBJ_WEEK), 0, 10),'yyyy-mm-dd') ,'d') + 1 
+					  		FIRST_WEEK from MM_SW_DEMAND_FORECAST A ) B 
+			            ON 1=1
+                       WHERE A.FORE_TYPE = 2
+                       AND B.FIRST_WEEK + 14 &lt;=
+                           A.PLAN_DELIVERY
+                       AND B.FIRST_WEEK + 21 &gt;
+                           A.PLAN_DELIVERY
+		              <!--WHERE A.FORE_TYPE = 2
+		                 AND TO_DATE(SUBSTR(A.OBJ_WEEK, 0, 10), 'yyyy-mm-dd') + 14 &lt;=
+		                    A.PLAN_DELIVERY
+		                AND TO_DATE(SUBSTR(A.OBJ_WEEK, 0, 10), 'yyyy-mm-dd') + 21 &gt;
+		                    A.PLAN_DELIVERY -->
+		                    
+           <if test="null != model.userType and '4'.toString() == model.userType">
+		      <if test="null != model.userId and ''!= model.userId">
+		      	AND part.SUP_FACTORY IN (SELECT V.VALUE_CODE FROM VIEW_SYS_USER_DATA_PERM V 
+		      		WHERE V.USER_ID = #{model.userId} AND V.TYPE_CODE = 'SW_SUP_FACTORY')
+		      </if>
+	      </if>
+	      
+		   <if test="model.partNo !=null and model.partNo !='' ">
+		  AND A.PART_NO like CONCAT(#{model.partNo}, '%')
+		  </if>
+
+		  <if test="model.foreType !=null and model.foreType!='' ">
+		  AND A.FORE_TYPE =#{model.foreType}
+		  </if>
+		  <if test="model.supplierNo !=null and model.supplierNo!='' ">
+		  AND (A.SUPPLIER_NO = #{model.supplierNo}
+			  <if test="null != model.userType and '2'.toString() == model.userType">
+					  OR A.P_SUPPLIER = #{model.supplierNo}
+			  </if>)
+		  </if>
+
+
+		  <if test="model.releaseStatus !=null and model.releaseStatus!='' ">
+		  AND A.RELEASE_STATUS = #{model.releaseStatus}
+		  </if>
+		  <if test="model.feedbackStatus !=null and model.feedbackStatus!='' ">
+		  AND A.FEEDBACK_STATUS =#{model.feedbackStatus}
+		  </if>
+		  <if test="model.downloadStatus !=null and model.downloadStatus!='' ">
+		  AND A.DOWNLOAD_STATUS =#{model.downloadStatus}
+		  </if>
+		  
+		  <if test="model.version !=null and model.version !='' ">
+		  AND A.VERSION  = #{model.version}
+		  </if>
+		  
+		  <if test="model.logisticsMode !=null and model.logisticsMode !='' ">
+		  AND A.LOGISTICS_MODE = #{model.logisticsMode}
+		  </if>
+		  
+<!-- 		  <if test="model.publishWeek !=null and model.publishWeek !='' ">
+		  AND A.PUBLISH_WEEK  like CONCAT (#{model.publishWeek}, '%')
+		  </if>
+		  <if test="model.objWeek !=null and model.objWeek !='' ">
+		  AND A.OBJ_WEEK  like CONCAT (#{model.objWeek}, '%') 
+		  </if> -->
+		  
+		  <if test="model.publishWeek !=null and model.publishWeek !='' ">
+		  AND to_date(#{model.publishWeek},'yyyy-mm-dd') BETWEEN (trunc(to_date(substr(A.PUBLISH_WEEK, 0, 10),'yyyy-mm-dd') ,'d'）+ 1)
+		  AND (trunc(to_date(substr(A.PUBLISH_WEEK, 0, 10),'yyyy-mm-dd') ,'d') + 7 )
+		  </if>
+		  <if test="model.objWeek !=null and model.objWeek !='' ">
+		  AND TO_DATE(#{model.objWeek},'yyyy-mm-dd') between (trunc(to_date(substr(A.OBJ_WEEK, 0, 10),'yyyy-mm-dd') ,'d'）+ 1)
+		   
+		  AND  (trunc(to_date(substr(A.OBJ_WEEK, 0, 10),'yyyy-mm-dd') ,'d') + 7 )
+		  </if>
+		  
+		  <if test="model.phase !=null and model.phase !='' ">
+		  AND A.PHASE  = #{model.phase}
+		  </if>
+		  
+		  <if test="null != model.pSupplier and '' != model.pSupplier and '1'.toString() == model.pSupplier" >
+			  AND A.P_SUPPLIER IS NOT NULL
+		  </if> 
+		  <if test="null != model.pSupplier and '' != model.pSupplier and '0'.toString() == model.pSupplier" >
+			  AND A.P_SUPPLIER IS NULL
+		  </if> 
+		  
+		  
+		              GROUP BY A.PART_NO， A.FACTORY_CODE,
+		                       A.VERSION,
+		                       A.PHASE,
+		                       A.SUPPLIER_NO) W3
+		    ON A.VERSION = W3.VERSION
+		   AND A.FACTORY_CODE = W3.FACTORY_CODE
+		   AND A.PART_NO = W3.PART_NO
+		   AND A.SUPPLIER_NO = W3.SUPPLIER_NO
+		   AND A.PHASE = W3.PHASE
+		
+		  LEFT JOIN (SELECT SUM(A.ORDER_QTY) ORDER_QTY,
+		                    A.PART_NO,
+		                    max(a.plan_delivery),
+		                    A.FACTORY_CODE,
+		                    A.VERSION,
+		                    A.PHASE,
+		                    A.SUPPLIER_NO
+		               FROM MM_SW_DEMAND_FORECAST A
+		               LEFT JOIN MM_PUB_PART_UDA part
+					     ON A.PART_NO = part.PART_NO
+		               LEFT JOIN (select trunc(to_date(SUBSTR(MAX(A.OBJ_WEEK), 0, 10),'yyyy-mm-dd') ,'d') + 1 
+					  		FIRST_WEEK from MM_SW_DEMAND_FORECAST A ) B 
+			            ON 1=1
+                       WHERE A.FORE_TYPE = 2
+                       AND B.FIRST_WEEK + 21 &lt;=
+                           A.PLAN_DELIVERY
+                       AND B.FIRST_WEEK + 28 &gt;
+                           A.PLAN_DELIVERY
+		  <if test="null != model.userType and '4'.toString() == model.userType">
+		      <if test="null != model.userId and ''!= model.userId">
+		      	AND part.SUP_FACTORY IN (SELECT V.VALUE_CODE FROM VIEW_SYS_USER_DATA_PERM V 
+		      		WHERE V.USER_ID = #{model.userId} AND V.TYPE_CODE = 'SW_SUP_FACTORY')
+		      </if>
+	      </if>
+	      
+		  <if test="model.partNo !=null and model.partNo !='' ">
+		  AND A.PART_NO like CONCAT(#{model.partNo}, '%')
+		  </if>
+
+		  <if test="model.foreType !=null and model.foreType!='' ">
+		  AND A.FORE_TYPE =#{model.foreType}
+		  </if>
+		  <if test="model.supplierNo !=null and model.supplierNo!='' ">
+		  AND (A.SUPPLIER_NO = #{model.supplierNo}
+			  <if test="null != model.userType and '2'.toString() == model.userType">
+					  OR A.P_SUPPLIER = #{model.supplierNo}
+			  </if>)
+		  </if>
+
+		  <if test="model.releaseStatus !=null and model.releaseStatus!='' ">
+		  AND A.RELEASE_STATUS = #{model.releaseStatus}
+		  </if>
+		  <if test="model.feedbackStatus !=null and model.feedbackStatus!='' ">
+		  AND A.FEEDBACK_STATUS =#{model.feedbackStatus}
+		  </if>
+		  <if test="model.downloadStatus !=null and model.downloadStatus!='' ">
+		  AND A.DOWNLOAD_STATUS =#{model.downloadStatus}
+		  </if>
+		  
+		  <if test="model.version !=null and model.version !='' ">
+		  AND A.VERSION  = #{model.version}
+		  </if>
+		  
+		  <if test="model.logisticsMode !=null and model.logisticsMode !='' ">
+		  AND A.LOGISTICS_MODE = #{model.logisticsMode}
+		  </if>
+		  
+<!-- 		  <if test="model.publishWeek !=null and model.publishWeek !='' ">
+		  AND A.PUBLISH_WEEK  like CONCAT (#{model.publishWeek}, '%')
+		  </if>
+		  <if test="model.objWeek !=null and model.objWeek !='' ">
+		  AND A.OBJ_WEEK  like CONCAT (#{model.objWeek}, '%') 
+		  </if> -->
+		  
+		  <if test="model.publishWeek !=null and model.publishWeek !='' ">
+		  AND to_date(#{model.publishWeek},'yyyy-mm-dd') BETWEEN (trunc(to_date(substr(A.PUBLISH_WEEK, 0, 10),'yyyy-mm-dd') ,'d'）+ 1)
+		  AND (trunc(to_date(substr(A.PUBLISH_WEEK, 0, 10),'yyyy-mm-dd') ,'d') + 7 )
+		  </if>
+		  <if test="model.objWeek !=null and model.objWeek !='' ">
+		  AND TO_DATE(#{model.objWeek},'yyyy-mm-dd') >=(trunc(to_date(substr(A.OBJ_WEEK, 0, 10),'yyyy-mm-dd') ,'d'）+ 1)
+		  AND  (trunc(to_date(substr(A.OBJ_WEEK, 0, 10),'yyyy-mm-dd') ,'d') + 7 )
+		  </if>
+		  
+		  <if test="model.phase !=null and model.phase !='' ">
+		  AND A.PHASE  = #{model.phase}
+		  </if>
+		  
+		  <if test="null != model.pSupplier and '' != model.pSupplier and '1'.toString() == model.pSupplier" >
+			  AND A.P_SUPPLIER IS NOT NULL
+		  </if> 
+		  <if test="null != model.pSupplier and '' != model.pSupplier and '0'.toString() == model.pSupplier" >
+			  AND A.P_SUPPLIER IS NULL
+		  </if> 
+		  
+		  
+		  		                    
+		              GROUP BY A.PART_NO， A.FACTORY_CODE,
+		                       A.VERSION,
+		                       A.PHASE,
+		                       A.SUPPLIER_NO) W4
+		                       
+		    ON A.VERSION = W4.VERSION
+		   AND A.FACTORY_CODE = W4.FACTORY_CODE
+		   AND A.PART_NO = W4.PART_NO
+		   AND A.SUPPLIER_NO = W4.SUPPLIER_NO
+		   AND A.PHASE = W4.PHASE
+		   
+		  
+		  LEFT JOIN (SELECT SUM(A.ORDER_QTY) ORDER_QTY,
+		                    A.PART_NO,
+		                    max(a.plan_delivery),
+		                    A.FACTORY_CODE,
+		                    A.VERSION,
+		                    A.PHASE,
+		                    A.SUPPLIER_NO
+		               FROM MM_SW_DEMAND_FORECAST A
+		               LEFT JOIN MM_PUB_PART_UDA part
+					     ON A.PART_NO = part.PART_NO
+		               LEFT JOIN (select trunc(to_date(SUBSTR(MAX(A.OBJ_WEEK), 0, 10),'yyyy-mm-dd') ,'d') + 1 
+					  		FIRST_WEEK from MM_SW_DEMAND_FORECAST A ) B 
+			            ON 1=1
+                       WHERE A.FORE_TYPE = 2
+                       AND B.FIRST_WEEK + 28 &lt;=
+                           A.PLAN_DELIVERY
+                       AND B.FIRST_WEEK + 35 &gt;
+                           A.PLAN_DELIVERY
+                           
+		  <if test="null != model.userType and '4'.toString() == model.userType">
+		      <if test="null != model.userId and ''!= model.userId">
+		      	AND part.SUP_FACTORY IN (SELECT V.VALUE_CODE FROM VIEW_SYS_USER_DATA_PERM V 
+		      		WHERE V.USER_ID = #{model.userId} AND V.TYPE_CODE = 'SW_SUP_FACTORY')
+		      </if>
+	      </if>
+	      
+		  <if test="model.partNo !=null and model.partNo !='' ">
+		  AND A.PART_NO like CONCAT(#{model.partNo}, '%')
+		  </if>
+
+		  <if test="model.foreType !=null and model.foreType!='' ">
+		  AND A.FORE_TYPE =#{model.foreType}
+		  </if>
+		  <if test="model.supplierNo !=null and model.supplierNo!='' ">
+		  AND (A.SUPPLIER_NO = #{model.supplierNo}
+			   <if test="null != model.userType and '2'.toString() == model.userType">
+					  OR A.P_SUPPLIER = #{model.supplierNo}
+			  </if>)
+		  </if>
+
+		  <if test="model.releaseStatus !=null and model.releaseStatus!='' ">
+		  AND A.RELEASE_STATUS = #{model.releaseStatus}
+		  </if>
+		  <if test="model.feedbackStatus !=null and model.feedbackStatus!='' ">
+		  AND A.FEEDBACK_STATUS =#{model.feedbackStatus}
+		  </if>
+		  <if test="model.downloadStatus !=null and model.downloadStatus!='' ">
+		  AND A.DOWNLOAD_STATUS =#{model.downloadStatus}
+		  </if>
+		  
+		  <if test="model.version !=null and model.version !='' ">
+		  AND A.VERSION  = #{model.version}
+		  </if>
+		  
+		  <if test="model.logisticsMode !=null and model.logisticsMode !='' ">
+		  AND A.LOGISTICS_MODE = #{model.logisticsMode}
+		  </if>
+		  
+<!-- 		  <if test="model.publishWeek !=null and model.publishWeek !='' ">
+		  AND A.PUBLISH_WEEK  like CONCAT (#{model.publishWeek}, '%')
+		  </if>
+		  <if test="model.objWeek !=null and model.objWeek !='' ">
+		  AND A.OBJ_WEEK  like CONCAT (#{model.objWeek}, '%') 
+		  </if> -->
+		  
+		  <if test="model.publishWeek !=null and model.publishWeek !='' ">
+		  AND to_date(#{model.publishWeek},'yyyy-mm-dd') BETWEEN (trunc(to_date(substr(A.PUBLISH_WEEK, 0, 10),'yyyy-mm-dd') ,'d'）+ 1)
+		  AND (trunc(to_date(substr(A.PUBLISH_WEEK, 0, 10),'yyyy-mm-dd') ,'d') + 7 )
+		  </if>
+		  <if test="model.objWeek !=null and model.objWeek !='' ">
+		  AND TO_DATE(#{model.objWeek},'yyyy-mm-dd') between (trunc(to_date(substr(A.OBJ_WEEK, 0, 10),'yyyy-mm-dd') ,'d'）+ 1)
+		  AND  (trunc(to_date(substr(A.OBJ_WEEK, 0, 10),'yyyy-mm-dd') ,'d') + 7 )
+		  </if>
+		  
+		  <if test="model.phase !=null and model.phase !='' ">
+		  AND A.PHASE  = #{model.phase}
+		  </if>
+		  
+		  <if test="null != model.pSupplier and '' != model.pSupplier and '1'.toString() == model.pSupplier" >
+			  AND A.P_SUPPLIER IS NOT NULL
+		  </if> 
+		  <if test="null != model.pSupplier and '' != model.pSupplier and '0'.toString() == model.pSupplier" >
+			  AND A.P_SUPPLIER IS NULL
+		  </if> 
+		  
+		 
+		  		                    
+		              GROUP BY A.PART_NO， A.FACTORY_CODE,
+		                       A.VERSION,
+		                       A.PHASE,
+		                       A.SUPPLIER_NO) W5
+		                       
+		    ON A.VERSION = W5.VERSION
+		   AND A.FACTORY_CODE = W5.FACTORY_CODE
+		   AND A.PART_NO = W5.PART_NO
+		   AND A.SUPPLIER_NO = W5.SUPPLIER_NO
+		   AND A.PHASE = W5.PHASE
+		   
+		   
+		   LEFT JOIN (SELECT SUM(A.ORDER_QTY) ORDER_QTY,
+		                    A.PART_NO,
+		                    max(a.plan_delivery),
+		                    A.FACTORY_CODE,
+		                    A.VERSION,
+		                    A.PHASE,
+		                    A.SUPPLIER_NO
+		               FROM MM_SW_DEMAND_FORECAST A
+		               LEFT JOIN MM_PUB_PART_UDA part
+					     ON A.PART_NO = part.PART_NO
+		               LEFT JOIN (select trunc(to_date(SUBSTR(MAX(A.OBJ_WEEK), 0, 10),'yyyy-mm-dd') ,'d') + 1 
+					  		FIRST_WEEK from MM_SW_DEMAND_FORECAST A ) B 
+			            ON 1=1
+                       WHERE A.FORE_TYPE = 2
+                       AND B.FIRST_WEEK + 35 &lt;=
+                           A.PLAN_DELIVERY
+                       AND B.FIRST_WEEK + 42 &gt;
+                           A.PLAN_DELIVERY
+                           
+		  <if test="null != model.userType and '4'.toString() == model.userType">
+		      <if test="null != model.userId and ''!= model.userId">
+		      	AND part.SUP_FACTORY IN (SELECT V.VALUE_CODE FROM VIEW_SYS_USER_DATA_PERM V 
+		      		WHERE V.USER_ID = #{model.userId} AND V.TYPE_CODE = 'SW_SUP_FACTORY')
+		      </if>
+	      </if>
+	      
+		  <if test="model.partNo !=null and model.partNo !='' ">
+		  AND A.PART_NO like CONCAT(#{model.partNo}, '%')
+		  </if>
+
+		  <if test="model.foreType !=null and model.foreType!='' ">
+		  AND A.FORE_TYPE =#{model.foreType}
+		  </if>
+		  <if test="model.supplierNo !=null and model.supplierNo!='' ">
+		  AND (A.SUPPLIER_NO = #{model.supplierNo}
+			  <if test="null != model.userType and '2'.toString() == model.userType">
+					  OR A.P_SUPPLIER = #{model.supplierNo}
+			  </if>)
+		  </if>
+
+		  <if test="model.releaseStatus !=null and model.releaseStatus!='' ">
+		  AND A.RELEASE_STATUS = #{model.releaseStatus}
+		  </if>
+		  <if test="model.feedbackStatus !=null and model.feedbackStatus!='' ">
+		  AND A.FEEDBACK_STATUS =#{model.feedbackStatus}
+		  </if>
+		  <if test="model.downloadStatus !=null and model.downloadStatus!='' ">
+		  AND A.DOWNLOAD_STATUS =#{model.downloadStatus}
+		  </if>
+		  
+		  <if test="model.version !=null and model.version !='' ">
+		  AND A.VERSION  = #{model.version}
+		  </if>
+		  
+		  <if test="model.logisticsMode !=null and model.logisticsMode !='' ">
+		  AND A.LOGISTICS_MODE = #{model.logisticsMode}
+		  </if>
+		  
+<!-- 		  <if test="model.publishWeek !=null and model.publishWeek !='' ">
+		  AND A.PUBLISH_WEEK  like CONCAT (#{model.publishWeek}, '%')
+		  </if>
+		  <if test="model.objWeek !=null and model.objWeek !='' ">
+		  AND A.OBJ_WEEK  like CONCAT (#{model.objWeek}, '%') 
+		  </if> -->
+		  
+		  <if test="model.publishWeek !=null and model.publishWeek !='' ">
+		  AND to_date(#{model.publishWeek},'yyyy-mm-dd') BETWEEN (trunc(to_date(substr(A.PUBLISH_WEEK, 0, 10),'yyyy-mm-dd') ,'d'）+ 1)
+		  AND (trunc(to_date(substr(A.PUBLISH_WEEK, 0, 10),'yyyy-mm-dd') ,'d') + 7 )
+		  </if>
+		  <if test="model.objWeek !=null and model.objWeek !='' ">
+		  AND TO_DATE(#{model.objWeek},'yyyy-mm-dd') between (trunc(to_date(substr(A.OBJ_WEEK, 0, 10),'yyyy-mm-dd') ,'d'）+ 1)
+		   
+		  AND  (trunc(to_date(substr(A.OBJ_WEEK, 0, 10),'yyyy-mm-dd') ,'d') + 7 )
+		  </if>
+		  
+		  <if test="model.phase !=null and model.phase !='' ">
+		  AND A.PHASE  = #{model.phase}
+		  </if>
+		  
+		  <if test="null != model.pSupplier and '' != model.pSupplier and '1'.toString() == model.pSupplier" >
+			  AND A.P_SUPPLIER IS NOT NULL
+		  </if> 
+		  <if test="null != model.pSupplier and '' != model.pSupplier and '0'.toString() == model.pSupplier" >
+			  AND A.P_SUPPLIER IS NULL
+		  </if> 
+		  
+		  
+		  		                    
+		              GROUP BY A.PART_NO， A.FACTORY_CODE,
+		                       A.VERSION,
+		                       A.PHASE,
+		                       A.SUPPLIER_NO) W6
+		                       
+		    ON A.VERSION = W6.VERSION
+		   AND A.FACTORY_CODE = W6.FACTORY_CODE
+		   AND A.PART_NO = W6.PART_NO
+		   AND A.SUPPLIER_NO = W6.SUPPLIER_NO
+		   AND A.PHASE = W6.PHASE
+		
+		  LEFT JOIN (select FACTORY_CODE,
+		                    PART_NO,
+		                    SUPPLIER_NO,
+		                    fore_type,
+		                    
+		                    ${daySqlC}
+		                    
+		                    VERSION,
+		                    SUP_FACTORY,
+		                    PHASE
+		               from (select SDF.FACTORY_CODE,
+		                            SDF.PART_NO,
+		                            SDF.SUPPLIER_NO,
+		                            PS.SUP_FACTORY,
+		                            SDF.PHASE,
+		                            fore_type,
+		                            VERSION,
+		                            TO_CHAR(SDF.PLAN_DELIVERY, 'YYYY-MM-DD') YEAR_MONTH_DAY,
+		                            sum(SDF.ORDER_QTY) MONTH_TTL
+		                       from MM_SW_DEMAND_FORECAST SDF
+		                       LEFT JOIN MM_PUB_SUPPLIER PS
+		                         ON SDF.SUPPLIER_NO = PS.SUPPLIER_NO
+							   LEFT JOIN MM_PUB_PART_UDA part
+							     ON SDF.PART_NO = part.PART_NO
+		                      where SDF.PLAN_DELIVERY between
+		                            to_date(#{startDateStr,jdbcType=VARCHAR}, 'yyyy-mm-dd') and
+		                            to_date(#{endDateStr,jdbcType=VARCHAR}, 'yyyy-mm-dd') 
+		                        and SDF.FORE_TYPE = '2'
+		                        
+		  <if test="null != model.userType and '4'.toString() == model.userType">
+		      <if test="null != model.userId and ''!= model.userId">
+		      	AND part.SUP_FACTORY IN (SELECT V.VALUE_CODE FROM VIEW_SYS_USER_DATA_PERM V 
+		      		WHERE V.USER_ID = #{model.userId} AND V.TYPE_CODE = 'SW_SUP_FACTORY')
+		      </if>
+	      </if>
+	      		                        
+		   <if test="model.partNo !=null and model.partNo !='' ">
+		  AND SDF.PART_NO like CONCAT(#{model.partNo}, '%')
+		  </if>
+
+		  <if test="model.foreType !=null and model.foreType!='' ">
+		  AND SDF.FORE_TYPE =#{model.foreType}
+		  </if>
+		  <if test="model.supplierNo !=null and model.supplierNo!='' ">
+		  AND (SDF.SUPPLIER_NO = #{model.supplierNo}
+			  <if test="null != model.userType and '2'.toString() == model.userType">
+					  OR SDF.P_SUPPLIER = #{model.supplierNo}
+			  </if>)
+		  </if>
+
+		  <if test="model.releaseStatus !=null and model.releaseStatus!='' ">
+		  AND SDF.RELEASE_STATUS = #{model.releaseStatus}
+		  </if>
+		  <if test="model.feedbackStatus !=null and model.feedbackStatus!='' ">
+		  AND SDF.FEEDBACK_STATUS =#{model.feedbackStatus}
+		  </if>
+		  <if test="model.downloadStatus !=null and model.downloadStatus!='' ">
+		  AND SDF.DOWNLOAD_STATUS =#{model.downloadStatus}
+		  </if>
+		  
+		  <if test="model.version !=null and model.version !='' ">
+		  AND SDF.VERSION  = #{model.version}
+		  </if>
+		  
+		  <if test="model.logisticsMode !=null and model.logisticsMode !='' ">
+		  AND SDF.LOGISTICS_MODE = #{model.logisticsMode}
+		  </if>
+		  
+<!-- 		  <if test="model.publishWeek !=null and model.publishWeek !='' ">
+		  AND SDF.PUBLISH_WEEK  like CONCAT (#{model.publishWeek}, '%')
+		  </if>
+		  <if test="model.objWeek !=null and model.objWeek !='' ">
+		  AND SDF.OBJ_WEEK  like CONCAT (#{model.objWeek}, '%') 
+		  </if> -->
+		  
+		  <if test="model.publishWeek !=null and model.publishWeek !='' ">
+		  AND to_date(#{model.publishWeek},'yyyy-mm-dd') BETWEEN (trunc(to_date(substr(A.PUBLISH_WEEK, 0, 10),'yyyy-mm-dd') ,'d'）+ 1)
+		  AND (trunc(to_date(substr(A.PUBLISH_WEEK, 0, 10),'yyyy-mm-dd') ,'d') + 7 )
+		  </if>
+		  <if test="model.objWeek !=null and model.objWeek !='' ">
+		  AND TO_DATE(#{model.objWeek},'yyyy-mm-dd') between (trunc(to_date(substr(A.OBJ_WEEK, 0, 10),'yyyy-mm-dd') ,'d'）+ 1)
+		  AND (trunc(to_date(substr(A.OBJ_WEEK, 0, 10),'yyyy-mm-dd') ,'d') + 7 )
+		  </if>
+		  
+		  <if test="model.phase !=null and model.phase !='' ">
+		  AND SDF.PHASE  = #{model.phase}
+		  </if>
+		  
+		  <if test="null != model.pSupplier and '' != model.pSupplier and '1'.toString() == model.pSupplier" >
+			  AND SDF.P_SUPPLIER IS NOT NULL
+		  </if> 
+		  <if test="null != model.pSupplier and '' != model.pSupplier and '0'.toString() == model.pSupplier" >
+			  AND SDF.P_SUPPLIER IS NULL
+		  </if> 
+		  
+		  		      		                     
+		                      group by SDF.FACTORY_CODE,
+		                               SDF.PART_NO,
+		                               SDF.SUPPLIER_NO,
+		                               PS.SUP_FACTORY,
+		                               SDF.PHASE,
+		                               fore_type,
+		                               VERSION,
+		                               TO_CHAR(SDF.PLAN_DELIVERY, 'YYYY-MM-DD'))
+		              group by FACTORY_CODE,
+		                       PART_NO,
+		                       SUPPLIER_NO,
+		                       SUP_FACTORY,
+		                       PHASE,
+		                       VERSION,
+		                       fore_type) C
+		                       
+		   ON A.VERSION = C.VERSION
+		   AND A.FACTORY_CODE = C.FACTORY_CODE
+		   AND A.PART_NO = C.PART_NO
+		   AND A.SUPPLIER_NO = C.SUPPLIER_NO
+		   AND A.PHASE = C.PHASE
+		
+		  left join mm_pub_part_uda part
+		    on part.part_no = A.part_no
+		  left join mm_pub_supplier sup
+		    on sup.supplier_no = a.supplier_no
+		  left join mm_pub_data_dict pd
+		    on A.PHASE = pd.code_value
+		   and pd.code_type = 'SW_PHASE'
+		  left join mm_pub_data_dict dd
+		    on A.DOWNLOAD_STATUS = dd.code_value
+		   and dd.code_type = 'PUP_DOWNLOAD_STATUS'
+		  LEFT JOIN MM_PUB_DATA_DICT MP
+		    ON A.LOGISTICS_MODE = MP.CODE_VALUE
+		   AND MP.CODE_TYPE = 'PUB_MM_MODEL'
+		  LEFT JOIN MM_PUB_DATA_DICT PDD
+		    ON A.FEEDBACK_STATUS = PDD.CODE_VALUE
+		   AND PDD.CODE_TYPE = 'SW_FEEDBACK_STATUS'
+		  LEFT JOIN MM_PUB_DATA_DICT MDD
+		    ON A.RELEASE_STATUS = MDD.CODE_VALUE
+		   AND MDD.CODE_TYPE = 'SW_RELEASE_STATUS'
+		
+		 where A.FORE_TYPE = '2'
+		 
+		  <!-- 数据权限 -->
+	      <if test="null != model.userType and '4'.toString() == model.userType">
+		      <if test="null != model.userId and ''!= model.userId">
+		      	AND part.SUP_FACTORY IN (SELECT V.VALUE_CODE FROM VIEW_SYS_USER_DATA_PERM V 
+		      		WHERE V.USER_ID = #{model.userId} AND V.TYPE_CODE = 'SW_SUP_FACTORY')
+		      </if>
+	      </if>
+	      
+		  <if test="model.partNo !=null and model.partNo !='' ">
+		  AND A.PART_NO like CONCAT(#{model.partNo}, '%')
+		  </if>
+		  <if test="model.partShortNo !=null and model.partShortNo !='' ">
+		  AND PART.PART_SHORT_NO =#{model.partShortNo}
+		  </if>
+		  
+		  <if test="model.foreType !=null and model.foreType!='' ">
+		  AND A.FORE_TYPE =#{model.foreType}
+		  </if>
+		  <if test="model.supplierNo !=null and model.supplierNo!='' ">
+		  AND (A.SUPPLIER_NO = #{model.supplierNo}
+			  <if test="null != model.userType and '2'.toString() == model.userType">
+					  OR A.P_SUPPLIER = #{model.supplierNo}
+			  </if>)
+		  </if>
+
+		  <if test="model.supFactory != null and '' != model.supFactory">
+			AND part.SUP_FACTORY = #{model.supFactory}
+		  </if>
+		  <if test="model.releaseStatus !=null and model.releaseStatus!='' ">
+		  AND A.RELEASE_STATUS = #{model.releaseStatus}
+		  </if>
+		  <if test="model.feedbackStatus !=null and model.feedbackStatus!='' ">
+		  AND A.FEEDBACK_STATUS =#{model.feedbackStatus}
+		  </if>
+		  <if test="model.downloadStatus !=null and model.downloadStatus!='' ">
+		  AND A.DOWNLOAD_STATUS =#{model.downloadStatus}
+		  </if>
+		  
+		  <if test="model.version !=null and model.version !='' ">
+		  AND A.VERSION  = #{model.version}
+		  </if>
+		  
+		  <if test="model.logisticsMode !=null and model.logisticsMode !='' ">
+		  AND A.LOGISTICS_MODE = #{model.logisticsMode}
+		  </if>
+		  
+<!-- 		  <if test="model.publishWeek !=null and model.publishWeek !='' ">
+		  AND A.PUBLISH_WEEK  like CONCAT (#{model.publishWeek}, '%')
+		  </if>
+		  <if test="model.objWeek !=null and model.objWeek !='' ">
+		  AND A.OBJ_WEEK  like CONCAT (#{model.objWeek}, '%') 
+		  </if> -->
+		  
+		  <if test="model.publishWeek !=null and model.publishWeek !='' ">
+		  AND to_date(#{model.publishWeek},'yyyy-mm-dd') BETWEEN (trunc(to_date(substr(A.PUBLISH_WEEK, 0, 10),'yyyy-mm-dd') ,'d'）+ 1)
+		  AND (trunc(to_date(substr(A.PUBLISH_WEEK, 0, 10),'yyyy-mm-dd') ,'d') + 7 )
+		  </if>
+		  <if test="model.objWeek !=null and model.objWeek !='' ">
+		  AND TO_DATE(#{model.objWeek},'yyyy-mm-dd') between (trunc(to_date(substr(A.OBJ_WEEK, 0, 10),'yyyy-mm-dd') ,'d'）+ 1)
+		   
+		  AND  (trunc(to_date(substr(A.OBJ_WEEK, 0, 10),'yyyy-mm-dd') ,'d') + 7 )
+		  </if>
+		  
+		  <if test="model.phase !=null and model.phase !='' ">
+		  AND A.PHASE  = #{model.phase}
+		  </if>
+		  
+		  <if test="null != model.pSupplier and '' != model.pSupplier and '1'.toString() == model.pSupplier" >
+			  AND A.P_SUPPLIER IS NOT NULL
+		  </if> 
+		  <if test="null != model.pSupplier and '' != model.pSupplier and '0'.toString() == model.pSupplier" >
+			  AND A.P_SUPPLIER IS NULL
+		  </if> 
+		  
+		  
+		 GROUP BY A.VERSION,
+		          A.FORE_TYPE,
+		          A.PHASE,
+		          A.UNLOAD_PORT,
+		          A.PART_NO,
+		          A.SUPPLIER_NO,
+		          A.MODEL_CODE,
+		          A.LOGISTICS_MODE,
+		          A.FACTORY_CODE,
+		          A.OBJ_WEEK,
+		          W1.ORDER_QTY,
+		          W2.ORDER_QTY,
+		          W3.ORDER_QTY,
+		          W4.ORDER_QTY,
+		          W5.ORDER_QTY,
+		          W6.ORDER_QTY,
+		           ${daySql} 
+		           
+		          A.PUBLISH_WEEK
+		        ORDER BY  A.VERSION DESC, A.SUPPLIER_NO, A.PART_NO
+
+	</select>
+	
+	<!-- 查询出周预测中最小的日期和最大日期 -->
+	<select id="getMinAndMaxDate" parameterType="java.util.Map"  resultType="com.hanthink.sw.model.SwDemandForecastModel">
+	   SELECT MIN(A.PLAN_DELIVERY) minDate,MAX(A.PLAN_DELIVERY) maxDate FROM MM_SW_DEMAND_FORECAST A WHERE A.VERSION = #{version,jdbcType=VARCHAR}
+	</select>
+</mapper>

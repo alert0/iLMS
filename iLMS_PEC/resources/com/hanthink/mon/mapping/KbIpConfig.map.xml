@@ -1,0 +1,363 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.mon.model.KbIpConfigModel">
+	
+	<insert id="saveBasicKbInfo" parameterType="com.hanthink.mon.model.KbIpConfigModel">
+	   INSERT INTO MM_KB_IP_CONFIG
+				  (ID,
+				   KB_ID,
+				   FACTORY_CODE,
+				   KB_TYPE,
+				   KB_IP,
+				   MBPS_COMB,
+				   CREATION_USER,
+				   CREATION_TIME,
+				   ADDR_BINDING)
+				VALUES
+				  (#{id,jdbcType=VARCHAR},
+				   #{kbId,jdbcType=VARCHAR},
+				   #{factoryCode,jdbcType=VARCHAR},
+				   #{kbType,jdbcType=VARCHAR},
+				   #{kbIp,jdbcType=VARCHAR},
+				   #{combIp,jdbcType=VARCHAR},
+				   #{creationUser,jdbcType=VARCHAR},
+				   sysdate,
+				   #{bindingAddr})
+	</insert>
+	<insert id="saveDetailInfo" parameterType="com.hanthink.mon.model.KbIpConfigModel">
+	   INSERT INTO MM_KB_IP_CONFIG_DETAIL
+				  (ID,
+				   BUSS_ID,
+				   REQ_PARAMETER,
+				   IS_EDIT,
+				   CREATION_USER,
+				   CREATION_TIME)
+				VALUES
+				  (#{bussId,jdbcType=VARCHAR},
+				   #{id,jdbcType=VARCHAR},
+				   #{reqParam,jdbcType=VARCHAR},
+				   #{isEdit,jdbcType=VARCHAR},
+				   #{creationUser,jdbcType=VARCHAR},
+				   sysdate)
+	</insert>
+	
+	<select id="getCurrBussId" resultType="java.lang.Integer">
+		SELECT SEQ_MM_KB_IP_CONFIG.NEXTVAL FROM DUAL
+	</select>
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="queryKbIpConfigForPage" parameterType="com.hanthink.mon.model.KbIpConfigModel" resultType="com.hanthink.mon.model.KbIpConfigModel">
+		<if test="'JIT' == kbType or 'JISO' == kbType">
+			SELECT MKI.ID id, MKI.KB_TYPE kbType, '工程'  paramName, TO_CHAR(MKI.DISTRI_PERSON) paramValue
+			  FROM MM_KB_IP_CONFIG MKI
+			 WHERE MKI.ID = #{id}
+			UNION ALL
+			SELECT MKI.ID id, MKI.KB_TYPE kbType, '出发进度'  paramName, TO_CHAR(MKI.RUN_PROCESS_NO) paramValue
+			  FROM MM_KB_IP_CONFIG MKI
+			 WHERE MKI.ID = #{id}
+			UNION ALL
+			SELECT MKI.ID id, MKI.KB_TYPE kbType, '允许延迟'  paramName, TO_CHAR(MKI.LIMIT_DELAY) paramValue
+			  FROM MM_KB_IP_CONFIG MKI
+			 WHERE MKI.ID = #{id}
+		</if>
+		<if test="'STATION' == kbType">
+			SELECT MKI.ID id, MKI.KB_TYPE kbType, '站台'  paramName, TO_CHAR(MKI.STATION_CODE) paramValue
+			  FROM MM_KB_IP_CONFIG MKI
+			 WHERE MKI.ID = #{id}
+			UNION ALL
+			SELECT MKI.ID id, MKI.KB_TYPE kbType, '网口IP'  paramName, TO_CHAR(MKI.MBPS_COMB) paramValue
+			  FROM MM_KB_IP_CONFIG MKI
+			 WHERE MKI.ID = #{id}
+		</if>
+		<if test="'JITINS' == kbType">
+			SELECT MKI.ID id, MKI.KB_TYPE kbType, '偏移进度'  paramName, TO_CHAR(NVL(MKI.SHIT_SCHEDULE,0)) paramValue
+				FROM MM_KB_IP_CONFIG MKI
+			 WHERE MKI.ID = #{id}
+		</if>
+		<if test="'PARTINS' == kbType or 'SPARE' == kbType">
+			SELECT 1 FROM DUAL
+		</if>
+	</select>
+	
+	<select id="queryKbList" parameterType="java.lang.String" resultType="com.hanthink.mon.model.KbIpConfigModel">
+		SELECT DISTINCT MMK.ID kbCode,MMK.KB_NAME kbName FROM MM_MON_KB MMK WHERE MMK.FACTORY_CODE = #{factoryCode}
+	</select>
+	
+	<!-- 修改方法 -->
+	<update id="update" parameterType="com.hanthink.mon.model.KbIpConfigModel">
+		UPDATE MM_KB_IP_CONFIG
+		   SET KB_IP = #{kbIp,jdbcType=VARCHAR},
+		   	   KB_TYPE = #{kbType,jdbcType=VARCHAR},
+		   	   KB_ID = #{kbId,jdbcType=VARCHAR},
+		   	   ADDR_BINDING = #{bindingAddr,jdbcType=VARCHAR},
+		       LAST_MODIFIED_TIME = sysdate,
+		       LAST_MODIFIED_USER = #{lastModifiedUser,jdbcType=VARCHAR},
+		       LAST_MODIFIED_IP = #{lastModifiedIp,jdbcType=VARCHAR}
+		 WHERE ID=#{id}
+	</update>
+	
+	<!-- 修改明细方法 -->
+	<update id="updateDetail" parameterType="com.hanthink.mon.model.KbIpConfigModel">
+		UPDATE MM_KB_IP_CONFIG_DETAIL
+		   SET REQ_PARAMETER = #{reqParam,jdbcType=VARCHAR},
+		       IS_EDIT = #{isEdit,jdbcType=VARCHAR},
+		       LAST_MODIFIED_TIME = sysdate,
+		       LAST_MODIFIED_USER = #{lastModifiedUser,jdbcType=VARCHAR},
+		       LAST_MODIFIED_IP = #{lastModifiedIp,jdbcType=VARCHAR}
+		 WHERE ID = #{bussId}
+	</update>
+	
+	<!-- 单条/批量数据删除 -->
+	<delete id="deleteByIds" parameterType="java.lang.String">
+		DELETE FROM MM_KB_IP_CONFIG
+		WHERE ID IN
+		<foreach item="aryIds" collection="array" open="(" separator="," close=")">
+			#{aryIds,jdbcType=VARCHAR}
+		</foreach>
+	</delete>
+	
+	<!-- 单条/批量数据删除明细-->
+	<delete id="deleteByIdsDetail" parameterType="java.lang.String">
+		DELETE FROM MM_KB_IP_CONFIG_DETAIL
+		WHERE BUSS_ID IN
+		<foreach item="aryIds" collection="array" open="(" separator="," close=")">
+			#{aryIds,jdbcType=VARCHAR}
+		</foreach>
+	</delete>
+	
+	<!-- 批量导入数据写入到临时表 -->
+	<insert id="insertKbIpConfigImportTempData" parameterType="java.util.List">
+		INSERT INTO  MM_MP_RESIDUAL_IMP
+		(FACTORY_CODE,PART_NO,SUPPLIER_NO,SUP_FACTORY,
+		UNLOAD_PORT,ADJ_RESIDUAL,IMP_UUID,CHECK_RESULT,CHECK_INFO,IMPORT_STATUS,PK_ID)
+		<foreach collection="list" item="item" index="index" separator=" UNION ALL ">
+			SELECT 
+			 #{item.factoryCode,jdbcType=VARCHAR},
+			 #{item.partNo,jdbcType=VARCHAR},
+			 #{item.supplierNo,jdbcType=VARCHAR},
+			 #{item.supFactory,jdbcType=VARCHAR}, 
+			 #{item.unloadPort,jdbcType=VARCHAR},
+			 #{item.manuResidual,jdbcType=NUMERIC},
+			 #{item.uuid,jdbcType=VARCHAR}, 
+			 #{item.checkResult,jdbcType=VARCHAR}, 
+			 #{item.checkInfo,jdbcType=VARCHAR}, 
+			 #{item.importStatus,jdbcType=VARCHAR} ,
+			 PKG_PUB.USF_GET_SEQUENCE('SEQ_IMPORT_DATA_TEMP')
+			FROM DUAL 
+    	</foreach>
+	</insert>
+	
+	<!-- 检查导入临时表数据 -->
+	<parameterMap type="map" id="impCkParamMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="userName" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<select id="checkKbIpConfigImportData" parameterMap="impCkParamMap" statementType="CALLABLE">
+		{CALL PKG_MP_CHECK.USP_MP_RESIDUAL_CHECK(?, ?, ?,  ?,?)}
+	</select>
+	
+	<!-- 查询临时表数据 -->
+	<select id="queryKbIpConfigImportTempData" parameterType="java.util.Map" resultType="com.hanthink.mon.model.KbIpConfigModel">
+			  SELECT A.BUSI_ID busiId, 
+				     A.FACTORY_CODE factoryCode, 
+				     A.PART_NO partNo, 
+				     A.SUPPLIER_NO supplierNo,
+				     A.SUP_FACTORY supFactory, 
+				     A.UNLOAD_PORT unloadPort,
+				     A.ADJ_RESIDUAL adjResidual,
+				     A.CREATION_USER creationUser,
+				     A.CREATION_TIME creationTime,
+				     A.IMP_UUID uuid, 
+				     A.CHECK_RESULT checkResult,
+				     A.CHECK_INFO checkInfo, 
+				     A.IMPORT_STATUS importStatus,
+				     E.CODE_VALUE_NAME codeValueNameE,
+		             F.CODE_VALUE_NAME codeValueNameF
+				     FROM MM_MP_RESIDUAL_IMP A
+				     LEFT JOIN MM_PUB_DATA_DICT E
+				     ON A.CHECK_RESULT = E.CODE_VALUE
+				     AND E.CODE_TYPE ='PUB_IMP_CK_RESULT'
+				     AND E.FACTORY_CODE = A.FACTORY_CODE
+				     LEFT JOIN MM_PUB_DATA_DICT F
+				     ON A.IMPORT_STATUS = F.CODE_VALUE
+				     AND F.CODE_TYPE ='PUB_IMP_STATUS'
+				     AND F.FACTORY_CODE = A.FACTORY_CODE
+					 WHERE A.IMP_UUID = #{uuid,jdbcType=VARCHAR}
+	</select>
+
+	<!-- 导入临时数据写入到正式表 -->
+	<insert id="insertKbIpConfigImportData" parameterType="java.util.Map" >
+		INSERT INTO MM_MP_RESIDUAL 
+		(ID,
+		FACTORY_CODE, 
+		PART_NO, 
+		SUPPLIER_NO, 
+		SUP_FACTORY, 
+		UNLOAD_PORT,
+		MANU_RESIDUAL,
+		CREATION_USER,
+		CREATION_TIME)
+		(SELECT  
+		PK_ID,
+		FACTORY_CODE, 
+		PART_NO, 
+		SUPPLIER_NO, 
+		SUP_FACTORY, 
+		UNLOAD_PORT,
+		ADJ_RESIDUAL,
+		CREATION_USER,
+		CREATION_TIME
+		FROM MM_MP_RESIDUAL_IMP
+		WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		  AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+		  AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR}
+		  AND OPE_TYPE = 'I')
+	</insert>
+	
+	<!-- 更新临时表数据导入状态 -->
+	<update id="updateKbIpConfigImportDataImpStatus" parameterType="java.util.Map">
+		UPDATE MM_MP_RESIDUAL_IMP SET IMPORT_STATUS = #{IMPORT_STATUS_YES,jdbcType=VARCHAR} 
+		WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		  AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+		  AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR} 
+	</update>
+	
+	<!-- 根据UUID删除导入的临时数据 -->
+	<delete id="deleteKbIpConfigImportTempDataByUUID" parameterType="java.lang.String">
+		DELETE FROM MM_MP_RESIDUAL_IMP WHERE IMP_UUID = #{value,jdbcType=VARCHAR}
+	</delete>
+	
+	<!-- 拿出ID,查询哪些数据需要修改 -->
+	<select id="queryUpdateDataFromKbIpConfigImp" parameterType="java.util.Map" resultType="java.lang.String">
+		SELECT A.BUSI_ID  busiId
+		  FROM MM_MP_RESIDUAL_IMP A
+		 WHERE A.OPE_TYPE = 'U'
+		   AND A.IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR} 
+		   AND A.IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		   AND A.CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+	</select>
+
+    <!-- 更新导入的方法 -->
+	<update id="updateKbIpConfigImportData" parameterType="java.util.Map" >
+		  UPDATE MM_MP_RESIDUAL A  SET 
+		  (A.MANU_RESIDUAL, 
+		  A.LAST_MODIFIED_USER, 
+		  A.LAST_MODIFIED_TIME) =
+		  (SELECT B.ADJ_RESIDUAL, 
+		  B.CREATION_USER, 
+		  sysdate
+		  FROM MM_MP_RESIDUAL_IMP B
+		  WHERE B.IMP_UUID = #{uuid,jdbcType = VARCHAR} 
+		  AND B.CHECK_RESULT =#{checkResult,jdbcType = VARCHAR}
+		  AND B.IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}
+		  AND B.OPE_TYPE = 'U'
+		  AND B.BUSI_ID = A.ID)
+	</update>
+	
+	<!-- 查询临时表中的数据是否可以导入 -->
+	<select id="queryKbIpConfigIsImportFlag" parameterType="java.lang.String" resultType="java.lang.String">
+		WITH TEMPA AS
+		 (SELECT COUNT(1) s
+		    FROM MM_MP_RESIDUAL_IMP A
+		   WHERE A.CHECK_RESULT = 0
+		     AND A.IMP_UUID = #{VALUE}),
+		TEMPB AS
+		 (SELECT COUNT(1) S
+		    FROM MM_MP_RESIDUAL_IMP B
+		   WHERE B.IMP_UUID = #{VALUE})
+		SELECT CASE
+		         WHEN A.S >= B.S THEN
+		          0
+		         ELSE
+		          1
+		       END AS FLAG
+		  FROM TEMPA A, TEMPB B
+	</select>
+	
+	<!-- 查询可导入数据 -->
+	<select id="queryForInsertList" parameterType="java.util.Map" resultType="com.hanthink.mon.model.KbIpConfigModel">
+	   SELECT A.BUSI_ID    busiId,
+              A.FACTORY_CODE   factoryCode,
+              A.PART_NO   partNo,
+              A.SUPPLIER_NO  supplierNo,
+              A.SUP_FACTORY  supFactory,
+              A.UNLOAD_PORT  unloadPort,
+              A.ADJ_RESIDUAL  adjResidual,
+              A.CREATION_USER  creationUser,
+              TO_CHAR(A.CREATION_TIME,'yyyy-MM-dd HH:mi:ss')  creationTimeStr,
+              A.IMP_UUID  impUuid,
+              A.CHECK_RESULT  checkResult,
+              A.CHECK_INFO  checkInfo,
+              A.IMPORT_STATUS  importStatus,
+              A.OPE_TYPE opeType,
+              A.PK_ID  pkId
+         FROM MM_MP_RESIDUAL_IMP A
+		WHERE A.IMP_UUID = #{uuid,jdbcType = VARCHAR}
+		  AND A.IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}
+		  AND A.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+	</select>
+	
+	<!-- 判断主键冲突 -->
+	<select id="selectPrimaryKey" parameterType="com.hanthink.mon.model.KbIpConfigModel" resultType="java.lang.Integer">
+      SELECT COUNT(*)
+		FROM MM_KB_IP_CONFIG A
+	   WHERE A.FACTORY_CODE = #{factoryCode,jdbcType = VARCHAR}
+		 AND A.KB_TYPE = #{kbType,jdbcType = VARCHAR}
+	     AND A.KB_IP = #{kbIp,jdbcType = VARCHAR}
+	</select>
+	
+	<!-- 判断主键冲突 -->
+	<select id="selectPrimaryKeyDetail" parameterType="com.hanthink.mon.model.KbIpConfigModel" resultType="java.lang.Integer">
+      SELECT COUNT(*)
+		FROM MM_KB_IP_CONFIG_DETAIL A
+	   WHERE 1=1
+		 AND A.REQ_PARAMETER = #{reqParam,jdbcType = VARCHAR}
+	</select>
+	
+	<select id="queryKbTypeForPage" parameterType="com.hanthink.mon.model.KbIpConfigModel" resultType="com.hanthink.mon.model.KbIpConfigModel">
+		SELECT MKI.ID id, MKI.KB_ID kbId, 
+			   MKI.KB_IP kbIp, MKI.KB_TYPE kbType, 
+			   MKI.KB_ID kbName,
+			   MKI.WORK_CENTER workCenter,
+			   MKI.ADDR_BINDING bindingAddr
+		  FROM MM_KB_IP_CONFIG MKI
+		WHERE MKI.FACTORY_CODE = #{factoryCode}
+		<if test="null != kbType and '' != kbType">
+			AND MKI.KB_TYPE = #{kbType}	
+		</if>
+		ORDER BY MKI.WORK_CENTER,MKI.KB_IP
+	</select>
+	
+	<select id="queryForMaxSortNum" parameterType="com.hanthink.mon.model.KbIpConfigModel" resultType="java.lang.Boolean">
+		SELECT COUNT(1)
+		  FROM MM_KB_IP_CONFIG A
+		 WHERE A.FACTORY_CODE = #{factoryCode}
+		   AND A.KB_IP = #{kbIp}
+	</select>
+	
+	<select id="getNextIdNum" parameterType="java.util.Map" resultType="java.lang.String">
+		SELECT ${seqName}.NEXTVAL FROM DUAL
+	</select>
+	
+	<select id="combIpIsInusedJudge" parameterType="java.lang.String" resultType="java.lang.Boolean">
+		SELECT CASE
+	         WHEN (SELECT COUNT(1)
+	                 FROM MM_KB_IP_CONFIG A
+	                WHERE A.KB_IP = #{combIp}) >= 1 THEN
+	          1
+	         WHEN (SELECT COUNT(1)
+	                 FROM MM_KB_IP_CONFIG A
+	                WHERE A.MBPS_COMB = #{combIp}
+	                AND A.ID != #{id}) >= 1 THEN
+	          1
+	         ELSE
+	          0
+	       END AS RES
+  		FROM DUAL
+	</select>
+	<update id="updateKbConfigData" parameterType="java.util.Map">
+		${updateSQL}
+	</update>
+</mapper>

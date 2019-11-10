@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+<title>SmartWorkESB</title>
+<link href="../zui/css/zui.min.css?v=1.0" rel="stylesheet">
+<style type="text/css">
+.alert {
+    margin:0 auto; 
+    margin-top: 50px;
+}
+
+.alert.with-icon {
+    width: 400px;
+}
+
+.content {
+    position: relative;
+}
+
+button {
+    position: absolute;
+    left: 200px;
+    top: 13px;
+}
+</style>
+
+<script type="text/javascript">
+function back() {
+	parent.window.location = '../index.html';
+}
+</script>
+</head>
+<body>
+
+  <div class="alert alert-warning-inverse with-icon">
+    <i class="icon-warning-sign"></i>
+    <div class="content">
+      <h3>会话失效，请重新登录。</h3>
+      <button class="btn" type="button" onclick="back()">重新登录</button>
+    </div>
+  </div>
+
+  <script src="../zui/lib/jquery/jquery.js?v=1.0"></script>
+  <script src="../zui/js/zui.min.js?v=1.0"></script>
+</body>
+</html>

@@ -1,0 +1,476 @@
+package com.hanthink.sw.controller;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.ibatis.session.RowBounds;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.google.common.base.Joiner;
+import com.hanthink.business.util.MakeQrcodeImages;
+import com.hanthink.pub.manager.PubDataDictManager;
+import com.hanthink.pub.model.PubFactoryInfoModel;
+import com.hanthink.pub.model.PubPrintOrderModel;
+import com.hanthink.sw.manager.SwZGJOrderManager;
+import com.hanthink.sw.model.SwZGJOrderModel;
+import com.hanthink.util.excel.ExcelUtil;
+import com.hanthink.util.print.PrintOrderUtil;
+import com.hotent.base.api.model.ResultMessage;
+import com.hotent.base.core.util.BeanUtils;
+import com.hotent.base.core.util.FileUtil;
+import com.hotent.base.core.web.GenericController;
+import com.hotent.base.core.web.RequestUtil;
+import com.hotent.base.db.mybatis.domain.DefaultPage;
+import com.hotent.base.db.mybatis.domain.PageJson;
+import com.hotent.base.db.mybatis.domain.PageList;
+import com.hotent.org.api.model.IUser;
+import com.hotent.sys.util.ContextUtil;
+import com.hotent.sys.util.SysPropertyUtil;
+import com.mysql.jdbc.StringUtils;
+
+import net.sf.jasperreports.engine.JRDataSource;
+import net.sf.jasperreports.engine.JREmptyDataSource;
+import net.sf.jasperreports.engine.JRExporterParameter;
+import net.sf.jasperreports.engine.JasperFillManager;
+import net.sf.jasperreports.engine.JasperPrint;
+import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
+import net.sf.jasperreports.engine.export.JRPdfExporter;
+
+/**
+ * @ClassName: SwZGJOrderController
+ * @Description: 支给件订单查询
+ * @author dtp
+ * @date 2019年3月22日
+ */
+@Controller
+@RequestMapping("/sw/swZGJOrder")
+public class SwZGJOrderController extends GenericController{
+	
+	private static Logger log = LoggerFactory.getLogger(SwZGJOrderController.class);
+	
+	@Resource
+	private SwZGJOrderManager swZGJOrderManager;
+	@Resource
+	private PubDataDictManager pubDataDictManager;
+	
+	/**
+	 * @Description: 查询支给件订单 
+	 * @param: @param request
+	 * @param: @param response
+	 * @param: @param model
+	 * @param: @return    
+	 * @return: PageJson   
+	 * @author: dtp
+	 * @date: 2019年3月22日
+	 */
+	@RequestMapping("queryZGJOrderPage")
+	public @ResponseBody PageJson queryZGJOrderPage(HttpServletRequest request,HttpServletResponse response, 
+			@ModelAttribute("model") SwZGJOrderModel model) {
+		model.setFactoryCode(ContextUtil.getCurrentUser().getCurFactoryCode());
+		model.setSupplierNoAuth(ContextUtil.getCurrentUser().getSupplierNo());
+		DefaultPage page=new DefaultPage(new RowBounds(getQueryFilter(request).getPage().getStartIndex(), 
+				getQueryFilter(request).getPage().getPageSize()));
+		PageList<SwZGJOrderModel> pageList = swZGJOrderManager.queryZGJOrderPage(model, page);
+		return new PageJson(pageList);
+		
+	}
+	
+	/**
+	 * @Description: 选择导出 
+	 * @param: @param request
+	 * @param: @param response
+	 * @param: @param model    
+	 * @return: void   
+	 * @author: dtp
+	 * @date: 2019年3月22日
+	 */
+	@RequestMapping("selectDownloadZGJOrder")
+	public void selectDownloadZGJOrder(HttpServletRequest request,HttpServletResponse response,
+			@ModelAttribute("model") SwZGJOrderModel model) {
+		String orderNoStr = RequestUtil.getString(request, "orderNoStr");
+		model.setOrderNoStr(orderNoStr);
+		model.setFactoryCode(ContextUtil.getCurrentUser().getCurFactoryCode());
+		model.setUserId(ContextUtil.getCurrentUser().getUserId());
+		model.setUserType(ContextUtil.getCurrentUser().getUserType());
+		model.setSupplierNoAuth(ContextUtil.getCurrentUser().getSupplierNo());
+		String exportFileName = "支给件订单" + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+		List<SwZGJOrderModel> list = swZGJOrderManager.querySelectZGJOrderList(model);
+		int curNum = list.size();
+		if(0 == curNum){
+			ExcelUtil.exportNoDataError(request, response);
+			return;
+		}
+		int sysMaxNum = SysPropertyUtil.getIntByAlias("EXCEL_EXPORT_MAX_SIZE", 10000);
+		if(curNum > sysMaxNum){
+			ExcelUtil.exportNumError(sysMaxNum, request, response);
+			return;
+		}
+		if(null != list) {
+			List<String> orderNoList = new ArrayList<String>();
+			for (SwZGJOrderModel li : list) {
+				orderNoList.add(li.getOrderNo());
+			}
+			String orderNoStr_2 = Joiner.on(",").join(orderNoList);
+			model.setOrderNoStr(orderNoStr_2);
+			//更新下载状态
+			if(!StringUtils.isNullOrEmpty(model.getOrderNoStr())) {
+				swZGJOrderManager.updateDownloadStatus(model);
+			}
+			String[] headers = {"供应商代码", "供应商名称", "物流单号", "订购日期",
+					"到货日期","总成厂编码", "采购单号", "订单行号",
+					"零件号", "零件名称", "零件简号", "收容数",
+					"订购数量", "箱数", "收货数量", "收货状态"};
+			String[] columns = {"supplierNo", "supplierName", "orderNo", "orderDate", 
+					"arriveDate", "depotNo","purchaseNo", "purchaseRowNo",
+					"partNo", "partName","partShortNo", "standardPackage", 
+					"orderQty" ,"xs", "arriveNum", "receiveStatusDesc"};
+			int[] widths = {80, 120, 100, 100,
+					100, 80, 100, 80,
+					100, 120, 80, 80,
+					80, 80, 80, 80};
+			if(curNum <= sysMaxNum) {
+				ExcelUtil.exportExcel(ExcelUtil.EXCEL_XLSX, request, response, exportFileName, list, headers, widths, columns);
+			}else {
+				//ExcelExportUtil.exportExcel(ExcelUtil.EXCEL_XLSX, request, response, exportFileName, list, headers, widths, columns);
+			}
+		}
+		
+	}
+	
+	/**
+	 * @Description: 订单打印(A4)  
+	 * @param: @param request
+	 * @param: @param response
+	 * @param: @throws IOException    
+	 * @return: void   
+	 * @author: dtp
+	 * @date: 2019年3月25日
+	 */
+	@RequestMapping("swZGJOrderPrintA4")
+	public void swZGJOrderPrintA4 (HttpServletRequest request,HttpServletResponse response) throws IOException{
+		String orderNoStr = RequestUtil.getString(request, "orderNoStr");
+		String[] orderNoArr = orderNoStr.split(",");
+		if(null != orderNoArr && orderNoArr.length > 0) {
+			//打印N张
+			List<JasperPrint> JasperPrintList = new ArrayList<JasperPrint>();
+			//更新打印状态list
+			List<SwZGJOrderModel> list_printInfo = new ArrayList<SwZGJOrderModel>();
+			try {
+				for (int i = 0; i < orderNoArr.length; i++) {
+					SwZGJOrderModel model_q = new SwZGJOrderModel();
+					//生成多个InputStream file,防止抛异常
+					String filenurl = FileUtil.getClassesPath() + File.separator + "template" 
+							+ File.separator +"ireport" + File.separator + "zgj" + File.separator + "PR_ORDER.jasper";
+					InputStream file = new FileInputStream(filenurl);
+					model_q.setOrderNo(orderNoArr[i]);
+					model_q.setFactoryCode(ContextUtil.getCurrentUser().getCurFactoryCode());
+					model_q.setPrintUser(ContextUtil.getCurrentUser().getAccount());
+					model_q.setPrintUserIp(RequestUtil.getIpAddr(request));
+					//查询订单打印明细
+					List<PubPrintOrderModel> detailList = swZGJOrderManager.queryZGJOrderPrintDetailList(model_q);
+					//更新打印状态list
+					list_printInfo.add(model_q); 
+					//工厂名称
+					String factoryName = pubDataDictManager.queryDataDictCodeValueName("PUB_FACTORY_NAME", "2000");
+					//订单类型 
+					String orderType = pubDataDictManager.queryDataDictCodeValueName("PUB_ORDER_TYPE", "ZGJ");
+					PubFactoryInfoModel paramModel = new PubFactoryInfoModel();
+					paramModel.setFactoryName(factoryName);
+					paramModel.setOrderType(orderType);
+					JasperPrint jasperPrint = PrintOrderUtil.getJasPerPrintUtil(detailList, file, paramModel);
+					if(null != jasperPrint) {
+						JasperPrintList.add(jasperPrint); 
+					}  
+					PrintOrderUtil.exportReportOrderUtil(response, JasperPrintList);
+					swZGJOrderManager.updatePrintInfo(list_printInfo);
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+				log.error(e.toString()); 
+				String resultMsg="打印失败";
+				writeResultMessage(response.getWriter(),resultMsg,e.getMessage(),ResultMessage.FAIL);
+			}
+		}
+	}
+	
+	/**
+	 * @Description: 订单打印 
+	 * @param: @param request
+	 * @param: @param response
+	 * @param: @throws IOException    
+	 * @return: void   
+	 * @author: dtp
+	 * @date: 2019年3月22日
+	 */
+	@RequestMapping("swZGJOrderPrint")
+	public void swZGJOrderPrint (HttpServletRequest request,HttpServletResponse response) throws IOException{
+		String orderNoStr = RequestUtil.getString(request, "orderNoStr");
+		String[] orderNoArr = orderNoStr.split(",");
+		if(null != orderNoArr && orderNoArr.length > 0) {
+			//打印N张
+			List<JasperPrint> JasperPrintList = new ArrayList<JasperPrint>();
+			//更新打印状态list
+			List<SwZGJOrderModel> list_printInfo = new ArrayList<SwZGJOrderModel>();
+			try {
+				for (int i = 0; i < orderNoArr.length; i++) {
+					SwZGJOrderModel model_q = new SwZGJOrderModel();
+					//生成多个InputStream file,防止抛异常
+					String filenurl = FileUtil.getClassesPath() + File.separator + "template" 
+							+ File.separator +"ireport" + File.separator + "pub" + File.separator + "ORDER.jasper";
+					InputStream file = new FileInputStream(filenurl);
+					model_q.setOrderNo(orderNoArr[i]);
+					model_q.setFactoryCode(ContextUtil.getCurrentUser().getCurFactoryCode());
+					model_q.setPrintUser(ContextUtil.getCurrentUser().getAccount());
+					model_q.setPrintUserIp(RequestUtil.getIpAddr(request));
+					//查询订单打印明细
+					List<PubPrintOrderModel> detailList = swZGJOrderManager.queryZGJOrderPrintDetailList(model_q);
+					//更新打印状态list
+					list_printInfo.add(model_q); 
+					//工厂名称
+					String factoryName = pubDataDictManager.queryDataDictCodeValueName("PUB_FACTORY_NAME", "2000");
+					//订单类型 
+					String orderType = pubDataDictManager.queryDataDictCodeValueName("PUB_ORDER_TYPE", "ZGJ");
+					PubFactoryInfoModel paramModel = new PubFactoryInfoModel();
+					paramModel.setFactoryName(factoryName);
+					paramModel.setOrderType(orderType);
+					JasperPrint jasperPrint = PrintOrderUtil.getJasPerPrintUtil(detailList, file, paramModel);
+					if(null != jasperPrint) {
+						JasperPrintList.add(jasperPrint); 
+					}  
+					PrintOrderUtil.exportReportOrderUtil(response, JasperPrintList);
+					swZGJOrderManager.updatePrintInfo(list_printInfo);
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+				log.error(e.toString()); 
+				String resultMsg="打印失败";
+				writeResultMessage(response.getWriter(),resultMsg,e.getMessage(),ResultMessage.FAIL);
+			}
+		}
+	}
+
+	/**
+	 * @Description:  支给件标签打印 
+	 * @param: @param request
+	 * @param: @param response
+	 * @param: @throws Exception    
+	 * @return: void   
+	 * @author: dtp
+	 * @date: 2019年3月22日
+	 */
+	@RequestMapping("swZGJOrderPrintLabel")
+	public void swZGJOrderPrintLabel(HttpServletRequest request,HttpServletResponse response) throws Exception {
+		String orderNoStr = RequestUtil.getString(request, "orderNoStr");
+		String[] orderNoArr = orderNoStr.split(",");
+		//更新打印状态list
+		List<SwZGJOrderModel> printInfo_List = new ArrayList<SwZGJOrderModel>();
+		if(null != orderNoArr && orderNoArr.length > 0) {
+			//打印N张
+			List<JasperPrint> JasperPrintList = new ArrayList<JasperPrint>();
+			for (int i = 0; i < orderNoArr.length; i++) {
+				List<SwZGJOrderModel> list_print = new ArrayList<SwZGJOrderModel>();
+				SwZGJOrderModel model = new SwZGJOrderModel();
+				model.setOrderNo(orderNoArr[i]);
+				model.setPrintUser(ContextUtil.getCurrentUser().getAccount());
+				model.setPrintUserIp(RequestUtil.getIpAddr(request));
+				model.setFactoryCode(ContextUtil.getCurrentUser().getCurFactoryCode());
+				List<SwZGJOrderModel> list = swZGJOrderManager.querySwZGJOrderPrintLabelList(model);
+				//更新打印状态model
+				printInfo_List.add(model);
+				//生成多个InputStream file,防止抛异常
+				String filenurl = FileUtil.getClassesPath() + File.separator + "template" 
+						+ File.separator +"ireport" + File.separator + "zgj" + File.separator + "ZGJ_LABEL.jasper";
+				InputStream file = new FileInputStream(filenurl);
+				Map<String, Object> parameters = new HashMap<String, Object>();
+				for (int j = 0; j < list.size(); j++) {
+					SwZGJOrderModel bean = list.get(j);
+					for (int k = 1; k <= Integer.valueOf(bean.getXs()); k++) {
+						//二维码
+						String uuid = UUID.randomUUID().toString().replaceAll("-", "");
+						StringBuffer qrCode = new StringBuffer();
+						qrCode = SwZGJOrderController.addEmptyStr(qrCode, bean.getPartNo());//零件号
+						qrCode.append("#");
+						qrCode = SwZGJOrderController.addEmptyStr(qrCode, bean.getStandardPackage());//包装数
+						qrCode.append("#");
+						qrCode = SwZGJOrderController.addEmptyStr(qrCode, bean.getPurchaseOrderno());//订单号
+						qrCode.append("#");
+						qrCode = SwZGJOrderController.addEmptyStr(qrCode, bean.getPurchaseRowNo());//采购订单行号
+						qrCode.append("#");
+						qrCode = SwZGJOrderController.addEmptyStr(qrCode, bean.getOrderNo());//物流单号
+						qrCode.append("#");
+						qrCode = SwZGJOrderController.addEmptyStr(qrCode, bean.getPartShortNo());//简号
+						qrCode.append("#");
+						qrCode = SwZGJOrderController.addEmptyStr(qrCode, "01");//订单类型
+						qrCode.append("#");
+						qrCode.append("");//追溯重要度等级
+						qrCode.append("#");  
+						qrCode = SwZGJOrderController.addEmptyStr(qrCode, bean.getSupplierNo());//供应商代码
+						qrCode.append("#");
+						qrCode.append("");//供应商生产批次
+						qrCode.append("#");
+						//整除,全部规格包装数,不能整除,N-1箱规格包装数,N余数
+						if(0 == Integer.valueOf(bean.getRequireNum())%Integer.valueOf(bean.getStandardPackage())) {
+							qrCode = SwZGJOrderController.addEmptyStr(qrCode, bean.getStandardPackage());
+							bean.setSrs(bean.getStandardPackage()+"/"+bean.getStandardPackage());
+						}else {
+							if(k < Integer.valueOf(bean.getXs())) {
+								qrCode = SwZGJOrderController.addEmptyStr(qrCode, bean.getStandardPackage());
+								bean.setSrs(bean.getStandardPackage()+"/"+bean.getStandardPackage());
+							}else if( k == Integer.valueOf(bean.getXs())) {
+								qrCode = SwZGJOrderController.addEmptyStr(qrCode, 
+										Integer.valueOf(bean.getRequireNum())%Integer.valueOf(bean.getStandardPackage()) + "");//余数
+								bean.setSrs(Integer.valueOf(bean.getRequireNum())%Integer.valueOf(bean.getStandardPackage())
+										+"/"+bean.getStandardPackage());
+							}
+						} 
+						qrCode.append("#"); 
+						qrCode.append(uuid);//UUID
+						bean.setQRCode(MakeQrcodeImages.getQrCodeImage(qrCode.toString(), "150", "150"));
+						SwZGJOrderModel bean_2 = new SwZGJOrderModel(); 
+						bean.setKbzs(k + "/" + bean.getXs());
+						bean_2 = (SwZGJOrderModel) BeanUtils.cloneBean(bean);
+						list_print.add(bean_2);
+					}
+					
+				}
+				JRDataSource jRDataSource;
+				if (list_print.size() > 0) {   
+					jRDataSource = new JRBeanCollectionDataSource(list_print);
+				} else {
+					jRDataSource = new JREmptyDataSource();
+				}
+				JasperPrint jasperPrint = JasperFillManager.fillReport(file, parameters, jRDataSource);
+				JasperPrintList.add(jasperPrint);
+			}
+			//防止list=0抛异常
+			if(JasperPrintList.size() > 0) {
+				response.setContentType("application/pdf");
+				response.setHeader("Content-disposition", "inline;");
+				JRPdfExporter exporter = new JRPdfExporter();
+				exporter.setParameter(JRExporterParameter.JASPER_PRINT_LIST, JasperPrintList);
+				exporter.setParameter(JRExporterParameter.OUTPUT_STREAM, response.getOutputStream());
+				exporter.exportReport();	
+			}
+		}
+		
+	}
+	
+	
+	/**
+	 * @Description: 更新本次发货数量
+	 * @param: @param request
+	 * @param: @param response
+	 * @param: @param model
+	 * @param: @throws Exception    
+	 * @return: void   
+	 * @author: dtp
+	 * @date: 2019年3月23日
+	 */
+	@RequestMapping("updateZGJDetailForPrint")
+	public void updateZGJDetailForPrint(HttpServletRequest request, HttpServletResponse response,
+			@ModelAttribute("model") SwZGJOrderModel model) throws Exception {
+		IUser user = ContextUtil.getCurrentUser();
+		try {
+			String message = "";
+			String tempDelivQty = model.getCurrentQty();// 本次发货
+			String totalDelivQty = model.getTotalDelivQty();// 历史发货总数量
+			String orderQity = model.getOrderQty();// 采购数量
+			String regex = "^([0-9])*";
+			boolean isCorrect = tempDelivQty.trim().matches(regex);
+			boolean isCorrect1 = totalDelivQty.trim().matches(regex);
+			boolean isCorrect2 = orderQity.trim().matches(regex);
+			if (isCorrect && isCorrect1 && isCorrect2) {
+				int tempDelivQtyInt = Integer.parseInt(tempDelivQty);
+				int totalDelivQtyInt = Integer.parseInt(totalDelivQty);
+				int orderQityInt = Integer.parseInt(orderQity);
+				int count = tempDelivQtyInt + totalDelivQtyInt;
+				if (orderQityInt >= count) {
+					//更新发货状态
+					if(orderQityInt == count) {
+						//0 未发货,1 部分发货,2全部发货
+						model.setDeliveryStatus("2");
+					}else if(orderQityInt > count) {
+						model.setDeliveryStatus("1");
+					}
+					model.setTotalDelivQty(count + "");
+					model.setLasetModifiedUser(user.getAccount());
+					model.setFactoryCode(user.getCurFactoryCode());
+					swZGJOrderManager.updateZGJDetailForPrint(model);
+				} else {
+					message = "收货总数不能大于采购数量";
+					writeResultMessage(response.getWriter(), message, ResultMessage.FAIL);
+					return;
+				}
+			} else {
+				message = "本次发货数只能为数字格式";
+				writeResultMessage(response.getWriter(), message, ResultMessage.FAIL);
+				return;
+			}
+			message = "更新成功";
+			writeResultMessage(response.getWriter(), message, ResultMessage.SUCCESS);
+		} catch (IOException e) {
+			e.printStackTrace();
+			log.error(e.toString());
+			writeResultMessage(response.getWriter(), "系统错误,请联系管理员", e.getMessage(),ResultMessage.FAIL);
+		}
+	}
+	
+	/**
+	 * @Description: 查看订单明细
+	 * @param: @param request
+	 * @param: @param response
+	 * @param: @param model
+	 * @param: @return    
+	 * @return: PageJson   
+	 * @author: dtp
+	 * @date: 2019年3月23日
+	 */
+	@RequestMapping("queryZGJOrderDetailPage")
+	public @ResponseBody PageJson queryZGJOrderDetailPage(HttpServletRequest request,HttpServletResponse response, 
+			@ModelAttribute("model") SwZGJOrderModel model) {
+		model.setFactoryCode(ContextUtil.getCurrentUser().getCurFactoryCode());
+		DefaultPage page=new DefaultPage(new RowBounds(getQueryFilter(request).getPage().getStartIndex(), 
+				getQueryFilter(request).getPage().getPageSize()));
+		PageList<SwZGJOrderModel> pageList = swZGJOrderManager.queryZGJOrderDetailPage(model, page);
+		return new PageJson(pageList);
+		
+	}
+	
+	
+	/**
+	 * 标签打印null换成""
+	 * @param qrCode
+	 * @param str
+	 * @author dtp
+	 * @return
+	 */
+	private static StringBuffer addEmptyStr(StringBuffer qrCode, String str) {
+		if(StringUtils.isNullOrEmpty(str)) {
+			qrCode.append("");
+		}else {
+			qrCode.append(str);
+		}
+		return qrCode;
+	}
+	
+	
+	
+}

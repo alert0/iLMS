@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+<title>SmartWorkESB</title>
+<link href="zui/css/zui.min.css?v=1.0" rel="stylesheet">
+<link href="css/comm.css?v=1.0" rel="stylesheet">
+<style type="text/css">
+.my-top {
+    height: 50px;
+}
+
+.my-center {
+    top: 50px;
+}
+
+.my-center .my-left {
+    width: 230px;
+}
+
+.my-center .my-right {
+    margin-left: 230px;
+}
+
+.my-center .my-right>div:nth-child(1) {
+    width: 100%;
+    height: 36px;
+    padding-left: 15px;
+    padding-top: 8px;
+    background-color: rgb(236, 240, 245);
+    font-size: 13px;
+    color: rgb(119, 119, 119);
+    overflow: hidden;
+    background-color: rgb(236, 240, 245);
+}
+
+.my-center .my-right>div:nth-child(1) i {
+    font-size: 20px;
+    margin-right: 10px;
+}
+
+.my-center .my-right>div:nth-child(2) {
+    position: absolute;
+    top: 36px;
+    bottom: 0px;
+    left: 0px;
+    right: 0px;
+}
+
+.my-center iframe {
+    width: 100%;
+    height: 100%;
+}
+
+.my-logo {
+    display: block;
+    float: left;
+    height: 100%;
+    width: 230px;
+    overflow: hidden;
+    background-color: rgb(54, 127, 169);
+    font-size: 20px;
+    font-weight: 300;
+    color: rgb(255, 255, 255);
+    line-height: 50px;
+    text-align: center;
+}
+
+a:hover, a:active, a:focus {
+    outline: none;
+    text-decoration: none;
+    color: rgb(255, 255, 255);
+}
+
+.my-header .my-nav {
+    position: relative;
+    height: 100%;
+    margin-left: 230px;
+    background-color: rgb(60, 141, 188);
+    font-size: 14px;
+    color: rgb(255, 255, 255);
+}
+
+.my-header .my-nav .my-user {
+    float: left;
+    height: 100%;
+    min-width: 300px;
+    padding-top: 15px;
+    padding-left: 15px;
+}
+
+.my-header .my-nav .my-user i {
+    margin-right: 20px;
+}
+
+.my-header .my-nav .my-barmenu {
+    float: right;
+    height: 100%;
+    min-width: 200px;
+    padding-right: 5px;
+}
+
+.nav-primary>li>a {
+    border: 0px solid #ddd;
+    font-size: 14px;
+    color: rgb(255, 255, 255);
+    padding-top: 15px;
+    padding-bottom: 15px;
+}
+
+.nav>li>a:focus, .nav>li>a:hover {
+    text-decoration: none;
+    color: rgb(255, 255, 255);
+    background-color: rgb(54, 127, 169);
+    outline: none;
+}
+
+.nav-primary>li:first-child>a {
+    border-top-left-radius: 0px;
+    border-bottom-left-radius: 0px;
+}
+
+.nav-primary>li:last-child>a {
+    border-top-right-radius: 0px;
+    border-bottom-right-radius: 0px;
+}
+
+</style>
+</head>
+
+<body>
+
+  <div class="my-top my-header">
+
+    <!-- 左侧Logo -->
+    <a href="javascript:;" class="my-logo"><img src="images/logo.png" height="32" />&nbsp;<span>SmartWorkESB</span></a>
+    <div class="my-nav">
+      <!-- 用户信息 -->
+      <div class="my-user">
+        <i class="icon icon-bars"></i> <span>欢迎，</span><span name="user"></span>
+      </div>
+      <!-- 按钮控制 -->
+      <div class="my-barmenu">
+        <ul class="nav nav-primary">
+          <li><a href="javascript:;" name="modify-password"><i class="icon icon-key"></i> 修改密码</a></li>
+          <li><a href="javascript:;" name="logout"><i class="icon icon-signout"></i> 退出系统</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="my-center">
+    <div class="my-left">
+      <!-- 左侧导航 -->
+      <nav class="menu my-menu" data-ride="menu">
+        <ul id="treeMenu" class="tree tree-menu" data-ride="tree">
+        </ul>
+      </nav>
+    </div>
+    <div class="my-right">
+      <!-- 当前界面路径 -->
+      <div>
+        <i class="icon icon-home"></i><span name="pathname"></span>
+      </div>
+      <!-- 当前界面 -->
+      <div>
+        <iframe name="main" src="" marginheight="0px" marginwidth="0px" frameborder="0" scrolling="auto"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <!-- 修改密码 -->
+  <div class="modal fade" id="my-password">
+    <div class="modal-dialog" style="width: 270px;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title">修改密码</h4>
+        </div>
+        <div class="modal-body">
+          <form class="form-inline">
+            <div class="form-group">
+              <div class="input-control has-label-left my-word3">
+                <input name="userName" type="text" class="form-control" id="id-userName" readonly="readonly">
+                <label for="id-userName" class="input-control-label-left">用户名:</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="input-control has-label-left my-word4">
+                <input name="oldPassword" type="password" class="form-control" id="id-oldPassword">
+                <label for="id-oldPassword" class="input-control-label-left">原始密码:</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="input-control has-label-left my-word3">
+                <input name="newPassword" type="password" class="form-control" id="id-newPassword">
+                <label for="id-newPassword" class="input-control-label-left">新密码:</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="input-control has-label-left my-word5">
+                <input name="confirmPassword" type="password" class="form-control" id="id-confirmPassword">
+                <label for="id-confirmPassword" class="input-control-label-left">确认新密码:</label>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button btnname="ok" type="button" class="btn btn-primary"><i class="icon icon-check"></i>修改</button>
+          <button btnname="cancel" type="button" class="btn btn-default"><i class="icon icon-times"></i>取消</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="zui/lib/jquery/jquery.js?v=1.0"></script>
+  <script src="zui/js/zui.min.js?v=1.0"></script>
+  <script src="js/extension.js?v=1.0"></script>
+  <script src="js/main.js?v=1.0"></script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts PUBLIC
+    "-//Apache Software Foundation//DTD Struts Configuration 2.0//EN"
+    "http://struts.apache.org/dtds/struts-2.0.dtd">
+<struts>
+	<package name="email" namespace="/email" extends="struts_sw">
+		<action name="email-*" class="EmailManageAction" method="{1}"></action>
+		<action name="msg-*" class="MsgGroupAction" method="{1}"></action>
+		
+		<action name="*" class="com.hanthink.gps.pub.web.BaseActionSupport">
+			<result>/pages/email/{1}.jsp</result>
+		</action>
+	</package>
+</struts>

@@ -1,0 +1,14 @@
+@charset "UTF-8";
+
+.datagrid-row {height: 35px; line-height: 35px;}
+/* .datagrid-cell{ height: 35px; line-height: 32px;} */
+.datagrid-header{height: 32px;}
+.toolbar-head .buttons a{margin-right: 5px;}
+.datagrid-row-selected{  background: #D9EDF7;color: #000;}
+div[class$='colManage']{height: 32px; width:100px;z-index:2;overflow:visible}
+.datagrid-view1{z-index:50!important;;overflow:visible!important;}
+.datagrid-view1 .datagrid-body{z-index:0!important;} 
+.datagrid-header-row .datagrid-cell-c1-subject{text-align:center!important;}
+.datagrid-header-row [class$='colManage']{width:100px!important;}
+ 
+ 

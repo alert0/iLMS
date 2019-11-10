@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.mon.model.MonPlateFormSchduleModel">
+
+	<!-- 查询当前时间 -->
+	<select id="queryCurrentTime" resultType="com.hanthink.mon.model.MonPlateFormSchduleModel">
+		SELECT TO_CHAR(B.START_TIME, 'HH24:MI') time1,
+       CASE
+         WHEN TO_CHAR(B.START_TIME + 1 / 48, 'YYYY-MM-DD') !=
+              TO_CHAR(SYSDATE, 'YYYY-MM-DD') THEN
+          ' '
+         ELSE
+          TO_CHAR(B.START_TIME + 1 / 48, 'HH24:MI')
+       END time2,
+       CASE
+         WHEN TO_CHAR(B.START_TIME + 2 / 48, 'YYYY-MM-DD') !=
+              TO_CHAR(SYSDATE, 'YYYY-MM-DD') THEN
+          ' '
+         ELSE
+          TO_CHAR(B.START_TIME + 2 / 48, 'HH24:MI')
+       END time3,
+       CASE
+         WHEN TO_CHAR(B.START_TIME + 3 / 48, 'YYYY-MM-DD') !=
+              TO_CHAR(SYSDATE, 'YYYY-MM-DD') THEN
+          ' '
+         ELSE
+          TO_CHAR(B.START_TIME + 3 / 48, 'HH24:MI')
+       END time4,
+       CASE
+         WHEN TO_CHAR(B.START_TIME + 4 / 48, 'YYYY-MM-DD') !=
+              TO_CHAR(SYSDATE, 'YYYY-MM-DD') THEN
+          ' '
+         ELSE
+          TO_CHAR(B.START_TIME + 4 / 48, 'HH24:MI')
+       END time5,
+       CASE
+         WHEN TO_CHAR(B.START_TIME + 5 / 48, 'YYYY-MM-DD') !=
+              TO_CHAR(SYSDATE, 'YYYY-MM-DD') THEN
+          ' '
+         ELSE
+          TO_CHAR(B.START_TIME + 5 / 48, 'HH24:MI')
+       END time6,
+       CASE
+         WHEN TO_CHAR(B.START_TIME + 6 / 48, 'YYYY-MM-DD') !=
+              TO_CHAR(SYSDATE, 'YYYY-MM-DD') THEN
+          ' '
+         ELSE
+          TO_CHAR(B.START_TIME + 6 / 48, 'HH24:MI')
+       END time7,
+       CASE
+         WHEN TO_CHAR(B.START_TIME + 7 / 48, 'YYYY-MM-DD') !=
+              TO_CHAR(SYSDATE, 'YYYY-MM-DD') THEN
+          ' '
+         ELSE
+          TO_CHAR(B.START_TIME + 7 / 48, 'HH24:MI')
+       END time8,
+       CASE
+         WHEN TO_CHAR(B.START_TIME + 8 / 48, 'YYYY-MM-DD') !=
+              TO_CHAR(SYSDATE, 'YYYY-MM-DD') THEN
+          ' '
+         ELSE
+          TO_CHAR(B.START_TIME + 8 / 48, 'HH24:MI')
+       END time9,
+       CASE
+         WHEN TO_CHAR(B.START_TIME + 9 / 48, 'YYYY-MM-DD') !=
+              TO_CHAR(SYSDATE, 'YYYY-MM-DD') THEN
+          ' '
+         ELSE
+          TO_CHAR(B.START_TIME + 9 / 48, 'HH24:MI')
+       END time10,
+       CASE
+         WHEN TO_CHAR(B.START_TIME + 10 / 48, 'YYYY-MM-DD') !=
+              TO_CHAR(SYSDATE, 'YYYY-MM-DD') THEN
+          ' '
+         ELSE
+          TO_CHAR(B.START_TIME + 10 / 48, 'HH24:MI')
+       END time11,
+       TO_CHAR(SYSDATE, 'YYYY-MM-DD HH24:MI:SS') currentTime
+  FROM (SELECT TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || A.NOW,
+                       'YYYY-MM-DD HH24:MI') START_TIME
+          FROM (SELECT CASE
+                         WHEN TO_NUMBER(SUBSTR(TO_CHAR(SYSDATE, 'HH24:MI'), 4)) > 30 THEN
+                          TO_CHAR(SYSDATE, 'HH24') || ':30'
+                         ELSE
+                          TO_CHAR(SYSDATE, 'HH24') || ':00'
+                       END NOW
+                  FROM DUAL) A) B 
+                  <!-- 
+       SELECT TO_CHAR(B.START_TIME, 'HH24:MI') time1,
+	       TO_CHAR(B.START_TIME + 1 / 48, 'HH24:MI') time2,
+	       TO_CHAR(B.START_TIME + 2 / 48, 'HH24:MI') time3,
+	       TO_CHAR(B.START_TIME + 3 / 48, 'HH24:MI') time4,
+	       TO_CHAR(B.START_TIME + 4 / 48, 'HH24:MI') time5,
+	       TO_CHAR(B.START_TIME + 5 / 48, 'HH24:MI') time6,
+	       TO_CHAR(B.START_TIME + 6 / 48, 'HH24:MI') time7,
+	       TO_CHAR(B.START_TIME + 7 / 48, 'HH24:MI') time8,
+	       TO_CHAR(B.START_TIME + 8 / 48, 'HH24:MI') time9,
+	       TO_CHAR(B.START_TIME + 9 / 48, 'HH24:MI') time10,
+	       TO_CHAR(SYSDATE, 'YYYY-MM-DD HH24:MI:SS') currentTime
+	  FROM (SELECT TO_DATE(TO_CHAR(SYSDATE, 'YYYY-MM-DD') || A.NOW,
+	                       'YYYY-MM-DD HH24:MI') START_TIME
+	          FROM (SELECT CASE
+	                         WHEN TO_NUMBER(SUBSTR(TO_CHAR(SYSDATE, 'HH24:MI'), 4)) > 30 THEN
+	                          TO_CHAR(SYSDATE, 'HH24') || ':30'
+	                         ELSE
+	                          TO_CHAR(SYSDATE, 'HH24') || ':00'
+	                       END NOW
+	                  FROM DUAL) A) B -->
+	</select>
+	
+	
+	<!-- 查询所有卸货站台信息 -->
+	<select id="queryDownPlateFormData" resultType="com.hanthink.mon.model.MonPlateFormModel">
+		 SELECT plateForm
+	         FROM (SELECT DISTINCT E.CODE_VALUE_NAME plateForm, E.SORT_NO
+	                 FROM TABLE (SELECT USF_SPLIT(C.LOGIC_UNLOAD_PORT, '#')
+	                               FROM (SELECT MY_CONCAT(USF_DELIMITER(B.LOGIC_UNLOAD_PORT,
+	                                                                    '#')) LOGIC_UNLOAD_PORT,
+	                                            B.FACTORY_CODE
+	                                       FROM MM_INV_UNLOAD B
+	                                      WHERE B.UNLOAD_PORT IN
+	                                            (SELECT A.PARAM_VAL
+	                                               FROM MM_PUB_SYS_PARAM A
+	                                              WHERE A.PARAM_GROUP = #{workcenter} || '_' || #{logisticsModel} ||
+	                                                    '_UNLOAD')
+	                                        AND B.LOGIC_UNLOAD_PORT != '[]'
+	                                        AND B.LOGIC_UNLOAD_PORT IS NOT NULL) C) D
+	                 LEFT JOIN MM_PUB_DATA_DICT E
+	                   ON D.COLUMN_VALUE = E.CODE_VALUE
+	                  AND E.CODE_TYPE = 'INV_LOGIC_UNLOAD'
+	                ORDER BY E.SORT_NO)
+	</select>
+	
+	<!-- 查询所有装空箱站台信息 -->
+	<select id="queryUpPlateFormData" resultType="com.hanthink.mon.model.MonPlateFormModel">
+		 SELECT plateForm
+	         FROM (SELECT DISTINCT E.CODE_VALUE_NAME plateForm, E.SORT_NO
+	                 FROM TABLE (SELECT USF_SPLIT(C.EMPTY_PLATEFORM, '#')
+	                               FROM (SELECT MY_CONCAT(USF_DELIMITER(B.EMPTY_PLATEFORM,
+	                                                                    '#')) EMPTY_PLATEFORM,
+	                                            B.FACTORY_CODE
+	                                       FROM MM_INV_UNLOAD B
+	                                      WHERE B.UNLOAD_PORT IN
+	                                            (SELECT A.PARAM_VAL
+	                                               FROM MM_PUB_SYS_PARAM A
+	                                              WHERE A.PARAM_GROUP = #{workcenter} || '_' || #{logisticsModel} ||
+	                                                    '_UNLOAD')
+	                                        AND B.LOGIC_UNLOAD_PORT != '[]'
+	                                        AND B.LOGIC_UNLOAD_PORT IS NOT NULL) C) D
+	                 LEFT JOIN MM_PUB_DATA_DICT E
+	                   ON D.COLUMN_VALUE = E.CODE_VALUE
+	                  AND E.CODE_TYPE = 'INV_LOGIC_UNLOAD'
+	                ORDER BY E.SORT_NO)
+	</select>
+	
+	<!-- 查询当天的所有的取货计划 -->
+	<select id="querySWMonRouteData" resultType="com.hanthink.mon.model.MonRouteModel">
+			SELECT A.ROUTE_CODE routeCode,
+			       MIN(D.CODE_VALUE_NAME) -2 platForm,
+			       #{inUnloadTime} inUnloadTime,
+			       #{inTransTime} inTransTime,
+			       #{inEmptyTime} inEmptyTime,
+			       MIN(A.PLAN_ARR_TIME) -2 downStartTime,
+			       MIN(A.PLAN_ARR_TIME) - 2 + #{inUnloadTime} / 24 / 60 downEndTime,
+			       MIN(A.PLAN_ARR_TIME) - 2 +
+			       (#{inUnloadTime} + #{inTransTime}) / 24 / 60 upStartTime,
+			       MIN(A.PLAN_ARR_TIME) - 2 +
+			       (#{inUnloadTime} + #{inTransTime} + #{inEmptyTime}) / 24 / 60 upEndTime,
+			       0 flag
+			  FROM MM_SW_PICKUP_PLAN A
+			  LEFT JOIN MM_SW_ORDER F
+			    ON A.ORDER_NO = F.ORDER_NO
+			   AND A.FACTORY_CODE = F.FACTORY_CODE
+			  LEFT JOIN (SELECT G.WARE_CODE,
+			                    G.FACTORY_CODE,
+			                    MIN(G.WORK_CENTER) WORK_CENTER
+			               FROM MM_INV_UNLOAD G
+			              GROUP BY G.WARE_CODE, G.FACTORY_CODE) H
+			    ON F.DEPOT_NO = H.WARE_CODE
+			   AND F.FACTORY_CODE = H.FACTORY_CODE
+			  LEFT JOIN (SELECT PR.ROUTE_CODE,
+			                    MIN(PR.RET_EMPTY_PLATFORM) RET_EMPTY_PLATFORM
+			               FROM MM_PUP_ROUTE PR
+			              GROUP BY PR.ROUTE_CODE) C
+			    ON A.ROUTE_CODE = C.ROUTE_CODE
+			  LEFT JOIN MM_PUB_DATA_DICT D
+			    ON C.RET_EMPTY_PLATFORM = D.CODE_VALUE
+			   AND D.CODE_TYPE = 'INV_LOGIC_UNLOAD'
+			 WHERE TRUNC(A.PLAN_ARR_TIME) = TRUNC(SYSDATE) + 2
+			   AND H.WORK_CENTER = #{workcenter}
+			 GROUP BY A.ROUTE_CODE,
+			          A.TODAY_CAR_BATCH,
+			          A.FACTORY_CODE,
+			          TRUNC(A.PLAN_ARR_TIME)
+			 ORDER BY downStartTime, routeCode
+	</select>
+	
+	<!-- 查询当天的所有的拉动到货订单 -->
+	<select id="queryJITMonRouteData" resultType="com.hanthink.mon.model.MonRouteModel">
+			SELECT H.ROUTE_CODE routeCode,
+			       D.CODE_VALUE_NAME platForm,
+			       A.ARRIVE_TIME downStartTime,
+			       #{inUnloadTime} inUnloadTime,
+			       #{inTransTime} inTransTime,
+			       #{inEmptyTime} inEmptyTime,
+			       A.ARRIVE_TIME + #{inUnloadTime} / 24 / 60 downEndTime,
+			       A.ARRIVE_TIME + (#{inUnloadTime} + 10) / 24 / 60 upStartTime,
+			       A.ARRIVE_TIME + (#{inUnloadTime} + 10 + 30) / 24 / 60 upEndTime,
+			       0 flag
+			  FROM MM_JIT_ORDER A
+			  LEFT JOIN MM_PUB_PLAN_CODE F
+			    ON A.PLAN_CODE = F.PLAN_CODE
+			  LEFT JOIN (SELECT G.SUPPLIER_NO,
+			                    MIN(G.ROUTE_CODE) ROUTE_CODE,
+			                    MIN(G.RET_EMPTY_PLATFORM) RET_EMPTY_PLATFORM,
+			                    G.FACTORY_CODE
+			               FROM MM_PUP_ROUTE G
+			              WHERE G.ROUTE_DIST = '厂外拉动'
+			              GROUP BY G.SUPPLIER_NO, G.FACTORY_CODE) H
+			    ON A.SUPPLIER_NO = H.SUPPLIER_NO
+			   AND F.FACTORY_CODE = H.FACTORY_CODE
+			  LEFT JOIN MM_PUB_DATA_DICT D
+			    ON H.RET_EMPTY_PLATFORM = D.CODE_VALUE
+			   AND D.CODE_TYPE = 'INV_LOGIC_UNLOAD'
+			 WHERE TRUNC(A.ARRIVE_TIME) = TRUNC(SYSDATE)
+			   AND F.WORKCENTER = #{workcenter}
+			   AND H.ROUTE_CODE IS NOT NULL
+			 ORDER BY downStartTime, routeCode
+	</select>
+	
+	<!-- 查询工作时间 -->
+	<select id="queryWorkTime" resultType="com.hanthink.mon.model.MonPlateFormSchduleModel">
+		 SELECT T.IN_TRANS_TIME        inTransTime,
+		       U.IN_UNLOAD_TIME       inUnloadTime,
+		       E.IN_EMPTY_TIME        inEmptyTime,
+		       G.IN_UNLOAD_BIG_TIME   inUnloadBigTime,
+		       I.IN_UNLOAD_SMALL_TIME inUnloadSmallTime
+		  FROM (SELECT NVL(B.PARAM_VAL, 0) IN_TRANS_TIME
+		          FROM MM_PUB_SYS_PARAM B
+		         WHERE B.PARAM_GROUP = 'WORK_TIME'
+		           AND B.PARAM_CODE = 'IN_TRANS_TIME') T
+		  LEFT JOIN (SELECT NVL(C.PARAM_VAL, 0) IN_UNLOAD_TIME
+		               FROM MM_PUB_SYS_PARAM C
+		              WHERE C.PARAM_GROUP = 'WORK_TIME'
+		                AND C.PARAM_CODE = 'IN_UNLOAD_TIME') U
+		    ON 1 = 1
+		  LEFT JOIN (SELECT NVL(D.PARAM_VAL, 0) IN_EMPTY_TIME
+		               FROM MM_PUB_SYS_PARAM D
+		              WHERE D.PARAM_GROUP = 'WORK_TIME'
+		                AND D.PARAM_CODE = 'IN_EMPTY_TIME') E
+		    ON 1 = 1
+		  LEFT JOIN (SELECT NVL(F.PARAM_VAL, 0) IN_UNLOAD_BIG_TIME
+		               FROM MM_PUB_SYS_PARAM F
+		              WHERE F.PARAM_GROUP = 'WORK_TIME'
+		                AND F.PARAM_CODE = 'IN_UNLOAD_BIG_TIME') G
+		    ON 1 = 1
+		  LEFT JOIN (SELECT NVL(H.PARAM_VAL, 0) IN_UNLOAD_SMALL_TIME
+		               FROM MM_PUB_SYS_PARAM H
+		              WHERE H.PARAM_GROUP = 'WORK_TIME'
+		                AND H.PARAM_CODE = 'IN_UNLOAD_SMALL_TIME') I
+		    ON 1 = 1
+	</select>
+	
+	
+</mapper>

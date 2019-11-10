@@ -1,0 +1,2339 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.pub.model.PubOrderModel">
+	<!-- 获取到货仓库下拉框数据 -->
+	<select id="queryArriveDepot" parameterType="java.util.Map"
+		resultType="com.hanthink.base.model.DictVO">
+		SELECT A.WARE_CODE valueKey, A.WARE_CODE || ' ' || A.WARE_NAME valueName
+		  FROM MM_INV_WAREHOUSE A
+		 WHERE A.WARE_TYPE = 1
+	</select>
+
+	<!-- 获取信息点下拉框数据 -->
+	<select id="queryPlanCode" parameterType="java.util.Map"
+		resultType="com.hanthink.base.model.DictVO">
+		SELECT DISTINCT A.PLAN_CODE valueKey, A.PLAN_CODE_DESC valueName
+		  FROM MM_PUB_PLAN_CODE A
+		 WHERE A.PLAN_CODE_TYPE IN ('JISO', 'JITO')
+	</select>
+	
+	<!-- 获取信息点下拉框数据 -->
+	<select id="queryPlanCode1" parameterType="java.util.Map"
+		resultType="com.hanthink.base.model.DictVO">
+		SELECT DISTINCT A.PLAN_CODE_DESC valueKey, A.PLAN_CODE_DESC valueName
+		  FROM MM_PUB_PLAN_CODE A
+		 WHERE A.PLAN_CODE_TYPE IN ('JISO', 'JITO')
+	</select>
+	
+	<!-- 获取卸货口下拉框数据 -->
+	<select id="queryUnloadPort" parameterType="java.util.Map"
+		resultType="com.hanthink.base.model.DictVO">
+		SELECT DISTINCT A.UNLOAD_PORT valueKey, A.UNLOAD_PORT valueName
+  		FROM MM_INV_UNLOAD A
+	</select>
+	
+	<!-- 查询所有物流模式零件订购数据用于导出 -->
+	<select id="queryAllPubOrderForExport" parameterType="com.hanthink.pub.model.PubOrderModel"
+		resultType="com.hanthink.pub.model.PubOrderModel">
+		SELECT A.ID id,
+		       A.FACTORY_CODE factoryCode,
+		       A.PART_NO partNo,
+		       A.SUPPLIER_NO supplierNo,
+		       A.SUP_FACTORY supFactory,
+		       A.UNLOAD_PORT mpUnloadPort,
+		       A.STANDARD_PACKAGE standardPackage,
+		       A.STANDARD_PACKAGE standardPackageInt,
+		       A.ORDER_PACKAGE orderPackage,
+		       A.ORDER_PACKAGE orderPackageInt,
+		       A.SUPPLY_RATE supplyRate,
+		       A.SAFE_NUM safeNum,
+		       A.SAFE_NUM safeNumInt,
+		       E.CODE_VALUE_NAME logisticsModel,
+		       A.LOGISTICS_FLAG logistcsFlag,
+		       TO_CHAR(A.EFF_START, 'YYYY-MM-DD') effStartStr,
+		       TO_CHAR(A.EFF_END, 'YYYY-MM-DD') effEndStr,
+		       A.FIRST_SORT_ID firstSortId,
+		       A.FIRST_SORT_ID firstSortIdInt,
+		       D.CODE_VALUE_NAME workcenter,
+		       A.ORDER_DEPOT arrDepot,
+		       B.PART_SHORT_NO partShortNo,
+		       B.PART_NAME_CN partName,
+		       F.SUPPLIER_NAME supplierName,
+		       null planCode,
+		       null shipDepot,
+		       A.PREPARE_NUM prepareNum,
+		       A.PREPARE_NUM prepareNumInt,
+		       null dispatchNum,
+		       null dispatchNumInt,
+		       A.DELIVERY_NUM deliveryNum,
+		       A.DELIVERY_NUM deliveryNumInt,
+		       A.ARRIVE_NUM arriveNum,
+		       A.ARRIVE_NUM arriveNumInt,
+		       A.DISTRIBUTION_NUM distributionNum,
+		       A.DISTRIBUTION_NUM distributionNumInt,
+		       null distriPackage,
+		       null shipDepotType,
+		       A.ORDER_PRODUCT_NUM orderProductNum,
+		       A.ORDER_PRODUCT_NUM orderProductNumInt,
+		       null aheadProductNum,
+		       null aheadProductNumInt,
+		       A.PURCHASE_TYPE partMark,
+		       null partgroupNo,
+		       null partgroupName,
+		       null insProductNum,
+		       null insProductNumInt,
+		       null orderInsNum,
+		       null orderInsNumInt,
+		       null genInsWay,
+		       null orderFlag,
+		       null routeCode,
+		       null routeDesc,
+		       C.UNLOAD_PORT unloadPort,
+		       A.MODEL_CODE modelCode
+		  FROM MM_MP_PART A
+		  LEFT JOIN MM_PUB_PART_UDA B
+		    ON A.PART_NO = B.PART_NO AND B.FACTORY_CODE = A.FACTORY_CODE
+		  LEFT JOIN MM_PUB_PART_UNLOAD C
+		    ON A.PART_NO = C.PART_NO
+		   AND A.WORKCENTER = C.WORKCENTER
+		   AND A.LOGISTICS_MODEL = C.LOGISTICS_MODEL
+		   AND A.FACTORY_CODE = C.FACTORY_CODE
+		  LEFT JOIN MM_PUB_DATA_DICT D
+		    ON C.WORKCENTER = D.CODE_VALUE
+		   AND D.CODE_TYPE = 'PUB_WORKCENTER'
+		  LEFT JOIN MM_PUB_DATA_DICT E
+		    ON A.LOGISTICS_MODEL = E.CODE_VALUE
+		   AND E.CODE_TYPE = 'PUB_MM_MODEL'
+		  LEFT JOIN MM_PUB_SUPPLIER F
+		  	ON A.SUPPLIER_NO = F.SUPPLIER_NO
+		 WHERE 1 = 1
+		   AND A.FACTORY_CODE = #{factoryCode}
+		<if test="logisticsModel != null and logisticsModel != '' ">
+			AND #{logisticsModel} = 'SW'
+		</if>
+		<if test="partMark != null and partMark != '' ">
+			AND A.PURCHASE_TYPE = #{partMark}
+		</if>
+		<if test="partNo != null and partNo != '' ">
+			AND A.PART_NO LIKE CONCAT(#{partNo}, '%')
+		</if>
+		<if test="modelCode != null and modelCode != '' ">
+			AND A.MODEL_CODE = #{modelCode}
+		</if>
+		<if test="partShortNo != null and partShortNo != '' ">
+			AND B.PART_SHORT_NO = #{partShortNo}
+		</if>
+		<if test="supplierNo != null and supplierNo != '' ">
+			AND A.SUPPLIER_NO LIKE CONCAT(#{supplierNo}, '%')
+		</if>
+		<if test="supFactory != null and supFactory != '' ">
+			AND A.SUP_FACTORY LIKE CONCAT(#{supFactory}, '%')
+		</if>
+		<if test="workcenter != null and workcenter != '' ">
+			AND A.WORKCENTER = #{workcenter}
+		</if>
+		<if test="shipDepot != null and shipDepot != '' ">
+			AND 1 = 2
+		</if>
+		<if test="planCode != null and planCode != '' ">
+			AND 1 = 2
+		</if>
+		<if test="arrDepot != null and arrDepot != '' ">
+			AND A.ORDER_DEPOT = #{arrDepot}
+		</if>
+		<if test="logistcsFlag != null and logistcsFlag != '' ">
+			AND A.LOGISTICS_FLAG = #{logistcsFlag}
+		</if>
+		<if test="mpUnloadPort != null and mpUnloadPort != '' ">
+			AND A.UNLOAD_PORT = #{mpUnloadPort}
+		</if>
+		<if test="unloadPort != null and unloadPort != '' ">
+			AND C.UNLOAD_PORT = #{unloadPort}
+		</if>
+		<if test="effStartStr != null and effStartStr != '' ">
+			AND A.EFF_START >= TO_DATE(#{effStartStr}, 'YYYY-MM-DD')
+		</if>
+		<if test="effEndStr != null and effEndStr != '' ">
+			AND A.EFF_END &lt; TO_DATE(#{effEndStr}, 'YYYY-MM-DD')
+		</if>
+		<if test="partgroupNo != null and partgroupNo != '' ">
+			AND 1 = 2
+		</if>
+		UNION ALL
+		SELECT A.ID id,
+		       D.FACTORY_CODE factoryCode,
+		       A.PART_NO partNo,
+		       B.SUPPLIER_NO supplierNo,
+		       B.SUP_FACTORY supFactory,
+		       null mpUnloadPort,
+		       A.STANDARD_PACKAGE standardPackage,
+		       A.STANDARD_PACKAGE standardPackageInt,
+		       A.DISTRI_PACKAGE orderPackage,
+		       A.DISTRI_PACKAGE orderPackageInt,
+		       null supplyRate,
+		       null safeNum,
+		       null safeNumInt,
+		       H.CODE_VALUE_NAME logisticsModel,
+		       null logistcsFlag,
+		       TO_CHAR(A.EFF_START, 'YYYY-MM-DD') effStartStr,
+		       TO_CHAR(A.EFF_END, 'YYYY-MM-DD') effEndStr,
+		       null firstSortId,
+		       null firstSortIdInt,
+		       I.CODE_VALUE_NAME workcenter,
+		       A.ARR_DEPOT arrDepot,
+		       C.PART_SHORT_NO partShortNo,
+		       C.PART_NAME_CN partName,
+		       J.SUPPLIER_NAME supplierName,
+		       A.PLAN_CODE planCode,
+		       A.SHIP_DEPOT shipDepot,
+		       A.PREPARE_NUM prepareNum,
+		       A.PREPARE_NUM prepareNumInt,
+		       A.DISPATCH_NUM dispatchNum,
+		       A.DISPATCH_NUM dispatchNumInt,
+		       A.DELIVERY_NUM deliveryNum,
+		       A.DELIVERY_NUM deliveryNumInt,
+		       A.ARRIVE_NUM arriveNum,
+		       A.ARRIVE_NUM arriveNumInt,
+		       A.DISTRIBUTION_NUM distributionNum,
+		       A.DISTRIBUTION_NUM distributionNumInt,
+		       A.DISTRI_PACKAGE distriPackage,
+		       G.CODE_VALUE_NAME shipDepotType,
+		       B.ORDER_PRODUCT_NUM orderProductNum,
+		       B.ORDER_PRODUCT_NUM orderProductNumInt,
+		       B.AHEAD_PRODUCT_NUM aheadProductNum,
+		       B.AHEAD_PRODUCT_NUM aheadProductNumInt,
+		       null partMark,
+		       null partgroupNo,
+		       null partgroupName,
+		       null insProductNum,
+		       null insProductNumInt,
+		       null orderInsNum,
+		       null orderInsNumInt,
+		       null genInsWay,
+		       null orderFlag,
+		       null routeCode,
+		       null routeDesc,
+		       E.UNLOAD_PORT unloadPort,
+		       A.MODEL_CODE modelCode
+		  FROM MM_JIT_PART A
+		  LEFT JOIN MM_JIT_ORDER_CONFIG B
+		    ON A.PLAN_CODE = B.PLAN_CODE
+		   AND A.ARR_DEPOT = B.ARR_DEPOT
+		   AND A.SHIP_DEPOT = B.SHIP_DEPOT
+		  LEFT JOIN MM_PUB_PART_UDA C
+		    ON A.PART_NO = C.PART_NO AND C.FACTORY_CODE = #{factoryCode}
+		  LEFT JOIN MM_PUB_PLAN_CODE D
+		    ON A.PLAN_CODE = D.PLAN_CODE
+		  LEFT JOIN MM_PUB_PART_UNLOAD E
+		    ON A.PART_NO = E.PART_NO
+		    AND E.WORKCENTER = D.WORKCENTER
+		    AND E.LOGISTICS_MODEL = 'JIT'
+		    AND D.FACTORY_CODE = E.FACTORY_CODE
+		  LEFT JOIN MM_INV_UNLOAD F
+	        ON E.UNLOAD_PORT = F.UNLOAD_PORT
+	        AND E.FACTORY_CODE = F.FACTORY_CODE
+	      LEFT JOIN MM_PUB_DATA_DICT G
+		    ON B.SHIP_DEPOT_TYPE = G.CODE_VALUE
+		    AND G.CODE_TYPE = 'PUB_SHIP_DEPOT_TYPE'
+		  LEFT JOIN MM_PUB_DATA_DICT H
+		    ON 'JIT' = H.CODE_VALUE
+		    AND H.CODE_TYPE = 'PUB_MM_MODEL'
+		  LEFT JOIN MM_PUB_DATA_DICT I
+		    ON F.WORK_CENTER = I.CODE_VALUE
+		    AND I.CODE_TYPE = 'PUB_WORKCENTER'
+		  LEFT JOIN MM_PUB_SUPPLIER J
+		  	ON B.SUPPLIER_NO = J.SUPPLIER_NO
+		 WHERE 1 = 1
+		   AND D.FACTORY_CODE = #{factoryCode}
+		<if test="logisticsModel != null and logisticsModel != '' ">
+			AND #{logisticsModel} = 'JIT'
+		</if>
+		<if test="partMark != null and partMark != '' ">
+			1 = 2
+		</if>
+		<if test="partNo != null and partNo != '' ">
+			AND A.PART_NO LIKE CONCAT(#{partNo}, '%')
+		</if>
+		<if test="modelCode != null and modelCode != '' ">
+			AND A.MODEL_CODE = #{modelCode}
+		</if>
+		<if test="partShortNo != null and partShortNo != '' ">
+			AND C.PART_SHORT_NO = #{partShortNo}
+		</if>
+		<if test="supplierNo != null and supplierNo != '' ">
+			AND B.SUPPLIER_NO LIKE CONCAT(#{supplierNo}, '%')
+		</if>
+		<if test="supFactory != null and supFactory != '' ">
+			AND B.SUP_FACTORY LIKE CONCAT(#{supFactory}, '%')
+		</if>
+		<if test="unloadPort != null and unloadPort != '' ">
+			AND E.UNLOAD_PORT LIKE CONCAT(#{unloadPort}, '%')
+		</if>
+		<if test="workcenter != null and workcenter != '' ">
+			AND F.WORK_CENTER = #{workcenter}
+		</if>
+		<if test="shipDepot != null and shipDepot != '' ">
+			AND A.SHIP_DEPOT LIKE CONCAT(#{shipDepot}, '%')
+		</if>
+		<if test="planCode != null and planCode != '' ">
+			AND A.PLAN_CODE = #{planCode}
+		</if>
+		<if test="arrDepot != null and arrDepot != '' ">
+			AND A.ARR_DEPOT = #{arrDepot}
+		</if>
+		<if test="logistcsFlag != null and logistcsFlag != '' ">
+			AND 1 = 2
+		</if>
+		<if test="mpUnloadPort != null and mpUnloadPort != '' ">
+			AND 1 = 2
+		</if>
+		<if test="effStartStr != null and effStartStr != '' ">
+			AND A.EFF_START >= TO_DATE(#{effStartStr}, 'YYYY-MM-DD')
+		</if>
+		<if test="effEndStr != null and effEndStr != '' ">
+			AND A.EFF_END &lt; TO_DATE(#{effEndStr}, 'YYYY-MM-DD')
+		</if>
+		<if test="partgroupNo != null and partgroupNo != '' ">
+			AND 1 = 2
+		</if>
+		UNION ALL
+		SELECT A.ID id,
+		       E.FACTORY_CODE factoryCode,
+		       A.PART_NO partNo,
+		       C.SUPPLIER_NO supplierNo,
+		       C.SUP_FACTORY supFactory,
+		       null mpUnloadPort,
+		       D.STANDARD_PACKAGE standardPackage,
+		       D.STANDARD_PACKAGE standardPackageInt,
+		       null orderPackage,
+		       null orderPackageInt,
+		       null supplyRate,
+		       null safeNum,
+		       null safeNumInt,
+		       K.CODE_VALUE_NAME logisticsModel,
+		       null logistcsFlag,
+		       TO_CHAR(A.EFF_START, 'YYYY-MM-DD') effStartStr,
+		       TO_CHAR(A.EFF_END, 'YYYY-MM-DD') effEndStr,
+		       null firstSortId,
+		       null firstSortIdInt,
+		       L.CODE_VALUE_NAME workcenter,
+		       B.ARR_DEPOT arrDepot,
+		       D.PART_SHORT_NO partShortNo,
+		       D.PART_NAME_CN partName,
+		       M.SUPPLIER_NAME supplierName,
+		       B.PLAN_CODE planCode,
+		       null shipDepot,
+		       B.PREPARE_NUM prepareNum,
+		       B.PREPARE_NUM prepareNumInt,
+		       B.DISPATCH_NUM dispatchNum,
+		       B.DISPATCH_NUM dispatchNumInt,
+		       B.DELIVERY_NUM deliveryNum,
+		       B.DELIVERY_NUM deliveryNumInt,
+		       B.ARRIVE_NUM arriveNum,
+		       B.ARRIVE_NUM arriveNumInt,
+		       B.DISTRIBUTION_NUM distributionNum,
+		       B.DISTRIBUTION_NUM distributionNumInt,
+		       null distriPackage,
+		       null shipDepotType,
+		       null orderProductNum,
+		       null orderProductNumInt,
+		       null aheadPorductNum,
+		       null aheadPorductNumInt,
+		       A.PART_MARK partMark,
+		       B.PARTGROUP_NO partgroupNo,
+		       B.PARTGROUP_NAME partgroupName,
+		       B.INS_PRODUCT_NUM insProductNum,
+		       B.INS_PRODUCT_NUM insProductNumInt,
+		       B.ORDER_INS_NUM orderInsNum,
+		       B.ORDER_INS_NUM orderInsNumInt,
+		       H.CODE_VALUE_NAME genInsWay,
+		       I.CODE_VALUE_NAME orderFlag,
+		       C.ROUTE_CODE routeCode,
+		       C.ROUTE_DESC routeDesc,
+		       F.UNLOAD_PORT unloadPort,
+               A.MODEL_CODE modelCode
+		  FROM MM_JISO_PART A
+		  LEFT JOIN MM_JISO_PARTGROUP B
+		    ON A.PARTGROUP_ID = B.ID
+		  LEFT JOIN MM_PUB_PLAN_CODE E
+		    ON B.PLAN_CODE = E.PLAN_CODE
+		  LEFT JOIN MM_PUB_PART_UDA D
+	        ON A.PART_NO = D.PART_NO
+	        AND E.FACTORY_CODE = D.FACTORY_CODE
+	      LEFT JOIN MM_JISO_PARTGROUP_ROUTE C
+	        ON A.PARTGROUP_ID = C.PARTGROUP_ID
+	        AND D.SUP_FACTORY = C.SUP_FACTORY
+		  LEFT JOIN MM_PUB_PART_UNLOAD F
+		    ON A.PART_NO = F.PART_NO
+		    AND E.WORKCENTER = F.WORKCENTER
+		    AND F.LOGISTICS_MODEL = 'JISO'
+		    AND F.FACTORY_CODE = E.FACTORY_CODE
+		  LEFT JOIN MM_INV_UNLOAD G
+	        ON F.UNLOAD_PORT = G.UNLOAD_PORT
+	        AND E.FACTORY_CODE = G.FACTORY_CODE
+	      LEFT JOIN MM_PUB_DATA_DICT H
+		    ON B.GEN_INS_WAY = H.CODE_VALUE
+		    AND H.CODE_TYPE = 'PUB_TRUE_FALSE'
+		  LEFT JOIN MM_PUB_DATA_DICT I
+		    ON B.ORDER_FLG = I.CODE_VALUE
+		    AND I.CODE_TYPE = 'PUB_TRUE_FALSE'
+	      LEFT JOIN MM_PUB_DATA_DICT K
+		    ON 'JISO' = K.CODE_VALUE
+		    AND K.CODE_TYPE = 'PUB_MM_MODEL'
+		  LEFT JOIN MM_PUB_DATA_DICT L
+		    ON G.WORK_CENTER = L.CODE_VALUE
+		    AND L.CODE_TYPE = 'PUB_WORKCENTER'
+		  LEFT JOIN MM_PUB_SUPPLIER M
+		  	ON C.SUPPLIER_NO = M.SUPPLIER_NO
+		 WHERE 1 = 1
+		   AND E.FACTORY_CODE = #{factoryCode}
+	    <if test="logisticsModel != null and logisticsModel != '' ">
+			AND #{logisticsModel} = 'JISO'
+		</if>
+		<if test="partMark != null and partMark != '' ">
+			AND A.PART_MARK = #{partMark}
+		</if>
+		<if test="partNo != null and partNo != '' ">
+			AND A.PART_NO LIKE CONCAT(#{partNo}, '%')
+		</if>
+		<if test="unloadPort != null and unloadPort != '' ">
+			AND F.UNLOAD_PORT = #{unloadPort}
+		</if>
+		<if test="modelCode != null and modelCode != '' ">
+			AND A.MODEL_CODE = #{modelCode}
+		</if>
+		<if test="partShortNo != null and partShortNo != '' ">
+			AND D.PART_SHORT_NO = #{partShortNo}
+		</if>
+		<if test="supplierNo != null and supplierNo != '' ">
+			AND C.SUPPLIER_NO LIKE CONCAT(#{supplierNo}, '%')
+		</if>
+		<if test="supFactory != null and supFactory != '' ">
+			AND C.SUP_FACTORY LIKE CONCAT(#{supFactory}, '%')
+		</if>
+		<if test="workcenter != null and workcenter != '' ">
+			AND G.WORK_CENTER = #{workcenter}
+		</if>
+		<if test="shipDepot != null and shipDepot != '' ">
+			AND 1 = 2
+		</if>
+		<if test="planCode != null and planCode != '' ">
+			AND B.PLAN_CODE = #{planCode}
+		</if>
+		<if test="arrDepot != null and arrDepot != '' ">
+			AND B.ARR_DEPOT = #{arrDepot}
+		</if>
+		<if test="logistcsFlag != null and logistcsFlag != '' ">
+			AND 1 = 2
+		</if>
+		<if test="mpUnloadPort != null and mpUnloadPort != '' ">
+			AND 1 = 2
+		</if>
+		<if test="effStartStr != null and effStartStr != '' ">
+			AND A.EFF_START >= TO_DATE(#{effStartStr}, 'YYYY-MM-DD')
+		</if>
+		<if test="effEndStr != null and effEndStr != '' ">
+			AND A.EFF_END &lt; TO_DATE(#{effEndStr}, 'YYYY-MM-DD')
+		</if>
+		<if test="partgroupNo != null and partgroupNo != '' ">
+			AND B.PARTGROUP_NO = #{partgroupNo}
+		</if>
+		ORDER BY supplierNo, supFactory, partNo
+	</select>
+	
+	<!-- 查询所有物流模式零件订购数据 -->
+	<select id="queryAllPubOrderForPage" parameterType="com.hanthink.pub.model.PubOrderModel"
+		resultType="com.hanthink.pub.model.PubOrderModel">
+		SELECT A.ID id,
+	           A.FACTORY_CODE factoryCode,
+	           A.PART_NO partNo,
+	           A.SUPPLIER_NO supplierNo,
+	           A.SUP_FACTORY supFactory,
+	           A.UNLOAD_PORT mpUnloadPort,
+	           A.STANDARD_PACKAGE standardPackage,
+	           A.ORDER_PACKAGE orderPackage,
+	           A.SUPPLY_RATE supplyRate,
+	           A.SAFE_NUM safeNum,
+	           A.LOGISTICS_MODEL logisticsModel,
+	           A.LOGISTICS_FLAG logistcsFlag,
+	           TO_CHAR(A.EFF_START, 'YYYY-MM-DD') effStartStr,
+	           TO_CHAR(A.EFF_END, 'YYYY-MM-DD') effEndStr,
+	           A.FIRST_SORT_ID firstSortId,
+	           A.WORKCENTER workcenter,
+	           A.ORDER_DEPOT arrDepot,
+	           B.PART_SHORT_NO partShortNo,
+	           B.PART_NAME_CN partName,
+	           D.SUPPLIER_NAME supplierName,
+	           null planCode,
+	           null planCode1,
+	           null shipDepot,
+	           A.PREPARE_NUM prepareNum,
+	           null dispatchNum,
+	           A.DELIVERY_NUM deliveryNum,
+	           A.ARRIVE_NUM arriveNum,
+	           A.DISTRIBUTION_NUM distributionNum,
+	           null distriPackage,
+	           null shipDepotType,
+	           A.ORDER_PRODUCT_NUM orderProductNum,
+	           null aheadProductNum,
+	           A.PURCHASE_TYPE partMark,
+	           null partgroupNo,
+	           null partgroupName,
+	           null insProductNum,
+	           null orderInsNum,
+	           null genInsWay,
+	           null orderFlag,
+	           null routeCode,
+	           null routeDesc,
+	           C.UNLOAD_PORT unloadPort,
+	               A.MODEL_CODE modelCode
+	      FROM MM_MP_PART A
+	      LEFT JOIN MM_PUB_PART_UDA B
+	        ON A.PART_NO = B.PART_NO
+	      LEFT JOIN MM_PUB_PART_UNLOAD C
+	        ON A.PART_NO = C.PART_NO
+	        AND A.WORKCENTER = C.WORKCENTER
+	        AND A.LOGISTICS_MODEL = C.LOGISTICS_MODEL
+	        AND A.FACTORY_CODE = C.FACTORY_CODE
+	      LEFT JOIN MM_PUB_SUPPLIER D
+	      	ON A.SUPPLIER_NO = D.SUPPLIER_NO
+	     WHERE 1 = 1
+	       AND A.FACTORY_CODE = #{factoryCode}
+		<if test="logisticsModel != null and logisticsModel != '' ">
+			AND #{logisticsModel} = 'SW'
+		</if>
+		<if test="partMark != null and partMark != '' ">
+			AND A.PURCHASE_TYPE = #{partMark}
+		</if>
+		<if test="partNo != null and partNo != '' ">
+			AND A.PART_NO LIKE CONCAT(#{partNo}, '%')
+		</if>
+		<if test="modelCode != null and modelCode != '' ">
+			AND A.MODEL_CODE = #{modelCode}
+		</if>
+		<if test="partShortNo != null and partShortNo != '' ">
+			AND B.PART_SHORT_NO = #{partShortNo}
+		</if>
+		<if test="supplierNo != null and supplierNo != '' ">
+			AND A.SUPPLIER_NO LIKE CONCAT(#{supplierNo}, '%')
+		</if>
+		<if test="supFactory != null and supFactory != '' ">
+			AND A.SUP_FACTORY LIKE CONCAT(#{supFactory}, '%')
+		</if>
+		<if test="workcenter != null and workcenter != '' ">
+			AND A.WORKCENTER = #{workcenter}
+		</if>
+		<if test="shipDepot != null and shipDepot != '' ">
+			AND 1 = 2
+		</if>
+		<if test="planCode != null and planCode != '' ">
+			AND 1 = 2
+		</if>
+		<if test="arrDepot != null and arrDepot != '' ">
+			AND A.ORDER_DEPOT = #{arrDepot}
+		</if>
+		<if test="logistcsFlag != null and logistcsFlag != '' ">
+			AND A.LOGISTICS_FLAG = #{logistcsFlag}
+		</if>
+		<if test="mpUnloadPort != null and mpUnloadPort != '' ">
+			AND A.UNLOAD_PORT = #{mpUnloadPort}
+		</if>
+		<if test="unloadPort != null and unloadPort != '' ">
+			AND C.UNLOAD_PORT = #{unloadPort}
+		</if>
+		<if test="effStartStr != null and effStartStr != '' ">
+			AND A.EFF_START >= TO_DATE(#{effStartStr}, 'YYYY-MM-DD')
+		</if>
+		<if test="effEndStr != null and effEndStr != '' ">
+			AND A.EFF_END &lt; TO_DATE(#{effEndStr}, 'YYYY-MM-DD')
+		</if>
+		<if test="partgroupNo != null and partgroupNo != '' ">
+			AND 1 = 2
+		</if>
+		UNION ALL
+		SELECT A.ID id,
+		       D.FACTORY_CODE factoryCode,
+		       A.PART_NO partNo,
+		       B.SUPPLIER_NO supplierNo,
+		       B.SUP_FACTORY supFactory,
+		       null mpUnloadPort,
+		       A.STANDARD_PACKAGE standardPackage,
+		       A.DISTRI_PACKAGE orderPackage,
+		       null supplyRate,
+		       null safeNum,
+		       'JIT' logisticsModel,
+		       null logistcsFlag,
+		       TO_CHAR(A.EFF_START, 'YYYY-MM-DD') effStartStr,
+		       TO_CHAR(A.EFF_END, 'YYYY-MM-DD') effEndStr,
+		       null firstSortId,
+		       F.WORK_CENTER workcenter,
+		       A.ARR_DEPOT arrDepot,
+		       C.PART_SHORT_NO partShortNo,
+		       C.PART_NAME_CN partName,
+		       G.SUPPLIER_NAME supplierName,
+		       A.PLAN_CODE planCode,
+		       D.PLAN_CODE_DESC planCode1,
+		       A.SHIP_DEPOT shipDepot,
+		       A.PREPARE_NUM prepareNum,
+		       A.DISPATCH_NUM dispatchNum,
+		       A.DELIVERY_NUM deliveryNum,
+		       A.ARRIVE_NUM arriveNum,
+		       A.DISTRIBUTION_NUM distributionNum,
+		       A.DISTRI_PACKAGE distriPackage,
+		       B.SHIP_DEPOT_TYPE shipDepotType,
+		       B.ORDER_PRODUCT_NUM orderProductNum,
+		       B.AHEAD_PRODUCT_NUM aheadProductNum,
+		       null partMark,
+		       null partgroupNo,
+		       null partgroupName,
+		       null insProductNum,
+		       null orderInsNum,
+		       null genInsWay,
+		       null orderFlag,
+		       null routeCode,
+		       null routeDesc,
+		       E.UNLOAD_PORT unloadPort,
+		       A.MODEL_CODE modelCode
+		  FROM MM_JIT_PART A
+		  LEFT JOIN MM_JIT_ORDER_CONFIG B
+		    ON A.PLAN_CODE = B.PLAN_CODE
+		   AND A.ARR_DEPOT = B.ARR_DEPOT
+		   AND A.SHIP_DEPOT = B.SHIP_DEPOT
+		  LEFT JOIN MM_PUB_PART_UDA C
+		    ON A.PART_NO = C.PART_NO AND C.FACTORY_CODE = #{factoryCode}
+		  LEFT JOIN MM_PUB_PLAN_CODE D
+		    ON A.PLAN_CODE = D.PLAN_CODE
+		  LEFT JOIN MM_PUB_PART_UNLOAD E
+		    ON A.PART_NO = E.PART_NO
+		    AND E.WORKCENTER = D.WORKCENTER
+		    AND E.LOGISTICS_MODEL = 'JIT'
+		    AND D.FACTORY_CODE = E.FACTORY_CODE
+		  LEFT JOIN MM_INV_UNLOAD F
+	        ON E.UNLOAD_PORT = F.UNLOAD_PORT
+	        AND E.FACTORY_CODE = F.FACTORY_CODE
+	      LEFT JOIN MM_PUB_SUPPLIER G
+	      	ON B.SUPPLIER_NO = G.SUPPLIER_NO
+		 WHERE 1 = 1
+		   AND D.FACTORY_CODE = #{factoryCode}
+		<if test="logisticsModel != null and logisticsModel != '' ">
+			AND #{logisticsModel} = 'JIT'
+		</if>
+		<if test="partMark != null and partMark != '' ">
+			AND 1 = 2
+		</if>
+		<if test="partNo != null and partNo != '' ">
+			AND A.PART_NO LIKE CONCAT(#{partNo}, '%')
+		</if>
+		<if test="modelCode != null and modelCode != '' ">
+			AND A.MODEL_CODE = #{modelCode}
+		</if>
+		<if test="partShortNo != null and partShortNo != '' ">
+			AND C.PART_SHORT_NO = #{partShortNo}
+		</if>
+		<if test="supplierNo != null and supplierNo != '' ">
+			AND B.SUPPLIER_NO LIKE CONCAT(#{supplierNo}, '%')
+		</if>
+		<if test="supFactory != null and supFactory != '' ">
+			AND B.SUP_FACTORY LIKE CONCAT(#{supFactory}, '%')
+		</if>
+		<if test="unloadPort != null and unloadPort != '' ">
+			AND E.UNLOAD_PORT LIKE CONCAT(#{unloadPort}, '%')
+		</if>
+		<if test="workcenter != null and workcenter != '' ">
+			AND F.WORK_CENTER = #{workcenter}
+		</if>
+		<if test="shipDepot != null and shipDepot != '' ">
+			AND A.SHIP_DEPOT LIKE CONCAT(#{shipDepot}, '%')
+		</if>
+		<if test="planCode != null and planCode != '' ">
+			AND A.PLAN_CODE = #{planCode}
+		</if>
+		<if test="arrDepot != null and arrDepot != '' ">
+			AND A.ARR_DEPOT = #{arrDepot}
+		</if>
+		<if test="logistcsFlag != null and logistcsFlag != '' ">
+			AND 1 = 2
+		</if>
+		<if test="mpUnloadPort != null and mpUnloadPort != '' ">
+			AND 1 = 2
+		</if>
+		<if test="effStartStr != null and effStartStr != '' ">
+			AND A.EFF_START >= TO_DATE(#{effStartStr}, 'YYYY-MM-DD')
+		</if>
+		<if test="effEndStr != null and effEndStr != '' ">
+			AND A.EFF_END &lt; TO_DATE(#{effEndStr}, 'YYYY-MM-DD')
+		</if>
+		<if test="partgroupNo != null and partgroupNo != '' ">
+			AND 1 = 2
+		</if>
+		UNION ALL
+		SELECT A.ID id,
+		       E.FACTORY_CODE factoryCode,
+		       A.PART_NO partNo,
+		       C.SUPPLIER_NO supplierNo,
+		       C.SUP_FACTORY supFactory,
+		       null mpUnloadPort,
+		       D.STANDARD_PACKAGE standardPackage,
+		       null orderPackage,
+		       null supplyRate,
+		       null safeNum,
+		       'JISO' logisticsModel,
+		       null logistcsFlag,
+		       TO_CHAR(A.EFF_START, 'YYYY-MM-DD') effStartStr,
+		       TO_CHAR(A.EFF_END, 'YYYY-MM-DD') effEndStr,
+		       null firstSortId,
+		       G.WORK_CENTER workcenter,
+		       B.ARR_DEPOT arrDepot,
+		       D.PART_SHORT_NO partShortNo,
+		       D.PART_NAME_CN partName,
+		       J.SUPPLIER_NAME supplierName,
+		       B.PLAN_CODE planCode,
+		       E.PLAN_CODE_DESC planCode1,
+		       null shipDepot,
+		       B.PREPARE_NUM prepareNum,
+		       B.DISPATCH_NUM dispatchNum,
+		       B.DELIVERY_NUM deliveryNum,
+		       B.ARRIVE_NUM arriveNum,
+		       B.DISTRIBUTION_NUM distributionNum,
+		       null distriPackage,
+		       null shipDepotType,
+		       null orderProductNum,
+		       null aheadPorductNum,
+		       A.PART_MARK partMark,
+		       B.PARTGROUP_NO partgroupNo,
+		       B.PARTGROUP_NAME partgroupName,
+		       B.INS_PRODUCT_NUM insProductNum,
+		       B.ORDER_INS_NUM orderInsNum,
+		       H.CODE_VALUE_NAME genInsWay,
+		       I.CODE_VALUE_NAME orderFlag,
+		       C.ROUTE_CODE routeCode,
+		       C.ROUTE_DESC routeDesc,
+		       F.UNLOAD_PORT unloadPort,
+               A.MODEL_CODE modelCode
+		  FROM MM_JISO_PART A
+		  LEFT JOIN MM_JISO_PARTGROUP B
+		    ON A.PARTGROUP_ID = B.ID
+		  LEFT JOIN MM_PUB_PLAN_CODE E
+		    ON B.PLAN_CODE = E.PLAN_CODE
+		  LEFT JOIN MM_PUB_PART_UDA D
+	        ON A.PART_NO = D.PART_NO
+	        AND E.FACTORY_CODE = D.FACTORY_CODE
+	      LEFT JOIN MM_JISO_PARTGROUP_ROUTE C
+	        ON A.PARTGROUP_ID = C.PARTGROUP_ID
+	        AND D.SUP_FACTORY = C.SUP_FACTORY
+		  LEFT JOIN MM_PUB_PART_UNLOAD F
+		    ON A.PART_NO = F.PART_NO
+		    AND E.WORKCENTER = F.WORKCENTER
+		    AND F.LOGISTICS_MODEL = 'JISO'
+		    AND F.FACTORY_CODE = E.FACTORY_CODE
+		  LEFT JOIN MM_INV_UNLOAD G
+	        ON F.UNLOAD_PORT = G.UNLOAD_PORT
+	        AND E.FACTORY_CODE = G.FACTORY_CODE
+	      LEFT JOIN MM_PUB_DATA_DICT H
+		    ON B.GEN_INS_WAY = H.CODE_VALUE
+		    AND H.CODE_TYPE = 'PUB_TRUE_FALSE'
+		  LEFT JOIN MM_PUB_DATA_DICT I
+		    ON B.ORDER_FLG = I.CODE_VALUE
+		    AND I.CODE_TYPE = 'PUB_TRUE_FALSE'
+		  LEFT JOIN MM_PUB_SUPPLIER J
+		  	ON C.SUPPLIER_NO = J.SUPPLIER_NO
+		 WHERE 1 = 1
+		   AND E.FACTORY_CODE = #{factoryCode}
+		<if test="logisticsModel != null and logisticsModel != '' ">
+			AND #{logisticsModel} = 'JISO'
+		</if>
+		<if test="partMark != null and partMark != '' ">
+			AND A.PART_MARK = #{partMark}
+		</if>
+		<if test="partNo != null and partNo != '' ">
+			AND A.PART_NO LIKE CONCAT(#{partNo}, '%')
+		</if>
+		<if test="unloadPort != null and unloadPort != '' ">
+			AND F.UNLOAD_PORT = #{unloadPort}
+		</if>
+		<if test="modelCode != null and modelCode != '' ">
+			AND A.MODEL_CODE = #{modelCode}
+		</if>
+		<if test="partShortNo != null and partShortNo != '' ">
+			AND D.PART_SHORT_NO = #{partShortNo}
+		</if>
+		<if test="supplierNo != null and supplierNo != '' ">
+			AND C.SUPPLIER_NO LIKE CONCAT(#{supplierNo}, '%')
+		</if>
+		<if test="supFactory != null and supFactory != '' ">
+			AND C.SUP_FACTORY LIKE CONCAT(#{supFactory}, '%')
+		</if>
+		<if test="workcenter != null and workcenter != '' ">
+			AND G.WORK_CENTER = #{workcenter}
+		</if>
+		<if test="shipDepot != null and shipDepot != '' ">
+			AND 1 = 2
+		</if>
+		<if test="planCode != null and planCode != '' ">
+			AND B.PLAN_CODE = #{planCode}
+		</if>
+		<if test="arrDepot != null and arrDepot != '' ">
+			AND B.ARR_DEPOT = #{arrDepot}
+		</if>
+		<if test="logistcsFlag != null and logistcsFlag != '' ">
+			AND 1 = 2
+		</if>
+		<if test="mpUnloadPort != null and mpUnloadPort != '' ">
+			AND 1 = 2
+		</if>
+		<if test="effStartStr != null and effStartStr != '' ">
+			AND A.EFF_START >= TO_DATE(#{effStartStr}, 'YYYY-MM-DD')
+		</if>
+		<if test="effEndStr != null and effEndStr != '' ">
+			AND A.EFF_END &lt; TO_DATE(#{effEndStr}, 'YYYY-MM-DD')
+		</if>
+		<if test="partgroupNo != null and partgroupNo != '' ">
+			AND B.PARTGROUP_NO = #{partgroupNo}
+		</if>
+		ORDER BY supplierNo, supFactory, partNo
+	</select>
+	
+	<!-- 根据UUID删除临时表数据 -->
+	<delete id="deletePubOrderImportTempDataByUUID" parameterType="java.lang.String">
+		DELETE FROM MM_PUB_PART_IMP A WHERE A.IMP_UUID = #{value}
+	</delete>
+	
+	<!-- 将EXCEL数据导入到例外订单需求临时表 -->
+	<insert id="insertImportTempData" parameterType="java.util.List">
+		INSERT INTO MM_PUB_PART_IMP A
+		  (A.FACTORY_CODE,
+		   A.SUPPLIER_NO,
+		   A.SUPPLIER_NAME,
+		   A.SUP_FACTORY,
+		   A.UNLOAD_PORT,
+		   A.MP_UNLOAD_PORT,
+		   A.PART_NO,
+		   A.PART_NAME,
+		   A.PART_SHORT_NO,
+		   A.STANDARD_PACKAGE,
+		   A.ORDER_PACKAGE,
+		   A.SUPPLY_RATE,
+		   A.SAFE_NUM,
+		   A.LOGISTICS_FLAG,
+		   A.EFF_START,
+		   A.EFF_END,
+		   A.FIRST_SORT_ID,
+		   A.WORKCENTER,
+		   A.ARR_DEPOT,
+		   A.ARR_DEPOT_TYPE,
+		   A.PLAN_CODE,
+		   A.SHIP_DEPOT,
+		   A.PREPARE_NUM,
+		   A.DISPATCH_NUM,
+		   A.DELIVERY_NUM,
+		   A.ARRIVE_NUM,
+		   A.DISTRIBUTION_NUM,
+		   A.PART_MARK,
+		   A.SHIP_DEPOT_TYPE,
+		   A.ORDER_PRODUCT_NUM,
+		   A.AHEAD_PRODUCT_NUM,
+		   A.INS_PRODUCT_NUM,
+		   A.ORDER_INS_NUM,
+		   A.GEN_INS_WAY,
+		   A.ORDER_FLG,
+		   A.PARTGROUP_NO,
+		   A.PARTGROUP_NAME,
+		   A.ROUTE_CODE,
+		   A.ROUTE_DESC,
+		   A.IMP_UUID,
+		   A.CHECK_RESULT,
+		   A.CHECK_INFO,
+		   A.IMPORT_STATUS,
+		   A.OPE_TYPE,
+		   A.PK_ID,
+		   A.CREATION_USER,
+		   A.CREATION_TIME,
+		   A.LOGISTICS_MODEL,
+		   A.MODEL_CODE)
+		<foreach collection="list" item="item" index="index" separator=" UNION ALL ">
+			SELECT 
+		   #{item.factoryCode,jdbcType=VARCHAR},
+		   #{item.supplierNo,jdbcType=VARCHAR},
+		   #{item.supplierName,jdbcType=VARCHAR},
+		   #{item.supFactory,jdbcType=VARCHAR},
+		   #{item.unloadPort,jdbcType=VARCHAR},
+		   #{item.mpUnloadPort,jdbcType=VARCHAR},
+		   #{item.partNo,jdbcType=VARCHAR},
+		   #{item.partName,jdbcType=VARCHAR},
+		   #{item.partShortNo,jdbcType=VARCHAR},
+		   #{item.standardPackage,jdbcType=VARCHAR},
+		   #{item.orderPackage,jdbcType=VARCHAR},
+		   100,
+		   #{item.safeNum,jdbcType=VARCHAR},
+		   'GAM',
+		   TO_DATE(#{item.effStartStr,jdbcType=VARCHAR}, 'YYYY-MM-DD'),
+		   TO_DATE(#{item.effEndStr,jdbcType=VARCHAR}, 'YYYY-MM-DD'),
+		   #{item.firstSortId,jdbcType=VARCHAR},
+		   #{item.workcenter,jdbcType=VARCHAR},
+		   #{item.arrDepot,jdbcType=VARCHAR},
+		   #{item.arrDepotType, jdbcType=VARCHAR},
+		   #{item.planCode,jdbcType=VARCHAR},
+		   #{item.shipDepot,jdbcType=VARCHAR},
+		   #{item.prepareNum,jdbcType=VARCHAR},
+		   #{item.dispatchNum,jdbcType=VARCHAR},
+		   #{item.deliveryNum,jdbcType=VARCHAR},
+		   #{item.arriveNum,jdbcType=VARCHAR},
+		   #{item.distributionNum,jdbcType=VARCHAR},
+		   #{item.partMark,jdbcType=VARCHAR},
+		   #{item.shipDepotType,jdbcType=VARCHAR},
+		   #{item.orderProductNum,jdbcType=VARCHAR},
+		   #{item.aheadProductNum,jdbcType=VARCHAR},
+		   #{item.insProductNum,jdbcType=VARCHAR},
+		   #{item.orderInsNum,jdbcType=VARCHAR},
+		   #{item.genInsWay,jdbcType=VARCHAR},
+		   #{item.orderFlag,jdbcType=VARCHAR},
+		   #{item.partgroupNo,jdbcType=VARCHAR},
+		   #{item.partgroupName,jdbcType=VARCHAR},
+		   #{item.routeCode,jdbcType=VARCHAR},
+		   #{item.routeDesc,jdbcType=VARCHAR},
+		   #{item.uuid,jdbcType=VARCHAR},
+		   #{item.checkResult,jdbcType=VARCHAR},
+		   #{item.checkInfo,jdbcType=VARCHAR},
+		   #{item.importStatus,jdbcType=VARCHAR},
+		   #{item.opeType, jdbcType=VARCHAR},
+		   PKG_PUB.USF_GET_SEQUENCE('SEQ_IMPORT_DATA_TEMP'),
+		   #{item.createUser, jdbcType=VARCHAR},
+		   SYSDATE,
+		   #{item.logisticsModel, jdbcType=VARCHAR},
+		   #{item.modelCode, jdbcType=VARCHAR}
+			FROM DUAL
+    	</foreach>
+	</insert>
+	
+	<!-- 将EXCEL数据导入到例外订单需求临时表 -->
+	<insert id="insertSimgleImportTempData" parameterType="java.util.List">
+		INSERT INTO MM_PUB_PART_IMP A
+		      (A.FACTORY_CODE,
+		       A.SUPPLIER_NO,
+		       A.SUPPLIER_NAME,
+		       A.SUP_FACTORY,
+		       A.UNLOAD_PORT,
+		       A.MP_UNLOAD_PORT,
+		       A.PART_NO,
+		       A.PART_NAME,
+		       A.PART_SHORT_NO,
+		       A.STANDARD_PACKAGE,
+		       A.ORDER_PACKAGE,
+		       A.SUPPLY_RATE,
+		       A.SAFE_NUM,
+		       A.LOGISTICS_FLAG,
+		       A.EFF_START,
+		       A.EFF_END,
+		       A.FIRST_SORT_ID,
+		       A.WORKCENTER,
+		       A.ARR_DEPOT,
+		       A.PLAN_CODE,
+		       A.SHIP_DEPOT,
+		       A.PREPARE_NUM,
+		       A.DISPATCH_NUM,
+		       A.DELIVERY_NUM,
+		       A.ARRIVE_NUM,
+		       A.DISTRIBUTION_NUM,
+		       A.PART_MARK,
+		       A.SHIP_DEPOT_TYPE,
+		       A.ORDER_PRODUCT_NUM,
+		       A.AHEAD_PRODUCT_NUM,
+		       A.INS_PRODUCT_NUM,
+		       A.ORDER_INS_NUM,
+		       A.GEN_INS_WAY,
+		       A.ORDER_FLG,
+		       A.PARTGROUP_NO,
+		       A.PARTGROUP_NAME,
+		       A.ROUTE_CODE,
+		       A.ROUTE_DESC,
+		       A.IMP_UUID,
+		       A.CHECK_RESULT,
+		       A.CHECK_INFO,
+		       A.IMPORT_STATUS,
+		       A.OPE_TYPE,
+		       A.PK_ID,
+		       A.CREATION_USER,
+		       A.CREATION_TIME,
+		       A.LOGISTICS_MODEL,
+		       A.MODEL_CODE)
+		      SELECT 
+		       #{factoryCode,jdbcType=VARCHAR},
+		       #{supplierNo,jdbcType=VARCHAR},
+		       #{supplierName,jdbcType=VARCHAR},
+		       #{supFactory,jdbcType=VARCHAR},
+		       #{unloadPort,jdbcType=VARCHAR},
+		       #{mpUnloadPort,jdbcType=VARCHAR},
+		       #{partNo,jdbcType=VARCHAR},
+		       #{partName,jdbcType=VARCHAR},
+		       #{partShortNo,jdbcType=VARCHAR},
+		       #{standardPackage,jdbcType=VARCHAR},
+		       #{orderPackage,jdbcType=VARCHAR},
+		       #{supplyRate,jdbcType=VARCHAR},
+		       #{safeNum,jdbcType=VARCHAR},
+		       #{logistcsFlag,jdbcType=VARCHAR},
+		       TO_DATE(#{effStartStr,jdbcType=VARCHAR}, 'yyyy-mm-dd'),
+		       TO_DATE(#{effEndStr,jdbcType=VARCHAR}, 'yyyy-mm-dd'),
+		       #{firstSortId,jdbcType=VARCHAR},
+		       #{workcenter,jdbcType=VARCHAR},
+		       #{arrDepot,jdbcType=VARCHAR},
+		       #{planCode1,jdbcType=VARCHAR},
+		       #{shipDepot,jdbcType=VARCHAR},
+		       #{prepareNum,jdbcType=VARCHAR},
+		       #{dispatchNum,jdbcType=VARCHAR},
+		       #{deliveryNum,jdbcType=VARCHAR},
+		       #{arriveNum,jdbcType=VARCHAR},
+		       #{distributionNum,jdbcType=VARCHAR},
+		       #{partMark,jdbcType=VARCHAR},
+		       #{shipDepotType,jdbcType=VARCHAR},
+		       #{orderProductNum,jdbcType=VARCHAR},
+		       #{aheadProductNum,jdbcType=VARCHAR},
+		       #{insProductNum,jdbcType=VARCHAR},
+		       #{orderInsNum,jdbcType=VARCHAR},
+		       #{genInsWay,jdbcType=VARCHAR},
+		       #{orderFlag,jdbcType=VARCHAR},
+		       #{partgroupNo,jdbcType=VARCHAR},
+		       #{partgroupName,jdbcType=VARCHAR},
+		       #{routeCode,jdbcType=VARCHAR},
+		       #{routeDesc,jdbcType=VARCHAR},
+		       #{uuid,jdbcType=VARCHAR},
+		       #{checkResult,jdbcType=VARCHAR},
+		       #{checkInfo,jdbcType=VARCHAR},
+		       #{importStatus,jdbcType=VARCHAR},
+		       #{opeType, jdbcType=VARCHAR},
+		       PKG_PUB.USF_GET_SEQUENCE('SEQ_IMPORT_DATA_TEMP'),
+		       #{createUser, jdbcType=VARCHAR},
+		       SYSDATE,
+		       #{logisticsModel, jdbcType=VARCHAR},
+		       #{modelCode, jdbcType=VARCHAR}
+		      FROM DUAL
+	</insert>
+	
+	<!-- 检查导入临时表数据 -->
+	<parameterMap type="map" id="impCkParamMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="userName" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	
+	<!-- 导入零件订购基础信息校验 -->
+	<select id="checkImportData" parameterMap="impCkParamMap" statementType="CALLABLE">
+		{CALL PKG_PUB_CHECK.USP_PUB_ORDER_PART_CHECK(?, ?, ?,  ?,?)}
+	</select>
+	
+	<!-- 查询临时表中的数据是否可以导入 -->
+	<select id="queryIsImportFlag" parameterType="java.lang.String" resultType="java.lang.String">
+		WITH TEMPA AS
+		 (SELECT COUNT(1) s
+		    FROM MM_PUB_PART_IMP A
+		   WHERE A.CHECK_RESULT = 0
+		     AND A.IMP_UUID = #{VALUE})
+		SELECT CASE
+		         WHEN A.S > 0 THEN
+		          0
+		         ELSE
+		          1
+		       END AS FLAG
+		  FROM TEMPA A
+	</select>
+	
+	<!-- 查询临时表数据 -->
+	<select id="queryPubOrderPartImportTempData" parameterType="java.util.Map" resultType="com.hanthink.pub.model.PubOrderModelImport">
+			SELECT A.FACTORY_CODE factoryCode,
+		       A.SUPPLIER_NO supplierNo,
+		       L.SUPPLIER_NAME supplierName,
+		       A.SUP_FACTORY supFactory,
+		       A.UNLOAD_PORT unloadPort,
+		       A.MP_UNLOAD_PORT mpUnloadPort,
+		       A.PART_NO partNo,
+		       K.PART_NAME_CN partName,
+		       A.PART_SHORT_NO partShortNo,
+		       A.STANDARD_PACKAGE standardPackage,
+		       A.STANDARD_PACKAGE standardPackageInt,
+		       A.ORDER_PACKAGE orderPackage,
+		       A.ORDER_PACKAGE orderPackageInt,
+		       A.SUPPLY_RATE supplyRate,
+		       A.SAFE_NUM safeNum,
+		       A.SAFE_NUM safeNumInt,
+		       A.LOGISTICS_FLAG logisticsFlag,
+		       TO_CHAR(A.EFF_START, 'YYYY-MM-DD') effStartStr,
+		       TO_CHAR(A.EFF_END, 'YYYY-MM-DD') effEndStr,
+		       A.FIRST_SORT_ID firstSortId,
+		       A.FIRST_SORT_ID firstSortIdInt,
+		       NVL(F.CODE_VALUE_NAME, A.WORKCENTER) workcenter,
+		       A.ARR_DEPOT arrDepot,
+		       G.CODE_VALUE_NAME arrDepotType,
+		       J.PLAN_CODE_DESC planCode,
+		       A.SHIP_DEPOT shipDepot,
+		       A.PREPARE_NUM prepareNum,
+		       A.PREPARE_NUM prepareNumInt,
+		       A.DISPATCH_NUM dispatchNum,
+		       A.DISPATCH_NUM dispatchNumInt,
+		       A.DELIVERY_NUM deliveryNum,
+		       A.DELIVERY_NUM deliveryNumInt,
+		       A.ARRIVE_NUM arriveNum,
+		       A.ARRIVE_NUM arriveNumInt,
+		       A.DISTRIBUTION_NUM distributionNum,
+		       A.DISTRIBUTION_NUM distributionNumInt,
+		       A.PART_MARK partMark,
+		       H.CODE_VALUE_NAME shipDepotType,
+		       A.ORDER_PRODUCT_NUM orderProductNum,
+		       A.ORDER_PRODUCT_NUM orderProductNumInt,
+		       A.AHEAD_PRODUCT_NUM aheadProductNum,
+		       A.AHEAD_PRODUCT_NUM aheadProductNumInt,
+		       A.INS_PRODUCT_NUM insProductNum,
+		       A.INS_PRODUCT_NUM insProductNumInt,
+		       A.ORDER_INS_NUM orderInsNum,
+		       A.ORDER_INS_NUM orderInsNumInt,
+		       B.CODE_VALUE_NAME genInsWay,
+		       C.CODE_VALUE_NAME orderFlag,
+		       A.PARTGROUP_NO partgroupNo,
+		       A.PARTGROUP_NAME partgroupName,
+		       A.ROUTE_CODE routeCode,
+		       A.ROUTE_DESC routeDesc,
+		       D.CODE_VALUE_NAME checkResult,
+		       E.CODE_VALUE_NAME importStatus,
+		       A.CHECK_INFO checkInfo,
+		       A.OPE_TYPE opeType,
+		       I.CODE_VALUE_NAME logisticsModel,
+		       A.MODEL_CODE modelCode
+		  FROM MM_PUB_PART_IMP A
+		  LEFT JOIN MM_PUB_DATA_DICT B
+		    ON A.GEN_INS_WAY = B.CODE_VALUE
+		   AND B.CODE_TYPE = 'PUB_TRUE_FALSE'
+		  LEFT JOIN MM_PUB_DATA_DICT C
+		    ON A.ORDER_FLG = C.CODE_VALUE
+		   AND C.CODE_TYPE = 'PUB_TRUE_FALSE'
+		  LEFT JOIN MM_PUB_DATA_DICT D
+		    ON A.CHECK_RESULT = D.CODE_VALUE
+		   AND D.CODE_TYPE = 'PUB_IMP_CK_RESULT'
+		  LEFT JOIN MM_PUB_DATA_DICT E
+		    ON A.IMPORT_STATUS = E.CODE_VALUE
+		   AND E.CODE_TYPE = 'PUB_IMP_STATUS'
+		  LEFT JOIN MM_PUB_DATA_DICT F
+		    ON A.WORKCENTER = F.CODE_VALUE
+		   AND F.CODE_TYPE = 'PUB_WORKCENTER'
+		  LEFT JOIN MM_PUB_DATA_DICT G
+		    ON A.ARR_DEPOT_TYPE = G.CODE_VALUE
+		   AND G.CODE_TYPE = 'PUB_ARR_DEPOT_TYPE'
+		  LEFT JOIN MM_PUB_DATA_DICT H
+		    ON A.SHIP_DEPOT_TYPE = H.CODE_VALUE
+		   AND H.CODE_TYPE = 'PUB_SHIP_DEPOT_TYPE'
+		  LEFT JOIN MM_PUB_DATA_DICT I
+		    ON A.LOGISTICS_MODEL = I.CODE_VALUE
+		   AND I.CODE_TYPE = 'PUB_MM_MODEL'
+		  LEFT JOIN MM_PUB_PLAN_CODE J
+		    ON A.PLAN_CODE = J.PLAN_CODE
+		  LEFT JOIN MM_PUB_PART_UDA K
+		  	ON A.PART_NO = K.PART_NO
+		  	AND A.FACTORY_CODE = K.FACTORY_CODE
+		  LEFT JOIN MM_PUB_SUPPLIER L
+		  	ON A.SUPPLIER_NO = L.SUPPLIER_NO
+		 WHERE A.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		 ORDER BY A.CHECK_RESULT, A.SUPPLIER_NO, A.SUP_FACTORY, A.PART_NO
+	</select>
+	
+	<!-- 查询可导入数据 -->
+	<select id="queryForInsertList" parameterType="java.util.Map" resultType="com.hanthink.pub.model.PubOrderModelImport">
+		SELECT *
+		FROM  MM_PUB_PART_IMP
+		WHERE IMP_UUID = #{uuid}
+			  AND IMPORT_STATUS = #{importStatus}
+			  AND CHECK_RESULT = #{checkResult}
+	</select>
+	
+	<!-- 拿出ID,查询哪些数据需要修改 -->
+	<select id="querySwUpdateData" parameterType="java.util.Map" resultType="java.lang.String">
+		SELECT A.ID
+		  FROM MM_PUB_PART_IMP A
+		 WHERE A.OPE_TYPE = 'U'
+		   AND A.IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR} 
+		   AND A.IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		   AND A.CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+		   AND A.LOGISTICS_MODEL = 'SW'
+	</select>
+	
+	<!-- 批量导入协同零件订购基础信息 -->
+	<update id="importSwPurOrderImportData" parameterType="java.util.Map">
+		MERGE INTO MM_MP_PART A
+		USING (SELECT *
+		         FROM MM_PUB_PART_IMP B
+		        WHERE B.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		          AND B.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		          AND B.IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}
+		          AND B.LOGISTICS_MODEL = 'SW') C
+		ON (A.ID = C.ID AND A.FACTORY_CODE = C.FACTORY_CODE)
+		WHEN MATCHED THEN
+		  UPDATE
+		     SET PART_UNIT          = C.PART_UNIT,
+		         STANDARD_PACKAGE   = C.STANDARD_PACKAGE,
+		         ORDER_PACKAGE      = C.ORDER_PACKAGE,
+		         SUPPLY_RATE        = C.SUPPLY_RATE,
+		         SAFE_NUM           = C.SAFE_NUM,
+		         LOGISTICS_FLAG     = C.LOGISTICS_FLAG,
+		         EFF_START          = C.EFF_START,
+		         EFF_END            = C.EFF_END,
+		         LAST_MODIFIED_USER = C.CREATION_USER,
+		         LAST_MODIFIED_TIME = SYSDATE,
+		         FIRST_SORT_ID      = C.FIRST_SORT_ID,
+		         MODEL_CODE         = C.MODEL_CODE,
+		         PREPARE_NUM 		= C.PREPARE_NUM,
+		         DELIVERY_NUM		= C.DELIVERY_NUM,
+		         ARRIVE_NUM			= C.ARRIVE_NUM,
+		         DISTRIBUTION_NUM	= C.DISTRIBUTION_NUM,
+		         ORDER_PRODUCT_NUM	= C.ORDER_PRODUCT_NUM,
+		         PURCHASE_TYPE		= C.PART_MARK
+		WHEN NOT MATCHED THEN
+		  INSERT
+		    (ID,
+		     FACTORY_CODE,
+		     SUPPLIER_NO,
+		     SUP_FACTORY,
+		     UNLOAD_PORT,
+		     PART_NO,
+		     PART_UNIT,
+		     STANDARD_PACKAGE,
+		     ORDER_PACKAGE,
+		     SUPPLY_RATE,
+		     SAFE_NUM,
+		     LOGISTICS_FLAG,
+		     EFF_START,
+		     EFF_END,
+		     CREATION_USER,
+		     CREATION_TIME,
+		     FIRST_SORT_ID,
+		     WORKCENTER,
+		     ORDER_DEPOT,
+		     LOGISTICS_MODEL,
+		     MODEL_CODE,
+		     PREPARE_NUM,
+		     DELIVERY_NUM,
+		     ARRIVE_NUM,
+		     DISTRIBUTION_NUM,
+		     ORDER_PRODUCT_NUM,
+		     PURCHASE_TYPE)
+		  VALUES
+		    (PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_PUB_PART'),
+		     C.FACTORY_CODE,
+		     C.SUPPLIER_NO,
+		     C.SUP_FACTORY,
+		     C.MP_UNLOAD_PORT,
+		     C.PART_NO,
+		     C.PART_UNIT,
+		     C.STANDARD_PACKAGE,
+		     C.ORDER_PACKAGE,
+		     C.SUPPLY_RATE,
+		     C.SAFE_NUM,
+		     C.LOGISTICS_FLAG,
+		     C.EFF_START,
+		     C.EFF_END,
+		     C.CREATION_USER,
+		     SYSDATE,
+		     C.FIRST_SORT_ID,
+		     C.WORKCENTER,
+		     C.ARR_DEPOT,
+		     C.LOGISTICS_MODEL,
+		     C.MODEL_CODE,
+		     C.PREPARE_NUM,
+		     C.DELIVERY_NUM,
+		     C.ARRIVE_NUM,
+		     C.DISTRIBUTION_NUM,
+		     C.ORDER_PRODUCT_NUM,
+		     C.PART_MARK)
+	</update>
+	
+	<!-- 循环取货的数据导入的计算队列存在而对应的到货仓库或者车间不同的数据需要更新为当前导入的车间和到货仓库 -->
+	<update id="updateSwPurOrder" parameterType="java.util.Map">
+		UPDATE MM_MP_PART A
+		   SET (A.WORKCENTER, A.ORDER_DEPOT) =
+		       (SELECT DISTINCT B.WORKCENTER, B.ARR_DEPOT
+		          FROM MM_PUB_PART_IMP B
+		         WHERE B.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		           AND B.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		           AND B.IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}
+		           AND B.LOGISTICS_MODEL = 'SW'
+		           AND B.MP_UNLOAD_PORT = A.UNLOAD_PORT
+		           AND B.FACTORY_CODE = A.FACTORY_CODE)
+		 WHERE EXISTS
+		 (SELECT 1
+		          FROM MM_PUB_PART_IMP C
+		         WHERE C.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		           AND C.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		           AND C.IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}
+		           AND C.LOGISTICS_MODEL = 'SW'
+		           AND A.UNLOAD_PORT = C.MP_UNLOAD_PORT
+		           AND A.FACTORY_CODE = C.FACTORY_CODE)
+	</update>
+	
+	<!-- 查询需要修改的零件基础数据 -->
+	<select id="queryPartUpdateData" parameterType="java.util.Map" resultType="java.lang.String">
+		SELECT A.ID
+		  FROM MM_PUB_PART_UDA A
+		 WHERE EXISTS
+		 (SELECT 1
+		          FROM MM_PUB_PART_IMP B
+		         WHERE B.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		           AND B.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		           AND B.IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}
+		           AND A.PART_NO = B.PART_NO
+		           AND A.FACTORY_CODE = B.FACTORY_CODE
+		           AND (A.PART_NAME_CN != B.PART_NAME OR
+		               A.SUPPLIER_NAME != B.SUPPLIER_NAME OR
+		               A.PART_SHORT_NO != B.PART_SHORT_NO OR
+		               A.SUP_FACTORY != B.SUP_FACTORY OR
+		               A.SUPPLIER_NO != B.SUPPLIER_NO OR
+		               A.STANDARD_PACKAGE != B.STANDARD_PACKAGE))
+	</select>
+	
+	<!-- 导入成功更新导入状态 -->
+	<update id="updatePartInfo" parameterType="java.util.Map">
+		MERGE INTO MM_PUB_PART_UDA A
+		USING (SELECT B.PART_NO,
+		              B.FACTORY_CODE,
+		              MIN(B.SUPPLIER_NO) SUPPLIER_NO,
+		              MIN(B.SUPPLIER_NAME) SUPPLIER_NAME,
+		              MIN(B.SUP_FACTORY) SUP_FACTORY,
+		              MIN(B.PART_SHORT_NO) PART_SHORT_NO,
+		              MIN(B.PART_NAME) PART_NAME,
+		              MIN(B.STANDARD_PACKAGE) STANDARD_PACKAGE,
+		              MIN(B.CREATION_USER) CREATION_USER
+		         FROM MM_PUB_PART_IMP B
+		        WHERE B.IMP_UUID = #{uuid,jdbcType = VARCHAR} 
+		         AND B.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR} 
+		         AND B.IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR} 
+		        GROUP BY B.PART_NO, B.FACTORY_CODE) C
+		ON (A.PART_NO = C.PART_NO AND A.FACTORY_CODE = C.FACTORY_CODE)
+		WHEN MATCHED THEN
+		  UPDATE
+		     SET A.SUPPLIER_NO        = C.SUPPLIER_NO,
+		         A.SUP_FACTORY        = C.SUP_FACTORY,
+		         A.PART_SHORT_NO      = C.PART_SHORT_NO,
+		         A.STANDARD_PACKAGE   = C.STANDARD_PACKAGE,
+		         A.LAST_MODIFIED_USER = C.CREATION_USER,
+		         A.LAST_MODIFIED_TIME = SYSDATE
+		WHEN NOT MATCHED THEN
+		  INSERT
+		    (ID,
+		     PART_NO,
+		     SUPPLIER_NO,
+		     SUP_FACTORY,
+		     PART_SHORT_NO,
+		     PART_NAME_CN,
+		     SUPPLIER_NAME,
+		     STANDARD_PACKAGE,
+		     CREATION_USER,
+		     CREATION_TIME,
+		     FACTORY_CODE)
+		  VALUES
+		    (PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_PUB_PART_UDA'),
+		     C.PART_NO,
+		     C.SUPPLIER_NO,
+		     C.SUP_FACTORY,
+		     C.PART_SHORT_NO,
+		     C.PART_NAME,
+		     C.SUPPLIER_NAME,
+		     C.STANDARD_PACKAGE,
+		     C.CREATION_USER,
+		     SYSDATE,
+		     C.FACTORY_CODE)
+	</update>
+	
+	<!-- 导入成功更新导入状态 -->
+	<update id="updatePubOrderImportStatus" parameterType="java.util.Map">
+		UPDATE MM_PUB_PART_IMP A
+		   SET A.IMPORT_STATUS = 1
+		 WHERE A.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+	</update>
+	
+	<!-- 查询拉动订购基础零件需要修改的数据 -->
+	<select id="queryJitUpdateData" parameterType="java.util.Map" resultType="java.lang.String">
+		SELECT A.ID
+		  FROM MM_PUB_PART_IMP A
+		 WHERE A.OPE_TYPE = 'U'
+		   AND A.IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+		   AND A.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		   AND A.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		   AND A.LOGISTICS_MODEL = 'JIT'
+	</select>
+	
+	<!-- 批量导入拉动零件订购基础信息 -->
+	<update id="importJitPurOrderImportData" parameterType="java.util.Map">
+		MERGE INTO MM_JIT_PART A
+		USING (SELECT *
+		         FROM MM_PUB_PART_IMP B 
+		         WHERE B.IMP_UUID = #{uuid,jdbcType = VARCHAR} 
+		         AND B.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR} 
+		         AND B.IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR} 
+		         AND B.LOGISTICS_MODEL = 'JIT') C
+		ON (A.ID = C.ID)
+		WHEN MATCHED THEN
+		  UPDATE
+		     SET A.SHIP_DEPOT         = C.SHIP_DEPOT,
+		         A.ARR_DEPOT          = C.ARR_DEPOT,
+		         A.PREPARE_NUM        = C.PREPARE_NUM,
+		         A.DISPATCH_NUM       = C.DISPATCH_NUM,
+		         A.DELIVERY_NUM       = C.DELIVERY_NUM,
+		         A.ARRIVE_NUM         = C.ARRIVE_NUM,
+		         A.DISTRIBUTION_NUM   = C.DISTRIBUTION_NUM,
+		         A.DISTRI_PACKAGE     = C.ORDER_PACKAGE,
+		         A.STANDARD_PACKAGE   = C.STANDARD_PACKAGE,
+		         A.EFF_START          = C.EFF_START,
+		         A.EFF_END            = C.EFF_END,
+		         A.LAST_MODIFIED_USER = C.CREATION_USER,
+		         A.LAST_MODIFIED_TIME = SYSDATE
+		WHEN NOT MATCHED THEN
+		  INSERT
+		    (A.ID,
+		     A.MODEL_CODE,
+		     A.PLAN_CODE,
+		     A.PART_NO,
+		     A.SHIP_DEPOT,
+		     A.ARR_DEPOT,
+		     A.PREPARE_NUM,
+		     A.DISPATCH_NUM,
+		     A.DELIVERY_NUM,
+		     A.ARRIVE_NUM,
+		     A.DISTRIBUTION_NUM,
+		     A.DISTRI_PACKAGE,
+		     A.STANDARD_PACKAGE,
+		     A.EFF_START,
+		     A.EFF_END,
+		     A.CREATION_USER,
+		     A.CREATION_TIME)
+		  VALUES
+		    (PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_PUB_PART'),
+		     C.MODEL_CODE,
+		     C.PLAN_CODE,
+		     C.PART_NO,
+		     C.SHIP_DEPOT,
+		     C.ARR_DEPOT,
+		     C.PREPARE_NUM,
+		     C.DISPATCH_NUM,
+		     C.DELIVERY_NUM,
+		     C.ARRIVE_NUM,
+		     C.DISTRIBUTION_NUM,
+		     C.ORDER_PACKAGE,
+		     C.STANDARD_PACKAGE,
+		     C.EFF_START,
+		     C.EFF_END,
+		     C.CREATION_USER,
+		     SYSDATE)
+	</update>
+	
+	<!-- 查询拉动订购组单配置需要修改的数据 -->
+	<select id="queryJitOrderUpdateData" parameterType="java.util.Map" resultType="java.lang.String">
+		SELECT A.ID
+		  FROM MM_JIT_ORDER_CONFIG A
+		 WHERE EXISTS
+		 (SELECT 1
+		          FROM MM_PUB_PART_IMP B
+		         WHERE B.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		           AND B.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		           AND B.IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}
+		           AND B.LOGISTICS_MODEL = 'JIT'
+		           AND A.PLAN_CODE = B.PLAN_CODE
+		           AND A.SHIP_DEPOT = B.SHIP_DEPOT
+		           AND A.ARR_DEPOT = B.ARR_DEPOT
+		           AND (A.SHIP_DEPOT_TYPE != B.SHIP_DEPOT_TYPE OR
+		               A.SUP_FACTORY != B.SUP_FACTORY OR
+		               A.SUPPLIER_NO != B.SUPPLIER_NO OR
+		               A.ORDER_PRODUCT_NUM != B.ORDER_PRODUCT_NUM OR
+		               A.AHEAD_PRODUCT_NUM != B.AHEAD_PRODUCT_NUM OR
+		               A.S_PREPARE_PRODUCT_SEQNO != B.S_PREPARE_PRODUCT_SEQNO OR
+		               A.E_PREPARE_PRODUCT_SEQNO != B.E_PREPARE_PRODUCT_SEQNO OR
+		               A.EFF_START != B.EFF_START OR A.EFF_END != B.EFF_END))
+	</select>
+	
+	<!-- 处理出货仓库类别是SUP的数据批量导入拉动零件订单配置订购基础信息 -->
+	<update id="importJitOrderSupPurOrderImportData" parameterType="java.util.Map">
+		<!-- i-LMS20190614001 mod by zmj -->
+		MERGE INTO MM_JIT_ORDER_CONFIG A
+		USING (SELECT B.PLAN_CODE,
+		                       B.SHIP_DEPOT,
+		                       B.ARR_DEPOT,
+		                       B.SHIP_DEPOT_TYPE,
+		                       B.SUP_FACTORY,
+		                       B.SUPPLIER_NO,
+		                       B.ORDER_PRODUCT_NUM,
+		                       B.AHEAD_PRODUCT_NUM,
+		                       B.S_PREPARE_PRODUCT_SEQNO,
+		                       B.E_PREPARE_PRODUCT_SEQNO,
+		                       MIN(B.EFF_START) EFF_START,
+		                       MAX(B.EFF_END) EFF_END,
+		                       B.CREATION_USER
+		         FROM MM_PUB_PART_IMP B
+		        WHERE B.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		          AND B.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		          AND B.IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}
+		          AND B.LOGISTICS_MODEL = 'JIT'
+		          AND B.SHIP_DEPOT_TYPE = 'SUP'
+		        GROUP BY B.PLAN_CODE,
+                 	B.SHIP_DEPOT,
+                	B.ARR_DEPOT,
+                 	B.SHIP_DEPOT_TYPE,
+                 	B.SUP_FACTORY,
+                 	B.SUPPLIER_NO,
+                 	B.ORDER_PRODUCT_NUM,
+                 	B.AHEAD_PRODUCT_NUM,
+                 	B.S_PREPARE_PRODUCT_SEQNO,
+                 	B.E_PREPARE_PRODUCT_SEQNO,
+                 	B.CREATION_USER) C
+		ON (A.PLAN_CODE = C.PLAN_CODE AND A.SHIP_DEPOT = C.SHIP_DEPOT AND A.ARR_DEPOT = C.ARR_DEPOT)
+		WHEN MATCHED THEN
+		  UPDATE
+		     SET A.SHIP_DEPOT_TYPE         = C.SHIP_DEPOT_TYPE,
+		         A.SUP_FACTORY             = C.SUP_FACTORY,
+		         A.SUPPLIER_NO             = C.SUPPLIER_NO,
+		         A.ORDER_PRODUCT_NUM       = C.ORDER_PRODUCT_NUM,
+		         A.AHEAD_PRODUCT_NUM       = C.AHEAD_PRODUCT_NUM,
+		         A.S_PREPARE_PRODUCT_SEQNO = C.S_PREPARE_PRODUCT_SEQNO,
+		         A.E_PREPARE_PRODUCT_SEQNO = C.E_PREPARE_PRODUCT_SEQNO,
+		         A.EFF_START               = C.EFF_START,
+		         A.EFF_END                 = C.EFF_END,
+		         A.LAST_MODIFIED_USER      = C.CREATION_USER,
+		         A.LAST_MODIFIED_TIME      = SYSDATE
+		WHEN NOT MATCHED THEN
+		  INSERT
+		    (A.ID,
+		     A.PLAN_CODE,
+		     A.SHIP_DEPOT,
+		     A.ARR_DEPOT,
+		     A.SHIP_DEPOT_TYPE,
+		     A.SUP_FACTORY,
+		     A.SUPPLIER_NO,
+		     A.ORDER_PRODUCT_NUM,
+		     A.AHEAD_PRODUCT_NUM,
+		     A.S_PREPARE_PRODUCT_SEQNO,
+		     A.E_PREPARE_PRODUCT_SEQNO,
+		     A.EFF_START,
+		     A.EFF_END,
+		     A.CREATION_USER,
+		     A.CREATION_TIME)
+		  VALUES
+		    (PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_JIT_ORDER_CONFIG'),
+		     C.PLAN_CODE,
+		     C.SHIP_DEPOT,
+		     C.ARR_DEPOT,
+		     C.SHIP_DEPOT_TYPE,
+		     C.SUP_FACTORY,
+		     C.SUPPLIER_NO,
+		     C.ORDER_PRODUCT_NUM,
+		     C.AHEAD_PRODUCT_NUM,
+		     C.S_PREPARE_PRODUCT_SEQNO,
+		     C.E_PREPARE_PRODUCT_SEQNO,
+		     C.EFF_START,
+		     C.EFF_END,
+		     C.CREATION_USER,
+		     SYSDATE)
+	</update>
+	
+	<!-- 处理出货仓库类别是WX的数据批量导入拉动零件订单配置订购基础信息 -->
+	<update id="importJitOrderWxPurOrderImportData" parameterType="java.util.Map">
+		MERGE INTO MM_JIT_ORDER_CONFIG A
+		USING (SELECT DISTINCT B.PLAN_CODE,
+		                       B.SHIP_DEPOT,
+		                       B.ARR_DEPOT,
+		                       B.SHIP_DEPOT_TYPE,
+		                       B.ORDER_PRODUCT_NUM,
+		                       B.AHEAD_PRODUCT_NUM,
+		                       B.S_PREPARE_PRODUCT_SEQNO,
+		                       B.E_PREPARE_PRODUCT_SEQNO,
+		                       B.EFF_START,
+		                       B.EFF_END,
+		                       B.CREATION_USER
+		         FROM MM_PUB_PART_IMP B
+		        WHERE B.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		          AND B.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		          AND B.IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}
+		          AND B.LOGISTICS_MODEL = 'JIT'
+		          AND B.SHIP_DEPOT_TYPE = 'WX') C
+		ON (A.PLAN_CODE = C.PLAN_CODE AND A.SHIP_DEPOT = C.SHIP_DEPOT AND A.ARR_DEPOT = C.ARR_DEPOT)
+		WHEN MATCHED THEN
+		  UPDATE
+		     SET A.SHIP_DEPOT_TYPE         = C.SHIP_DEPOT_TYPE,
+		         A.ORDER_PRODUCT_NUM       = C.ORDER_PRODUCT_NUM,
+		         A.AHEAD_PRODUCT_NUM       = C.AHEAD_PRODUCT_NUM,
+		         A.S_PREPARE_PRODUCT_SEQNO = C.S_PREPARE_PRODUCT_SEQNO,
+		         A.E_PREPARE_PRODUCT_SEQNO = C.E_PREPARE_PRODUCT_SEQNO,
+		         A.EFF_START               = C.EFF_START,
+		         A.EFF_END                 = C.EFF_END,
+		         A.LAST_MODIFIED_USER      = C.CREATION_USER,
+		         A.LAST_MODIFIED_TIME      = SYSDATE
+		WHEN NOT MATCHED THEN
+		  INSERT
+		    (A.ID,
+		     A.PLAN_CODE,
+		     A.SHIP_DEPOT,
+		     A.ARR_DEPOT,
+		     A.SHIP_DEPOT_TYPE,
+		     A.ORDER_PRODUCT_NUM,
+		     A.AHEAD_PRODUCT_NUM,
+		     A.S_PREPARE_PRODUCT_SEQNO,
+		     A.E_PREPARE_PRODUCT_SEQNO,
+		     A.EFF_START,
+		     A.EFF_END,
+		     A.CREATION_USER,
+		     A.CREATION_TIME)
+		  VALUES
+		    (PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_JIT_ORDER_CONFIG'),
+		     C.PLAN_CODE,
+		     C.SHIP_DEPOT,
+		     C.ARR_DEPOT,
+		     C.SHIP_DEPOT_TYPE,
+		     C.ORDER_PRODUCT_NUM,
+		     C.AHEAD_PRODUCT_NUM,
+		     C.S_PREPARE_PRODUCT_SEQNO,
+		     C.E_PREPARE_PRODUCT_SEQNO,
+		     C.EFF_START,
+		     C.EFF_END,
+		     C.CREATION_USER,
+		     SYSDATE)
+	</update>
+	
+	<!-- 查询拉动订购组单配置需要修改的数据 -->
+	<select id="queryUnloadRelationUpdateData" parameterType="java.util.Map" resultType="java.lang.String">
+		SELECT A.ID
+		  FROM MM_PUB_PART_UNLOAD A
+		 WHERE EXISTS
+		 (SELECT 1
+		          FROM MM_PUB_PART_IMP B
+		         WHERE B.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		           AND B.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		           AND B.IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}
+		           AND A.PART_NO = B.PART_NO
+		           AND B.LOGISTICS_MODEL = A.LOGISTICS_MODEL
+		           AND B.WORKCENTER = A.WORKCENTER
+		           AND B.FACTORY_CODE = A.FACTORY_CODE
+		           AND B.UNLOAD_PORT != A.UNLOAD_PORT)
+	</select>
+	
+	<!-- 记录卸货口和零件物流模式的关系 -->
+	<update id="mergeUnloadRelationToPartNo" parameterType="java.util.Map">
+		MERGE INTO MM_PUB_PART_UNLOAD A
+		USING (SELECT DISTINCT B.PART_NO,
+		                       B.LOGISTICS_MODEL,
+		                       B.WORKCENTER,
+		                       B.UNLOAD_PORT,
+		                       B.FACTORY_CODE,
+		                       B.CREATION_USER
+		         FROM MM_PUB_PART_IMP B
+		        WHERE B.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		          AND B.CHECK_RESULT = #{checkResult,
+		        jdbcType = VARCHAR}
+		          AND B.IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}) C
+		ON (A.PART_NO = C.PART_NO AND A.LOGISTICS_MODEL = C.LOGISTICS_MODEL AND A.FACTORY_CODE = C.FACTORY_CODE AND A.WORKCENTER = C.WORKCENTER)
+		WHEN MATCHED THEN
+		  UPDATE
+		     SET A.UNLOAD_PORT        = C.UNLOAD_PORT,
+		         A.LAST_MODIFIED_USER = C.CREATION_USER,
+		         A.LAST_MODIFIED_TIME = SYSDATE
+		WHEN NOT MATCHED THEN
+		  INSERT
+		    (A.ID,
+		     A.PART_NO,
+		     A.LOGISTICS_MODEL,
+		     A.UNLOAD_PORT,
+		     A.WORKCENTER,
+		     A.CREATION_USER,
+		     A.CREATION_TIME,
+		     A.FACTORY_CODE)
+		  VALUES
+		    (PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_PUB_PART_UNLOAD'),
+		     C.PART_NO,
+		     C.LOGISTICS_MODEL,
+		     C.UNLOAD_PORT,
+		     C.WORKCENTER,
+		     C.CREATION_USER,
+		     SYSDATE,
+		     C.FACTORY_CODE)
+	</update>
+	
+	<!-- 查询零件存在的同步零件组基础数据 -->
+	<select id="queryExistsJisoPartGroupUpdateData" parameterType="java.util.Map" resultType="com.hanthink.pub.model.PubOrderModel">
+		SELECT A.FACTORY_CODE factoryCode,
+	       A.SUPPLIER_NO supplierNo,
+	       A.supplier_Name supplierName,
+	       A.SUP_FACTORY supFactory,
+	       A.UNLOAD_PORT unloadPort,
+	       A.PART_NO partNo,
+	       A.PART_NAME partName,
+	       A.PART_SHORT_NO partShortNo,
+	       A.STANDARD_PACKAGE standardPackage,
+	       A.ORDER_PACKAGE orderPackage,
+	       A.SUPPLY_RATE supplyRate,
+	       A.SAFE_NUM safeNum,
+	       A.LOGISTICS_FLAG logisticsFlag,
+	       TO_CHAR(A.EFF_START, 'YYYY-MM-DD') effStartStr,
+	       TO_CHAR(A.EFF_END, 'YYYY-MM-DD') effEndStr,
+	       A.FIRST_SORT_ID firstSortId,
+	       A.WORKCENTER workcenter,
+	       A.ARR_DEPOT arrDepot,
+	       A.PLAN_CODE planCode,
+	       A.SHIP_DEPOT shipDepot,
+	       A.PREPARE_NUM prepareNum,
+	       A.DISPATCH_NUM dispatchNum,
+	       A.DELIVERY_NUM deliveryNum,
+	       A.ARRIVE_NUM arriveNum,
+	       A.DISTRIBUTION_NUM distributionNum,
+	       A.PART_MARK partMark,
+	       A.SHIP_DEPOT_TYPE shipDepotType,
+	       A.ORDER_PRODUCT_NUM orderProductNum,
+	       A.AHEAD_PRODUCT_NUM aheadProductNum,
+	       A.INS_PRODUCT_NUM insProductNum,
+	       A.ORDER_INS_NUM orderInsNum,
+	       A.GEN_INS_WAY genInsWay,
+	       A.ORDER_FLG orderFlag,
+	       A.PARTGROUP_NO partgroupNo,
+	       A.PARTGROUP_NAME partgroupName,
+	       A.ROUTE_CODE routeCode,
+	       A.ROUTE_DESC routeDesc,
+	       A.CHECK_INFO checkInfo,
+	       A.OPE_TYPE opeType,
+	       A.LOGISTICS_MODEL logisticsModel,
+	       A.MODEL_CODE modelCode,
+	       B.ID partGrouopId
+	  FROM MM_PUB_PART_IMP A
+	  LEFT JOIN MM_JISO_PARTGROUP B
+	    ON A.PLAN_CODE = B.PLAN_CODE
+	   AND A.PARTGROUP_NO = B.PARTGROUP_NO
+	 WHERE A.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+	   AND A.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+	   AND A.IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+	   AND B.ID IS NOT NULL
+	</select>
+	
+	<!-- 查询不存在的同步零件组基础数据 -->
+	<select id="queryNotExistsJisoPartGroupUpdateData" parameterType="java.util.Map" resultType="com.hanthink.pub.model.PubOrderModel">
+		SELECT DISTINCT A.PARTGROUP_NO partgroupNo, A.PLAN_CODE planCode
+		  FROM MM_PUB_PART_IMP A
+		  LEFT JOIN MM_JISO_PARTGROUP B
+		    ON A.PLAN_CODE = B.PLAN_CODE
+		   AND A.PARTGROUP_NO = B.PARTGROUP_NO
+		 WHERE A.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		   AND A.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		   AND A.IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+		   AND A.LOGISTICS_MODEL = 'JISO'
+		   AND B.ID IS NULL
+	</select>
+	
+	<!-- 查找需要更新的同步零件基础数据 -->
+	<select id="queryJisoUpdateData" parameterType="java.util.Map" resultType="java.lang.String">
+		SELECT A.ID
+		  FROM MM_PUB_PART_IMP A
+		 WHERE A.OPE_TYPE = 'U'
+		   AND A.IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR} 
+		   AND A.IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		   AND A.CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+		   AND A.LOGISTICS_MODEL = 'JISO'
+	</select>
+	
+	<!-- 查询同步零件组需要修改的数据 -->
+	<select id="queryJisoPartGroupUpdateData" parameterType="java.util.Map" resultType="java.lang.String">
+		SELECT A.ID
+		  FROM MM_JISO_PARTGROUP A
+		 WHERE EXISTS
+		 (SELECT 1
+		          FROM MM_PUB_PART_IMP B
+		          LEFT JOIN MM_JISO_PARTGROUP C
+		            ON B.PARTGROUP_NO = C.PARTGROUP_NO
+		           AND B.PLAN_CODE = C.PLAN_CODE
+		         WHERE B.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		           AND B.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		           AND B.IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}
+		           AND B.LOGISTICS_MODEL = 'JISO'
+		           AND A.PLAN_CODE = B.PLAN_CODE
+		           AND A.PARTGROUP_NO = B.PARTGROUP_NO
+		           AND C.ID IS NOT NULL
+		           AND (A.PARTGROUP_NAME != B.PARTGROUP_NAME OR
+		               A.ARR_DEPOT != B.ARR_DEPOT OR
+		               A.INS_PRODUCT_NUM != B.INS_PRODUCT_NUM OR
+		               A.ORDER_INS_NUM != B.ORDER_INS_NUM OR
+		               A.PREPARE_NUM != B.PREPARE_NUM OR
+		               A.DISPATCH_NUM != B.DISPATCH_NUM OR
+		               A.DELIVERY_NUM != B.DELIVERY_NUM OR
+		               A.ARRIVE_NUM != B.ARRIVE_NUM OR
+		               A.DISTRIBUTION_NUM != B.DISTRIBUTION_NUM OR
+		               A.GEN_INS_WAY != B.GEN_INS_WAY OR A.ORDER_FLG != B.ORDER_FLG OR
+		               A.EFF_START != B.EFF_START OR A.EFF_END != B.EFF_END))
+	</select>
+	
+	<!-- 查询同步零件组路线需要修改的数据 -->
+	<select id="queryJisoPartGroupRouteUpdateData" parameterType="java.util.Map" resultType="java.lang.String">
+		SELECT A.ID
+		  FROM MM_JISO_PARTGROUP_ROUTE A
+		 WHERE EXISTS
+		 (SELECT 1
+		          FROM MM_PUB_PART_IMP B
+		          LEFT JOIN MM_JISO_PARTGROUP C
+		            ON B.PARTGROUP_NO = C.PARTGROUP_NO
+		           AND B.PLAN_CODE = C.PLAN_CODE
+		         WHERE B.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		           AND B.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		           AND B.IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}
+		           AND B.LOGISTICS_MODEL = 'JISO'
+		           AND A.PARTGROUP_ID = C.ID
+		           AND A.SUP_FACTORY = B.SUP_FACTORY
+		           AND C.ID IS NOT NULL
+		           AND (A.SUPPLIER_NO != B.SUPPLIER_NO OR
+		               A.ROUTE_CODE != B.ROUTE_CODE OR A.ROUTE_DESC != B.ROUTE_DESC OR
+		               A.EFF_START != B.EFF_START OR A.EFF_END != B.EFF_END))
+	</select>
+	
+	<!-- 写入厂外同步零件零件基础信息数据,存在更新,不存在新增只限于零件组存在的情况 -->
+	<update id="importJisoPurOrderImportData" parameterType="java.util.Map">
+		MERGE INTO MM_JISO_PART A
+		USING (SELECT B.*, D.ID PARTGROUP_ID
+		         FROM MM_PUB_PART_IMP B
+		         LEFT JOIN MM_JISO_PARTGROUP D
+		           ON B.PARTGROUP_NO = D.PARTGROUP_NO
+		          AND B.PLAN_CODE = D.PLAN_CODE
+		        WHERE B.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		          AND B.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		          AND B.IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}
+		          AND B.LOGISTICS_MODEL = 'JISO'
+		          AND D.ID IS NOT NULL) C
+		ON (A.ID = C.ID)
+		WHEN MATCHED THEN
+		  UPDATE
+		     SET A.PART_MARK          = C.PART_MARK,
+		         A.EFF_START          = C.EFF_START,
+		         A.EFF_END            = C.EFF_END,
+		         A.LAST_MODIFIED_USER = C.CREATION_USER,
+		         A.LAST_MODIFIED_TIME = SYSDATE
+		WHEN NOT MATCHED THEN
+		  INSERT
+		    (A.ID,
+		     A.MODEL_CODE,
+		     A.PARTGROUP_ID,
+		     A.PART_NO,
+		     A.PART_MARK,
+		     A.EFF_START,
+		     A.EFF_END,
+		     A.CREATION_USER,
+		     A.CREATION_TIME)
+		  VALUES
+		    (PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_JISO_PART'),
+		     C.MODEL_CODE,
+		     C.PARTGROUP_ID,
+		     C.PART_NO,
+		     C.PART_MARK,
+		     C.EFF_START,
+		     C.EFF_END,
+		     C.CREATION_USER,
+		     SYSDATE)
+	</update>
+	
+	<!-- 写入厂外同步零件组基础信息数据,存在更新,不存在新增 -->
+	<update id="importJisoPartGroupPurOrderImportData" parameterType="java.util.Map">
+		MERGE INTO MM_JISO_PARTGROUP A
+		USING (SELECT B.PARTGROUP_NO,
+		              B.PLAN_CODE,
+		              MIN(B.PARTGROUP_NAME) PARTGROUP_NAME,
+		              MIN(B.ARR_DEPOT) ARR_DEPOT,
+		              MIN(B.INS_PRODUCT_NUM) INS_PRODUCT_NUM,
+		              MIN(B.ORDER_INS_NUM) ORDER_INS_NUM,
+		              MIN(B.PREPARE_NUM) PREPARE_NUM,
+		              MIN(B.DISPATCH_NUM) DISPATCH_NUM,
+		              MIN(B.DELIVERY_NUM) DELIVERY_NUM,
+		              MIN(B.ARRIVE_NUM) ARRIVE_NUM,
+		              MIN(B.DISTRIBUTION_NUM) DISTRIBUTION_NUM,
+		              MIN(B.GEN_INS_WAY) GEN_INS_WAY,
+		              MIN(B.ORDER_FLG) ORDER_FLG,
+		              MIN(B.EFF_START) EFF_START,
+		              MIN(B.EFF_END) EFF_END,
+		              MIN(B.CREATION_USER) CREATION_USER
+		         FROM MM_PUB_PART_IMP B
+		         LEFT JOIN MM_JISO_PARTGROUP D
+		           ON B.PARTGROUP_NO = D.PARTGROUP_NO
+		          AND B.PLAN_CODE = D.PLAN_CODE
+		        WHERE B.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		          AND B.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		          AND B.IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}
+		          AND B.LOGISTICS_MODEL = 'JISO'
+		          AND D.ID IS NOT NULL
+		        GROUP BY B.PARTGROUP_NO, B.PLAN_CODE) C
+		ON (A.PARTGROUP_NO = C.PARTGROUP_NO AND A.PLAN_CODE = C.PLAN_CODE)
+		WHEN MATCHED THEN
+		  UPDATE
+		     SET A.PARTGROUP_NAME     = C.PARTGROUP_NAME,
+		         A.ARR_DEPOT          = C.ARR_DEPOT,
+		         A.INS_PRODUCT_NUM    = C.INS_PRODUCT_NUM,
+		         A.ORDER_INS_NUM      = C.ORDER_INS_NUM,
+		         A.PREPARE_NUM        = C.PREPARE_NUM,
+		         A.DISPATCH_NUM       = C.DISPATCH_NUM,
+		         A.DELIVERY_NUM       = C.DELIVERY_NUM,
+		         A.ARRIVE_NUM         = C.ARRIVE_NUM,
+		         A.DISTRIBUTION_NUM   = C.DISTRIBUTION_NUM,
+		         A.GEN_INS_WAY        = C.GEN_INS_WAY,
+		         A.ORDER_FLG          = C.ORDER_FLG,
+		         A.EFF_START          = C.EFF_START,
+		         A.EFF_END            = C.EFF_END,
+		         A.LAST_MODIFIED_USER = C.CREATION_USER,
+		         A.LAST_MODIFIED_TIME = SYSDATE
+		WHEN NOT MATCHED THEN
+		  INSERT
+		    (A.ID,
+		     A.PLAN_CODE,
+		     A.PARTGROUP_NO,
+		     A.PARTGROUP_NAME,
+		     A.ARR_DEPOT,
+		     A.INS_PRODUCT_NUM,
+		     A.ORDER_INS_NUM,
+		     A.PREPARE_NUM,
+		     A.DISPATCH_NUM,
+		     A.DELIVERY_NUM,
+		     A.ARRIVE_NUM,
+		     A.DISTRIBUTION_NUM,
+		     A.GEN_INS_WAY,
+		     A.ORDER_FLG,
+		     A.EFF_START,
+		     A.EFF_END,
+		     A.CREATION_USER,
+		     A.CREATION_TIME)
+		  VALUES
+		    (PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_JISO_PARTGROUP'),
+		     C.PLAN_CODE,
+		     C.PARTGROUP_NO,
+		     C.PARTGROUP_NAME,
+		     C.ARR_DEPOT,
+		     C.INS_PRODUCT_NUM,
+		     C.ORDER_INS_NUM,
+		     C.PREPARE_NUM,
+		     C.DISPATCH_NUM,
+		     C.DELIVERY_NUM,
+		     C.ARRIVE_NUM,
+		     C.DISTRIBUTION_NUM,
+		     C.GEN_INS_WAY,
+		     C.ORDER_FLG,
+		     C.EFF_START,
+		     C.EFF_END,
+		     C.CREATION_USER,
+		     SYSDATE)
+	</update>
+	
+	<!-- 写入厂外同步零件组路线基础信息数据,存在更新,不存在新增 -->
+	<update id="importJisoPartGroupRoutePurOrderImportData" parameterType="java.util.Map">
+		MERGE INTO MM_JISO_PARTGROUP_ROUTE A
+		USING (SELECT D.ID,
+		              B.SUP_FACTORY,
+		              MIN(B.SUPPLIER_NO) SUPPLIER_NO,
+		              MIN(B.ROUTE_CODE) ROUTE_CODE,
+		              MIN(B.ROUTE_DESC) ROUTE_DESC,
+		              MIN(B.EFF_START) EFF_START,
+		              MIN(B.EFF_END) EFF_END,
+		              MIN(B.CREATION_USER) CREATION_USER,
+		              SYSDATE
+		         FROM MM_PUB_PART_IMP B
+		         LEFT JOIN MM_JISO_PARTGROUP D
+		           ON B.PARTGROUP_NO = D.PARTGROUP_NO
+		          AND B.PLAN_CODE = D.PLAN_CODE
+		        WHERE B.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		          AND B.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		          AND B.IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}
+		          AND B.LOGISTICS_MODEL = 'JISO'
+		          AND D.ID IS NOT NULL
+		        GROUP BY D.ID, B.SUP_FACTORY) C
+		ON (A.PARTGROUP_ID = C.ID AND A.SUP_FACTORY = C.SUP_FACTORY)
+		WHEN MATCHED THEN
+		  UPDATE
+		     SET A.SUPPLIER_NO        = C.SUPPLIER_NO,
+		         A.ROUTE_CODE         = C.ROUTE_CODE,
+		         A.ROUTE_DESC         = C.ROUTE_DESC,
+		         A.EFF_START          = C.EFF_START,
+		         A.EFF_END            = C.EFF_END,
+		         A.LAST_MODIFIED_USER = C.CREATION_USER,
+		         A.LAST_MODIFIED_TIME = SYSDATE
+		WHEN NOT MATCHED THEN
+		  INSERT
+		    (A.ID,
+		     A.PARTGROUP_ID,
+		     A.SUP_FACTORY,
+		     A.SUPPLIER_NO,
+		     A.ROUTE_CODE,
+		     A.ROUTE_DESC,
+		     A.EFF_START,
+		     A.EFF_END,
+		     A.CREATION_USER,
+		     A.CREATION_TIME)
+		  VALUES
+		    (PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_JISO_PARTGROUP_ROUTE'),
+		     C.ID,
+		     C.SUP_FACTORY,
+		     C.SUPPLIER_NO,
+		     C.ROUTE_CODE,
+		     C.ROUTE_DESC,
+		     C.EFF_START,
+		     C.EFF_END,
+		     C.CREATION_USER,
+		     SYSDATE)
+	</update>
+	
+	<!-- 查询厂外同步零件组下一序列值 -->
+	<select id="queryJisoPartGroupIdFromSeq" parameterType="java.util.Map" resultType="java.lang.String">
+		SELECT PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_JISO_PARTGROUP') FROM DUAL
+	</select>
+	
+	<!-- 当厂外同步零件组数据不存在时,写入厂外同步零件组数据 -->
+	<insert id="insertJisoPartGroupData" parameterType="java.util.Map">
+		INSERT INTO MM_JISO_PARTGROUP A
+		  (A.ID,
+		   A.PLAN_CODE,
+		   A.PARTGROUP_NO,
+		   A.PARTGROUP_NAME,
+		   A.ARR_DEPOT,
+		   A.INS_PRODUCT_NUM,
+		   A.ORDER_INS_NUM,
+		   A.PREPARE_NUM,
+		   A.DISPATCH_NUM,
+		   A.DELIVERY_NUM,
+		   A.ARRIVE_NUM,
+		   A.DISTRIBUTION_NUM,
+		   A.GEN_INS_WAY,
+		   A.ORDER_FLG,
+		   A.EFF_START,
+		   A.EFF_END,
+		   A.CREATION_USER,
+		   A.CREATION_TIME)
+		  SELECT DISTINCT #{id,jdbcType = VARCHAR},
+		         #{planCode,jdbcType = VARCHAR},
+		         #{partgroupNo,jdbcType = VARCHAR},
+		         B.PARTGROUP_NAME,
+		         B.ARR_DEPOT,
+		         B.INS_PRODUCT_NUM,
+		         B.ORDER_INS_NUM,
+		         B.PREPARE_NUM,
+		         B.DISPATCH_NUM,
+		         B.DELIVERY_NUM,
+		         B.ARRIVE_NUM,
+		         B.DISTRIBUTION_NUM,
+		         B.GEN_INS_WAY,
+		         B.ORDER_FLG,
+		         B.EFF_START,
+		         B.EFF_END,
+		         B.CREATION_USER,
+		         SYSDATE
+		    FROM MM_PUB_PART_IMP B
+		   WHERE B.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		     AND B.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		     AND B.IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}
+		     AND B.PARTGROUP_NO = #{partgroupNo,jdbcType = VARCHAR}
+		     AND B.PLAN_CODE = #{planCode, jdbcType = VARCHAR}
+		     AND B.LOGISTICS_MODEL = 'JISO'
+	</insert>
+	
+	<!-- 当厂外同步零件组数据不存在时,写入厂外同步零件数据 -->
+	<insert id="insertJisoPartData" parameterType="java.util.Map">
+	INSERT INTO MM_JISO_PART A
+	  (A.ID,
+	   A.MODEL_CODE,
+	   A.PARTGROUP_ID,
+	   A.PART_NO,
+	   A.PART_MARK,
+	   A.EFF_START,
+	   A.EFF_END,
+	   A.CREATION_USER,
+	   A.CREATION_TIME)
+	  SELECT PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_JISO_PART'),
+	         B.MODEL_CODE,
+	         #{id,jdbcType = VARCHAR},
+	         B.PART_NO,
+	         B.PART_MARK,
+	         B.EFF_START,
+	         B.EFF_END,
+	         B.CREATION_USER,
+	         SYSDATE
+	    FROM MM_PUB_PART_IMP B
+	   WHERE B.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+	     AND B.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+	     AND B.IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}
+	     AND B.PARTGROUP_NO = #{partgroupNo,jdbcType = VARCHAR}
+	     AND B.PLAN_CODE = #{planCode, jdbcType = VARCHAR}
+	     AND B.LOGISTICS_MODEL = 'JISO'
+	</insert>
+	
+	<!-- 当厂外同步零件组数据不存在时,写入厂外同步零件组路线数据 -->
+	<insert id="insertJisoPartGroupRouteData" parameterType="java.util.Map">
+	INSERT INTO MM_JISO_PARTGROUP_ROUTE A
+	  (A.ID,
+	   A.PARTGROUP_ID,
+	   A.SUP_FACTORY,
+	   A.SUPPLIER_NO,
+	   A.ROUTE_CODE,
+	   A.ROUTE_DESC,
+	   A.EFF_START,
+	   A.EFF_END,
+	   A.CREATION_USER,
+	   A.CREATION_TIME)
+	  SELECT PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_JISO_PARTGROUP_ROUTE'),
+	         #{id,jdbcType = VARCHAR},
+	         B.SUP_FACTORY,
+	         MIN(B.SUPPLIER_NO),
+	         MIN(B.ROUTE_CODE),
+	         MIN(B.ROUTE_DESC),
+	         MIN(B.EFF_START),
+	         MIN(B.EFF_END),
+	         MIN(B.CREATION_USER),
+	         SYSDATE
+	    FROM MM_PUB_PART_IMP B
+	   WHERE B.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+	     AND B.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+	     AND B.IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}
+	     AND B.PARTGROUP_NO = #{partgroupNo,jdbcType = VARCHAR}
+	     AND B.PLAN_CODE = #{planCode, jdbcType = VARCHAR}
+	     AND B.LOGISTICS_MODEL = 'JISO'
+	     GROUP BY B.PARTGROUP_NO, B.SUP_FACTORY
+	</insert>
+	
+	<!-- 根据id逻辑主键删除循环取货零件订购基础数据 -->
+	<delete id="batchRemoveSwPurOrder" parameterType="java.lang.String">
+		DELETE FROM MM_MP_PART A WHERE A.ID IN
+		<foreach item="arrayIds" collection="array" open="(" separator="," close=")">
+			#{arrayIds,jdbcType=VARCHAR}
+		</foreach>
+	</delete>
+	
+	<!-- 根据id逻辑主键删除厂外拉动零件订购基础数据 -->
+	<delete id="batchRemoveJitPurOrder" parameterType="java.lang.String">
+		DELETE FROM MM_JIT_PART A WHERE A.ID IN
+		<foreach item="arrayIds" collection="array" open="(" separator="," close=")">
+			#{arrayIds,jdbcType=VARCHAR}
+		</foreach>
+	</delete>
+	
+	<!-- 根据id逻辑主键删除厂外同步零件订购基础数据 -->
+	<delete id="batchRemoveJisoPurOrder" parameterType="java.lang.String">
+		DELETE FROM MM_JISO_PART A WHERE A.ID IN
+		<foreach item="arrayIds" collection="array" open="(" separator="," close=")">
+			#{arrayIds,jdbcType=VARCHAR}
+		</foreach>
+	</delete>
+	
+	<!-- 查询该UUID下记录所对应的错误信息 -->
+	<select id="queryErrorInfoByUUID" parameterType="java.lang.String" resultType="java.lang.String">
+		SELECT A.CHECK_INFO FROM MM_PUB_PART_IMP A WHERE A.IMP_UUID = #{value}
+	</select>
+	
+	<!-- 查询所有不存在于零件表的UDA数据 -->
+	<select id="queryNotExistsPartUdaIdList" parameterType="java.lang.String" resultType="java.lang.String">
+		SELECT A.ID
+		  FROM MM_PUB_PART_UDA A
+		 WHERE NOT EXISTS (SELECT 1
+		          FROM (SELECT B.PART_NO, B.FACTORY_CODE
+		                  FROM MM_MP_PART B
+		                 WHERE B.FACTORY_CODE = #{factoryCode}
+		                UNION ALL
+		                SELECT C.PART_NO, D.FACTORY_CODE
+		                  FROM MM_JIT_PART C
+		                  LEFT JOIN MM_PUB_PLAN_CODE D
+		                    ON C.PLAN_CODE = D.PLAN_CODE
+		                   AND D.FACTORY_CODE = #{factoryCode}
+		                 WHERE D.FACTORY_CODE = #{factoryCode}
+		                UNION ALL
+		                SELECT E.PART_NO, G.FACTORY_CODE
+		                  FROM MM_JISO_PART E
+		                  LEFT JOIN MM_JISO_PARTGROUP F
+		                    ON E.PARTGROUP_ID = F.ID
+		                  LEFT JOIN MM_PUB_PLAN_CODE G
+		                    ON F.PLAN_CODE = G.PLAN_CODE
+		                   AND G.FACTORY_CODE = #{factoryCode}
+		                 WHERE G.FACTORY_CODE = #{factoryCode}) H
+		         WHERE A.PART_NO = H.PART_NO
+		           AND A.FACTORY_CODE = H.FACTORY_CODE)
+		   AND A.FACTORY_CODE = #{factoryCode}
+	</select>
+	
+	<!-- 更新这些数据的简号为空 -->
+	<update id="deleteNotExistsPartUdaData" parameterType="java.util.Map">
+		UPDATE MM_PUB_PART_UDA A
+		   SET A.PART_SHORT_NO      = NULL,
+		       A.LAST_MODIFIED_TIME = SYSDATE,
+		       A.LAST_MODIFIED_USER = #{opeUserName}
+		 WHERE A.FACTORY_CODE = #{factoryCode}
+		   AND A.ID IN
+		<foreach item="udaId" collection="udaIdList" open="(" separator="," close=")">
+			#{udaId,jdbcType=VARCHAR}
+		</foreach>
+	</update>
+	
+	<!-- 查询所有不存在于零件表的UDA数据 -->
+	<select id="queryNotExistsPartUnloadIdList" parameterType="java.lang.String" resultType="java.lang.String">
+		SELECT A.ID
+		  FROM MM_PUB_PART_UNLOAD A
+		 WHERE NOT EXISTS (SELECT 1
+		          FROM (SELECT B.PART_NO,
+		                       B.FACTORY_CODE,
+		                       B.WORKCENTER,
+		                       'SW' LOGISTICS_MODEL
+		                  FROM MM_MP_PART B
+		                 WHERE B.FACTORY_CODE = #{factoryCode}
+		                UNION ALL
+		                SELECT C.PART_NO,
+		                       D.FACTORY_CODE,
+		                       D.WORKCENTER,
+		                       'JIT' LOGISTICS_MODEL
+		                  FROM MM_JIT_PART C
+		                  LEFT JOIN MM_PUB_PLAN_CODE D
+		                    ON C.PLAN_CODE = D.PLAN_CODE
+		                   AND D.FACTORY_CODE = #{factoryCode}
+		                 WHERE D.FACTORY_CODE = #{factoryCode}
+		                UNION ALL
+		                SELECT E.PART_NO,
+		                       G.FACTORY_CODE,
+		                       G.WORKCENTER,
+		                       'JISO' LOGISTICS_MODEL
+		                  FROM MM_JISO_PART E
+		                  LEFT JOIN MM_JISO_PARTGROUP F
+		                    ON E.PARTGROUP_ID = F.ID
+		                  LEFT JOIN MM_PUB_PLAN_CODE G
+		                    ON F.PLAN_CODE = G.PLAN_CODE
+		                   AND G.FACTORY_CODE = #{factoryCode}
+		                 WHERE G.FACTORY_CODE = #{factoryCode}) H
+		         WHERE A.PART_NO = H.PART_NO
+		           AND A.FACTORY_CODE = H.FACTORY_CODE
+		           AND A.WORKCENTER = H.WORKCENTER
+		           AND A.LOGISTICS_MODEL = H.LOGISTICS_MODEL)
+		   AND A.FACTORY_CODE = #{factoryCode}
+	</select>
+	
+	<!-- 删除所有不存在于零件表UDA数据 -->
+	<delete id="deleteNotExistsPartUnloadData" parameterType="java.util.Map">
+		DELETE FROM MM_PUB_PART_UNLOAD A
+		WHERE A.FACTORY_CODE = #{factoryCode}
+		AND A.ID IN 
+		<foreach item="unloadId" collection="unloadIdList" open="(" separator="," close=")">
+			#{unloadId,jdbcType=VARCHAR}
+		</foreach>
+	</delete>
+	
+	<!-- 查询所有不存在于拉动零件表的的JIT_ORDER_CONFIG数据 -->
+	<select id="queryNotExistsPartJitOrderConfigIdList" parameterType="java.lang.String" resultType="java.lang.String">
+		SELECT A.ID
+		  FROM MM_JIT_ORDER_CONFIG A
+		  LEFT JOIN MM_PUB_PLAN_CODE C
+		    ON A.PLAN_CODE = C.PLAN_CODE
+		   AND C.FACTORY_CODE = #{factoryCode}
+		 WHERE NOT EXISTS (SELECT 1
+		          FROM MM_JIT_PART B
+		          LEFT JOIN MM_PUB_PLAN_CODE D
+		            ON B.PLAN_CODE = D.PLAN_CODE
+		         WHERE B.PLAN_CODE = A.PLAN_CODE
+		           AND A.ARR_DEPOT = B.ARR_DEPOT
+		           AND A.SHIP_DEPOT = B.SHIP_DEPOT
+		           AND C.FACTORY_CODE = D.FACTORY_CODE
+		           AND D.FACTORY_CODE = #{factoryCode})
+		   AND C.FACTORY_CODE = #{factoryCode}
+	</select>
+	
+	<!-- 删除所有不存在于零件表JIT_ORDER_CONFIG数据 -->
+	<delete id="deleteNotExistsPartJitOrderConfigData" parameterType="java.util.Map">
+		DELETE FROM MM_JIT_ORDER_CONFIG A 
+		WHERE A.ID IN 
+		<foreach item="jitOrderConfigId" collection="jitOrderConfigList" open="(" separator="," close=")">
+			#{jitOrderConfigId,jdbcType=VARCHAR}
+		</foreach>
+	</delete>
+	
+	<!-- 查询所有不存在于同步零件表的的MM_JISO_PARTGROUP数据 -->
+	<select id="queryNotExistsPartJisoPartGroupIdList" parameterType="java.lang.String" resultType="java.lang.String">
+		SELECT A.ID
+	       FROM MM_JISO_PARTGROUP A
+	       LEFT JOIN MM_PUB_PLAN_CODE B
+	         ON A.PLAN_CODE = B.PLAN_CODE
+	        AND B.FACTORY_CODE = #{factoryCode}
+	      WHERE B.FACTORY_CODE = #{factoryCode}
+	        AND NOT EXISTS (SELECT 1
+	               FROM MM_JISO_PART C
+	               LEFT JOIN MM_JISO_PARTGROUP D
+	                 ON C.PARTGROUP_ID = D.ID
+	               LEFT JOIN MM_PUB_PLAN_CODE E
+	                 ON D.PLAN_CODE = E.PLAN_CODE
+	                AND E.FACTORY_CODE = #{factoryCode}
+	              WHERE A.ID = C.PARTGROUP_ID
+	                AND E.FACTORY_CODE = #{factoryCode})
+	</select>
+	
+	<!-- 删除所有不存在于零件表JIT_ORDER_CONFIG数据 -->
+	<delete id="deleteNotExistsPartJisoPartGroupData" parameterType="java.util.Map">
+		DELETE FROM MM_JISO_PARTGROUP A 
+		WHERE A.ID IN 
+		<foreach item="jisoPartGroupId" collection="jisoPartGroupList" open="(" separator="," close=")">
+			#{jisoPartGroupId,jdbcType=VARCHAR}
+		</foreach>
+	</delete>
+	
+	<!-- 查询所有不存在于同步零件组表的的MM_JISO_PARTGROUP_ROUTE数据 -->
+	<select id="queryNotExistsPartJisoPartGroupRouteIdList" parameterType="java.lang.String" resultType="java.lang.String">
+		SELECT A.ID
+		  FROM MM_JISO_PARTGROUP_ROUTE A
+		 WHERE NOT EXISTS (SELECT 1
+		          FROM MM_JISO_PARTGROUP B
+		          LEFT JOIN MM_PUB_PLAN_CODE C
+		            ON B.PLAN_CODE = C.PLAN_CODE
+		           AND C.FACTORY_CODE = #{factoryCode}
+		         WHERE A.PARTGROUP_ID = B.ID
+		           AND C.FACTORY_CODE = #{factoryCode})
+	</select>
+	
+	<!-- 删除所有不存在于同步零件组表的的MM_JISO_PARTGROUP_ROUTE数据  -->
+	<delete id="deleteNotExistsPartJisoPartGroupRouteData" parameterType="java.util.Map">
+		DELETE FROM MM_JISO_PARTGROUP_ROUTE A 
+		WHERE A.ID IN 
+		<foreach item="jisoPartGroupRouteId" collection="jisoPartGroupRouteList" open="(" separator="," close=")">
+			#{jisoPartGroupRouteId,jdbcType=VARCHAR}
+		</foreach>
+	</delete>
+	
+	<!-- 查询所有不存在于同步零件组表的的MM_JISO_PARTGROUP_ROUTE数据 -->
+	<select id="queryMList" parameterType="java.util.Map" resultType="com.hanthink.pub.model.PubOrderModelImport">
+		SELECT A.PART_NO         partNo,
+		       A.WORKCENTER      workcenter,
+		       A.FACTORY_CODE    factoryCode,
+		       B.LOGISTICS_MODEL logisticsModel,
+		       B.ID id
+		  FROM MM_PUB_PART_IMP A
+		  LEFT JOIN MM_PUB_PART_UNLOAD B
+		    ON A.WORKCENTER = B.WORKCENTER
+		   AND A.PART_NO = B.PART_NO
+		   AND A.FACTORY_CODE = B.FACTORY_CODE
+		 WHERE A.OPE_TYPE = 'M'
+		   AND INSTR(A.CHECK_INFO, '物流模式更新;') > 0
+		   AND A.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		   AND A.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		   AND A.IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+	</select>
+	
+	<!-- 根据车间和零件号删除JIT零件基础数据 -->
+	<delete id="deleteJitPartInfo" parameterType="com.hanthink.pub.model.PubOrderModelImport">
+		DELETE FROM MM_JIT_PART A
+		 WHERE EXISTS (SELECT 1
+		          FROM MM_PUB_PLAN_CODE B
+		         WHERE A.PLAN_CODE = B.PLAN_CODE
+		           AND A.PART_NO = #{partNo}
+		           AND B.WORKCENTER = #{workcenter}
+		           AND B.FACTORY_CODE = #{factoryCode})
+	</delete>
+	
+	<!-- 根据车间和零件号删除JISO零件基础数据 -->
+	<delete id="deleteJisoPartInfo" parameterType="com.hanthink.pub.model.PubOrderModelImport">
+		DELETE FROM MM_JISO_PART A
+		 WHERE EXISTS (SELECT 1
+		          FROM MM_JISO_PARTGROUP B
+		          LEFT JOIN MM_PUB_PLAN_CODE C
+		            ON B.PLAN_CODE = C.PLAN_CODE
+		         WHERE A.PARTGROUP_ID = B.ID
+		           AND A.PART_NO = #{partNo}
+		           AND C.WORKCENTER = #{workcenter}
+		           AND C.FACTORY_CODE = #{factoryCode})
+		   AND A.PART_NO = #{partNo}
+	</delete>
+	
+	<!-- 根据车间和零件号删除Sw零件基础数据 -->
+	<delete id="deleteSwPartInfo" parameterType="com.hanthink.pub.model.PubOrderModelImport">
+		DELETE FROM MM_MP_PART A
+		 WHERE A.PART_NO = #{partNo}
+		   AND A.WORKCENTER = #{workcenter}
+		   AND A.FACTORY_CODE = #{factoryCode}
+	</delete>
+	
+</mapper>

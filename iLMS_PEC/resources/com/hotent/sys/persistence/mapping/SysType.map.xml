@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.sys.api.model.SysType">
+	<resultMap id="SysType" type="com.hotent.sys.api.model.SysType">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="typeGroupKey" column="type_group_key_" jdbcType="VARCHAR"/>
+		<result property="name" column="name_" jdbcType="VARCHAR"/>
+		<result property="typeKey" column="type_key_" jdbcType="VARCHAR"/>
+		<result property="struType" column="stru_type_" jdbcType="NUMERIC"/>
+		<result property="parentId" column="parent_id_" jdbcType="VARCHAR"/>
+		<result property="depth" column="depth_" jdbcType="NUMERIC"/>
+		<result property="path" column="path_" jdbcType="VARCHAR"/>
+		<result property="isLeaf" column="is_leaf_" jdbcType="VARCHAR"/>
+		<result property="ownerId" column="owner_id_" jdbcType="VARCHAR"/>
+		<result property="sn" column="sn_" jdbcType="NUMERIC"/>
+		<result property="createBy" column="create_by_" jdbcType="VARCHAR"/>
+		<result property="createTime" column="create_time_" jdbcType="TIMESTAMP"/>
+		<result property="createOrgId" column="create_org_id_" jdbcType="VARCHAR"/>
+		<result property="updateBy" column="update_by_" jdbcType="VARCHAR"/>
+		<result property="updateTime" column="update_time_" jdbcType="TIMESTAMP"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.sys.api.model.SysType">
+		INSERT INTO sys_type
+		(id_,type_group_key_,name_,type_key_,stru_type_,parent_id_,depth_,path_,owner_id_,is_leaf_,sn_,create_by_,create_time_,create_org_id_,update_by_,update_time_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{typeGroupKey,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR}, #{typeKey,jdbcType=VARCHAR}, #{struType,jdbcType=NUMERIC}, #{parentId,jdbcType=VARCHAR}, #{depth,jdbcType=NUMERIC}, #{path,jdbcType=VARCHAR}, #{ownerId,jdbcType=VARCHAR}, #{isLeaf,jdbcType=VARCHAR}, #{sn,jdbcType=NUMERIC}, #{createBy,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP}, #{createOrgId,jdbcType=VARCHAR}, #{updateBy,jdbcType=VARCHAR}, #{updateTime,jdbcType=TIMESTAMP})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="SysType">
+		SELECT * FROM sys_type 
+		WHERE 
+		id_=#{id}
+	</select>
+	<select id="getByKey"   parameterType="java.lang.String" resultMap="SysType">
+		SELECT * FROM sys_type 
+		WHERE 
+		type_key_=#{typeKey}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="SysType">
+		SELECT * FROM sys_type
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.sys.api.model.SysType">
+		UPDATE sys_type SET
+		type_group_key_=#{typeGroupKey,jdbcType=VARCHAR},
+		name_=#{name,jdbcType=VARCHAR},
+		type_key_=#{typeKey,jdbcType=VARCHAR},
+		stru_type_=#{struType,jdbcType=NUMERIC},
+		parent_id_=#{parentId,jdbcType=VARCHAR},
+		depth_=#{depth,jdbcType=NUMERIC},
+		path_=#{path,jdbcType=VARCHAR},
+		owner_id_=#{ownerId,jdbcType=VARCHAR},
+		is_leaf_=#{isLeaf,jdbcType=VARCHAR},
+		sn_=#{sn,jdbcType=NUMERIC},
+		update_by_=#{updateBy,jdbcType=VARCHAR},
+		update_time_=#{updateTime,jdbcType=TIMESTAMP}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_type 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	<select id="getByParentId" parameterType="java.util.Map" resultMap="SysType">
+		select t.*, (select count(*) from sys_type a where a.parent_id_=t.id_) childNodes  
+		from sys_type t  
+		where parent_id_=#{parentId}
+		order by sn_
+	</select>
+	
+	<select id="getByGroupKey" parameterType="java.util.Map" resultMap="SysType">
+		select t.* ,(select count(*) from sys_type a where a.parent_id_=t.id_) childNodes 
+		 from sys_type t  
+		where t.type_group_key_= #{groupKey} and (t.owner_id_= 0 or t.owner_id_ = #{currUserId})
+		order by t.sn_
+	</select>
+	
+	<select id="getByPath" parameterType="java.util.Map" resultMap="SysType">
+		select t.* 
+		 from sys_type t  
+		where t.path_ LIKE '${path}%' 
+		and t.path_ != #{path} 
+		order by t.sn_
+	</select>
+	
+	<select id="isKeyExist" resultType="java.lang.Integer">
+		SELECT count(*) FROM sys_type where type_key_ = #{typeKey,jdbcType=VARCHAR} and type_group_key_=#{typeGroupKey,jdbcType=VARCHAR}
+		<if test="id!=null"> AND id_&lt;>#{id}</if>
+	</select>
+	
+	<select id="getPrivByPartId" parameterType="java.util.Map" resultMap="SysType">
+		select t.* 
+		from sys_type t  
+		where t.parent_id_= #{parentId} and (t.owner_id_= 0 or t.owner_id_ = #{userId})
+		order by t.sn_
+	</select>
+	
+	<select id="getTypesByParentId" parameterType="java.util.Map" resultMap="SysType">
+		select * 
+		from sys_type   
+		where type_group_key_ = #{groupKey} 
+		and parent_id_ = #{parentId}
+	</select>
+	
+	<select id="getByTypeKeyAndGroupKey" parameterType="java.util.Map" resultMap="SysType">
+		select * 
+		from sys_type   
+		where type_group_key_ = #{groupKey} 
+		and type_key_ = #{typeKey}
+	</select>
+	
+	<update id="updSn" parameterType="java.util.Map">
+		UPDATE sys_type SET sn_=#{sn}  WHERE id_=#{typeId}
+	</update>
+	
+	<!-- 获取数据字典MM_PUB_DATA_DICT填充下拉框
+	add by linzhuo -->
+	<select id="queryPubDataDictByCodeType" parameterType="java.util.Map" resultType="com.hanthink.base.model.DictVO">
+		SELECT DISTINCT  CODE_VALUE valueKey, CODE_VALUE_NAME valueName, SORT_NO FROM MM_PUB_DATA_DICT   
+		WHERE CODE_TYPE = #{typeKey}  ORDER BY SORT_NO
+	</select>
+	
+	<!--  分页查询分类组数据信息 -->
+	<select id="querySysTypeGroup" parameterType="java.util.Map" resultType="java.util.Map">
+		SELECT ID_,GROUP_KEY_, NAME_, FLAG_, SN_, TYPE_ 
+		FROM SYS_TYPE_GROUP 
+		WHERE 1 =1 
+		<if test="GROUP_KEY_OR_NAME != null and GROUP_KEY_OR_NAME != '' ">
+			AND (GROUP_KEY_ LIKE '%' || #{GROUP_KEY_OR_NAME} || '%' OR NAME_ LIKE '%' || #{GROUP_KEY_OR_NAME} || '%'  )
+		</if>
+		
+		ORDER BY SN_, GROUP_KEY_
+	</select>
+	
+	<!--  分页查询系统分类数据信息 -->
+	<select id="querySysTypeByGroupKey" parameterType="java.util.Map" resultType="java.util.Map">
+		SELECT ID_,TYPE_GROUP_KEY_,TYPE_KEY_,NAME_,STRU_TYPE_,PARENT_ID_,DEPTH_,PATH_,IS_LEAF_,OWNER_ID_,SN_
+		FROM SYS_TYPE
+		WHERE 1 = 1
+		<if test="TYPE_GROUP_KEY != null and TYPE_GROUP_KEY != '' ">
+			AND TYPE_GROUP_KEY_ = #{TYPE_GROUP_KEY}
+		</if>
+		ORDER BY SN_,TYPE_KEY_
+	</select>
+	
+</mapper>

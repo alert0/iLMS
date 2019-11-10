@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.bo.persistence.model.BOEnt">
+	<resultMap id="BOEnt" type="com.hotent.bo.persistence.model.BOEnt">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="packageId" column="package_id_" jdbcType="VARCHAR"/>
+		<result property="name" column="name_" jdbcType="VARCHAR"/>
+		<result property="desc" column="desc_" jdbcType="VARCHAR"/>
+		<result property="status" column="status_" jdbcType="VARCHAR"/>
+		<result property="createBy" column="create_by_" jdbcType="VARCHAR"/>
+		<result property="createTime" column="create_time_" jdbcType="TIMESTAMP"/>
+		<result property="isCreateTable" column="is_create_table_" jdbcType="NUMERIC"/>
+		<result property="dsName" column="ds_name_" jdbcType="VARCHAR"/>
+		<result property="tableName" column="table_name_" jdbcType="VARCHAR"/>
+		<result property="isExternal" column="is_external_" jdbcType="NUMERIC"/>
+		<result property="pk" column="pk_" jdbcType="VARCHAR"/>
+		<result property="fk" column="fk_" jdbcType="VARCHAR"/>
+		<result property="pkType" column="pk_type_" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.bo.persistence.model.BOEnt">
+		INSERT INTO xbo_ent
+		(id_,package_id_,name_,desc_,status_,create_by_,create_time_,is_create_table_,ds_name_,table_name_,is_external_,pk_,fk_,pk_type_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{packageId,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR}, #{desc,jdbcType=VARCHAR}, #{status,jdbcType=VARCHAR}, #{createBy,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP}, #{isCreateTable,jdbcType=NUMERIC}, #{dsName,jdbcType=VARCHAR}, #{tableName,jdbcType=VARCHAR}, #{isExternal,jdbcType=NUMERIC}, #{pk,jdbcType=VARCHAR}, #{fk,jdbcType=VARCHAR}, #{pkType,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="BOEnt">
+		SELECT * FROM xbo_ent 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="BOEnt">
+		SELECT * FROM xbo_ent
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.bo.persistence.model.BOEnt">
+		UPDATE xbo_ent SET
+		package_id_=#{packageId,jdbcType=VARCHAR},
+		name_=#{name,jdbcType=VARCHAR},
+		desc_=#{desc,jdbcType=VARCHAR},
+		status_=#{status,jdbcType=VARCHAR},
+		create_by_=#{createBy,jdbcType=VARCHAR},
+		create_time_=#{createTime,jdbcType=TIMESTAMP},
+		is_create_table_=#{isCreateTable,jdbcType=NUMERIC},
+		ds_name_=#{dsName,jdbcType=VARCHAR},
+		table_name_=#{tableName,jdbcType=VARCHAR},
+		is_external_=#{isExternal,jdbcType=NUMERIC},
+		pk_=#{pk,jdbcType=VARCHAR},
+		fk_=#{fk,jdbcType=VARCHAR},
+		pk_type_=#{pkType,jdbcType=VARCHAR}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM xbo_ent 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	<select id="getByDefId"   parameterType="java.lang.String" resultMap="BOEnt">
+		SELECT a.* FROM xbo_ent a,xbo_ent_rel b
+		WHERE a.id_=b.ref_ent_id_ and b.bo_defid_=#{defId}
+	</select>
+	
+	
+	<select id="getByName"   parameterType="java.lang.String" resultMap="BOEnt">
+		SELECT * FROM xbo_ent 
+		WHERE 
+		name_=#{name,jdbcType=VARCHAR}
+	</select>
+	
+	<select id="getRefCountByName"   parameterType="java.lang.String" resultType="java.lang.Integer">
+		select count(*)
+		from  xbo_ent ent, xbo_ent_rel rel,bpm_form_bo fbo
+			where ent.id_=rel.ref_ent_id_ and rel.bo_defid_=fbo.bo_def_id_ 
+			and ent.name_=#{entName}
+	</select>
+	
+	
+	
+	
+	
+</mapper>

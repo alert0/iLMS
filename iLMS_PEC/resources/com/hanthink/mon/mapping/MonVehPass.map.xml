@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.mon.model.MonVehPassModel">
+
+	<!-- 实时工程查询 -->
+	<select id="queryVehPassPage" parameterType="com.hanthink.mon.model.MonVehPassModel" resultType="com.hanthink.mon.model.MonVehPassModel">
+		SELECT D.WORKCENTER WORKCENTER,
+	         D.ORDERNO ORDERNO,
+	         D.MODELCODE MODELCODE,
+	         D.VIN VIN,
+	         D.STATIONCODE STATIONCODE,
+	         D.PHASE PHASE,
+	         TO_CHAR(D.PASS_TIME,'yyyy-MM-dd hh24:mi:ss') PASSTIME
+	        FROM (SELECT C.OTHER_CODE_VALUE WORKCENTER,
+	        			 C.SORT_NO SORTNO,
+	                     A.ERP_ORDER_NO ORDERNO,
+	                     B.MODEL_CODE MODELCODE,
+	                     B.FACTORY_CODE FACTOYRCODE,
+	                     B.VIN VIN,
+	                     A.STATION_CODE STATIONCODE,
+	                     B.PHASE PHASE,
+	                     A.PASS_TIME,
+	                     ROW_NUMBER() OVER(PARTITION BY B.ORDER_NO ORDER BY A.PASS_TIME DESC NULLS LAST) RN
+	                FROM IF_VEH_LOCK_PLAN B
+	                LEFT JOIN MM_PUB_VEH_PASS A
+	                  ON A.ORDER_NO = B.ORDER_NO
+	                 AND A.FACTORY_CODE = B.FACTORY_CODE
+	                LEFT JOIN MM_PUB_DATA_DICT C
+	                  ON C. CODE_TYPE = 'MON_KB_STATION'
+	                 AND A.STATION_CODE = C.CODE_VALUE
+	                 AND C.FACTORY_CODE = A.FACTORY_CODE
+	               WHERE B.ORDER_STATUS IN (10,15)) D
+	       WHERE RN = 1
+	       AND D.STATIONCODE IS NOT NULL
+	       AND D.FACTOYRCODE =#{factoryCode}
+		 <!-- 车间 精确 -->
+		 <if test="null != workCenter and '' != workCenter">
+			AND D.WORKCENTER = #{workCenter}
+		</if> 
+		<!-- 车型 精确 -->
+		 <if test="null != modelCode and '' != modelCode">
+			AND D.MODELCODE = #{modelCode}
+		</if>
+		<if test="null != vin and '' != vin">
+			AND D.VIN LIKE CONCAT(CONCAT('%',#{vin}),'%')
+		</if>
+		ORDER BY D.SORTNO,D.PASS_TIME
+	</select>
+
+</mapper>

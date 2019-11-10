@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.pup.model.PupPlanModel">
+	<!-- 取货计划分页查询 -->
+	<select id="queryPlanForPage" parameterType="com.hanthink.pup.model.PupPlanPageModel" resultType="com.hanthink.pup.model.PupPlanModel">
+		SELECT ID id,
+			   MSP.PICKUP_TYPE pickupType,
+			   MSP.AREA area,
+			   MSP.CAR_TYPE carType,
+			   MSP.ROUTE_CODE routeCode,
+			   MSP.TOTAL_BATCHS totalBatchs,
+			   MSP.MERGE_BATCHS mergeBatchs,
+			   MSP.SUP_FACTORY supFactory,
+			   MPS.SUPPLIER_NAME supplierName,
+			   MSP.ORDER_NO orderNo,
+			   MSP.PURCHASE_NO purchaseNo,
+			   TO_CHAR(MSP.WORK_DATE,'yyyy-MM-dd') workDate,
+			   MSP.TODAY_CAR_BATCH todayCarBatch,
+			   TO_CHAR(MSP.PLAN_PICKUP_TIME,'yyyy-MM-dd hh24:mi:ss') planPickupTime,
+			   TO_CHAR(MSP.PLAN_ARR_TIME,'yyyy-MM-dd hh24:mi:ss') planArrTime,
+			   TO_CHAR(MSP.PLAN_ASSEMBLE_TIME,'yyyy-MM-dd hh24:mi:ss') planAssembleTime,
+			   MSP.ORDER_USE orderUse,
+			   MSP.CREATION_USER creationUser,
+			   MSP.INTER_LOGIS_MANAGER interLogisManager,
+			   MSP.CONFIRM_DAYS confirmDays,
+			   MSP.FEEDBACK_STATUS feedBackStatus,
+			   MSP.DOWNLOAD_STATUS downloadStatus,
+			   TO_CHAR(MSP.DOWNLOAD_TIME,'yyyy-MM-dd hh24:mi:ss') downloadTime
+		FROM MM_SW_PICKUP_PLAN MSP
+			LEFT JOIN MM_PUB_SUPPLIER MPS
+			ON MSP.SUPPLIER_NO = MPS.SUPPLIER_NO
+		WHERE MSP.FACTORY_CODE = #{factoryCode}
+		<if test="planPickupTimeStart != null">
+			AND MSP.PLAN_PICKUP_TIME >= TO_DATE(#{planPickupTimeStart},'yyyy-MM-dd hh24:mi:ss')
+		</if>
+		<if test="planPickupTimeEnd != null">
+			AND MSP.PLAN_PICKUP_TIME <![CDATA[<=]]> TO_DATE(#{planPickupTimeEnd},'yyyy-MM-dd hh24:mi:ss')
+		</if>
+		<if test="supplierNo != null">
+			AND MSP.SUPPLIER_NO = #{supplierNo}
+		</if>
+		<if test="routeCode != null">
+			AND MSP.ROUTE_CODE = #{routeCode}
+		</if>
+		<if test="orderNo != null">
+			AND MSP.ORDER_NO = #{orderNo}
+		</if>
+		<if test="purchaseNo != null">
+			AND MSP.PURCHASE_NO = #{purchaseNo}
+		</if>
+		<if test="downloadStatus != null">
+			AND MSP.DOWNLOAD_STATUS = #{downloadStatus}
+		</if>
+	</select>
+	<!-- 数据字典差异标识加载 -->
+	<select id="queryDownloadStatus" parameterType="java.util.Map" resultType="com.hanthink.base.model.DictVO">
+		SELECT DISTINCT CODE_VALUE valueKey, CODE_VALUE_NAME valueName FROM MM_PUB_DATA_DICT 
+		WHERE
+		CODE_TYPE = 'PUP_DOWNLOAD_STATUS'
+	</select>
+	<!-- 单条/批量删除数据 -->
+	<delete id="deletePlansById">
+		DELETE FROM MM_SW_PICKUP_PLAN
+		WHERE ID IN
+		<foreach item="ids" collection="array" open="(" separator="," close=")">
+			#{ids}
+		</foreach>
+	</delete>
+</mapper>

@@ -1,0 +1,228 @@
+package com.hanthink.pub.model;
+import com.hotent.base.core.model.AbstractModel;
+
+
+ /**
+ * 
+ * <pre> 
+ * 描述：操作日志表 实体对象
+ * 构建组：x5-bpmx-platform
+ * 作者:linzhuo
+ * 邮箱:zhuo.lin@hotent.com
+ * 日期:2018-09-06 00:31:49
+ * 版权：汉思信息技术有限公司
+ * </pre>
+ */
+public class PubOpeLogModel extends AbstractModel<Integer>{
+
+	/**  
+	 * <p>Description: long</p>  
+	 * @author linzhuo  
+	 * @date 2018年11月21日
+	 * @version 1.0  
+	 */  
+	private static final long serialVersionUID = 2195129621353476578L;
+
+	/**
+	 * 主表  操作日志表
+	 */
+	/**
+	* ID
+	*/
+	private Integer id ; 
+	
+	/**
+	* 操作时间
+	*/
+	private String factoryCode; 
+	
+	/**
+	* 操作时间
+	*/
+	private java.util.Date trxTime; 
+	
+	/**
+	* 操作时间字符
+	*/
+	private String trxTimeStr; 
+	
+	/**
+	* 操作时间开始
+	*/
+	private String trxTimeStrStart; 
+	
+	/**
+	* 操作时间结束
+	*/
+	private String trxTimeStrEnd; 
+	
+	/**
+	* 操作用户
+	*/
+	private String userId;  
+	
+	/**
+	* 操作表名
+	*/
+	private String tableName; 
+	
+	/**
+	* 操作方式
+	*/
+	private String formName; 
+	
+	/**
+	* 操作类型(M:修改;D:删除;I:新增;E:事件;)
+	*/
+	private String trxType; 
+	
+	/**
+	* 操作前的值
+	*/
+	private String oldValue; 
+	
+	/**
+	* 操作IP
+	*/
+	private String localIp; 
+	
+	/**
+	* 操作记录的主键值
+	*/
+	private String recordKey; 
+	
+	/**
+	* 表的主键列名
+	*/
+	private String idColumn; 
+	
+	/**
+	 * 副表  数据字典表
+	 */
+	/**
+	 * 数据值
+	 */
+	private String codeValueName;
+
+	public Integer getId() {
+		return id;
+	}
+
+	public void setId(Integer id) {
+		this.id = id;
+	}
+
+	public java.util.Date getTrxTime() {
+		return trxTime;
+	}
+
+	public void setTrxTime(java.util.Date trxTime) {
+		this.trxTime = trxTime;
+	}
+
+	public String getTrxTimeStr() {
+		return trxTimeStr;
+	}
+
+	public void setTrxTimeStr(String trxTimeStr) {
+		this.trxTimeStr = trxTimeStr;
+	}
+
+	public String getTrxTimeStrStart() {
+		return trxTimeStrStart;
+	}
+
+	public void setTrxTimeStrStart(String trxTimeStrStart) {
+		this.trxTimeStrStart = trxTimeStrStart;
+	}
+
+	public String getTrxTimeStrEnd() {
+		return trxTimeStrEnd;
+	}
+
+	public void setTrxTimeStrEnd(String trxTimeStrEnd) {
+		this.trxTimeStrEnd = trxTimeStrEnd;
+	}
+
+	public String getUserId() {
+		return userId;
+	}
+
+	public void setUserId(String userId) {
+		this.userId = userId;
+	}
+
+	public String getTableName() {
+		return tableName;
+	}
+
+	public void setTableName(String tableName) {
+		this.tableName = tableName;
+	}
+
+	public String getFormName() {
+		return formName;
+	}
+
+	public void setFormName(String formName) {
+		this.formName = formName;
+	}
+
+	public String getTrxType() {
+		return trxType;
+	}
+
+	public void setTrxType(String trxType) {
+		this.trxType = trxType;
+	}
+
+	public String getOldValue() {
+		return oldValue;
+	}
+
+	public void setOldValue(String oldValue) {
+		this.oldValue = oldValue;
+	}
+
+	public String getLocalIp() {
+		return localIp;
+	}
+
+	public void setLocalIp(String localIp) {
+		this.localIp = localIp;
+	}
+
+	public String getRecordKey() {
+		return recordKey;
+	}
+
+	public void setRecordKey(String recordKey) {
+		this.recordKey = recordKey;
+	}
+
+	public String getIdColumn() {
+		return idColumn;
+	}
+
+	public void setIdColumn(String idColumn) {
+		this.idColumn = idColumn;
+	}
+
+	public String getCodeValueName() {
+		return codeValueName;
+	}
+
+	public void setCodeValueName(String codeValueName) {
+		this.codeValueName = codeValueName;
+	}
+
+	public String getFactoryCode() {
+		return factoryCode;
+	}
+
+	public void setFactoryCode(String factoryCode) {
+		this.factoryCode = factoryCode;
+	}
+	
+
+}

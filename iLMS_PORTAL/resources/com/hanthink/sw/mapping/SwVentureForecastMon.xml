@@ -1,0 +1,979 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hanthink.sw.model.SwVentureForecastModel">
+	
+	<!--**导入开始****************************************************  -->
+	<!--  根据UUID删除临时表数据-->
+	<delete id="deleteImportTempDataByUUIDMon" parameterType="java.lang.String">
+		DELETE MM_SW_FORECAST_MONTH_JV_IMP WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR}
+	</delete>
+	
+	<!-- 批量导入数据写入到临时表 -->
+	<insert id="insertImportTempDataMon" parameterType="java.util.List">
+		INSERT INTO MM_SW_FORECAST_MONTH_JV_IMP
+		  (ID,
+           FACTORY_CODE,
+           FORE_TYPE,
+           JV_PLACE,
+           JV_VERSION,
+           PLAN_DELIVERY,
+           PHASE,
+           PART_NO,
+           ORDER_QTY,
+           SUPPLIER_NO,
+           MODEL_CODE,
+           ADVANCE_TIME,
+           CREATION_USER,
+           CREATION_TIME,
+		   IMP_UUID,
+		   CHECK_RESULT,
+		   CHECK_INFO,
+		   IMPORT_STATUS)
+		<foreach collection="list" item="item" index="index" separator=" UNION ALL ">
+			SELECT 
+			 PKG_PUB.USF_GET_SEQUENCE('SEQ_SW_FORECAST_MON_JV_IMP'),
+			 #{item.factoryCode,jdbcType=VARCHAR},
+			 '1',
+			 #{item.jvPlace,jdbcType=VARCHAR},
+			 #{item.jvVersion,jdbcType=VARCHAR},
+			 
+			 #{item.planDelivery,jdbcType=VARCHAR}, 
+			 #{item.phase,jdbcType=VARCHAR},
+			 #{item.partNo,jdbcType=VARCHAR},
+			 #{item.orderQty,jdbcType=VARCHAR},
+			 #{item.supplierNo,jdbcType=VARCHAR},
+			 #{item.modelCode,jdbcType=VARCHAR},
+			 #{item.advanceTime,jdbcType=VARCHAR},
+			 #{item.creationUser,jdbcType=VARCHAR},
+			 SYSDATE,
+			 #{item.uuid,jdbcType=VARCHAR}, 
+			 #{item.checkResult,jdbcType=VARCHAR}, 
+			 #{item.checkInfo,jdbcType=VARCHAR}, 
+			 #{item.importStatus,jdbcType=VARCHAR}
+			FROM DUAL 
+    	</foreach>
+	</insert>
+	
+	<!-- 检查导入临时表数据 -->
+	<parameterMap type="map" id="impCkParamMapMon">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="userName" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<select id="checkImportDataMon" parameterMap="impCkParamMapMon" statementType="CALLABLE">
+		{CALL PKG_PUB_CHECK.USP_SW_VENTURE_MON_CHECK(?, ?, ?,  ?,?)}
+	</select>
+	
+	<!-- 查询临时表中的数据是否可以导入 -->
+	<select id="queryIsImportFlagMon" parameterType="java.lang.String" resultType="java.lang.String">
+		WITH TEMPA AS
+		 (SELECT COUNT(1) s
+		    FROM MM_SW_FORECAST_MONTH_JV_IMP A
+		   WHERE A.CHECK_RESULT = 0
+		     AND A.IMP_UUID = #{VALUE}),
+		TEMPB AS
+		 (SELECT COUNT(1) S
+		    FROM MM_SW_FORECAST_MONTH_JV_IMP B
+		   WHERE B.IMP_UUID = #{VALUE})
+		SELECT CASE
+		         WHEN A.S >= B.S THEN
+		          0
+		         ELSE
+		          1
+		       END AS FLAG
+		  FROM TEMPA A, TEMPB B
+	</select>
+	
+	<!-- 查询导入的临时数据 -->
+	<select id="queryImportTempDataMon" parameterType="java.util.Map" resultType="com.hanthink.sw.model.SwVentureForecastModel">
+			SELECT A.ID 		 id,
+		       A.FACTORY_CODE 	 factoryCode,
+		       A.JV_VERSION 	 jvVersion,
+		       A.PLAN_DELIVERY   planDelivery,
+		       
+		       A.PHASE 			 phaseStr,
+		       <!-- D.CODE_VALUE_NAME phaseStr, -->
+		       A.PART_NO 		 partNo,
+		      
+		       A.ORDER_QTY 		 orderQty,
+		       A.SUPPLIER_NO 	 supplierNo,
+		       A.MODEL_CODE 	 modelCode,
+			   A.JV_PLACE			jvPlace,
+		       A.CHECK_RESULT 		checkResult,
+		       A.CHECK_INFO 		checkInfo,
+		       A.IMPORT_STATUS 		importStatus,
+		       H.CODE_VALUE_NAME 	checkResultStr,
+		       G.CODE_VALUE_NAME 	importStatusStr,
+		       A.ADVANCE_TIME		advanceTime
+		  FROM MM_SW_FORECAST_MONTH_JV_IMP A
+		  LEFT JOIN MM_PUB_SUPPLIER B
+		    ON A.SUPPLIER_NO = B.SUPPLIER_NO
+
+		  LEFT JOIN MM_PUB_DATA_DICT H
+		    ON A.CHECK_RESULT = H.CODE_VALUE
+		   AND H.CODE_TYPE = 'PUB_IMP_CK_RESULT'
+		   AND H.FACTORY_CODE = A.FACTORY_CODE
+		   
+		  LEFT JOIN MM_PUB_DATA_DICT G
+		    ON A.IMPORT_STATUS = G.CODE_VALUE
+		   AND G.CODE_TYPE = 'PUB_IMP_STATUS'
+		   AND G.FACTORY_CODE = A.FACTORY_CODE
+		   
+		   
+		 WHERE A.IMP_UUID = #{uuid}
+		 ORDER BY A.CHECK_RESULT, A.CHECK_INFO, A.PART_NO
+	</select>
+	
+	
+	<!-- 查询可导入数据 -->
+	<select id="queryForInsertListMon" parameterType="java.util.Map" resultType="com.hanthink.sw.model.SwVentureForecastModel">
+	   SELECT A.id
+		  FROM MM_SW_FORECAST_MONTH_JV_IMP A
+		 WHERE A.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		   AND A.IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+		   AND A.CHECK_RESULT = #{checkResult, jdbcType = VARCHAR}
+	</select>
+	
+	<!-- 导入临时数据写入到正式表 -->
+	<insert id="insertImportDataMon" parameterType="java.util.Map" >
+		INSERT INTO MM_SW_FORECAST_MONTH_JV
+		  (ID,
+           FACTORY_CODE,
+           FORE_TYPE,
+           JV_VERSION,
+           PLAN_DELIVERY,
+           PART_NO,
+           ORDER_QTY,
+           SUPPLIER_NO,
+           MODEL_CODE,
+           PHASE,
+           JV_PLACE,
+           ADVANCE_TIME,
+           CREATION_USER,
+           CREATION_TIME)
+		  (SELECT PKG_PUB.USF_GET_SEQUENCE('SEQ_SW_FORECAST_MON_JV'),
+		          A.FACTORY_CODE,
+		          '1',
+		          A.JV_VERSION,
+		          to_date(A.PLAN_DELIVERY,'yyyy-mm-dd'),
+				  A.PART_NO,
+				  A.ORDER_QTY,
+				  A.SUPPLIER_NO,
+				  A.MODEL_CODE,
+				  (SELECT B.CODE_VALUE
+	              FROM MM_PUB_DATA_DICT B
+	             WHERE B.FACTORY_CODE = A.FACTORY_CODE
+	               AND B.CODE_TYPE = 'SW_PHASE'
+	               AND B.CODE_VALUE_NAME = A.PHASE),
+		          A.JV_PLACE,
+				  A.ADVANCE_TIME,
+		          A.CREATION_USER,
+		          SYSDATE
+		          
+		     FROM MM_SW_FORECAST_MONTH_JV_IMP A
+		    WHERE IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		      AND CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		      AND IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+		      AND OPE_TYPE = 'I')
+	</insert>
+	
+	<!--  版本号记录至MM_SW_FORECAST_VERSION_JV-->
+	<insert id="insertVersionMon" parameterType="java.util.Map" >
+		INSERT INTO MM_SW_FORECAST_VERSION
+			  (ID,
+			   FACTORY_CODE,
+			   FORE_TYPE,
+			   VERSION,
+			   JV_PLACE,
+			   TYPE,
+			   CREATION_USER,
+			   CREATION_TIME)
+			  SELECT PKG_PUB.USF_GET_SEQUENCE('SEQ_SW_FORECAST_VERSION'),
+			         A.FACTORY_CODE,
+			         '1',
+			         A.JV_VERSION,
+			         A.JV_PLACE,
+			         '0',
+			         #{creationUser,jdbcType=VARCHAR},
+			         SYSDATE
+			    FROM MM_SW_FORECAST_MONTH_JV_IMP A
+			    WHERE A.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+			      AND A.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+			      AND A.IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+			      AND A.OPE_TYPE = 'I'
+			   GROUP BY A.FACTORY_CODE, A.FORE_TYPE, A.JV_VERSION, A.JV_PLACE
+	</insert>
+	
+	<!-- 更新临时表数据导入状态 -->
+	<update id="updateVentureForecastImportDataImpStatusMon" parameterType="java.util.Map">
+		UPDATE MM_SW_FORECAST_MONTH_JV_IMP
+		   SET IMPORT_STATUS = #{IMPORT_STATUS_YES, jdbcType = VARCHAR}
+		 WHERE IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		   AND CHECK_RESULT = #{checkResult, jdbcType = VARCHAR}
+		   AND IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+	</update>
+	<!--****导入结束***********************************************************  -->
+	
+	<!--  分页查询合资车预测数据-->
+	<!-- 导出数据 -->
+	<!--  查询要删除的版本是否已发布-->
+	<select id="queryVentureForePageMon" parameterType="com.hanthink.sw.model.SwVentureForecastModel" 
+	  resultType="com.hanthink.sw.model.SwVentureForecastModel">
+			SELECT A.ID				id,
+		       A.FACTORY_CODE		factoryCode,
+		       <!-- A.FORE_TYPE			foreType,
+		       D2.CODE_VALUE_NAME 	foreTypeStr, -->
+		       A.JV_VERSION		    jvVersion,
+		       A.JV_PLACE			jvPlace,
+		       A.PLAN_DELIVERY		planDelivery,
+		       A.PART_NO			partNo,
+		       A.ORDER_QTY			orderQty,
+		       A.SUPPLIER_NO		supplierNo,
+		       A.MODEL_CODE			modelCode,
+		       A.PHASE				phase,
+		       D.CODE_VALUE_NAME	phaseStr,
+		       A.P_SUPPLIER			parentSupplier,
+		       A.RELEASE_STATUS		releaseStatus,
+		       D1.CODE_VALUE_NAME	releaseStatusStr,
+		       A.ADVANCE_TIME		advanceTime,
+		       A.CREATION_USER		creationUser,
+		       to_char(A.CREATION_TIME,'yyyy-mm-dd')		creationTime,
+		       
+		       T.PART_NAME_CN		partNameCn,
+		       U.PART_SHORT_NO		partShortNo,
+		       P.SUPPLIER_NAME		supplierName
+		  FROM MM_SW_FORECAST_MONTH_JV A
+		  LEFT JOIN MM_PUB_PART T
+		    ON A.PART_NO = T.PART_NO
+		   AND A.FACTORY_CODE = T.FACTORY_CODE
+		  LEFT JOIN MM_PUB_PART_UDA U
+		    ON A.PART_NO = U.PART_NO
+		   AND A.FACTORY_CODE = U.FACTORY_CODE
+		  LEFT JOIN MM_PUB_SUPPLIER P
+		    ON A.SUPPLIER_NO = P.SUPPLIER_NO
+		  LEFT JOIN MM_PUB_DATA_DICT D
+		    ON D.CODE_TYPE = 'SW_PHASE'
+		   AND D.FACTORY_CODE = A.FACTORY_CODE
+		   AND D.CODE_VALUE = A.PHASE
+		  LEFT JOIN MM_PUB_DATA_DICT D1
+		    ON D1.CODE_TYPE = 'SW_RELEASE_STATUS'
+		   AND D1.FACTORY_CODE = A.FACTORY_CODE
+		   AND D1.CODE_VALUE = A.RELEASE_STATUS
+
+		 WHERE A.FACTORY_CODE = #{factoryCode}
+		
+		<!-- 数据权限 -->
+		<if test=" null != userType and userType == '6'.toString() ">
+		<if test="null != userId and ''!= userId">
+	      	AND A.JV_PLACE IN (SELECT V.VALUE_CODE FROM VIEW_SYS_USER_DATA_PERM V 
+	      		WHERE V.USER_ID = #{userId} AND V.TYPE_CODE = 'JV_FORE_PLACE')
+	    </if>
+	    </if>
+		<if test="null != jvVersion and '' != jvVersion">
+			AND A.JV_VERSION = #{jvVersion,jdbcType=VARCHAR}
+		</if>
+		<if test="null != partNo and '' != partNo">
+			AND A.PART_NO CONCAT(#{partNo},'%')
+		</if>
+		<if test="null != partShortNo and '' != partShortNo">
+			AND U.PART_SHORT_NO = #{partShortNo,jdbcType=VARCHAR}
+		</if>
+	    <if test="null != partNameCn and '' != partNameCn">
+			AND T.PART_NAME_CN CONCAT(#{partNameCn,jdbcType=VARCHAR},'%')
+		</if>
+	    <if test="planDeliveryStar !=null and planDeliveryStar !='' ">
+	      <![CDATA[ AND A.PLAN_DELIVERY >= TO_DATE(#{planDeliveryStar},'yyyy-MM-dd') ]]>
+	    </if>
+	    <if test="planDeliveryEnd !=null and planDeliveryEnd !='' ">
+	      <![CDATA[ AND A.PLAN_DELIVERY <= TO_DATE(#{planDeliveryEnd},'yyyy-MM-dd') ]]>
+	    </if>
+	    <if test="creationTimeStar !=null and creationTimeStar !='' ">
+	      <![CDATA[ AND A.CREATION_TIME >= TO_DATE(#{creationTimeStar},'yyyy-MM-dd') ]]>
+	    </if>
+	    <if test="creationTimeEnd !=null and creationTimeEnd !='' ">
+	       <![CDATA[ AND A.CREATION_TIME <= TO_DATE(#{creationTimeEnd},'yyyy-MM-dd') ]]>
+	    </if>
+	    <if test="null != releaseStatus and '' != releaseStatus">
+		   AND A.RELEASE_STATUS = #{releaseStatus,jdbcType=VARCHAR}
+	    </if>
+	  	<if test="null != supplierNo and '' != supplierNo">
+		   AND A.SUPPLIER_NO = #{supplierNo,jdbcType=VARCHAR}
+	    </if>
+	    <if test="null != jvPlace and '' != jvPlace">
+		  AND A.JV_PLACE = #{jvPlace,jdbcType=VARCHAR}
+	    </if>
+		ORDER BY A.JV_PLACE,A.CREATION_TIME DESC
+	</select>
+	
+
+	<!--**根据版本删除数据开始*******************************************  -->
+	<!--  删除版本号（MM_SW_FORECAST_JV）-->
+	<delete id="deleteVentureVersionMon" parameterType="com.hanthink.sw.model.SwVentureForecastModel" >
+	DELETE FROM MM_SW_FORECAST_MONTH_JV A WHERE A.JV_VERSION = #{jvVersion} 
+	</delete>
+	<!--  删除版本号（MM_SW_FORECAST_VERSION）-->
+	<delete id="deleteVentureVersionJvMon" parameterType="com.hanthink.sw.model.SwVentureForecastModel" >
+	DELETE MM_SW_FORECAST_VERSION A WHERE A.VERSION = #{jvVersion} AND A.TYPE = 0 AND A.FORE_TYPE = 1
+	</delete>
+	<!--**根据版本删除数据结束******************************************  -->
+	
+	<!--**检索开始*****************************************************  -->
+	<!-- 删除上一次数据 -->
+	<delete id="deleteReleaseImpMon" parameterType="com.hanthink.sw.model.SwVentureForecastModel">
+		DELETE FROM MM_SW_FORECAST_REL_MON_IMP A WHERE A.CREATION_USER = #{creationUser}
+	</delete>
+	<!-- 检索，合资车数据合并到发布临时表 -->
+	<insert id="insertReleaseImpJvMon" parameterType="com.hanthink.sw.model.SwVentureForecastModel">
+	    INSERT INTO MM_SW_FORECAST_REL_MON_IMP
+				  (ID,
+				   FACTORY_CODE,
+				   FORE_TYPE,
+				   
+				   PLAN_DELIVERY,
+				   START_DATE,
+				   END_DATE,
+				   PHASE,
+				   PART_NO,
+				   ORDER_QTY,
+				   SUPPLIER_NO,
+				   MODEL_CODE,
+				   RELEASE_STATUS,
+				   OBJ_MONTH,
+				   PUBLISH_MONTH,
+				   ADVANCE_TIME,
+				   P_SUPPLIER,
+				   CREATION_USER,
+				   CREATION_TIME)
+				  SELECT SEQ_SW_FORECAST_REL_MON_IMP.NEXTVAL,
+				         A.FACTORY_CODE,
+				         '1',
+				         
+				         A.PLAN_DELIVERY,
+				         to_date(#{startDate,jdbcType=VARCHAR},'yyyy-mm-dd'),
+				         to_date(#{endDate,jdbcType=VARCHAR},'yyyy-mm-dd'),
+				         A.PHASE,
+				         A.PART_NO,
+				         A.ORDER_QTY,
+				         A.SUPPLIER_NO,
+				         A.MODEL_CODE,
+				         '0',
+				         #{objMonth,jdbcType=VARCHAR},
+				         #{publishMonth,jdbcType=VARCHAR},
+				         A.ADVANCE_TIME,
+				         A.P_SUPPLIER,
+				         #{creationUser,jdbcType=VARCHAR},
+				         SYSDATE
+				    FROM MM_SW_FORECAST_MONTH_JV A
+				   WHERE 1=1
+				   and A.JV_VERSION in
+		 <foreach collection="jvVersionList" item="jvVersion" index="index" open="(" separator="," close=")">
+		    #{jvVersion}
+		 </foreach>
+				   
+	</insert>
+	<!--检索，erp预测数据合并到发布临时表  -->
+	<insert id="insertReleaseImpErpMon" parameterType="com.hanthink.sw.model.SwVentureForecastModel">
+			INSERT INTO MM_SW_FORECAST_REL_MON_IMP
+			  (ID,
+			   FACTORY_CODE,
+			   FORE_TYPE,
+			   PLAN_DELIVERY,
+			   START_DATE,
+			   END_DATE,
+			   PHASE,
+			   UNLOAD_PORT,
+			   PART_NO,
+			   PART_UNIT,
+			   ORDER_QTY,
+			   SUPPLIER_NO,
+			   MODEL_CODE,
+			   LOGISTICS_MODE,
+
+			   CREATION_USER,
+			   CREATION_TIME,
+			   RELEASE_STATUS,
+
+			   WORKCENTER,
+			   OBJ_MONTH,
+			   PUBLISH_MONTH,
+			   ADVANCE_TIME,
+			   P_SUPPLIER,
+			   SEQ )
+		SELECT SEQ_SW_FORECAST_REL_MON_IMP.NEXTVAL,
+		       A.FACTORY_CODE,
+		       '1',
+		       A.PLAN_DELIVERY,
+		       A.START_DATE,
+		       A.END_DATE,
+		       A.PHASE,
+		       A.UNLOAD_PORT,
+		       A.PART_NO,
+		       A.PART_UNIT,
+		       A.ORDER_QTY,
+		       A.SUPPLIER_NO,
+
+		       A.MODEL_CODE,
+		       A.LOGISTICS_MODE,
+		       #{creationUser,jdbcType=VARCHAR},
+		       SYSDATE,
+		       '0',
+
+		       A.WORKCENTER,
+		       A.OBJ_MONTH,
+		       A.PUBLISH_MONTH,
+		       A.ADVANCE_TIME,
+		       A.P_SUPPLIER,
+		       SEQ
+		  FROM MM_SW_DEMAND_FORECAST A
+		  WHERE A.VERSION = #{erpVersion,jdbcType=VARCHAR}
+		  AND A.FORE_TYPE = 1
+	</insert> 
+	
+	<!--检索，分页查询统计后的数据  -->
+	<select id="queryTotalQtyMon" parameterType="com.hanthink.sw.model.SwVentureForecastModel"
+		resultType="com.hanthink.sw.model.SwVentureForecastModel">
+				SELECT A.ID				   id,
+					   <!-- A.VERSION           version, -->
+		               pd.code_value_name  PHASE,
+		               A.FACTORY_CODE      factoryCode,
+		               
+		               A.SUPPLIER_NO       supplierNo,
+		               SUP.SUPPLIER_NAME   supplierName,
+
+		               A.PART_NO           partNo,
+		               part.PART_SHORT_NO  partShortNo,
+		               part.PART_NAME_CN   partNameCn,
+		               MDD.CODE_VALUE_NAME releaseStatus,
+		               A.FORE_TYPE         foreType,
+		               <!-- A.PUBLISH_MONTH     publishMonth, -->
+       				   A.OBJ_MONTH		   objMonth,
+		               B.monthOne          monthOne,
+		               B.monthTwo          monthTwo,
+		               B.monthThree        monthThree
+		          FROM (select DFW.FACTORY_CODE,
+		                       DFW.PART_NO,
+		                       DFW.SUPPLIER_NO,
+		                      
+		                       DFW.PHASE,
+		                       <!-- DFW.VERSION VERSION, -->
+		                       
+		                       max(DFW.RELEASE_STATUS) RELEASE_STATUS,
+		                       FORE_TYPE,
+		                       max(DFW.ID) ID,
+		                       
+		                       max(DFW.PUBLISH_MONTH) 	PUBLISH_MONTH,
+               				   max(DFW.OBJ_MONTH)  		OBJ_MONTH,
+		                      
+		                       <!-- max(DFW.MODEL_CODE) 		MODEL_CODE, -->
+		                       
+		                       DFW.CREATION_USER    	CREATION_USER,
+		                       min(DFW.CREATION_TIME) 	CREATION_TIME
+		                       
+		                  from MM_SW_FORECAST_REL_MON_IMP DFW
+		                  LEFT JOIN MM_PUB_SUPPLIER PSW
+		                    ON DFW.SUPPLIER_NO = PSW.SUPPLIER_NO
+		                 group by DFW.FACTORY_CODE,
+		                          DFW.PART_NO,
+		                          DFW.SUPPLIER_NO,
+		                          
+		                          DFW.PHASE,
+		                          <!-- DFW.VERSION, -->
+		                          DFW.FORE_TYPE,
+		                          DFW.CREATION_USER) A
+		          LEFT JOIN (select FACTORY_CODE,
+		                           PART_NO,
+		                           SUPPLIER_NO,
+		                           CREATION_USER,
+		                           <!-- VERSION, -->
+		                           SUM(DECODE(YEAR_MONTH,
+		                                      to_char(add_months(to_date(OBJ_MONTH,
+		                                                                 'yyyymm'),
+		                                                         0),
+		                                              'yyyymm'),
+		                                      MONTH_TTL,
+		                                      '')) monthOne,
+		                           SUM(DECODE(YEAR_MONTH,
+		                                      to_char(add_months(to_date(OBJ_MONTH,
+		                                                                 'yyyymm'),
+		                                                         1),
+		                                              'yyyymm'),
+		                                      MONTH_TTL,
+		                                      '')) monthTwo,
+		                           SUM(DECODE(YEAR_MONTH,
+		                                      to_char(add_months(to_date(OBJ_MONTH,
+		                                                                 'yyyymm'),
+		                                                         2),
+		                                              'yyyymm'),
+		                                      MONTH_TTL,
+		                                      '')) monthThree,
+		                           
+		                           PHASE
+		                           
+		                      from (select DFW.FACTORY_CODE,
+		                                   DFW.PART_NO,
+		                                   DFW.SUPPLIER_NO,
+		                                   
+		                                   DFW.PHASE,
+		                                   <!-- DFW.VERSION, -->
+		                                   TO_CHAR(DFW.PLAN_DELIVERY, 'YYYYMM') YEAR_MONTH,
+		                                   sum(ORDER_QTY) MONTH_TTL,
+		                                   
+		                                   OBJ_MONTH,
+		                                   DFW.CREATION_USER
+		                              from MM_SW_FORECAST_REL_MON_IMP DFW
+		                              LEFT JOIN MM_PUB_SUPPLIER PSW
+		                                ON DFW.SUPPLIER_NO = PSW.SUPPLIER_NO
+		                             where FORE_TYPE = '1'
+		                             group by DFW.FACTORY_CODE,
+		                                      DFW.PART_NO,
+		                                      DFW.SUPPLIER_NO,
+		                                      <!-- PSW.SUP_FACTORY, -->
+		                                      DFW.PHASE,
+		                                      <!-- DFW.VERSION, -->
+		                                      TO_CHAR(DFW.PLAN_DELIVERY, 'YYYYMM'),
+		                                      
+		                                      OBJ_MONTH,
+		                                      DFW.CREATION_USER)
+		                     group by FACTORY_CODE,
+		                              PART_NO,
+		                              SUPPLIER_NO,
+		                              
+		                              PHASE,
+		                              CREATION_USER
+		                              <!-- VERSION, -->
+		                              ) B
+		            ON B.FACTORY_CODE = A.FACTORY_CODE
+		           AND B.PART_NO = A.PART_NO
+		           AND B.SUPPLIER_NO = A.SUPPLIER_NO
+		           AND B.PHASE = A.PHASE
+		           AND B.CREATION_USER = A.CREATION_USER
+		           <!-- AND B.VERSION = A.VERSION -->
+		           
+		          left join mm_pub_part_uda part
+		            on part.part_no = A.part_no
+		           and A.FACTORY_CODE = part.factory_code
+		           
+		          left join mm_pub_supplier sup
+		            on sup.supplier_no = a.supplier_no
+		          left join mm_pub_data_dict pd
+		            on A.PHASE = pd.code_value
+		           and pd.code_type = 'SW_PHASE'
+		           
+		          LEFT JOIN MM_PUB_DATA_DICT MDD
+		             ON A.RELEASE_STATUS = MDD.CODE_VALUE
+		             AND MDD.CODE_TYPE = 'SW_RELEASE_STATUS'
+		             and a.factory_code = mdd.factory_code
+         
+					WHERE A.FORE_TYPE = 1
+					AND A.CREATION_USER = #{creationUser,jdbcType=VARCHAR}
+
+				  ORDER BY A.SUPPLIER_NO ASC ,A.PART_NO
+	</select>
+	
+	<!-- 查询erp下发的预测中最小日期，最大日期，对象周 -->
+	<select id="getExportModeMsgMon" parameterType="java.util.Map"
+		resultType="com.hanthink.sw.model.SwVentureForecastModel">
+		SELECT MIN(A.START_DATE) startDate, MAX(A.END_DATE) endDate, MAX(A.OBJ_WEEK) objWeek
+		  FROM MM_SW_DEMAND_FORECAST A
+		 WHERE A.VERSION = #{erpVersion}
+		   AND A.FORE_TYPE = 1
+	</select>
+	
+	<!-- 月预测导出 -->
+	<select id="queryVentureForecastMonExportDataByPage" parameterType="java.util.Map"
+		resultType="java.util.Map">
+	SELECT 
+		  <!-- A.VERSION, -->
+		  pd.code_value_name PHASE, 
+		
+		  A.FACTORY_CODE,
+		 
+		  A.SUPPLIER_NO,
+		  SUP.SUPPLIER_NAME,		 
+		  A.PART_NO,
+		  part.PART_SHORT_NO, 
+		  part.PART_NAME_CN,
+		  <!-- A.PUBLISH_MONTH, -->
+          A.OBJ_MONTH,
+       	  D.monthOne	MONTH_ONE,
+		  D.monthTwo	MONTH_TWO,
+		  D.monthThree	MONTH_THREE,
+		  ${monthSql} 
+		  
+		  ${daySql} 
+		  
+		  A.CREATION_USER,
+		  
+		  to_char(A.CREATION_TIME,'yyyy-mm-dd') CREATION_TIME
+
+	      <!-- MDD.CODE_VALUE_NAME RELEASE_STATUS  -->
+		  
+		FROM (
+		  select
+		   DFW.FACTORY_CODE,
+		   DFW.PART_NO,
+		   DFW.SUPPLIER_NO,
+		  <!--  PSW.SUP_FACTORY, -->
+		   DFW.PHASE,
+		  <!--  DFW.VERSION VERSION, -->
+           <!-- max(DFW.PUBLISH_MONTH) PUBLISH_MONTH, -->
+           max(DFW.OBJ_MONTH)  OBJ_MONTH,
+		   
+		   max(DFW.MODEL_CODE) MODEL_CODE,
+		   
+		   DFW.CREATION_USER      CREATION_USER,
+		   min(DFW.CREATION_TIME) CREATION_TIME,
+		   DFW.FORE_TYPE
+	       <!-- MAX(DFW.RELEASE_STATUS)  RELEASE_STATUS -->
+		  from MM_SW_FORECAST_REL_MON_IMP DFW
+		  LEFT JOIN MM_PUB_SUPPLIER PSW
+		  	ON DFW.SUPPLIER_NO = PSW.SUPPLIER_NO
+		  left join mm_pub_part_uda  part
+             on DFW.PART_NO = part.PART_NO
+            and dfw.factory_code = part.factory_code
+		  where DFW.PLAN_DELIVERY between to_date(#{startDateStr},'yyyy-mm-dd') and to_date(#{endDateStr},'yyyy-mm-dd') <!--界面输入的起始月份，三个月区间内-->
+		  	
+		  group by DFW.FACTORY_CODE, DFW.PART_NO, 
+		  DFW.SUPPLIER_NO, DFW.PHASE,<!-- DFW.VERSION, --> 
+		  DFW.OBJ_MONTH,
+		  DFW.CREATION_USER,
+		  DFW.FORE_TYPE
+		) A
+		LEFT JOIN (
+		  select 
+		   FACTORY_CODE,
+		   PART_NO,
+		   SUPPLIER_NO,
+		   
+		   ${monthSqlB}
+		  
+		   PHASE,
+		   CREATION_USER
+		  from(
+		    select 
+		     DFW.FACTORY_CODE,
+		     DFW.PART_NO,
+		     DFW.SUPPLIER_NO,
+		     
+		     DFW.PHASE,
+		     DFW.OBJ_MONTH,
+		     TO_CHAR(DFW.PLAN_DELIVERY,'YYYY-MM') YEAR_MONTH,
+		     sum(ORDER_QTY) MONTH_TTL,
+		     DFW.CREATION_USER
+		    from MM_SW_FORECAST_REL_MON_IMP DFW
+             LEFT JOIN MM_PUB_SUPPLIER  PSW
+             ON DFW.SUPPLIER_NO = PSW.SUPPLIER_NO
+            left join mm_pub_part_uda  part
+             on DFW.PART_NO = part.PART_NO
+            and dfw.factory_code = part.factory_code
+            
+		    where DFW.PLAN_DELIVERY between to_date(#{startDateStr},'yyyy-mm-dd') and to_date(#{endDateStr},'yyyy-mm-dd') <!--界面输入的起始月份，三个月区间内 -->
+		      and FORE_TYPE = '1' <!--月总量 -->
+		   
+		    group by DFW.FACTORY_CODE, DFW.PART_NO, 
+		    DFW.SUPPLIER_NO, DFW.PHASE, 
+		    TO_CHAR(DFW.PLAN_DELIVERY,'YYYY-MM'),
+		    DFW.OBJ_MONTH,
+		    DFW.CREATION_USER
+		  )
+		  group by FACTORY_CODE, PART_NO, SUPPLIER_NO, PHASE,CREATION_USER
+		) B ON B.FACTORY_CODE = A.FACTORY_CODE 
+		        AND B.PART_NO = A.PART_NO
+		        AND B.SUPPLIER_NO = A.SUPPLIER_NO
+		        AND B.PHASE = A.PHASE
+		        AND B.CREATION_USER = A.CREATION_USER
+		        
+		LEFT JOIN (
+		  select 
+		   FACTORY_CODE,
+		   PART_NO,
+		   SUPPLIER_NO,
+		   
+		   ${daySqlC}
+		   
+		   
+		   PHASE,
+		   CREATION_USER
+		   
+		  from(
+		    select 
+		     SDF.FACTORY_CODE,
+		     SDF.PART_NO,
+		     SDF.SUPPLIER_NO,
+		     
+		     SDF.PHASE,
+		     TO_CHAR(SDF.PLAN_DELIVERY,'YYYY-MM-DD') YEAR_MONTH_DAY,
+		     sum(SDF.ORDER_QTY) MONTH_TTL,
+		     
+		     SDF.OBJ_MONTH,
+		     SDF.CREATION_USER
+		    from MM_SW_FORECAST_REL_MON_IMP SDF
+		     LEFT JOIN MM_PUB_SUPPLIER PS
+             ON SDF.SUPPLIER_NO = PS.SUPPLIER_NO
+           left join mm_pub_part_uda  part
+             on SDF.PART_NO = part.PART_NO
+            and sdf.factory_code = part.factory_code
+            
+		    where SDF.PLAN_DELIVERY between to_date(#{startDateStr},'yyyy-mm-dd') and to_date(#{endDateStr},'yyyy-mm-dd') <!--界面输入的起始月份，三个月区间内 -->
+		      and SDF.FORE_TYPE = '1' <!--月预测下日明细 -->
+		      
+		    group by SDF.FACTORY_CODE, SDF.PART_NO, 
+		    SDF.SUPPLIER_NO, SDF.PHASE, 
+		    TO_CHAR(SDF.PLAN_DELIVERY,'YYYY-MM-DD'),
+		    SDF.OBJ_MONTH,
+		    SDF.CREATION_USER
+		  )
+		  group by FACTORY_CODE, PART_NO, SUPPLIER_NO, PHASE,CREATION_USER
+		) C ON C.FACTORY_CODE = A.FACTORY_CODE 
+		        AND C.PART_NO = A.PART_NO
+		        AND C.SUPPLIER_NO = A.SUPPLIER_NO
+		        AND C.PHASE = A.PHASE
+		        AND C.CREATION_USER = A.CREATION_USER
+		        <!-- AND A.P_SUPPLIER = C.P_SUPPLIER -->
+		 LEFT JOIN (select FACTORY_CODE,
+		                           PART_NO,
+		                           SUPPLIER_NO,
+		                           <!-- VERSION, -->
+		                           SUM(DECODE(YEAR_MONTH,
+		                                      to_char(add_months(to_date(OBJ_MONTH,
+		                                                                 'yyyymm'),
+		                                                         0),
+		                                              'yyyymm'),
+		                                      MONTH_TTL,
+		                                      '')) monthOne,
+		                           SUM(DECODE(YEAR_MONTH,
+		                                      to_char(add_months(to_date(OBJ_MONTH,
+		                                                                 'yyyymm'),
+		                                                         1),
+		                                              'yyyymm'),
+		                                      MONTH_TTL,
+		                                      '')) monthTwo,
+		                           SUM(DECODE(YEAR_MONTH,
+		                                      to_char(add_months(to_date(OBJ_MONTH,
+		                                                                 'yyyymm'),
+		                                                         2),
+		                                              'yyyymm'),
+		                                      MONTH_TTL,
+		                                      '')) monthThree,
+		                           <!-- SUP_FACTORY, -->
+		                           PHASE,
+		                           CREATION_USER
+		                           <!-- P_SUPPLIER -->
+		                      from (select DFW.FACTORY_CODE,
+		                                   DFW.PART_NO,
+		                                   DFW.SUPPLIER_NO,
+		                                   <!-- PSW.SUP_FACTORY, -->
+		                                   DFW.PHASE,
+		                                   <!-- DFW.VERSION, -->
+		                                   TO_CHAR(DFW.PLAN_DELIVERY, 'YYYYMM') YEAR_MONTH,
+		                                   sum(ORDER_QTY) MONTH_TTL,
+		                                   <!-- NVL(DFW.P_SUPPLIER,'#') P_SUPPLIER, -->
+		                                   DFW.OBJ_MONTH,
+		                                   DFW.CREATION_USER
+		                              from MM_SW_FORECAST_REL_MON_IMP DFW
+		                              LEFT JOIN MM_PUB_SUPPLIER PSW
+		                                ON DFW.SUPPLIER_NO = PSW.SUPPLIER_NO
+		                             where FORE_TYPE = '1'
+		                             group by DFW.FACTORY_CODE,
+		                                      DFW.PART_NO,
+		                                      DFW.SUPPLIER_NO,
+		                                      <!-- PSW.SUP_FACTORY, -->
+		                                      DFW.PHASE,
+		                                      <!-- DFW.VERSION, -->
+		                                      TO_CHAR(DFW.PLAN_DELIVERY, 'YYYYMM'),
+		                                      
+		                                      DFW.OBJ_MONTH,
+		                                      DFW.CREATION_USER)
+		                     group by FACTORY_CODE,
+		                              PART_NO,
+		                              SUPPLIER_NO,
+		                              <!-- SUP_FACTORY, -->
+		                              PHASE,
+		                              CREATION_USER
+		                              <!-- VERSION -->
+		                              ) D
+		 ON D.FACTORY_CODE = A.FACTORY_CODE
+         AND D.PART_NO = A.PART_NO
+         AND D.SUPPLIER_NO = A.SUPPLIER_NO
+         
+         AND D.PHASE = A.PHASE
+         <!-- AND D.VERSION = A.VERSION -->
+		                          
+		left join mm_pub_part_uda part on part.part_no = A.part_no and a.factory_code = part.factory_code
+		left join mm_pub_supplier sup on sup.supplier_no = a.supplier_no
+		left join mm_pub_data_dict pd 
+		   on A.PHASE = pd.code_value
+		   and pd.code_type = 'SW_PHASE'
+		   and a.factory_code = pd.factory_code
+	       
+	       
+	    where A.FORE_TYPE = '1'
+		 	AND A.CREATION_USER = #{model.creationUser}
+   		ORDER BY A.SUPPLIER_NO ASC ,A.PART_NO DESC
+	</select>
+	<!--**检索结束*******************************************************************  -->
+	
+	
+	<!--****合并发布开始*******************************************  -->
+	<!--  判断要发布的版本是否已发布至目标版本-->
+ 	<select id="selectIsReleaseVersionMon" parameterType="com.hanthink.sw.model.SwVentureForecastModel" 
+	  resultType="java.lang.Integer">
+		SELECT count(1) count
+		  FROM MM_SW_FORECAST_RELEASE A
+		  WHERE A.VERSION = #{version,jdbcType=VARCHAR}    	
+		  AND A.FORE_TYPE = 1
+	</select> 
+	
+	<!--  根据目标版本号查询出MM_SW_DEMAND_FORECAST表中的相关信息-->
+	<select id="selectDemandForecasetByTagVersionMon" parameterType="com.hanthink.sw.model.SwVentureForecastModel" 
+	  resultType="com.hanthink.sw.model.SwVentureForecastModel">
+		SELECT MAX(A.OBJ_MONTH) 	objMonth,
+		       MAX(A.OBJ_WEEK)		objWeek,
+		       MAX(A.START_DATE)	startDate,
+		       MAX(A.END_DATE)		endDate
+	  FROM MM_SW_DEMAND_FORECAST A
+	  WHERE A.VERSION = #{erpVersion}
+	  AND A.FORE_TYPE = 1
+	 GROUP BY A.VERSION
+	</select>
+	
+	<!--  发布，数据写入到MM_SW_FORECAST_RELEASE表中-->
+	<insert id="insertReleaseVersionMon" >
+			INSERT INTO MM_SW_FORECAST_RELEASE
+			  (ID,
+			   FACTORY_CODE,
+			   FORE_TYPE,
+			   VERSION,
+			   PLAN_DELIVERY,
+			   START_DATE,
+			   END_DATE,
+			   PHASE,
+			   UNLOAD_PORT,
+			   PART_NO,
+			   PART_UNIT,
+			   ORDER_QTY,
+			   SUPPLIER_NO,
+			   SUPPLIER_NAME,
+			   SUP_FACTORY_ADDR,
+			   SUP_FACTORY,
+			   MODEL_CODE,
+			   LOGISTICS_MODE,
+			   CREATION_USER,
+			   CREATION_TIME,
+			   RELEASE_STATUS,
+			   PUBLISH_MONTH,
+			   OBJ_MONTH,
+			   WORKCENTER,
+			   ADVANCE_TIME,
+			   P_SUPPLIER,
+			   SEQ)
+		SELECT SEQ_MM_SW_FORECAST_RELEASE.NEXTVAL,
+		       A.FACTORY_CODE,
+		       '1',
+		       #{version,jdbcType=VARCHAR},
+		       A.PLAN_DELIVERY,
+		       A.START_DATE,
+		       A.END_DATE,
+		       A.PHASE,
+		       A.UNLOAD_PORT,
+		       A.PART_NO,
+		       A.PART_UNIT,
+		       A.ORDER_QTY,
+		       A.SUPPLIER_NO,
+		       A.SUPPLIER_NAME,
+		       A.SUP_FACTORY_ADDR,
+		       A.SUP_FACTORY,
+		       A.MODEL_CODE,
+		       A.LOGISTICS_MODE,
+		       A.CREATION_USER,
+		       SYSDATE,
+		       '1',
+		       A.PUBLISH_MONTH,
+		       A.OBJ_MONTH,
+		       A.WORKCENTER,
+		  
+		       A.ADVANCE_TIME,
+		       A.P_SUPPLIER,
+		       A.SEQ
+		  FROM MM_SW_FORECAST_REL_MON_IMP A
+		  WHERE A.CREATION_USER = #{creationUser,jdbcType=VARCHAR}
+	</insert>
+	
+	<!--发布，写入发布记录表MM_SW_FORECAST_RECORD  -->
+	<insert id="insertForecastRecordMon" > 
+		INSERT INTO MM_SW_FORECAST_RECORD
+			  (FACTORY_CODE,
+			   FORE_TYPE,
+			   ERP_VERSION,
+			   JV_VERSION,
+			   VERSION,
+			   CREATION_USER,
+			   CREATION_TIME)
+			VALUES(
+			   #{factoryCode,jdbcType=VARCHAR},
+			   '1',
+			   #{erpVersion,jdbcType=VARCHAR},
+			   #{jvVersion,jdbcType=VARCHAR},
+			   #{version,jdbcType=VARCHAR},
+			   #{creationUser,jdbcType=VARCHAR},
+			   sysdate)
+	</insert>
+	
+	<!--发布,修改状态MM_SW_FORECAST_WEEK_JV  -->
+	<update id="updateJvReleaseStatusMon">
+	UPDATE MM_SW_FORECAST_MONTH_JV A SET A.RELEASE_STATUS = 1 WHERE A.JV_VERSION = #{jvVersion}
+	</update>
+	<update id="updateErpReleaseStatusMon" parameterType="com.hanthink.sw.model.SwVentureForecastModel">
+	  UPDATE MM_SW_DEMAND_FORECAST A
+	     SET A.RELEASE_STATUS = 1
+	   WHERE A.VERSION = #{erpVersion}
+	   AND A.FORE_TYPE = 1
+	</update>
+	<!--**发布结束**********************************  -->
+
+	<!--订购方版本号下拉框 -->
+	<select id="getJvVersionMon" parameterType="java.util.Map" 
+	resultType="com.hanthink.sw.model.SwVentureForecastModel">
+	SELECT A.VERSION || ' ' || A.JV_PLACE label, A.VERSION value
+	  FROM MM_SW_FORECAST_VERSION A
+	 WHERE A.FACTORY_CODE = #{factoryCode}
+ 	   AND A.TYPE = 0 	
+ 	   AND A.FORE_TYPE = 1
+	 <!-- 数据权限 -->
+	 <if test=" null != userType and userType == '6'.toString() ">
+	 <if test="null != userId and ''!= userId">
+      	AND A.JV_PLACE IN (SELECT V.VALUE_CODE FROM VIEW_SYS_USER_DATA_PERM V 
+      		WHERE V.USER_ID = #{userId} AND V.TYPE_CODE = 'JV_FORE_PLACE')
+      </if>
+      </if>
+      
+      <!--复选框订购方版本号只显示未发布的数据  -->
+      <if test="null != releaseStatus and '' != releaseStatus and '0'.toString()== releaseStatus">
+      AND NOT EXISTS
+      (SELECT 1 FROM MM_SW_FORECAST_RECORD B
+      	 WHERE A.VERSION = B.JV_VERSION AND B.FORE_TYPE = 2)
+      </if>
+      ORDER BY A.JV_PLACE ASC, A.VERSION DESC
+	</select>
+	
+	<!--ERP版本号下拉框 -->
+	<select id="getErpVersionMon" parameterType="java.util.Map" 
+	resultType="com.hanthink.sw.model.SwVentureForecastModel">
+	SELECT A.VERSION label, A.VERSION value
+	  FROM MM_SW_FORECAST_VERSION A
+	 WHERE A.FACTORY_CODE = #{factoryCode}
+ 	   AND A.TYPE = 1
+ 	   AND A.FORE_TYPE = 1
+ 	   
+      <if test="null != releaseStatus and '' != releaseStatus and '0'.toString()== releaseStatus">
+      AND NOT EXISTS
+      (SELECT 1 FROM MM_SW_FORECAST_RECORD B
+      	 WHERE A.VERSION = B.ERP_VERSION AND B.FORE_TYPE = 1)
+      </if>
+      
+      ORDER BY A.JV_PLACE ASC, A.VERSION DESC
+	</select>
+</mapper>

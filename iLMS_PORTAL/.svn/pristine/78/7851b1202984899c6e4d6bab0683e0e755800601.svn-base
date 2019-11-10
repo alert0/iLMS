@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.sys.persistence.model.QueryView">
+	<resultMap id="QueryView" type="com.hotent.sys.persistence.model.QueryView">
+		<id property="id" column="ID_" jdbcType="VARCHAR"/>
+		<result property="sqlAlias" column="SQL_ALIAS_" jdbcType="VARCHAR"/>
+		<result property="name" column="NAME_" jdbcType="VARCHAR"/>
+		<result property="alias" column="ALIAS_" jdbcType="VARCHAR"/>
+		<result property="shows" column="SHOWS_" jdbcType="VARCHAR"/>
+		<result property="conditions" column="CONDITIONS_" jdbcType="VARCHAR"/>
+		<result property="filterType" column="FILTER_TYPE_" jdbcType="NUMERIC"/>
+		<result property="filter" column="FILTER_" jdbcType="CLOB"/>
+		<result property="buttons" column="BUTTONS_" jdbcType="VARCHAR"/>
+		<result property="initQuery" column="INIT_QUERY_" jdbcType="NUMERIC"/>
+		<result property="template" column="TEMPLATE_" jdbcType="CLOB"/>
+		<result property="supportGroup" column="SUPPORT_GROUP_" jdbcType="NUMERIC"/>
+		<result property="groupSetting" column="GROUP_SETTING_" jdbcType="VARCHAR"/>
+		<result property="pageSize" column="PAGE_SIZE_" jdbcType="NUMERIC"/>
+		<result property="showRowsNum" column="SHOW_ROWS_NUM_" jdbcType="NUMERIC"/>
+		<result property="sn" column="SN_" jdbcType="NUMERIC"/>
+		<result property="needPage" column="NEED_PAGE_" jdbcType="NUMERIC"/>
+		<result property="templateAlias" column="TEMPLATE_ALIAS_" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.sys.persistence.model.QueryView">
+		INSERT INTO sys_query_view
+		(ID_,SQL_ALIAS_,NAME_,ALIAS_,SHOWS_,CONDITIONS_,FILTER_TYPE_,FILTER_,BUTTONS_,INIT_QUERY_,TEMPLATE_,SUPPORT_GROUP_,GROUP_SETTING_,PAGE_SIZE_,SHOW_ROWS_NUM_,SN_,NEED_PAGE_,TEMPLATE_ALIAS_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{sqlAlias,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR}, #{alias,jdbcType=VARCHAR}, 
+		#{shows,jdbcType=VARCHAR},#{conditions,jdbcType=VARCHAR}, #{filterType,jdbcType=NUMERIC}, #{filter,jdbcType=CLOB}, 
+		#{buttons,jdbcType=VARCHAR}, #{initQuery,jdbcType=NUMERIC}, #{template,jdbcType=CLOB}, #{supportGroup,jdbcType=NUMERIC},
+		 #{groupSetting,jdbcType=VARCHAR}, #{pageSize,jdbcType=NUMERIC}, #{showRowsNum,jdbcType=NUMERIC}, #{sn,jdbcType=NUMERIC}, 
+		 #{needPage,jdbcType=NUMERIC}, #{templateAlias,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="QueryView">
+		SELECT * FROM sys_query_view 
+		WHERE 
+		ID_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="QueryView">
+		SELECT ID_,SQL_ALIAS_,NAME_,ALIAS_ FROM sys_query_view
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY ID_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.sys.persistence.model.QueryView">
+		UPDATE sys_query_view SET
+		SQL_ALIAS_=#{sqlAlias,jdbcType=VARCHAR},
+		NAME_=#{name,jdbcType=VARCHAR},
+		ALIAS_=#{alias,jdbcType=VARCHAR},
+		SHOWS_=#{shows,jdbcType=VARCHAR},
+		CONDITIONS_=#{conditions,jdbcType=VARCHAR},
+		FILTER_TYPE_=#{filterType,jdbcType=NUMERIC},
+		FILTER_=#{filter,jdbcType=CLOB},
+		BUTTONS_=#{buttons,jdbcType=VARCHAR},
+		INIT_QUERY_=#{initQuery,jdbcType=NUMERIC},
+		TEMPLATE_=#{template,jdbcType=CLOB},
+		SUPPORT_GROUP_=#{supportGroup,jdbcType=NUMERIC},
+		GROUP_SETTING_=#{groupSetting,jdbcType=VARCHAR},
+		PAGE_SIZE_=#{pageSize,jdbcType=NUMERIC},
+		SHOW_ROWS_NUM_=#{showRowsNum,jdbcType=NUMERIC},
+		SN_=#{sn,jdbcType=NUMERIC},
+		NEED_PAGE_=#{needPage,jdbcType=NUMERIC},
+		TEMPLATE_ALIAS_=#{templateAlias,jdbcType=VARCHAR}
+		WHERE
+		ID_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_query_view 
+		WHERE
+		ID_=#{id}
+	</delete>
+	
+	<select id="getBySqlAlias"   parameterType="java.lang.String" resultMap="QueryView">
+		SELECT * FROM sys_query_view 
+		WHERE 
+		SQL_ALIAS_=#{sqlAlias}
+	</select>
+	
+	<select id="getBySqlAliasAndAlias"   parameterType="java.lang.String" resultMap="QueryView">
+		SELECT * FROM sys_query_view 
+		WHERE 
+		SQL_ALIAS_=#{sqlAlias} and ALIAS_ = #{alias}
+	</select>
+	
+	<delete id="removeBySqlAlias" parameterType="java.lang.String">
+		DELETE FROM sys_query_view 
+		WHERE
+		SQL_ALIAS_=#{sqlAlias}
+	</delete>
+</mapper>

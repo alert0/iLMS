@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+<title>SmartWorkESB</title>
+<link href="../zui/css/zui.min.css?v=1.0" rel="stylesheet">
+
+</head>
+<body>
+  <script src="../zui/lib/jquery/jquery.js?v=1.0"></script>
+  <script src="../zui/js/zui.min.js?v=1.0"></script>
+</body>
+</html>

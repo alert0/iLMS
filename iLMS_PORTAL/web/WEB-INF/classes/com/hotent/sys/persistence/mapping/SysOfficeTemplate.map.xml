@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.sys.persistence.model.SysOfficeTemplate">
+	<resultMap id="SysOfficeTemplate" type="com.hotent.sys.persistence.model.SysOfficeTemplate">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="name" column="NAME_" jdbcType="VARCHAR"/>
+		<result property="path" column="PATH_" jdbcType="VARCHAR"/>
+		<result property="ext" column="EXT_" jdbcType="VARCHAR"/>
+		<result property="size" column="SIZE_" jdbcType="VARCHAR"/>
+		<result property="stream" column="STREAM_" jdbcType="CLOB"/>
+		<result property="desc" column="DESC_" jdbcType="VARCHAR"/>
+		<result property="type" column="type_" jdbcType="VARCHAR"/>
+		<result property="createBy" column="create_by_" jdbcType="VARCHAR"/>
+		<result property="createTime" column="create_time_" jdbcType="TIMESTAMP"/>
+		<result property="saveType" column="save_type_" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.sys.persistence.model.SysOfficeTemplate">
+		INSERT INTO sys_office_template
+		(id_,NAME_,PATH_,EXT_,SIZE_,STREAM_,DESC_,type_,create_by_,create_time_,save_type_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR}, #{path,jdbcType=VARCHAR}, #{ext,jdbcType=VARCHAR}, #{size,jdbcType=VARCHAR}, #{stream,jdbcType=CLOB}, #{desc,jdbcType=VARCHAR}, #{type,jdbcType=VARCHAR}, #{createBy,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP}, #{saveType,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="SysOfficeTemplate">
+		SELECT * FROM sys_office_template 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="SysOfficeTemplate">
+		SELECT * FROM sys_office_template
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.sys.persistence.model.SysOfficeTemplate">
+		UPDATE sys_office_template SET
+		NAME_=#{name,jdbcType=VARCHAR},
+		PATH_=#{path,jdbcType=VARCHAR},
+		EXT_=#{ext,jdbcType=VARCHAR},
+		SIZE_=#{size,jdbcType=VARCHAR},
+		STREAM_=#{stream,jdbcType=CLOB},
+		DESC_=#{desc,jdbcType=VARCHAR},
+		type_=#{type,jdbcType=VARCHAR},
+		create_by_=#{createBy,jdbcType=VARCHAR},
+		create_time_=#{createTime,jdbcType=TIMESTAMP},
+		save_type_=#{saveType,jdbcType=VARCHAR}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_office_template 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	
+</mapper>

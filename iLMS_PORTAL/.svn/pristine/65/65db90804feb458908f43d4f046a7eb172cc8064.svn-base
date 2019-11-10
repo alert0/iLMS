@@ -1,0 +1,241 @@
+package com.hanthink.sw.controller;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.ibatis.session.RowBounds;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.hanthink.pup.util.PupUtil;
+import com.hanthink.sw.manager.SwPickupPlanManager;
+import com.hanthink.sw.model.SwPickupPlanModel;
+import com.hanthink.sw.model.SwSupplierGroupModel;
+import com.hanthink.util.excel.ExcelUtil;
+import com.hotent.base.api.Page;
+import com.hotent.base.api.model.ResultMessage;
+import com.hotent.base.core.web.GenericController;
+import com.hotent.base.core.web.RequestUtil;
+import com.hotent.base.db.mybatis.domain.DefaultPage;
+import com.hotent.base.db.mybatis.domain.PageJson;
+import com.hotent.base.db.mybatis.domain.PageList;
+import com.hotent.org.api.model.IUser;
+import com.hotent.sys.util.ContextUtil;
+import com.hotent.sys.util.SysPropertyUtil;
+
+/**
+ * 
+* <p>Title: SwPickupPlanController</p>  
+* <p>Description: 取货计划管理controller</p> 
+* <p>Company: hanthink</p>
+* @author luoxq  
+* @date 2018年10月19日 上午10:39:13
+ */
+@Controller
+@RequestMapping("/sw/swPickupPlan")
+public class SwPickupPlanController extends GenericController{
+
+	@Resource
+	private SwPickupPlanManager manager;
+	
+	private static Logger log = LoggerFactory.getLogger(SwPickupPlanController.class);
+
+	/**
+	 * 
+	 * <p>Title: queryJisoPickupPage</p>  
+	 * <p>Description: 取货计划管理，，分页查询</p>  
+	 * @param request
+	 * @param reponse
+	 * @param model
+	 * @return
+	 * @throws Exception  
+	 * @authoer luoxq
+	 * @time 2018年10月19日 上午10:50:43
+	 */
+	@RequestMapping("queryJisoPickupPage")
+	public @ResponseBody PageJson queryJisoPickupPage(HttpServletRequest request,
+            HttpServletResponse reponse,
+            @ModelAttribute("model") SwPickupPlanModel model) throws Exception{
+        DefaultPage p=new DefaultPage(new RowBounds(getQueryFilter(request).getPage().getStartIndex(), getQueryFilter(request).getPage().getPageSize()));
+        
+//        HttpSession session = request.getSession();
+//        session.setAttribute(SessionKey.SW_SUPPLIER_GROUP_QUERYFILTER, model);
+        IUser user = ContextUtil.getCurrentUser();
+        model.setFactoryCode(user.getCurFactoryCode());
+        PageList<SwSupplierGroupModel> pageList = (PageList<SwSupplierGroupModel>) manager.queryJisoPickupPage(model, p);
+        return new PageJson(pageList);
+	}
+	
+	/**
+	 * 
+	 * <p>Title: remove</p>  
+	 * <p>Description: 取货计划管理界面，批量删除</p>  
+	 * @param request
+	 * @param response
+	 * @throws Exception  
+	 * @authoer luoxq
+	 * @time 2018年10月19日 上午10:54:07
+	 */
+	@RequestMapping("remove")
+	public void remove(HttpServletRequest request,HttpServletResponse response) 
+			throws Exception{
+			ResultMessage message=null;
+			try {
+				String orderNos = RequestUtil.getString(request, "orderNo");
+				
+				String[] orderArr = orderNos.split(",");
+				if (null != orderArr ) {
+					if (orderArr.length>0 ) {
+						manager.removeAndLogByIds(orderArr, RequestUtil.getIpAddr(request));
+					}
+				}
+				message = new ResultMessage(ResultMessage.SUCCESS, "删除成功");
+			} catch (Exception e) {
+				e.printStackTrace();
+				log.error(e.toString());
+				throw new Exception("系统错误,请联系管理员");
+//				message = new ResultMessage(ResultMessage.FAIL, "删除失败");
+			}
+			writeResultMessage(response.getWriter(), message);
+	}
+	
+	/**
+	 * 
+	 * <p>Title: feedback</p>  
+	 * <p>Description: 取货计划界面，供应商反馈功能</p>  
+	 * @param request
+	 * @param response
+	 * @param model
+	 * @throws Exception  
+	 * @authoer luoxq
+	 * @time 2018年10月19日 下午4:53:00
+	 */
+	@RequestMapping("feedback")
+	public void feedback(HttpServletRequest request,HttpServletResponse response, 
+			@RequestBody SwPickupPlanModel model) 
+			throws Exception{
+			ResultMessage message=null;
+			String orderNoArr = null;
+			String feedbackStatus = null;
+			try {
+				if (null != model) {
+					orderNoArr = model.getOrderNo();
+					feedbackStatus = model.getFeedbackStatus();
+				}
+				if (null != orderNoArr &&  null != feedbackStatus) {
+					String []orerNos = orderNoArr.split(",");
+					manager.feedbackPickupPlan(orerNos,feedbackStatus);
+				}
+				message = new ResultMessage(ResultMessage.SUCCESS, "反馈成功");
+			} catch (Exception e) {
+				e.printStackTrace();
+				log.error(e.toString());
+				throw new Exception("系统错误,请联系管理员");
+//				message = new ResultMessage(ResultMessage.FAIL, "反馈失败");
+			}
+			writeResultMessage(response.getWriter(), message);
+	}
+	
+	/**
+	 * 取货计划，导出功能
+	 * @param request
+	 * @param response
+	 * @param model
+	 * @throws Exception 
+	 */
+	@RequestMapping("exportForExcelModel")
+	public void downloadSwDemandForecastModel(HttpServletRequest request,HttpServletResponse response, 
+			SwPickupPlanModel model) throws Exception{
+		try {
+		String exportFileName = "取货计划信息导出" + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+		IUser user = ContextUtil.getCurrentUser();
+        model.setFactoryCode(user.getCurFactoryCode());
+		List<SwPickupPlanModel> list =  manager.querySwPickupPlanByKey(model);
+		/**
+		 * 如果查询记录超过10000条则报错
+		 */
+		if(0 == list.size()){
+			ExcelUtil.exportNoDataError(request, response);
+			return;
+		}
+		int sysMaxNum = SysPropertyUtil.getIntByAlias("EXCEL_EXPORT_MAX_SIZE", 10000); //获取系统所允许的最大导出数量
+		if(list.size() > sysMaxNum){
+			ExcelUtil.exportNumError(sysMaxNum, request, response);
+			return;
+		}
+		
+		String[] headers = {"订单物流模式", "区域",  "车型", "集货路线", "累计车次", "合并车次","出货地","供应商代码",
+							"供应商名称","物流单号","订单号","工作日","当日车次","计划取货时间","计划到货时间",
+							"计划装配时间","订购用途","用户ID","内物流管理员","确认天数","反馈状态","下载状态","下载时间"};
+		String[] columns = {"logisticsMode","area", "carType","routeCode","totalBatchs", "mergeBatchs",
+				   			"supFactory","supplierNo","supplierName","orderNo","purchaseNo","workDate","todayCarBatch","planPickupTime",
+				   			"planArrTime","planAssembleTime", "orderUse","creationUser","interLoglsManager" ,"confirmDays" 
+				   			,"feedbackStatus" ,"downloadStatus", "downloadTime"};
+		int[] widths = {100,100, 100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100};
+		ExcelUtil.exportExcel(ExcelUtil.EXCEL_XLSX, request, response, exportFileName, list, headers, widths, columns);
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.error(e.toString());
+			throw new Exception("系统错误,请联系管理员");
+//			ExcelUtil.exportException(e, request, response);
+		}
+	}
+	
+	@RequestMapping("/queryOrderDetail")
+	public @ResponseBody PageJson queryOrderDetail(HttpServletRequest request,HttpServletResponse response,
+															SwPickupPlanModel modle)throws Exception {
+		Page page = getQueryFilter(request).getPage();
+		
+		PageList<SwPickupPlanModel> pageList = manager.queryOrderDetail(modle,page);
+		
+		return new PageJson(pageList);
+	}
+	/**
+	 * 导出订单明细
+	 * @throws Exception
+	 * @author zmj
+	 * @date 2019年2月22日
+	 */
+	@RequestMapping("exportExcelForOrderDetails")
+	public void exportExcelForOrderDetails(HttpServletRequest request,HttpServletResponse response)throws Exception {
+		String[] purchaseNos = RequestUtil.getStringAryByStr(request, "purchaseNos");
+		try {
+			List<SwPickupPlanModel> list = manager.exportExcelForOrderDetails(purchaseNos);
+			
+			if (0 == list.size()) {
+				ExcelUtil.exportNoDataError(request, response);
+				return;
+			}
+			int sysMaxNum = SysPropertyUtil.getIntByAlias("EXCEL_EXPORT_MAX_SIZE", 10000); // 获取系统所允许的最大导出数量
+			if (list.size() > sysMaxNum) {
+				ExcelUtil.exportNumError(sysMaxNum, request, response);
+				return;
+			}
+			String[] headers = {"订单号","区域","取货路线","车型","计划取货时间","计划到货时间",
+								"订单类型","订购单位","零件编号","供应商代码","供应商名称","出货地代码",
+								"出货地地址","是否紧急订单",
+								"订购数量","取消数量","已发数量","待发数量","收货数量","首次发布时间","最后修改时间"};
+			String[] columns = {"purchaseNo","area","routeCode","carType","planPickupTime","planArrTime",
+								"orderType","orderUnit","partNo","supplierNo","supplierName","supFactory",
+								"supFactoryAddr","isUrgent",
+								"orderQty","cancelNum","totalDelivQty","waitQty","receiveCount","creationTime","lastModifiedTime"};
+			int[] widths = {60,60,60,60, 85,85,80,60,100,60,150,60,200, 60,80,80,80,80,80,80,120,120};
+			ExcelUtil.exportExcel(ExcelUtil.EXCEL_XLSX, request, response, "订单详情"+PupUtil.getCurrentTime("yyyyMMddHHmmss"), list, headers,
+					widths, columns);
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.error(e.toString());
+			ExcelUtil.exportException(e, request, response);
+		}
+	}
+}

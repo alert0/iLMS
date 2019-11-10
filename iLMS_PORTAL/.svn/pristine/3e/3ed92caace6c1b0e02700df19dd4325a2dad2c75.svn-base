@@ -1,0 +1,474 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.jit.model.JitPartRemainModel">
+	
+	<!-- 查询启停状态 -->
+	<select id="queryReckonState" parameterType="com.hanthink.pub.model.PubPlanCodeModel"
+		resultType="com.hanthink.pub.model.PubPlanCodeModel">
+		<!-- SELECT T.EXEC_STATE execState
+			FROM MM_PUB_PLAN_CODE T
+		WHERE T.PLAN_CODE = #{planCode} -->
+		SELECT
+		   CASE WHEN T.EXEC_STATE = '1' THEN 1
+	     		WHEN T.EXEC_STATE = '0' AND T.IS_AUTO_EXEC = '0' THEN 0
+	       		WHEN T.EXEC_STATE = '0' AND T.IS_AUTO_EXEC = '1' THEN 1
+	      END execState
+	    FROM MM_PUB_PLAN_CODE T
+	    WHERE T.PLAN_CODE = #{planCode}
+	    AND T.FACTORY_CODE = #{factoryCode}
+	</select>
+	
+	<!-- 拉动推算控制台-过点车序查询 -->
+	<select id="queryJitVehQueuePage" parameterType="com.hanthink.jit.model.JitVehQueueModel" 
+			resultType="com.hanthink.jit.model.JitVehQueueModel">
+		SELECT DD.CODE_VALUE_NAME workcenter,
+				 T.PLAN_CODE planCode,
+	             C.PLAN_CODE_DESC planCodeDesc,
+	             T.ORDER_NO orderNo,
+	             T.VIN vin,
+	             T.SORTID sortid,
+	             T.KB_PRODUCT_SEQNO kbProductSeqno,
+	             to_char(T.PASS_TIME, 'yyyy-mm-dd hh24:mi:ss') passTime,
+	             to_char(T.EXEC_TIME, 'yyyy-mm-dd hh24:mi:ss') execTime,
+	             D.CODE_VALUE_NAME execStatus,
+	             PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(T.PLAN_CODE, T.KB_PRODUCT_SEQNO) planPassBatchProcess,
+	             T.MODEL_CODE modelCode,
+	             T.PHASE phase
+	        FROM MM_JIT_VEH_QUEUE T
+	        INNER JOIN MM_PUB_PLAN_CODE C ON C.PLAN_CODE = T.PLAN_CODE 
+	        LEFT JOIN MM_PUB_DATA_DICT D ON D.CODE_VALUE = T.EXEC_STATUS AND D.CODE_TYPE = 'PUB_EXEC_STATUS' AND D.FACTORY_CODE = C.FACTORY_CODE
+	        LEFT JOIN MM_PUB_DATA_DICT DD ON DD.CODE_VALUE = C.WORKCENTER AND DD.CODE_TYPE = 'PUB_WORKCENTER' AND DD.FACTORY_CODE = C.FACTORY_CODE
+	        WHERE 1=1
+	      <if test="null != planCode and '' != planCode">
+			  AND T.PLAN_CODE = #{planCode}      
+	      </if>
+		  <if test="null != vin and ''!= vin">
+			  AND T.VIN LIKE '%' || #{vin} 
+		  </if>
+		  <if test="passTime != vin and ''!= passTime">
+			  AND T.PASS_TIME &gt;= to_date(#{passTime}, 'yyyy-mm-dd hh24:mi:ss')
+		  </if>
+		  <if test="passTimeTo != vin and ''!= passTimeTo">
+			  AND T.PASS_TIME &lt;= to_date(#{passTimeTo}, 'yyyy-mm-dd hh24:mi:ss')
+		  </if>
+		  <if test="null != sortidFrom and ''!= sortidFrom">
+			  AND T.SORTID &gt;= #{sortidFrom}
+		  </if>
+		  <if test="null != sortidTo and ''!= sortidTo">
+			  AND T.SORTID &lt;= #{sortidTo}
+		  </if>
+		  ORDER BY T.PASS_TIME DESC
+	</select>
+	
+	<!-- 拉动推算控制台-当前零件余量查询 -->
+	<select id="queryJitPartRemainPage" parameterType="com.hanthink.jit.model.JitPartRemainModel" 
+			resultType="com.hanthink.jit.model.JitPartRemainModel">
+		SELECT T.ID id,
+		       T.PART_NO partNo,
+		       P.PART_SHORT_NO partShortNo,
+		       P.PART_NAME_CN partNameCn,
+		       JP.SHIP_DEPOT shipDepot,
+		       T.PLAN_CODE planCode,
+		       C.PLAN_CODE_DESC planCodeDesc,
+		       T.LOCATION location,
+		       T.PART_REMAIN partRemain,
+		       T.SAFETY_INVENTORY safetyInventory,
+		       to_char(T.END_REQUIRE_DATE, 'yyyy-mm-dd hh24:mi:ss') endRequireDate,
+		       T.END_REQUIRE_NUM endRequireNum,
+		       DD.CODE_VALUE_NAME workcenter
+		  FROM MM_JIT_PART_REMAIN T
+		 INNER JOIN MM_PUB_PLAN_CODE C ON C.PLAN_CODE = T.PLAN_CODE
+		 LEFT JOIN MM_JIT_PART JP ON JP.PART_NO = T.PART_NO
+		 LEFT JOIN MM_PUB_PART_UDA P ON P.PART_NO = T.PART_NO
+		 LEFT JOIN MM_PUB_DATA_DICT DD ON DD.CODE_VALUE = C.WORKCENTER AND DD.CODE_TYPE = 'PUB_WORKCENTER'
+		   AND DD.FACTORY_CODE = C.FACTORY_CODE
+		 WHERE 1 = 1
+		 	AND T.PLAN_CODE = #{planCode}
+		  <if test="null != shipDepot and ''!=shipDepot">
+		  	AND JP.SHIP_DEPOT = #{shipDepot}
+		  </if>
+		  <if test="null != partNo and ''!=partNo">
+		  	AND T.PART_NO = #{partNo}
+		  </if>
+		  <if test="null != partShortNo and ''!=partShortNo">
+		  	AND P.PART_SHORT_NO = #{partShortNo}
+		  </if>
+		  <!-- 过滤使用中配送地址 -->
+		  <if test="null != isSelectLocation and '1' == isSelectLocation">
+		  	AND exists ( select 1 from MM_INV_PART_LOCATION LO WHERE LO.PART_NO = T.PART_NO 
+		  			AND SYSDATE BETWEEN LO.EFF_START AND LO.EFF_END)
+		  </if>
+	</select>
+	
+	<!-- 拉动推算控制台-截止产品编号零件余量 -->
+	<select id="queryJitPartRemainProdPage" parameterType="com.hanthink.jit.model.JitPartRemainProdModel" 
+			resultType="com.hanthink.jit.model.JitPartRemainProdModel">
+		SELECT T.ID id,
+		       T.PART_NO partNo,
+		       P.PART_SHORT_NO partShortNo,
+		       P.PART_NAME_CN partNameCn,
+		       T.PLAN_CODE planCode,
+		       T.LOCATION location,
+		       T.S_KB_PRODUCT_SEQNO sKbProductSeqno,
+		       T.E_KB_PRODUCT_SEQNO eKbProductSeqno,
+		       T.START_REMAIN startRemain,
+		       T.END_REMAIN endRemain,
+		       T.REQUIRE_NUM requireNum,
+		       T.DISTRI_PACKAGE distriPackage,
+		       q.VIN vin,
+           	   PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(T.PLAN_CODE, q.SORTID) sortid,
+               q.KB_TIME kbTime,
+		       to_char(T.CREATION_TIME, 'yyyy-mm-dd hh24:mi:ss') creationTime,
+		       DD.CODE_VALUE_NAME workcenter,
+		       case
+		         when T.start_remain - (q.kb_product_seqno - T.s_kb_product_seqno + 1) *
+		              T.require_num &gt;= T.safety_inventory then
+		          T.start_remain -
+		          (q.kb_product_seqno - T.s_kb_product_seqno + 1) * T.require_num -
+		          decode(T.e_kb_product_seqno, q.kb_product_seqno, T.dpm_num, 0)
+		         else
+		          T.start_remain +
+		          T.distri_package *
+		          CEIL(((q.kb_product_seqno - T.s_kb_product_seqno + 1) *
+		               T.require_num + T.safety_inventory - T.start_remain) /
+		               T.distri_package) -
+		          (q.kb_product_seqno - T.s_kb_product_seqno + 1) * T.require_num -
+		          decode(T.e_kb_product_seqno, q.kb_product_seqno, T.dpm_num, 0)
+		       end as partRemain
+		  from mm_jit_part_remain_prod T
+		  LEFT JOIN MM_PUB_PART_UDA P
+		    ON P.PART_NO = T.PART_NO
+		  INNER JOIN MM_PUB_PLAN_CODE C
+		    ON C.PLAN_CODE = T.PLAN_CODE
+		  LEFT JOIN MM_PUB_DATA_DICT DD
+		    ON DD.CODE_VALUE = C.WORKCENTER
+		   AND DD.CODE_TYPE = 'PUB_WORKCENTER'
+		   AND DD.FACTORY_CODE = C.FACTORY_CODE
+		  join mm_jit_veh_queue q
+		    on q.plan_code = T.plan_code
+		   and q.vin = #{vin}
+		 where q.plan_code = #{planCode}
+		   and T.s_kb_product_seqno &lt;= q.kb_product_seqno
+		   and T.e_kb_product_seqno &gt;= q.kb_product_seqno
+		  <if test="null != partNo and ''!= partNo">
+		  	AND T.PART_NO = #{partNo}
+		  </if>
+		  <if test="null != partShortNo and '' != partShortNo">
+		  	AND P.PART_SHORT_NO = #{partShortNo}
+		  </if>
+		  <if test="null != location and '' != location">
+		  	AND T.LOCATION = #{location}
+		  </if>
+	</select>
+	
+	<!-- 当前零件余量-新增 -->
+	<insert id="savePartRemain" parameterType="com.hanthink.jit.model.JitPartRemainModel">
+		INSERT INTO MM_JIT_PART_REMAIN
+			  (ID,
+			   PART_NO,
+			   PLAN_CODE,
+			   LOCATION,
+			   PART_REMAIN,
+			   SAFETY_INVENTORY,
+			   END_REQUIRE_NUM,
+			   CREATION_TIME,
+			   CREATION_USER)
+			VALUES
+			  (SEQ_MM_JIT_PART_REMAIN.NEXTVAL,
+			   #{partNo, jdbcType=VARCHAR},
+			   #{planCode, jdbcType=VARCHAR},
+			   #{location, jdbcType=VARCHAR},
+			   #{partRemain, jdbcType=VARCHAR},
+			   #{safetyInventory, jdbcType=VARCHAR},
+			   #{endRequireNum, jdbcType=VARCHAR},
+			   SYSDATE,
+			   #{creationUser, jdbcType=VARCHAR})
+	</insert>
+	
+	<!-- 当前零件余量-修改 -->
+	<update id="updatePartRemain" parameterType="com.hanthink.jit.model.JitPartRemainModel">
+		UPDATE MM_JIT_PART_REMAIN
+		   SET 
+		       PART_REMAIN        = #{partRemain, jdbcType=VARCHAR},
+		       SAFETY_INVENTORY   = #{safetyInventory, jdbcType=VARCHAR},
+		       END_REQUIRE_DATE   = to_date(#{endRequireDate, jdbcType=VARCHAR}, 'yyyy-mm-dd hh24:mi:ss'),  
+		       END_REQUIRE_NUM    = #{endRequireNum, jdbcType=VARCHAR},
+		       LAST_MODIFIED_USER = #{lastModifiedUser, jdbcType=VARCHAR},
+		       LAST_MODIFIED_IP   = #{lastModifiedIp, jdbcType=VARCHAR},
+		       LAST_MODIFIED_TIME = SYSDATE
+		 WHERE ID = #{id}
+	</update>
+	
+	<!-- 当前零件余量-校验业务主键唯一性，信息点、配送地址、零件号 -->
+	<select id="queryJitPartRemainUnique" parameterType="com.hanthink.jit.model.JitPartRemainModel"
+			resultType="com.hanthink.jit.model.JitPartRemainModel">
+		SELECT 
+           	   T.PART_NO partNo
+		   FROM MM_JIT_PART_REMAIN T
+		      WHERE 1=1
+		      AND T.PLAN_CODE = #{planCode}
+		      AND T.LOCATION = #{location}
+		      AND T.PART_NO = #{partNo}
+	</select>
+	
+	<!-- 当前零件余量-查询零件余量详细信息 -->
+	<select id="queryPartRemain" parameterType="com.hanthink.jit.model.JitPartRemainModel"
+			resultType="com.hanthink.jit.model.JitPartRemainModel">
+		SELECT T.ID id,
+		       T.PART_NO partNo,
+		       T.PLAN_CODE planCode,
+		       T.LOCATION location,
+		       T.PART_REMAIN partRemain,
+		       T.SAFETY_INVENTORY safetyInventory,
+		     to_char(T.END_REQUIRE_DATE, 'yyyy-mm-dd hh24:mi:ss') endRequireDate,
+		       T.END_REQUIRE_NUM endRequireNum,
+			   T.START_REMAIN startRemain,
+			   T.END_REMAIN endRemain,
+			 to_char(T.CREATION_TIME, 'yyyy-mm-dd hh24:mi:ss') creationTime,
+			   T.CREATION_USER creationUser,
+			   T.LAST_MODIFIED_USER lastModifiedUser,
+			   T.LAST_MODIFIED_IP lastModifiedIp,
+			 to_char(T.LAST_MODIFIED_TIME, 'yyyy-mm-dd hh24:mi:ss') lastModifiedTime
+		  FROM MM_JIT_PART_REMAIN T
+		  WHERE 1=1 AND T.ID = #{id}
+	</select>
+	
+	<!-- 零件余量批量导入临时表 -->
+	<insert id="insertJitPartRemainTempData" parameterType="java.util.List">
+		INSERT INTO MM_JIT_PART_REMAIN_IMP
+			  (ID,
+			   PLAN_CODE,
+			   PART_NO,
+			   LOCATION,
+			   PART_REMAIN,
+			   SAFETY_INVENTORY,
+			   END_REQUIRE_DATE,
+			   END_REQUIRE_NUM,
+			   IMP_UUID,
+			   CHECK_RESULT,
+			   IMPORT_STATUS)
+			<foreach collection="list" item="item" index="index" separator=" UNION ALL ">
+			SELECT	#{item.id, jdbcType=VARCHAR},
+					#{item.planCode, jdbcType=VARCHAR},
+					#{item.partNo, jdbcType=VARCHAR},	
+					#{item.location, jdbcType=VARCHAR},
+					#{item.partRemain, jdbcType=VARCHAR},
+					#{item.safetyInventory, jdbcType=VARCHAR},
+					to_date(#{item.endRequireDate, jdbcType=VARCHAR}, 'yyyy-mm-dd hh24:mi:ss'),
+					#{item.endRequireNum, jdbcType=VARCHAR},
+					#{item.uuid, jdbcType=VARCHAR},
+					#{item.checkResult, jdbcType=VARCHAR},
+					#{item.importStatus, jdbcType=VARCHAR}
+				FROM DUAL
+			</foreach>
+	</insert>
+	
+	<!-- 检查导入临时表数据 -->
+	<parameterMap type="map" id="impCkParamMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="userName" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<!-- 调用存储过程校验批量导出零件余量 -->
+	<select id="checkImportData" parameterMap="impCkParamMap" statementType="CALLABLE">
+		{CALL PKG_PUB_CHECK.USP_JIT_PART_REMAIN_CHECK(?, ?, ?,  ?,?)}
+	</select>
+	
+	<!-- 临时表数据写入业务表-零件余量 -->
+	<insert id="insertImportData">
+		INSERT INTO MM_JIT_PART_REMAIN
+			  (ID,
+			   PART_NO,
+			   PLAN_CODE,
+			   LOCATION,
+			   PART_REMAIN,
+			   SAFETY_INVENTORY,
+			   END_REQUIRE_DATE,
+			   END_REQUIRE_NUM,
+			   CREATION_TIME
+			  )
+			   PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_JIT_PART_REMAIN'),
+			   PART_NO,
+			   PLAN_CODE,
+			   LOCATION,
+			   PART_REMAIN,
+			   SAFETY_INVENTORY,
+			   END_REQUIRE_DATE,
+			   END_REQUIRE_NUM,
+			   SYSDATE
+			   FROM MM_JIT_PART_REMAIN_IMP	
+		WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		  AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+		  AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR} 
+	</insert>
+	
+	<!-- 更新临时表数据导入状态-零件余量 -->
+	<update id="updateImportDataImpStatus">
+		UPDATE MM_JIT_PART_REMAIN_IMP SET IMPORT_STATUS = #{IMPORT_STATUS_YES,jdbcType=VARCHAR} 
+			WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		    AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+		    AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR} 
+	</update>
+	
+	<!-- 查询临时表数据-零件余量 -->
+	<select id="queryImportTempPage" parameterType="com.hanthink.jit.model.JitPartRemainModel"
+			resultType="com.hanthink.jit.model.JitPartRemainModel">
+		SELECT T.ID id,
+	           T.PART_NO partNo,
+	           T.PLAN_CODE planCode,
+	           C.PLAN_CODE_DESC planCodeDesc,
+	           T.LOCATION location,
+	           T.PART_REMAIN partRemain,
+	           T.SAFETY_INVENTORY safetyInventory,
+	         to_char(T.END_REQUIRE_DATE, 'yyyy-mm-dd hh24:mi:ss') endRequireDate,
+	           T.END_REQUIRE_NUM endRequireNum,
+	           T.IMP_UUID impUuid,
+	           T.CHECK_RESULT checkResult,
+	           T.CHECK_INFO checkInfo,
+	           T.IMPORT_STATUS importStatus,
+	           T.CONTINUE_CHECK continueCheck,
+	           T.OPE_TYPE opeType,
+	           T.BUSI_ID busiId
+	           FROM MM_JIT_PART_REMAIN_IMP T
+	           INNER JOIN MM_PUB_PLAN_CODE C ON C.PLAN_CODE = T.PLAN_CODE
+	           WHERE 1=1
+		       AND T.IMP_UUID = #{uuid}		
+	</select>
+	
+	<!-- 零件余量修改日志查询 -->
+	<select id="queryJitPartRemainLogPage" parameterType="com.hanthink.jit.model.JitPartRemainLogModel"
+			resultType="com.hanthink.jit.model.JitPartRemainLogModel">
+		SELECT T.ID id,
+               T.PLAN_CODE planCode,
+               C.PLAN_CODE_DESC planCodeDesc,
+               T.PART_NO partNo,
+               P.PART_SHORT_NO partShortNo,
+               P.PART_NAME_CN partNameCn,
+               T.LOCATION location,
+               T.PART_REMAIN_OLD partRemainOld,
+               T.PART_REMAIN_NEW partRemainNew,
+               (T.PART_REMAIN_NEW - T.PART_REMAIN_OLD) opeModifyNum,
+               T.SAFETY_INVENTORY safetyInventory,
+               to_char(T.END_REQUIRE_DATE, 'yyyy-mm-dd hh24:mi:ss') endRequireDate,
+               T.END_REQUIRE_NUM endRequireNum,
+               U.FULLNAME_ opeUser,
+               T.OPE_IP opeIp,
+               to_char(T.OPE_TIME, 'yyyy-mm-dd hh24:mi:ss') opeTime,
+               DD.CODE_VALUE_NAME workcenter
+          FROM MM_JIT_PART_REMAIN_LOG T
+          INNER JOIN MM_PUB_PLAN_CODE C ON C.PLAN_CODE = T.PLAN_CODE 
+          LEFT JOIN MM_PUB_PART_UDA P ON P.PART_NO = T.PART_NO
+        LEFT JOIN MM_PUB_DATA_DICT DD ON DD.CODE_VALUE = C.WORKCENTER AND DD.CODE_TYPE = 'PUB_WORKCENTER' 
+            AND DD.FACTORY_CODE = C.FACTORY_CODE
+        LEFT JOIN SYS_USER U ON U.ACCOUNT_ = T.OPE_USER
+        WHERE 1=1
+		  <if test="null != planCode and '' != planCode">
+		  	AND T.PLAN_CODE = #{planCode}
+		  </if>
+		  <if test="null != partNo and '' != partNo">
+		  	AND T.PART_NO LIKE CONCAT (#{partNo}, '%')
+		  </if>
+		  <if test="null != partShortNo and '' != partShortNo">
+		  	AND P.PART_SHORT_NO = #{partShortNo}
+		  </if>
+		  <if test="null != opeTimeFrom and '' != opeTimeFrom">
+		  	AND T.OPE_TIME &gt; to_date(#{opeTimeFrom}, 'yyyy-mm-dd hh24:mi:ss')
+		  </if>
+		  <if test="opeTimeTo != vin and ''!= opeTimeTo">
+			AND T.OPE_TIME &lt; to_date(#{opeTimeTo}, 'yyyy-mm-dd hh24:mi:ss')
+		  </if>
+		  
+	</select>
+	
+	<!-- 拉动推算控制台-推算服务状态查询 -->
+	<select id="queryJitReckonStatePage" parameterType="com.hanthink.pub.model.PubPlanCodeModel" 
+			resultType="com.hanthink.pub.model.PubPlanCodeModel">
+		SELECT T.PLAN_CODE planCode,
+	           T.PLAN_CODE_DESC planCodeDesc,
+	           D.CODE_VALUE_NAME execState,
+	         to_char(T.LAST_EXEC_TIME, 'yyyy-mm-dd hh24:mi:ss') lastExecTime    
+	      FROM MM_PUB_PLAN_CODE T
+	      LEFT JOIN MM_PUB_DATA_DICT D ON D.CODE_VALUE = T.EXEC_STATE AND D.CODE_TYPE = 'PUB_EXEC_STATUS'
+	           AND T.FACTORY_CODE = D.FACTORY_CODE
+	      WHERE 1=1 
+	      AND T.PLAN_CODE_TYPE IN ('JITI', 'JITO', 'JIT')
+	</select>
+	
+	<!-- 拉动推算控制台-加载信息点下拉框 -->
+	<select id="loadPlanCodeComboData" parameterType="com.hanthink.pub.model.PubPlanCodeModel" 
+			resultType="com.hanthink.pub.model.PubPlanCodeModel">
+		SELECT DISTINCT T.PLAN_CODE planCode,
+	           T.PLAN_CODE_DESC planCodeDesc
+	      FROM MM_PUB_PLAN_CODE T  
+	      WHERE 1=1 
+			  AND T.PLAN_CODE_TYPE IN ('JITI', 'JITO', 'JIT')
+	</select>
+	
+	<!-- 更新推算状态 -->
+	<update id="updateReckonExecState" parameterType="com.hanthink.pub.model.PubPlanCodeModel">
+		UPDATE MM_PUB_PLAN_CODE T SET
+		       T.IS_AUTO_EXEC = #{execState},
+		       T.LAST_MODIFIED_TIME = SYSDATE,
+		       T.LAST_MODIFIED_USER = #{lastModifiedUser, jdbcType=VARCHAR}
+		    WHERE T.PLAN_CODE = #{planCode} 
+	</update>
+	
+	<!-- 根据UUID删除导入的临时数据 -->
+	<delete id="deleteImportTempDataByUUID" parameterType="java.lang.String">
+		DELETE FROM MM_JIT_PART_REMAIN_IMP WHERE IMP_UUID = #{value,jdbcType=VARCHAR}
+	</delete>
+	
+	<!-- 查询修改前零件余量信息 -->
+	<select id="queryOldPartRemain" parameterType="com.hanthink.jit.model.JitPartRemainModel"
+			resultType="com.hanthink.jit.model.JitPartRemainModel">
+		SELECT T.PART_REMAIN partRemain, 
+		       K.PRODUCT_SEQNO productSeqno
+		  FROM MM_JIT_PART_REMAIN T
+		 INNER JOIN MM_PUB_PLAN_CODE C ON C.PLAN_CODE = T.PLAN_CODE
+		  LEFT JOIN MM_MON_KB K ON K.ID = C.KB_ID
+		 WHERE T.ID = #{id}		
+	</select>
+	
+	<!-- 保存零件余量修改日志 -->
+	<insert id="insertJitPartRemainLog" parameterType="com.hanthink.jit.model.JitPartRemainLogModel">
+		INSERT INTO MM_JIT_PART_REMAIN_LOG
+			  (ID,
+			   PLAN_CODE,
+			   PART_NO,
+			   LOCATION,
+			   PART_REMAIN_OLD,
+			   PART_REMAIN_NEW,
+			   SAFETY_INVENTORY,
+			   END_REQUIRE_DATE,
+			   END_REQUIRE_NUM,
+			   KB_PRODUCT_SEQNO,
+			   OPE_USER,
+			   OPE_IP,
+			   OPE_TIME)
+			VALUES
+			  (PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_JIT_PART_REMAIN_LOG'),
+			   #{planCode, jdbcType=VARCHAR},
+			   #{partNo, jdbcType=VARCHAR},
+			   #{location, jdbcType=VARCHAR},
+			   #{partRemainOld, jdbcType=VARCHAR},
+			   #{partRemainNew, jdbcType=VARCHAR},
+			   #{safetyInventory, jdbcType=VARCHAR},
+			   to_date(#{endRequireDate, jdbcType=VARCHAR}, 'yyyy-mm-dd hh24:mi:ss'),
+			   #{endRequireNum, jdbcType=VARCHAR},
+			   #{kbProductSeqno, jdbcType=VARCHAR},
+			   #{opeUser, jdbcType=VARCHAR},
+			   #{opeIp, jdbcType=VARCHAR},
+			   SYSDATE)
+	</insert>
+	
+	<!-- 查询导入校验结果是否包含不通过 -->
+	<select id="queryIsExistsCheckResultFalse" parameterType="java.lang.String"
+		resultType="java.lang.Object">
+		SELECT COUNT(*)
+				FROM MM_JIT_PART_REMAIN_IMP T
+			WHERE T.IMP_UUID = #{uuid, jdbcType=VARCHAR} AND T.CHECK_RESULT = 0		
+	</select>
+	
+</mapper>

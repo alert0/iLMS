@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.mp.model.MpDiffNumTempModel">
+		
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="queryMpDiffNumTempForPage" parameterType="com.hanthink.mp.model.MpDiffNumTempModel" resultType="com.hanthink.mp.model.MpDiffNumTempModel">
+	      SELECT A.ORDER_NO   orderNo,
+				 A.NUM   num, 
+				 A.TYPE   type, 
+				 A.MODEL_CODE   modelCode, 
+				 A.FACTORY_CODE   factoryCode,
+				 A.FLAG   flag
+		    FROM MM_MP_DIFF_NUM_TEMP A
+		   WHERE A.TYPE = 'N'
+			<if test="orderNo!=null and orderNo!='' ">
+			AND	A.ORDER_NO LIKE CONCAT(#{orderNo}, '%') 
+			</if>
+			<if test="modelCode!=null and modelCode!='' ">
+			AND	A.MODEL_CODE = #{modelCode}
+			</if>
+			AND A.FACTORY_CODE = #{factoryCode}
+	</select>
+	
+	<!-- 获取调整计划 -->
+	<parameterMap type="map" id="getZsbDiffPlanMap">  
+		<parameter property="in_arr_factory" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="outCode" jdbcType="INTEGER" mode="OUT"/> 
+	</parameterMap> 
+	<select id="getZsbDiffPlan" parameterMap="getZsbDiffPlanMap" statementType="CALLABLE">
+		{CALL PKG_MP_MAIN.USP_MP_ZSB_DIFF_PLAN( ?, ?)}
+	</select>
+
+</mapper>

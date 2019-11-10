@@ -1,0 +1,620 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.mp.model.MpOrderRecordHisModel">
+		
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="queryMpOrderRecordHisForPage" parameterType="com.hanthink.mp.model.MpOrderRecordHisModel" resultType="com.hanthink.mp.model.MpOrderRecordHisModel">
+		SELECT A. FACTORY_CODE factoryCode,
+		       A. PART_NO partNo,
+		       A. SUPPLIER_NO supplierNo,
+		       A. SUP_FACTORY supFactory,
+		       A. UNLOAD_PORT unloadPort,
+		       A. LOGISTICS_ORDER logisticsOrder,
+		       P. ORDER_NO orderNo,
+		       A. LOGISTICS_FLAG logisticsFlag,
+		       A. GROUP_ID groupId,
+		       A. DR_SORT_ID_START drSortIdStart,
+		       A. DR_SORT_ID_END drSortIdEnd,
+		       A. LR_SORT_ID_START lrSortIdStart,
+		       A. LR_SORT_ID_END lrSortIdEnd,
+		       A. DEFECT_NUM defectNum,
+		       A. SAFE_NUM safeNum,
+		       A. ADJ_DIFF_NUM adjDiffNum,
+		       A. NECESSARY_NET_NUM necessaryNetNum,
+		       A. NECESSARY_ORDER_RESIDUAL necessaryOrderResidual,
+		       A. NECESSARY_REAL_RESIDUAL_NUM necessaryRealResidualNum,
+		       A. ORDER_NUM orderNum,
+		       A. TOTAL_ORDER_NUM totalOrderNum,
+		       A. TOTAL_ORDER_BOX totalOrderBox,
+		       A. ADJ_BOX adjBox,
+		       A. ADJ_ORDER_NUM adjOrderNum,
+		       A. ARRIVE_TIME arriveTimeStr,
+		       A. ORDER_STATUS orderStatus,
+		       A. ORDER_ISSUE_DATE orderIssueDate,
+		       A. SHIPMENT_DATE shipmentDate,
+		       A. PURCHASE_DEPT purchaseDept,
+		       A. ORDER_DEPOT orderDepot,
+		       A. CALCULATE_NUM calculateNum,
+		       A. CREATION_TIME creationTime,
+		       A. CREATION_USER creationUser,
+		       A. PART_UNIT partUnit,
+		       A. PLAN_ORDER_ID planOrderId,
+		       A. ORDER_PACKAGE orderPackage,
+		       A. PURCHASE_TYPE purchaseType,
+		       A. PART_GROUP_ID partGroupId,
+		       P. PURCHASE_NO purchaseNo,
+		       A. NECESSARY_PLAN_NUM necessaryPlanNum,
+		       B.PART_SHORT_NO   partShortNo,
+		       B.PART_NAME_CN    partNameCn,
+		       B.SUPPLIER_NAME   supplierName,
+		       D.CODE_VALUE_NAME codeValueName  ,
+		       E.MODEL_CODE modelCode,
+		       TO_CHAR(A.CREATION_TIME, 'YYYY-MM-DD HH24:MI:SS') creationTimeStr
+		  FROM MM_MP_ORDER_RECORD A
+		  LEFT JOIN MM_PUB_PART_UDA B
+		    ON B.PART_NO = A.PART_NO
+		    <!-- i-LMS2019053001 mod by 赵明健 -->
+		    AND B.FACTORY_CODE = A.FACTORY_CODE
+		  LEFT JOIN MM_PUB_DATA_DICT D
+		    ON D.CODE_TYPE = 'MP_ORDER_STATUS'
+		   AND D.CODE_VALUE = A.ORDER_STATUS
+		   AND D.FACTORY_CODE = A.FACTORY_CODE
+		  LEFT JOIN (SELECT DISTINCT H.ORDER_NO,
+		                             H.PURCHASE_NO,
+		                             H.FACTORY_CODE,
+		                             H.SUPPLIER_NO,
+		                             H.SUP_FACTORY,
+		                             H.UNLOAD_PORT,
+		                             H.LOGISTICS_ORDER,
+		                             H.GROUP_ID
+		               FROM MM_MP_PUR_ORDER_TEMP H) P
+		    ON (P.FACTORY_CODE = A.FACTORY_CODE AND P.UNLOAD_PORT = A.UNLOAD_PORT AND
+		       P.LOGISTICS_ORDER = A.LOGISTICS_ORDER AND
+		       P.SUPPLIER_NO = A.SUPPLIER_NO AND P.SUP_FACTORY = A.SUP_FACTORY AND
+		       P.GROUP_ID = A.GROUP_ID)
+		  LEFT JOIN MM_MP_PART E
+		    ON E.FACTORY_CODE = A.FACTORY_CODE
+		   AND E.PART_NO = A.PART_NO
+		   AND E.SUPPLIER_NO = A.SUPPLIER_NO
+		   AND E.SUP_FACTORY = A.SUP_FACTORY
+		   AND E.UNLOAD_PORT = A.UNLOAD_PORT
+		 WHERE A.ORDER_STATUS IS NOT NULL
+		 <if test="startCreationTime!=null and startCreationTime!=''  ">
+		AND	A.CREATION_TIME >= TO_DATE(#{startCreationTime}, 'YYYY-MM-DD')
+		</if>
+		<if test="endCreationTime!=null and endCreationTime!=''  ">
+		AND	A.CREATION_TIME &lt;= TO_DATE(#{endCreationTime}, 'YYYY-MM-DD')
+		</if>
+		<if test="partNo!=null and partNo!=''  ">
+		AND	A.PART_NO LIKE CONCAT(#{partNo}, '%')
+		</if>
+		<if test="purchaseType!=null and purchaseType!=''  ">
+		AND	A.PURCHASE_TYPE = #{purchaseType}
+		</if>
+		<if test="supplierNo!=null and supplierNo!='' ">
+		AND	A.SUPPLIER_NO = #{supplierNo}
+		</if>
+		<if test="unloadPort!=null and unloadPort!='' ">
+		AND	A.UNLOAD_PORT = #{unloadPort}
+		</if>
+		<if test="partShortNo!=null and partShortNo!='' ">
+		AND	B.PART_SHORT_NO = #{partShortNo}
+		</if>
+		<if test="orderStatus!=null and orderStatus!='' ">
+		AND	A.ORDER_STATUS = #{orderStatus}
+		</if>
+		AND A.FACTORY_CODE = #{factoryCode}
+		UNION ALL
+		SELECT A. FACTORY_CODE factoryCode,
+		       A. PART_NO partNo,
+		       A. SUPPLIER_NO supplierNo,
+		       A. SUP_FACTORY supFactory,
+		       A. UNLOAD_PORT unloadPort,
+		       A. LOGISTICS_ORDER logisticsOrder,
+		       P. ORDER_NO orderNo,
+		       A. LOGISTICS_FLAG logisticsFlag,
+		       A. GROUP_ID groupId,
+		       A. DR_SORT_ID_START drSortIdStart,
+		       A. DR_SORT_ID_END drSortIdEnd,
+		       A. LR_SORT_ID_START lrSortIdStart,
+		       A. LR_SORT_ID_END lrSortIdEnd,
+		       A. DEFECT_NUM defectNum,
+		       A. SAFE_NUM safeNum,
+		       A. ADJ_DIFF_NUM adjDiffNum,
+		       A. NECESSARY_NET_NUM necessaryNetNum,
+		       A. NECESSARY_ORDER_RESIDUAL necessaryOrderResidual,
+		       A. NECESSARY_REAL_RESIDUAL_NUM necessaryRealResidualNum,
+		       A. ORDER_NUM orderNum,
+		       A. TOTAL_ORDER_NUM totalOrderNum,
+		       A. TOTAL_ORDER_BOX totalOrderBox,
+		       A. ADJ_BOX adjBox,
+		       A. ADJ_ORDER_NUM adjOrderNum,
+		       A. ARRIVE_TIME arriveTimeStr,
+		       A. ORDER_STATUS orderStatus,
+		       A. ORDER_ISSUE_DATE orderIssueDate,
+		       A. SHIPMENT_DATE shipmentDate,
+		       A. PURCHASE_DEPT purchaseDept,
+		       A. ORDER_DEPOT orderDepot,
+		       A. CALCULATE_NUM calculateNum,
+		       A. CREATION_TIME creationTime,
+		       A. CREATION_USER creationUser,
+		       A. PART_UNIT partUnit,
+		       A. PLAN_ORDER_ID planOrderId,
+		       A. ORDER_PACKAGE orderPackage,
+		       A. PURCHASE_TYPE purchaseType,
+		       A. PART_GROUP_ID partGroupId,
+		       P. PURCHASE_NO purchaseNo,
+		       A. NECESSARY_PLAN_NUM necessaryPlanNum,
+		       B.PART_SHORT_NO   partShortNo,
+		       B.PART_NAME_CN    partNameCn,
+		       B.SUPPLIER_NAME   supplierName,
+		       D.CODE_VALUE_NAME codeValueName ,
+		       E.MODEL_CODE modelCode,
+		       TO_CHAR(A.CREATION_TIME, 'YYYY-MM-DD HH24:MI:SS') creationTimeStr
+		  FROM MM_MP_ORDER_RECORD_HIS A
+		  LEFT JOIN MM_PUB_PART_UDA B
+		    ON B.PART_NO = A.PART_NO
+		    <!-- i-LMS2019053001 mod by 赵明健 -->
+		    AND B.FACTORY_CODE = A.FACTORY_CODE
+		  LEFT JOIN MM_PUB_DATA_DICT D
+		    ON D.CODE_TYPE = 'MP_ORDER_STATUS'
+		   AND D.CODE_VALUE = A.ORDER_STATUS
+		   AND D.FACTORY_CODE = A.FACTORY_CODE
+		  LEFT JOIN (SELECT DISTINCT H.ORDER_NO,
+		                             H.SUPPLIER_NO,
+		                             H.FACTORY_CODE,
+		                             H.PURCHASE_NO,
+		                             L.UNLOAD_PORT,
+		                             L.LOGISTICS_ORDER,
+		                             L.PART_NO
+		               FROM MM_MP_PUR_ORDER H, MM_MP_PUR_ORDER_DETAIL L
+		              WHERE L.ORDER_NO = H.ORDER_NO) P
+		    ON (P.FACTORY_CODE = A.FACTORY_CODE AND P.UNLOAD_PORT = A.UNLOAD_PORT AND
+		       P.LOGISTICS_ORDER = A.LOGISTICS_ORDER AND P.PART_NO = A.PART_NO)
+		  LEFT JOIN MM_MP_PART E
+		    ON E.FACTORY_CODE = A.FACTORY_CODE
+		   AND E.PART_NO = A.PART_NO
+		   AND E.SUPPLIER_NO = A.SUPPLIER_NO
+		   AND E.SUP_FACTORY = A.SUP_FACTORY
+		   AND E.UNLOAD_PORT = A.UNLOAD_PORT
+		 WHERE A.ORDER_STATUS IS NOT NULL
+		 <if test="startCreationTime!=null and startCreationTime!=''  ">
+		AND	A.CREATION_TIME >= TO_DATE(#{startCreationTime}, 'YYYY-MM-DD')
+		</if>
+		<if test="endCreationTime!=null and endCreationTime!=''  ">
+		AND	A.CREATION_TIME &lt;= TO_DATE(#{endCreationTime}, 'YYYY-MM-DD')
+		</if>
+		<if test="partNo!=null and partNo!='' ">
+		AND	A.PART_NO LIKE CONCAT(#{partNo}, '%')
+		</if>
+		<if test="purchaseType!=null and purchaseType!=''  ">
+		AND	A.PURCHASE_TYPE = #{purchaseType}
+		</if>
+		<if test="supplierNo!=null and supplierNo!='' ">
+		AND	A.SUPPLIER_NO = #{supplierNo}
+		</if>
+		<if test="unloadPort!=null  and unloadPort!='' ">
+		AND	A.UNLOAD_PORT = #{unloadPort}
+		</if>
+		<if test="partShortNo!=null and partShortNo!='' ">
+		AND	B.PART_SHORT_NO = #{partShortNo}
+		</if>
+		<if test="orderStatus!=null and orderStatus!='' ">
+		AND	A.ORDER_STATUS = #{orderStatus}
+		</if>
+		AND A.FACTORY_CODE = #{factoryCode}
+		ORDER BY 7,3,5,2,9
+	</select>
+	
+	<!-- 获取计算队列 -->
+	<select id="getUnloadPort" parameterType="java.util.Map" resultType="com.hanthink.base.model.DictVO">
+		SELECT DISTINCT UNLOAD_PORT valueKey, UNLOAD_PORT valueName FROM MM_MP_PART 
+	</select>
+	
+	<!-- 修改方法 -->
+	<update id="update" parameterType="com.hanthink.mp.model.MpOrderRecordHisModel">
+		UPDATE MM_MP_ORDER_RECORD a SET
+        (a.ADJ_BOX,
+        a.TOTAL_ORDER_NUM,
+        a.TOTAL_ORDER_BOX)  =  
+        (SELECT 
+        #{adjBox,jdbcType=NUMERIC},
+        b.ORDER_NUM  + #{adjBox,jdbcType=NUMERIC}*b.ORDER_PACKAGE,
+        CEIL(
+        (b.ORDER_NUM  + #{adjBox,jdbcType=NUMERIC}*b.ORDER_PACKAGE)/b.ORDER_PACKAGE)
+        FROM MM_MP_ORDER_RECORD b 
+        WHERE b.ORDER_STATUS='0'
+        AND b.PLAN_ORDER_ID = #{planOrderId})
+		WHERE 1=1
+		AND a.PLAN_ORDER_ID = #{planOrderId}
+	</update>
+	
+	<!-- 获取明细 -->
+	<select id="get"   parameterType="java.lang.String" resultType="com.hanthink.mp.model.MpOrderRecordHisModel">
+			SELECT
+			a.PLAN_ORDER_ID   planOrderId,
+			a.PART_NO   partNo,
+			a.ORDER_PACKAGE   orderPackage,
+			a.TOTAL_ORDER_BOX   totalOrderBox,
+			a.ADJ_BOX   adjBox,
+			a.TOTAL_ORDER_NUM  totalOrderNum,
+			a.ORDER_STATUS  orderStatus,
+			a.ADJ_ORDER_NUM  adjOrderNum
+			FROM MM_MP_ORDER_RECORD a
+			WHERE 1=1
+			AND a.PLAN_ORDER_ID=#{planOrderId}
+			UNION ALL
+			SELECT
+			a.PLAN_ORDER_ID   planOrderId,
+			a.PART_NO   partNo,
+			a.ORDER_PACKAGE   orderPackage,
+			a.TOTAL_ORDER_BOX   totalOrderBox,
+			a.ADJ_BOX   adjBox,
+			a.TOTAL_ORDER_NUM  totalOrderNum,
+			a.ORDER_STATUS  orderStatus,
+			a.ADJ_ORDER_NUM  adjOrderNum
+			FROM MM_MP_ORDER_RECORD_HIS a
+			WHERE 1=1
+			AND a.PLAN_ORDER_ID=#{planOrderId}
+	</select>
+	
+	<!-- 批量导入数据写入到临时表 -->
+	<insert id="insertMpOrderRecordHisImportTempData" parameterType="java.util.List">
+		INSERT INTO  MM_MP_ORDER_RECORD_IMP
+		(PLAN_ORDER_ID,
+		FACTORY_CODE,
+		PART_NO,
+		SUPPLIER_NO,
+		SUP_FACTORY,
+		UNLOAD_PORT,
+		
+		LOGISTICS_ORDER,
+		ORDER_NO,
+		GROUP_ID,
+		DR_SORT_ID_START,
+		
+		DR_SORT_ID_END,
+		DEFECT_NUM,
+		SAFE_NUM,
+		
+		ADJ_DIFF_NUM,
+		NECESSARY_NET_NUM,
+		NECESSARY_ORDER_RESIDUAL,
+		NECESSARY_REAL_RESIDUAL_NUM,
+		ORDER_NUM,
+		
+		TOTAL_ORDER_NUM,
+		TOTAL_ORDER_BOX,
+		ADJ_BOX,
+		ADJ_ORDER_NUM,
+		ARRIVE_TIME,
+		
+		ORDER_STATUS,
+		
+		CREATION_TIME,
+		CREATION_USER,
+		PART_UNIT,
+		
+		ORDER_PACKAGE,
+		NECESSARY_PLAN_NUM,
+		
+		IMP_UUID,
+		CHECK_RESULT,
+		CHECK_INFO,
+		IMPORT_STATUS
+		)
+		<foreach collection="list" item="item" index="index" separator=" UNION ALL ">
+			SELECT 
+			 PKG_PUB.USF_GET_SEQUENCE('SEQ_IMPORT_DATA_TEMP'),
+			 
+			 #{item.factoryCode,jdbcType=VARCHAR},
+			 #{item.partNo,jdbcType=VARCHAR},
+			 #{item.supplierNo,jdbcType=VARCHAR},
+			 #{item.supFactory,jdbcType=VARCHAR}, 
+			 #{item.unloadPort,jdbcType=VARCHAR},
+			 
+			 #{item.logisticsOrder,jdbcType=VARCHAR},
+			 #{item.orderNo,jdbcType=VARCHAR},
+			 #{item.groupIdStr,jdbcType=VARCHAR}, 
+			 #{item.drSortIdStartStr,jdbcType=VARCHAR},
+			 
+			 #{item.drSortIdEndStr,jdbcType=VARCHAR},
+			 #{item.defectNumStr,jdbcType=VARCHAR}, 
+			 #{item.safeNumStr,jdbcType=VARCHAR},
+			 
+			 #{item.adjDiffNumStr,jdbcType=VARCHAR},
+			 #{item.necessaryNetNumStr,jdbcType=VARCHAR},
+			 #{item.necessaryOrderResidualStr,jdbcType=VARCHAR},
+			 #{item.necessaryRealResidualNumStr,jdbcType=VARCHAR}, 
+			 #{item.orderNumStr,jdbcType=VARCHAR},
+			 
+			 #{item.totalOrderNumStr,jdbcType=VARCHAR},
+			 #{item.totalOrderBoxStr,jdbcType=VARCHAR},
+			 #{item.adjBoxStr,jdbcType=VARCHAR},
+			 #{item.adjOrderNumStr,jdbcType=VARCHAR}, 
+			 to_date(#{item.arriveTimeStr,jdbcType=VARCHAR}, 'yyyy-mm-dd hh24:mi:ss'),
+			 
+			 #{item.orderStatus,jdbcType=VARCHAR},
+			
+			 sysdate,
+			 #{item.creationUser,jdbcType=VARCHAR},
+			 #{item.partUnit,jdbcType=VARCHAR}, 
+			 
+			 #{item.orderPackageStr,jdbcType=VARCHAR},
+			 #{item.necessaryPlanNumStr,jdbcType=VARCHAR}, 
+			 
+			 #{item.uuid,jdbcType=VARCHAR}, 
+			 #{item.checkResult,jdbcType=VARCHAR}, 
+			 #{item.checkInfo,jdbcType=VARCHAR}, 
+			 #{item.importStatus,jdbcType=VARCHAR}
+			
+			FROM DUAL 
+    	</foreach>
+	</insert>
+	
+	<!-- 检查导入临时表数据 -->
+	<parameterMap type="map" id="impCkParamMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="userName" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<select id="checkMpOrderRecordHisImportData" parameterMap="impCkParamMap" statementType="CALLABLE">
+		{CALL PKG_MP_CHECK.USP_MP_ORDER_RECORD_CHECK(?, ?, ?,  ?,?)}
+	</select>
+	
+	<!-- 查询临时表数据 -->
+	<select id="queryMpOrderRecordHisImportTempData" parameterType="java.util.Map" resultType="com.hanthink.mp.model.MpOrderRecordHisModel">
+			     SELECT A. FACTORY_CODE factoryCode,
+					    A. PART_NO partNo,
+					    A. SUPPLIER_NO supplierNo,
+					    A. SUP_FACTORY supFactory,
+					    A. UNLOAD_PORT unloadPort,
+					    
+					    A. LOGISTICS_ORDER logisticsOrder,
+					    P. ORDER_NO orderNo,
+					    A. LOGISTICS_FLAG logisticsFlag,
+					    A. GROUP_ID groupId,
+					    A. DR_SORT_ID_START drSortIdStart,
+					    
+					    A. DR_SORT_ID_END drSortIdEnd,
+					    A. LR_SORT_ID_START lrSortIdStart,
+					    A. LR_SORT_ID_END lrSortIdEnd,
+					    A. DEFECT_NUM defectNum,
+					    A. SAFE_NUM safeNum,
+					    
+					    A. ADJ_DIFF_NUM adjDiffNum,
+					    A. NECESSARY_NET_NUM necessaryNetNum ,
+					    A. NECESSARY_ORDER_RESIDUAL necessaryOrderResidual,
+					    A. NECESSARY_REAL_RESIDUAL_NUM necessaryRealResidualNum,
+					    A. ORDER_NUM orderNum,
+					    
+					    A. TOTAL_ORDER_NUM totalOrderNum,
+					    A. TOTAL_ORDER_BOX totalOrderBox,
+					    A. ADJ_BOX adjBox,
+					    A. ADJ_ORDER_NUM adjOrderNum,
+					    A. ARRIVE_TIME arriveTimeStr,
+					    
+					    A. ORDER_STATUS orderStatus,
+					    A. ORDER_ISSUE_DATE orderIssueDate,
+					    A. SHIPMENT_DATE shipmentDate,
+					    A. PURCHASE_DEPT purchaseDept,
+					    A. ORDER_DEPOT orderDepot,
+					    
+					    A. CALCULATE_NUM calculateNum,
+					    A. CREATION_TIME creationTime,
+					    A. CREATION_USER creationUser,
+					    A. PART_UNIT partUnit,
+					    A. PLAN_ORDER_ID planOrderId,
+					    
+					    A. ORDER_PACKAGE orderPackage,
+					    A. PURCHASE_TYPE purchaseType,
+					    A. PART_GROUP_ID partGroupId,
+					    P. PURCHASE_NO purchaseNo,
+					    A. NECESSARY_PLAN_NUM  necessaryPlanNum
+					    
+					    ,B.PART_SHORT_NO partShortNo
+					    ,B.PART_NAME_CN partNameCn
+					    ,B.SUPPLIER_NAME supplierName
+					    ,D.CODE_VALUE_NAME codeValueName
+					    
+					    ,E.MODEL_CODE modelCode,
+					    
+					    A.IMP_UUID uuid, 
+				        A.CHECK_RESULT checkResult,
+				        A.CHECK_INFO checkInfo, 
+				        A.IMPORT_STATUS importStatus,
+				        F.CODE_VALUE_NAME codeValueNameF,
+		                G.CODE_VALUE_NAME codeValueNameG
+					    FROM MM_MP_ORDER_RECORD_IMP  A
+					    LEFT JOIN MM_PUB_PART_UDA  B
+					    ON  B.PART_NO = A.PART_NO
+					    <!-- i-LMS2019053001 mod by 赵明健 -->
+					    AND B.FACTORY_CODE = A.FACTORY_CODE
+					    LEFT JOIN MM_PUB_DATA_DICT D
+					      ON D.CODE_TYPE = 'MP_ORDER_STATUS'
+					      AND D.CODE_VALUE = A.ORDER_STATUS
+					      AND D.FACTORY_CODE = A.FACTORY_CODE
+					      LEFT JOIN (SELECT DISTINCT 
+					      H.ORDER_NO,
+					      H.SUPPLIER_NO,
+					      H.FACTORY_CODE,
+					      H.PURCHASE_NO,
+					      L.UNLOAD_PORT,
+					      L.LOGISTICS_ORDER,
+					      L.PART_NO
+					      FROM
+					      MM_MP_PUR_ORDER H,
+					      MM_MP_PUR_ORDER_DETAIL L
+					      WHERE L.ORDER_NO = H.ORDER_NO) P
+					      ON(P.FACTORY_CODE = A.FACTORY_CODE
+					      AND P.UNLOAD_PORT = A.UNLOAD_PORT 
+					      AND P.LOGISTICS_ORDER = A.LOGISTICS_ORDER 
+					      AND P.PART_NO = A.PART_NO)
+					   LEFT JOIN MM_MP_PART  E
+				         ON E.FACTORY_CODE = A.FACTORY_CODE
+				        AND E.PART_NO = A.PART_NO
+				        AND E.SUPPLIER_NO = A.SUPPLIER_NO
+				        AND E.SUP_FACTORY = A.SUP_FACTORY
+				        AND E.UNLOAD_PORT = A.UNLOAD_PORT
+
+				       LEFT JOIN MM_PUB_DATA_DICT F
+				         ON A.CHECK_RESULT = F.CODE_VALUE
+				        AND F.CODE_TYPE ='PUB_IMP_CK_RESULT'
+				        AND F.FACTORY_CODE = A.FACTORY_CODE
+				       LEFT JOIN MM_PUB_DATA_DICT G
+				         ON A.IMPORT_STATUS = G.CODE_VALUE
+				        AND G.CODE_TYPE ='PUB_IMP_STATUS'
+				        AND G.FACTORY_CODE = A.FACTORY_CODE
+				  	  WHERE A.IMP_UUID = #{uuid,jdbcType=VARCHAR}
+	</select>
+	
+	<!-- 更新临时表数据导入状态 -->
+	<update id="updateMpOrderRecordHisImportDataImpStatus" parameterType="java.util.Map">
+		UPDATE MM_MP_ORDER_RECORD_IMP SET IMPORT_STATUS = #{IMPORT_STATUS_YES,jdbcType=VARCHAR} 
+		WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		  AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+		  AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR} 
+	</update>
+	
+	<!-- 根据UUID删除导入的临时数据 -->
+	<delete id="deleteMpOrderRecordHisImportTempDataByUUID" parameterType="java.lang.String">
+		DELETE FROM MM_MP_ORDER_RECORD_IMP WHERE IMP_UUID = #{value,jdbcType=VARCHAR}
+	</delete>
+	
+	<!-- 拿出ID,查询哪些数据需要修改 -->
+	<select id="queryUpdateDataFromMpOrderRecordHisImp" parameterType="java.util.Map" resultType="java.lang.String">
+   SELECT A.PLAN_ORDER_ID  planOrderId
+		  FROM MM_MP_ORDER_RECORD_IMP A
+		 WHERE A.OPE_TYPE = 'U'
+		   AND A.IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR} 
+		   AND A.IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		   AND A.CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+	</select>
+
+    <!-- 更新导入的方法 -->
+	<update id="updateMpOrderRecordHisImportData" parameterType="java.util.Map" >
+		  UPDATE MM_MP_ORDER_RECORD A  SET 
+		  (A.ADJ_BOX,
+           A.TOTAL_ORDER_NUM,
+           A.TOTAL_ORDER_BOX,
+           A.CREATION_TIME,
+           A.CREATION_USER) =
+		  (SELECT 
+		  B.ADJ_BOX,
+          B.ORDER_NUM + B.ADJ_BOX*B.ORDER_PACKAGE,
+          CEIL(
+          (B.ORDER_NUM + B.ADJ_BOX*B.ORDER_PACKAGE)/B.ORDER_PACKAGE),
+		  sysdate,
+		  B.CREATION_USER
+		  FROM MM_MP_ORDER_RECORD_IMP B
+		  WHERE B.IMP_UUID = #{uuid,jdbcType = VARCHAR} 
+           AND B.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+           AND B.IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}
+           AND B.PART_NO = A.PART_NO
+           AND B.FACTORY_CODE = A.FACTORY_CODE
+           AND B.SUPPLIER_NO = A.SUPPLIER_NO
+           AND B.SUP_FACTORY = A.SUP_FACTORY
+           AND B.UNLOAD_PORT = A.UNLOAD_PORT
+           AND B.GROUP_ID = A.GROUP_ID
+           AND B.LOGISTICS_ORDER = A.LOGISTICS_ORDER)
+ WHERE EXISTS (SELECT 1
+          FROM MM_MP_ORDER_RECORD_IMP C
+         WHERE A.PART_NO = C.PART_NO
+           AND A.FACTORY_CODE = C.FACTORY_CODE
+           AND A.SUPPLIER_NO = C.SUPPLIER_NO
+           AND A.SUP_FACTORY = C.SUP_FACTORY
+           AND A.UNLOAD_PORT = C.UNLOAD_PORT
+           AND A.GROUP_ID = C.GROUP_ID
+           AND A.LOGISTICS_ORDER = C.LOGISTICS_ORDER
+           AND C.IMP_UUID = #{uuid,jdbcType = VARCHAR}
+           AND C.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+           AND C.IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR})
+	</update>
+	
+	<!-- 查询临时表中的数据是否可以导入 -->
+	<select id="queryMpOrderRecordHisIsImportFlag" parameterType="java.lang.String" resultType="java.lang.String">
+		WITH TEMPA AS
+		 (SELECT COUNT(1) s
+		    FROM MM_MP_ORDER_RECORD_IMP A
+		   WHERE A.CHECK_RESULT = 0
+		     AND A.IMP_UUID = #{VALUE}),
+		TEMPB AS
+		 (SELECT COUNT(1) S
+		    FROM MM_MP_ORDER_RECORD_IMP B
+		   WHERE B.IMP_UUID = #{VALUE})
+		SELECT CASE
+		         WHEN A.S >= B.S THEN
+		          0
+		         ELSE
+		          1
+		       END AS FLAG
+		  FROM TEMPA A, TEMPB B
+	</select>
+	
+	<!-- 查询可导入数据 -->
+	<select id="queryForInsertList" parameterType="java.util.Map" resultType="com.hanthink.mp.model.MpOrderRecordHisModel">
+	     SELECT A. FACTORY_CODE factoryCode,
+			    A. PART_NO partNo,
+			    A. SUPPLIER_NO supplierNo,
+			    A. SUP_FACTORY supFactory,
+			    A. UNLOAD_PORT unloadPort,
+			    
+			    A. LOGISTICS_ORDER logisticsOrder,
+			    A. ORDER_NO orderNo,
+			    A. LOGISTICS_FLAG logisticsFlag,
+			    A. GROUP_ID groupId,
+			    A. DR_SORT_ID_START drSortIdStart,
+			    
+			    A. DR_SORT_ID_END drSortIdEnd,
+			    A. LR_SORT_ID_START lrSortIdStart,
+			    A. LR_SORT_ID_END lrSortIdEnd,
+			    A. DEFECT_NUM defectNum,
+			    A. SAFE_NUM safeNum,
+			    
+			    A. ADJ_DIFF_NUM adjDiffNum,
+			    A. NECESSARY_NET_NUM necessaryNetNum ,
+			    A. NECESSARY_ORDER_RESIDUAL necessaryOrderResidual,
+			    A. NECESSARY_REAL_RESIDUAL_NUM necessaryRealResidualNum,
+			    A. ORDER_NUM orderNum,
+			    
+			    A. TOTAL_ORDER_NUM totalOrderNum,
+			    A. TOTAL_ORDER_BOX totalOrderBox,
+			    A. ADJ_BOX adjBox,
+			    A. ADJ_ORDER_NUM adjOrderNum,
+			    A. ARRIVE_TIME arriveTimeStr,
+			    
+			    A. ORDER_STATUS orderStatus,
+			    A. ORDER_ISSUE_DATE orderIssueDate,
+			    A. SHIPMENT_DATE shipmentDate,
+			    A. PURCHASE_DEPT purchaseDept,
+			    A. ORDER_DEPOT orderDepot,
+			    
+			    A. CALCULATE_NUM calculateNum,
+			    A. CREATION_TIME creationTime,
+			    A. CREATION_USER creationUser,
+			    A. PART_UNIT partUnit,
+			    A. PLAN_ORDER_ID planOrderId,
+			    
+			    A. ORDER_PACKAGE orderPackage,
+			    A. PURCHASE_TYPE purchaseType,
+			    A. PART_GROUP_ID partGroupId,
+			    A. NECESSARY_PLAN_NUM  necessaryPlanNum
+         FROM MM_MP_ORDER_RECORD_IMP A
+		WHERE A.IMP_UUID = #{uuid,jdbcType = VARCHAR}
+		  AND A.IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}
+		  AND A.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+	</select>
+	
+	<!-- 转换订单状态   -->
+	<select id="queryOrderStatus" parameterType="java.util.Map" resultType="java.lang.String">
+        SELECT A.CODE_VALUE
+		  FROM MM_PUB_DATA_DICT A
+		 WHERE A.CODE_TYPE= 'MP_ORDER_STATUS' 
+		   AND A.CODE_VALUE_NAME = #{orderStatus}
+		   <!-- i-LMS2019053001 mod by 赵明健 -->
+		   AND A.FACTORY_CODE = #{factoryCode}   
+	</select>
+	
+</mapper>

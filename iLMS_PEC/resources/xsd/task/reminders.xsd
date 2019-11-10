@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns="http://www.jee-soft.cn/bpm/plugins/task/reminders"
+	targetNamespace="http://www.jee-soft.cn/bpm/plugins/task/reminders" elementFormDefault="qualified">
+	<xs:element name="reminders">
+		<xs:annotation>
+			<xs:documentation>催办插件</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>		        
+			<xs:sequence>                 	
+				<xs:element ref="reminder" minOccurs="1" maxOccurs="unbounded"></xs:element>
+			</xs:sequence>                                       
+		</xs:complexType>        
+	</xs:element>
+	
+	<xs:element name="reminder">
+		<xs:complexType>		        
+    		<xs:sequence> 
+	    		<xs:element name="condition" type="xs:string" maxOccurs="1" minOccurs="0">
+	    			<xs:annotation>
+			            <xs:documentation>条件表达式</xs:documentation>
+			        </xs:annotation>
+	    		</xs:element>
+	    		<xs:element name="htmlMsg" type="xs:string" maxOccurs="1" minOccurs="0">
+	    			<xs:annotation>
+			            <xs:documentation>富文本消息内容</xs:documentation>
+			        </xs:annotation>
+	    		</xs:element>
+	    		<xs:element name="plainMsg" type="xs:string" maxOccurs="1" minOccurs="0">
+	    			<xs:annotation>
+			            <xs:documentation>普通文本消息内容</xs:documentation>
+			        </xs:annotation>
+	    		</xs:element>
+	    		<xs:element name="dueScript" type="xs:string" maxOccurs="1" minOccurs="0">
+	    			<xs:annotation>
+			            <xs:documentation>到期执行脚本(在到期执行脚本情况)</xs:documentation>
+			        </xs:annotation>
+	    		</xs:element>
+	    		<xs:element ref="warningSet" minOccurs="0" maxOccurs="unbounded"></xs:element>
+    		</xs:sequence>
+    		
+	    	<xs:attribute name="name" type="xs:string">
+	    		<xs:annotation>
+			            <xs:documentation>催办名称</xs:documentation>
+			        </xs:annotation>
+	    	</xs:attribute>
+	    	<xs:attribute name="relNodeId" type="xs:string">
+	    		<xs:annotation>
+			            <xs:documentation>相对节点</xs:documentation>
+			        </xs:annotation>
+	    	</xs:attribute>
+	    	<xs:attribute name="relNodeEvent" type="xs:string">
+	    		<xs:annotation>
+			            <xs:documentation>相对节点事件</xs:documentation>
+			        </xs:annotation>
+	    	</xs:attribute>
+	    	<xs:attribute name="dateType" type="xs:string">
+	    		<xs:annotation>
+			            <xs:documentation>日期类型</xs:documentation>
+			        </xs:annotation>
+	    	</xs:attribute>
+	    	<xs:attribute name="dueTime" type="xs:int">
+	    		<xs:annotation>
+			            <xs:documentation>期限</xs:documentation>
+			        </xs:annotation>
+	    	</xs:attribute>
+	    	<xs:attribute name="dueAction" type="xs:string">
+	    		<xs:annotation>
+			            <xs:documentation>到期动作 :no-action/end-process/auto-next/call-method</xs:documentation>
+			        </xs:annotation>
+	    	</xs:attribute>
+	    		
+	    	<xs:attribute name="sendMsg" type="xs:boolean">
+	    		<xs:annotation>
+			            <xs:documentation>是否发送消息</xs:documentation>
+			        </xs:annotation>
+	    	</xs:attribute>
+	    	<xs:attribute name="msgSendTime" type="xs:int">
+	    		<xs:annotation>
+			            <xs:documentation>发送催办消息相对时间</xs:documentation>
+			        </xs:annotation>
+	    	</xs:attribute>
+	    	<xs:attribute name="msgCount" type="xs:int">
+	    		<xs:annotation>
+			            <xs:documentation>发消息次数</xs:documentation>
+			        </xs:annotation>
+	    	</xs:attribute>
+	    	<xs:attribute name="msgType" type="xs:string">
+	    		<xs:annotation>
+			            <xs:documentation>消息类型</xs:documentation>
+			        </xs:annotation>
+	    	</xs:attribute>
+	    	<xs:attribute name="msgInterval" type="xs:int">
+	    		<xs:annotation>
+			            <xs:documentation>发送消息间隔</xs:documentation>
+			    </xs:annotation>
+	    	</xs:attribute>
+		</xs:complexType>
+	</xs:element>	
+	
+	
+	<xs:element name="warningSet">
+		<xs:complexType>	
+			<xs:attribute name="warnName" type="xs:string">
+	    		<xs:annotation>
+			            <xs:documentation>预警名称</xs:documentation>
+			        </xs:annotation>
+	    	</xs:attribute>
+	    	
+	    	<xs:attribute name="warnTime" type="xs:int">
+	    		<xs:annotation>
+			            <xs:documentation>相对预警时间</xs:documentation>
+			        </xs:annotation>
+	    	</xs:attribute>
+	    	<xs:attribute name="level" type="xs:int">
+	    		<xs:annotation>
+			            <xs:documentation>预警级别</xs:documentation>
+			        </xs:annotation>
+	    	</xs:attribute>
+		</xs:complexType>
+	</xs:element>
+	
+</xs:schema>    

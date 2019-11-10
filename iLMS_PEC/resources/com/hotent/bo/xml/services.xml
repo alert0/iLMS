@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tns:servicecfg xmlns:tns="http://www.ksoft.com/service/manager/config"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.ksoft.com/service/manager/config ../../main/resources/service-manager.xsd ">
+
+	<tns:httpservices>
+		<tns:httpservice groupno="188-weixin" url="/http/weixin/getoauthtoken"
+			category="service" sn="1" servicename="getWxOAuth" disabled="0"
+			createdate="2014-01-16 10:30:00" servicetype="http" description="get weixin info"
+			createby="1" />
+	</tns:httpservices>
+	
+	<tns:webservices>
+		<tns:webservice groupno="127-botest" url="/services?wsdl" category="service" sn="4"
+			servicename="getPersonInfo" outputparam="String" disabled="0"
+			createdate="2014-01-16 10:30:00" servicetype="ws" description="get person info"
+			createby="1" namespace="http://ws.wujianjun.com/" />
+			
+		<tns:webservice groupno="188-fm" url="/ws/fm/costrefund/SaveCostrefundAndList?wsdl" category="service" sn="5"
+			servicename="saveCostrefundAndList" outputparam="String" disabled="0"
+			createdate="2014-01-16 10:30:00" servicetype="ws" description="save costrefund info"
+			createby="1" namespace="http://ws.costrefund.fm.services.ksoft.com/" />
+	</tns:webservices>
+	
+	<tns:servicegroups>
+		<tns:servicegroup groupno="127-botest" sn="4" port="0"
+			disabled="0" createdate="2014-01-16 10:30:00" hostname="http://127.0.0.1"
+			description="本地bo测试服务器" createby="1" />
+			
+		<tns:servicegroup groupno="188-weixin" sn="2" port="10090"
+			disabled="0" createdate="2014-01-16 10:30:00" hostname="http://192.168.1.188"
+			description="188微信服务配置" createby="1" />
+			
+	 <tns:servicegroup groupno="188-fm" sn="4" port="10016"
+			disabled="0" createdate="2014-01-16 10:30:00" hostname="http://192.168.1.188"
+			description="188服务配置" createby="1" />
+	</tns:servicegroups>
+</tns:servicecfg>

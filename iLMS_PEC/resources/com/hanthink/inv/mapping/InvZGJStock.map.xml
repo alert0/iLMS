@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.inv.model.InvZGJStockModel">
+	<!-- 分页数据查询 -->
+	<select id="queryStockForPage" parameterType="com.hanthink.inv.model.InvZGJStockModel" 
+			resultType="com.hanthink.inv.model.InvZGJStockModel">
+		SELECT MIS.ID id,
+		       MIS.FACTORY_CODE factoryCode,
+		       MIS.WARE_CODE wareCode,
+		       MIW.WARE_NAME wareName,
+		       MIS.PART_NO partNo,
+		       nvl(U.PART_SHORT_NO, MPP.PART_SHORT_NO) partShortNo,
+		       MPP.PART_NAME_CN partName,
+		       MIP.LOCATION baseLocation,
+		       CEIL(MIS.SAFE_STOCK / NVL(MPPD.STANDARD_PACKAGE, 1)) safeStock,
+		       CEIL(MIS.MAX_STOCK / NVL(MPPD.STANDARD_PACKAGE, 1)) maxStock,
+		       MIS.STOCK stock,
+		       MIS.CREATION_USER creationUser,
+		       TO_CHAR(MIS.CREATION_TIME, 'yyyy-MM-dd hh24:mi:ss') creationTime,
+		       MIS.LAST_MODIFIED_USER lastModifiedUser,
+		       TO_CHAR(MIS.LAST_MODIFIED_TIME, 'yyyy-MM-dd hh24:mi:ss') lastModifiedTime
+		  FROM MM_INV_STOCK MIS
+		  LEFT JOIN MM_PUB_PART MPP
+		    ON MIS.PART_NO = MPP.PART_NO
+		   AND MPP.FACTORY_CODE = #{factoryCode}
+		  INNER JOIN MM_INV_WAREHOUSE MIW
+		    ON MIS.WARE_CODE = MIW.WARE_CODE
+		   AND MIS.FACTORY_CODE = MIW.FACTORY_CODE
+		   AND MIW.FACTORY_CODE = #{factoryCode}
+		  LEFT JOIN MM_PUB_PART_SUPPLIER MPPS
+		    ON MPPS.PART_NO = MIS.PART_NO
+		   AND MPPS.FACTORY_CODE = MIS.FACTORY_CODE
+		   AND SYSDATE BETWEEN MPPS.EFF_START AND MPPS.EFF_END
+		  LEFT JOIN (SELECT A.FACTORY_CODE, A.PART_NO, A.WARE_CODE, A.SUPPLIER_NO,MIN(A.LOCATION) LOCATION
+		               FROM MM_INV_PART_LOCATION A
+		              WHERE SYSDATE BETWEEN A.EFF_START AND A.EFF_END
+		              GROUP BY A.FACTORY_CODE, A.PART_NO, A.WARE_CODE, A.SUPPLIER_NO) MIP
+		    ON MIP.FACTORY_CODE = #{factoryCode}
+		   AND MIS.PART_NO = MIP.PART_NO
+		   AND MIS.WARE_CODE = MIP.WARE_CODE
+		   AND MIP.SUPPLIER_NO = MPPS.SUPPLIER_NO
+		  LEFT JOIN MM_PKG_PROPOSAL MPPR
+		    ON MIS.PART_NO = MPPR.PART_NO
+		   AND MIS.FACTORY_CODE = MPPR.FACTORY_CODE
+		   AND MPPR.PROPOSAL_STATUS = 5
+		   AND TRUNC(SYSDATE) BETWEEN TRUNC(MPPR.EFF_START) AND TRUNC(MPPR.EFF_END)
+		  LEFT JOIN MM_PKG_PROPOSAL_DETAIL MPPD
+		    ON MPPR.ID = MPPD.PROPOSAL_ID
+		  LEFT JOIN MM_PUB_PART_UDA U ON U.PART_NO = MIS.PART_NO
+		  	<!-- i-LMS2019053001 mod by 赵明健 -->
+		  			AND U.FACTORY_CODE = MIS.FACTORY_CODE
+		    <!-- 仓库类型:3为支给件 -->
+		 WHERE MIS.FACTORY_CODE = #{factoryCode} AND MIW.WARE_TYPE = '3'
+		<if test="wareCode != null and wareCode != ''">
+			AND MIS.WARE_CODE = #{wareCode}
+		</if>
+		<if test="partNo != null and partNo != ''">
+			AND MIS.PART_NO LIKE CONCAT(#{partNo},'%')
+		</if>
+		<if test="partShortNo != null and partShortNo != ''">
+			AND U.PART_SHORT_NO = #{partShortNo} OR MPP.PART_SHORT_NO = #{partShortNo}
+		</if>
+		<if test="partName != null and partName != ''">
+			AND MPP.PART_NAME_CN  LIKE CONCAT(#{partName},'%')
+		</if>
+		<if test="stock != null and stock != ''">
+			AND MIS.STOCK = #{stock}
+		</if>
+		<if test="wareType != null and wareType != ''">
+			AND MIW.WARE_TYPE = #{wareType}
+		</if>
+		<if test="null != supplierNo and ''!=supplierNo">
+			AND MPPS.SUPPLIER_NO = #{supplierNo}
+		</if>
+		ORDER BY  MIS.WARE_CODE,MIS.PART_NO
+	</select>
+	<!-- 查询需要修改的数据 -->
+	<select id="queryStockById" parameterType="java.lang.String" 
+			resultType="com.hanthink.inv.model.InvZGJStockModel">
+		SELECT WARE_CODE wareCode,
+			   PART_NO partNo,
+			   SAFE_STOCK safeStock
+		FROM MM_INV_STOCK
+		WHERE ID = #{id}
+	</select>
+	<!-- 修改库存数量 -->
+	<update id="updateForSafeStockNum" parameterType="com.hanthink.inv.model.InvZGJStockModel">
+		UPDATE MM_INV_STOCK T SET T.STOCK = #{stock, jdbcType=VARCHAR},
+			T.LAST_MODIFIED_USER = #{lastModifiedUser, jdbcType=VARCHAR},
+			T.LAST_MODIFIED_TIME = SYSDATE
+		WHERE T.ID = #{id}
+	</update>
+	<!-- 获取零件收容数 -->
+	<select id="queryStandPackageForPart" parameterType="com.hanthink.inv.model.InvZGJStockModel" 
+			resultType="java.lang.Integer">
+		SELECT NVL(MPPD.STANDARD_PACKAGE,1)
+		  FROM MM_PKG_PROPOSAL MPP
+		  LEFT JOIN MM_PKG_PROPOSAL_DETAIL MPPD
+		    ON MPP.ID = MPPD.PROPOSAL_ID
+		 WHERE MPPD.FACTORY_CODE = #{factoryCode}
+		   AND MPP.PROPOSAL_STATUS = 5
+		   AND MPP.PART_NO = #{partNo}
+		   AND TRUNC(SYSDATE) BETWEEN TRUNC(MPP.EFF_START) AND TRUNC(MPP.EFF_END)
+	</select>
+	<!-- 批量修改库存数据 -->
+	<update id="batchUpdateStock" parameterType="java.util.Map">
+		<foreach collection="list" item="item" index="index" separator=";" open="begin" close=";end;">
+			UPDATE MM_INV_STOCK MIS
+				SET MIS.STOCK = #{stock, jdbcType=VARCHAR }
+			WHERE MIS.ID = #{item.id}
+		</foreach>
+	</update>
+	
+	<!-- 查询仓库列表 -->
+	<select id="queryWareCodeLsit" parameterType="com.hanthink.inv.model.InvUnloadPortModel" 
+			resultType="com.hanthink.inv.model.InvUnloadPortModel">
+		SELECT DISTINCT MIW.WARE_NAME wareCodeLabel, MIW.WARE_CODE wareCodeValue
+		  FROM MM_INV_WAREHOUSE MIW
+		 WHERE MIW.FACTORY_CODE = #{factoryCode}
+		 AND MIW.WARE_TYPE = '3'
+	</select>
+	
+	<!-- 获取零件收容数 -->
+	<select id="queryStandPackageForPartList" parameterType="com.hanthink.inv.model.InvZGJStockModel" 
+			resultType="com.hanthink.inv.model.InvZGJStockModel">
+		SELECT NVL(MPPD.STANDARD_PACKAGE,1) standardPackage
+		  FROM MM_PKG_PROPOSAL MPP
+		  LEFT JOIN MM_PKG_PROPOSAL_DETAIL MPPD
+		    ON MPP.ID = MPPD.PROPOSAL_ID
+		 WHERE MPPD.FACTORY_CODE = #{factoryCode}
+		   AND MPP.PROPOSAL_STATUS = 5
+		   AND MPP.PART_NO = #{partNo}
+		   AND TRUNC(SYSDATE) BETWEEN TRUNC(MPP.EFF_START) AND TRUNC(MPP.EFF_END)
+	</select>
+	
+</mapper>

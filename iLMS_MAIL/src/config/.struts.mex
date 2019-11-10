@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Struts2Diagram version="2.0">
+  <package name="struts_sw" location="560,165" size="525,140">
+    <action name="index-*" location="65,47" size="150,62">
+      <result name="index">
+        <resourceEdge source="index" routing="0" target="index.jsp" />
+      </result>
+      <result name="unregist">
+        <resourceEdge source="unregist" routing="0" target="pub_supplier_out_rigest.jsp" />
+      </result>
+    </action>
+    <action name="comm-*" location="310,58" size="150,40" />
+  </package>
+  <package name="login" location="245,200" size="280,455">
+    <action name="login-*" location="65,166" size="150,104">
+      <result name="input">
+        <resourceEdge source="input" routing="0" target="login.jsp" />
+      </result>
+      <result name="unregist">
+        <resourceEdge source="unregist" routing="0" target="pub_supplier_out_rigest.jsp" />
+      </result>
+      <result name="factory">
+        <resourceEdge source="factory" routing="0" target="factory.jsp" />
+      </result>
+      <result name="success" />
+    </action>
+    <action name="error" location="65,372" size="150,41">
+      <result name="success">
+        <resourceEdge source="success" routing="0" target="error.jsp" />
+      </result>
+    </action>
+  </package>
+  <webResource name="index.jsp" path="/comm/jsp/index.jsp" location="628,10" size="150,55" />
+  <webResource name="pub_supplier_out_rigest.jsp" path="/pages/pub/pub_supplier_out_rigest.jsp" location="572,360" size="150,55" />
+  <webResource name="login.jsp" path="login.jsp" location="90,360" size="150,55" />
+  <webResource name="factory.jsp" path="factory.jsp" location="335,45" size="150,55" />
+  <webResource name="error.jsp" path="/comm/jsp/error.jsp" location="34,535" size="150,55" />
+  <include file="pub_struts.xml" location="869,850" size="150,30" />
+  <extendsEdge source="login" target="struts_sw" routing="0" />
+</Struts2Diagram>
+

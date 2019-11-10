@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.system.worktime.model.CalendarAbsence">
+	<resultMap id="CalendarAbsence"
+		type="com.hotent.system.worktime.model.CalendarAbsence">
+		<id property="id" column="id_" jdbcType="VARCHAR" />
+		<result property="absRason" column="abs_rason_" jdbcType="VARCHAR" />
+		<result property="userId" column="user_id_" jdbcType="VARCHAR" />
+		<result property="catKey" column="cat_key_" jdbcType="VARCHAR" />
+		<result property="startTime" column="start_time_" jdbcType="TIMESTAMP" />
+		<result property="endTime" column="end_time_" jdbcType="TIMESTAMP" />
+		<result property="userName" column="userName" jdbcType="VARCHAR" />
+	</resultMap>
+
+	<insert id="create" parameterType="com.hotent.system.worktime.model.CalendarAbsence">
+		INSERT INTO cal_absence
+		(id_,abs_rason_,user_id_,cat_key_,start_time_,end_time_)
+		VALUES
+		(#{id,jdbcType=VARCHAR}, #{absRason,jdbcType=VARCHAR},
+		#{userId,jdbcType=VARCHAR}, #{catKey,jdbcType=VARCHAR},
+		#{startTime,jdbcType=TIMESTAMP}, #{endTime,jdbcType=TIMESTAMP})
+	</insert>
+
+	<select id="get" parameterType="java.lang.String" resultMap="CalendarAbsence">
+		SELECT
+		id_,abs_rason_,c.user_id_,cat_key_,start_time_,end_time_,u.fullname_
+		as userName FROM cal_absence c
+		left join xog_user u on
+		u.user_id_=c.user_id_
+		WHERE
+		c.id_=#{id}
+	</select>
+
+	<select id="query" parameterType="java.util.Map" resultMap="CalendarAbsence">
+		SELECT
+		id_,abs_rason_,c.user_id_,cat_key_,start_time_,end_time_,u.fullname_
+		as userName FROM cal_absence c left join xog_user u on
+		u.user_id_=c.user_id_
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+
+	<update id="update" parameterType="com.hotent.system.worktime.model.CalendarAbsence">
+		UPDATE cal_absence SET
+		abs_rason_=#{absRason,jdbcType=VARCHAR},
+		user_id_=#{userId,jdbcType=VARCHAR},
+		cat_key_=#{catKey,jdbcType=VARCHAR},
+		start_time_=#{startTime,jdbcType=TIMESTAMP},
+		end_time_=#{endTime,jdbcType=TIMESTAMP}
+		WHERE
+		id_=#{id}
+	</update>
+
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM cal_absence
+		WHERE
+		id_=#{id}
+	</delete>
+
+	<!--请假时间段，请假开始时间 小于计算结束时间 内的请假都要查出来 -->
+	<select id="getListByUserId" resultMap="CalendarAbsence">
+		SELECT
+		id_,abs_rason_,user_id_,cat_key_,start_time_,end_time_
+		FROM
+		cal_absence
+		WHERE
+		user_Id_=#{userId}
+		<if test="catkey!=null">
+			AND
+			cat_key_=#{catkey}
+		</if>
+		AND
+		start_Time_ &lt;=#{endTime}
+	</select>
+
+</mapper>

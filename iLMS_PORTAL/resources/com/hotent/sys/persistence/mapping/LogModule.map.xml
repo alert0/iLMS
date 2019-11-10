@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.sys.persistence.model.LogModule">
+	<resultMap id="LogModule" type="com.hotent.sys.persistence.model.LogModule">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="name" column="name_" jdbcType="VARCHAR"/>
+		<result property="alias" column="alias_" jdbcType="VARCHAR"/>
+		<result property="enabled" column="enabled_" jdbcType="NUMERIC"/>
+	</resultMap>
+	<sql id="columns">
+		id_,name_,alias_,enabled_
+	</sql>
+	
+	<insert id="create" parameterType="com.hotent.sys.persistence.model.LogModule">
+		INSERT INTO SYS_LOG_MODULE
+		(id_,name_,alias_,enabled_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR}, #{alias,jdbcType=VARCHAR}, #{enabled,jdbcType=NUMERIC})
+	</insert>
+	
+	<select id="get" parameterType="java.lang.String" resultMap="LogModule">
+		SELECT <include refid="columns" /> FROM SYS_LOG_MODULE 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="LogModule">
+		SELECT <include refid="columns" /> FROM SYS_LOG_MODULE
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.sys.persistence.model.LogModule">
+		UPDATE SYS_LOG_MODULE SET
+		name_=#{name,jdbcType=VARCHAR},
+		alias_=#{alias,jdbcType=VARCHAR},
+		enabled_=#{enabled,jdbcType=NUMERIC}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<select id="getEnabledByModule" resultType="short" parameterType="java.lang.String" >
+		SELECT enabled_ FROM sys_log_module WHERE name_=#{name}
+	</select>
+	
+	<select id="getNames" resultType="String">
+		SELECT name_ FROM sys_log_module
+	</select>
+	
+	<update id="setEnable" parameterType="java.util.Map">
+		UPDATE sys_log_module SET enabled_ = #{flag}
+		WHERE id_ in
+		<foreach collection="ids" index="index" item="id"
+			open="(" close=")" separator=",">
+			#{id}
+		</foreach>
+	</update>
+
+</mapper>

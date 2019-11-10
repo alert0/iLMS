@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<job-scheduling-data
+	xmlns="http://www.quartz-scheduler.org/xml/JobSchedulingData"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.quartz-scheduler.org/xml/JobSchedulingData http://www.quartz-scheduler.org/xml/job_scheduling_data_1_8.xsd"
+	version="1.8">
+	
+	<!-- 广汽新能源拉动配送单 
+	<schedule>
+		<job>
+			<name>LogisticsGacneJitPrintJob</name>
+			<group>PrintJobGrop</group>
+			<job-class>com.hanthink.print.quartz.LogisticsGacneJitPrint</job-class>
+		</job>
+		<trigger>
+			<cron>
+				<name>LogisticsGacneJitPrintJobTrigger</name>
+				<group>PrintTriggerGroup</group>
+				<job-name>LogisticsGacneJitPrintJob</job-name>
+				<job-group>PrintJobGrop</job-group>
+				<cron-expression>0 0/1 * * * ?</cron-expression>
+			</cron>
+		</trigger>
+	</schedule>    -->
+	
+	<!-- 广汽新能源SPS指示票  -->
+	<schedule>
+		<job>
+			<name>LogisticsGacneSpsPrintJob</name>
+			<group>PrintJobGrop</group>
+			<job-class>com.hanthink.print.quartz.LogisticsGacneSpsPrint</job-class>
+		</job>
+		<trigger>
+			<cron>
+				<name>LogisticsGacneSpsPrintJobTrigger</name>
+				<group>PrintTriggerGroup</group>
+				<job-name>LogisticsGacneSpsPrintJob</job-name>
+				<job-group>PrintJobGrop</job-group>
+				<cron-expression>0 0/2 * * * ?</cron-expression>
+			</cron>
+		</trigger>
+	</schedule>  
+	
+	<!--<schedule>
+		<job>
+			<name>LogisticsJitPrintJob</name>
+			<group>PrintJobGroup</group>
+			<job-class>com.hanthink.print.quartz.LogisticsG2JitPrint</job-class>
+		</job>
+		<trigger>
+			<cron>
+				<name>LogisticsJitPrintTrigger</name>
+				<group>PrintTriggerGroup</group>
+				<job-name>LogisticsJitPrintJob</job-name>
+				<job-group>PrintJobGroup</job-group>
+				<cron-expression>0 0/10 * * * ?</cron-expression>
+			</cron>
+		</trigger>
+	</schedule> 
+	
+	-->
+</job-scheduling-data>

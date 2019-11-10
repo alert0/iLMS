@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.biz.meeting.model.MeetingAppoint">
+	<resultMap id="MeetingAppoint" type="com.hotent.biz.meeting.model.MeetingAppoint">
+		<id property="id" column="ID_" jdbcType="VARCHAR"/>
+		<result property="meetingroomId" column="MEETINGROOM_ID_" jdbcType="VARCHAR"/>
+		<result property="meetingId" column="MEETING_ID_" jdbcType="VARCHAR"/>
+		<result property="meetingName" column="MEETING_NAME_" jdbcType="VARCHAR"/>
+		<result property="hostessName" column="HOSTESS_NAME_" jdbcType="VARCHAR"/>
+		<result property="appointmentBegTime" column="APPOINTMENT_BEG_TIME_" jdbcType="TIMESTAMP"/>
+		<result property="appointmentEndTime" column="APPOINTMENT_END_TIME_" jdbcType="TIMESTAMP"/>
+		<result property="appointmentStatus" column="APPOINTMENT_STATUS_" jdbcType="NUMERIC"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.biz.meeting.model.MeetingAppoint">
+		INSERT INTO biz_meetingroom_appointment
+		(ID_,MEETINGROOM_ID_,MEETING_ID_,MEETING_NAME_,HOSTESS_NAME_,APPOINTMENT_BEG_TIME_,APPOINTMENT_END_TIME_,APPOINTMENT_STATUS_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{meetingroomId,jdbcType=VARCHAR}, #{meetingId,jdbcType=VARCHAR}, #{meetingName,jdbcType=VARCHAR}, #{hostessName,jdbcType=VARCHAR}, #{appointmentBegTime,jdbcType=TIMESTAMP}, #{appointmentEndTime,jdbcType=TIMESTAMP}, #{appointmentStatus,jdbcType=NUMERIC})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="MeetingAppoint">
+		SELECT * FROM biz_meetingroom_appointment 
+		WHERE 
+		ID_=#{id}
+	</select>
+		<select id="getByMeetingId"   parameterType="java.lang.String" resultMap="MeetingAppoint">
+		SELECT * FROM biz_meetingroom_appointment 
+		WHERE 
+		MEETING_ID_=#{meetingId}
+	</select>
+	<select id="query" parameterType="java.util.Map" resultMap="MeetingAppoint">
+		SELECT * FROM biz_meetingroom_appointment
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY ID_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.biz.meeting.model.MeetingAppoint">
+		UPDATE biz_meetingroom_appointment SET
+		MEETINGROOM_ID_=#{meetingroomId,jdbcType=VARCHAR},
+		MEETING_ID_=#{meetingId,jdbcType=VARCHAR},
+		MEETING_NAME_=#{meetingName,jdbcType=VARCHAR},
+		HOSTESS_NAME_=#{hostessName,jdbcType=VARCHAR},
+		APPOINTMENT_BEG_TIME_=#{appointmentBegTime,jdbcType=TIMESTAMP},
+		APPOINTMENT_END_TIME_=#{appointmentEndTime,jdbcType=TIMESTAMP},
+		APPOINTMENT_STATUS_=#{appointmentStatus,jdbcType=NUMERIC}
+		WHERE
+		ID_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM biz_meetingroom_appointment 
+		WHERE
+		ID_=#{id}
+	</delete>
+	
+	
+</mapper>

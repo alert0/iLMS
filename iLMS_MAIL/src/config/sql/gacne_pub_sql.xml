@@ -1,0 +1,584 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="gacne_pub">
+	<typeAlias alias="pubOrderVO" type="com.hanthink.gps.gacne.pub.vo.PubOrderVO" />
+		
+	<!-- 查询系统系统不存在零件属地信息生效记录 -->
+	<select id="select_queryPubOrderA" parameterClass="pubOrderVO" resultClass="pubOrderVO">
+		SELECT 
+	     U.UNLOAD_PORT unloadPort,
+	     S.SUPPLIER_NO supplierNo,
+	     T1.PART_NO partNo,
+	     '' preparePerson,
+	     '' carpool,
+	     '' storage,
+	     '' distriPerson,
+	     '' location,
+	     '' stationCode,
+	     T1.PROCESS_TYPE processType,
+	     '' shelfNo,
+	     '' locationNum,
+	     '' deptNo,
+	     T1.MODEL_CODE modelCode,
+	     T1.ACTUAL_EFF_START effStart,
+	     T1.ACTUAL_EFF_END effEnd,
+	     '新增' sort,
+	     UDA.PART_SHORT_NO partShortNo,
+	     T1.partName partName
+	     FROM 
+	    (SELECT DISTINCT A.PART_NO,
+	                    A.PROCESS_TYPE,
+	                    A.FACTORY_CODE,
+	                    A.PART_NAME_CN,
+	                    A.MODEL_CODE,
+	                    A.ACTUAL_EFF_START,
+	                    A.ACTUAL_EFF_END,
+	                    A.PART_NAME_CN partName
+	          FROM MM_PUB_SUPER_BOM A
+	         WHERE A.PURCHASE_TYPE IN ('W', 'AW')
+	           AND A.PROCESS_TYPE IS NOT NULL
+	           AND A.FACTORY_CODE = #factoryCode#
+	           AND NOT EXISTS (SELECT 1
+	                  FROM MM_INV_PART_LOCATION BB
+	                 WHERE BB.EFF_START &lt; SYSDATE
+	                   AND BB.EFF_END &gt; SYSDATE
+	                   AND BB.PART_NO = A.PART_NO
+	                   AND BB.MODEL_CODE = A.MODEL_CODE
+	                   AND BB.FACTORY_CODE = A.FACTORY_CODE)) T1
+	    LEFT JOIN MM_PUB_PART_UNLOAD U ON U.PART_NO = T1.PART_NO AND U.FACTORY_CODE = T1.FACTORY_CODE AND U.WORKCENTER = SUBSTR(T1.PROCESS_TYPE,0,2)
+	    LEFT JOIN MM_PUB_PART_SUPPLIER S ON S.PART_NO = T1.PART_NO AND S.FACTORY_CODE = T1.FACTORY_CODE
+	    LEFT JOIN MM_PUB_PART_UDA UDA ON UDA.PART_NO = T1.PART_NO AND UDA.FACTORY_CODE = #factoryCode#
+	<!--
+	SELECT 
+		DISTINCT
+		 U.UNLOAD_PORT unloadPort,
+		 S.SUPPLIER_NO supplierNo,
+		 T1.PART_NO partNo,
+		 '' preparePerson,
+		 '' carpool,
+		 '' storage,
+		 '' distriPerson,
+		 '' location,
+		 '' stationCode,
+		 T1.PROCESS_TYPE processType,
+		 '' shelfNo,
+		 '' locationNum,
+		 '' deptNo,
+		 T1.MODEL_CODE modelCode,
+		 T1.ACTUAL_EFF_START effStart,
+		 T1.ACTUAL_EFF_END effEnd,
+		 '1' sort
+		 FROM 
+		(SELECT DISTINCT A.PART_NO,
+		                A.PROCESS_TYPE,
+		                A.FACTORY_CODE,
+		                A.PART_NAME_CN,
+		                A.MODEL_CODE,
+		                A.ACTUAL_EFF_START,
+		                A.ACTUAL_EFF_END
+		      FROM MM_PUB_SUPER_BOM A
+		     WHERE A.PURCHASE_TYPE IN ('W', 'AW')
+		       AND A.PROCESS_TYPE IS NOT NULL
+		       AND A.FACTORY_CODE = #factoryCode#
+		       AND NOT EXISTS (SELECT 1
+		              FROM MM_INV_PART_LOCATION BB
+		             WHERE BB.EFF_START &lt; SYSDATE
+		               AND BB.EFF_END &gt; SYSDATE
+		               AND BB.PART_NO = A.PART_NO
+		               AND BB.MODEL_CODE = A.MODEL_CODE
+		               AND BB.FACTORY_CODE = A.FACTORY_CODE)) T1
+		LEFT JOIN MM_PUB_PART_UNLOAD U ON U.PART_NO = T1.PART_NO AND U.FACTORY_CODE = T1.FACTORY_CODE AND U.WORKCENTER = SUBSTR(T1.PROCESS_TYPE,0,2)
+		LEFT JOIN MM_PUB_PART_SUPPLIER S ON S.PART_NO = T1.PART_NO AND S.FACTORY_CODE = T1.FACTORY_CODE
+		UNION
+		SELECT 
+		distinct
+		   T.UNLOAD_PORT unloadPort,
+		   T.SUPPLIER_NO supplierNo,
+		   T.PART_NO partNo,
+		   T.PREPARE_PERSON  preparePerson,
+		   T.CARPOOL carpool,
+		   T.STORAGE storage,
+		   T.DISTRI_PERSON distriPerson,
+		   T.LOCATION location,
+		   T.STATION_CODE stationCode,
+		   TT.PROCESS_TYPE processType,
+		   T.SHELF_NO shelfNo,
+		   to_char(T.LOCATION_NUM) locationNum,
+		   T.DEP_NO deptNo,
+		   T.MODEL_CODE modelCode,
+		   to_char(T.EFF_START, 'yyyy-mm-dd hh24:mi:ss') effStart,
+		   to_char(T.EFF_END, 'yyyy-mm-dd hh24:mi:ss') effEnd,
+		   '2' sort
+		FROM(         
+		SELECT DISTINCT A.PART_NO,
+		                A.PROCESS_TYPE,
+		                A.FACTORY_CODE,
+		                A.MODEL_CODE
+		      FROM MM_PUB_SUPER_BOM A
+		     WHERE A.PURCHASE_TYPE IN ('W', 'AW')
+		       AND A.PROCESS_TYPE IS NOT NULL
+		       AND A.FACTORY_CODE = #factoryCode#
+		       AND NOT EXISTS (SELECT 1
+		              FROM MM_INV_PART_LOCATION B
+		             WHERE B.EFF_START &lt; SYSDATE
+		               AND B.EFF_END &gt; SYSDATE
+		               AND B.PART_NO = A.PART_NO
+		               AND B.MODEL_CODE = A.MODEL_CODE
+		               AND B.STATION_CODE = A.PROCESS_TYPE
+		               AND B.FACTORY_CODE = A.FACTORY_CODE)) TT
+		INNER JOIN MM_INV_PART_LOCATION T ON T.PART_NO = TT.PART_NO AND T.FACTORY_CODE = TT.FACTORY_CODE AND T.MODEL_CODE = TT.MODEL_CODE
+		UNION
+		SELECT 
+		DISTINCT
+		   T.UNLOAD_PORT unloadPort,
+		   T.SUPPLIER_NO supplierNo,
+		   T.PART_NO partNo,
+		   T.PREPARE_PERSON  preparePerson,
+		   T.CARPOOL carpool,
+		   T.STORAGE storage,
+		   T.DISTRI_PERSON distriPerson,
+		   T.LOCATION location,
+		   T.STATION_CODE stationCode,
+		   '' processType,
+		   T.SHELF_NO shelfNo,
+		   to_char(T.LOCATION_NUM) locationNum,
+		   T.DEP_NO deptNo,
+		   T.MODEL_CODE modelCode,
+		   to_char(T.EFF_START, 'yyyy-mm-dd hh24:mi:ss') effStart,
+		   to_char(T.EFF_END, 'yyyy-mm-dd hh24:mi:ss') effEnd,
+		   '3' sort
+		FROM MM_INV_PART_LOCATION T
+		     WHERE T.FACTORY_CODE = #factoryCode#
+		     AND   T.EFF_START &lt; SYSDATE
+		     AND   T.EFF_END &gt; SYSDATE
+		     AND NOT EXISTS (
+		         SELECT 1 
+		         FROM MM_PUB_SUPER_BOM B 
+		         WHERE B.PART_NO = T.PART_NO
+		         AND   B.PROCESS_TYPE = T.STATION_CODE
+		         AND   B.FACTORY_CODE = T.FACTORY_CODE
+		         AND   B.MODEL_CODE = T.MODEL_CODE
+		     )
+		order by sort
+	-->
+	<!--
+	SELECT DISTINCT A.PART_NO partNo,
+				A.PROCESS_TYPE stationCode,
+                A.FACTORY_CODE factoryCode,
+                A.PART_NAME_CN partName,
+                A.MODEL_CODE modelCode,
+                '属地管理不存在零件号、工位、车型生效记录' errorMessage
+      FROM MM_PUB_SUPER_BOM A
+     WHERE A.PURCHASE_TYPE IN ('W', 'AW')
+       AND A.PROCESS_TYPE IS NOT NULL
+       AND A.FACTORY_CODE = #factoryCode#
+       AND NOT EXISTS (SELECT 1
+              FROM MM_INV_PART_LOCATION B
+             WHERE B.EFF_START &lt; SYSDATE
+               AND B.EFF_END &gt; SYSDATE
+               AND B.PART_NO = A.PART_NO
+               AND B.MODEL_CODE = A.MODEL_CODE
+               AND B.STATION_CODE = A.PROCESS_TYPE
+               AND B.FACTORY_CODE = A.FACTORY_CODE)
+	-->
+	</select>
+	
+	<!-- 取货物流没有维护对应的路线信息 -->
+	<select id="select_queryPubOrderB" parameterClass="pubOrderVO" resultClass="pubOrderVO">
+		SELECT I.SUPPLIER_NO supplierNo,
+	       I.SUP_FACTORY supFactory,
+	       I.UNLOAD_PORT unloadPort,
+	       I.FACTORY_CODE factoryCode,
+	       I.MODEL_CODE modelCode,
+	       '取货物流没有维护对应的路线信息' errorMessage
+	  FROM MM_MP_PART I
+	 WHERE I.EFF_START &lt;= SYSDATE
+	   AND I.EFF_END &gt; SYSDATE
+	   AND I.FACTORY_CODE = #factoryCode#
+	   AND NOT EXISTS (SELECT 1
+	          FROM MM_PUP_ROUTE J
+	         WHERE I.SUPPLIER_NO = J.SUPPLIER_NO
+	           AND I.SUP_FACTORY = J.SUP_FACTORY
+	           AND I.UNLOAD_PORT = J.UNLOAD_PORT
+	           AND I.FACTORY_CODE = J.FACTORY_CODE
+	           AND I.MODEL_CODE = J.CAR_TYPE
+	           AND J.FACTORY_CODE = #factoryCode#)
+	</select>
+	
+	<!-- BOM不存在此生效记录 -->
+	<select id="select_queryPubOrderC" parameterClass="pubOrderVO" resultClass="pubOrderVO">
+		SELECT DISTINCT H.MODEL_CODE modelCode,
+		                DI.CODE_VALUE_NAME workcenter,
+		                D.CODE_VALUE_NAME workcenterDesc,
+		                H.PART_NO partNo,
+		                J.PART_NAME_CN partName,
+		                H.FACTORY_CODE factoryCode,
+		                'BOM不存在此生效记录' errorMessage
+		  FROM (SELECT DISTINCT B.WORKCENTER,
+		                        B.PART_NO,
+		                        B.FACTORY_CODE,
+		                        B.MODEL_CODE
+		          FROM MM_MP_PART B
+		         WHERE B.EFF_START &lt;= SYSDATE
+		           AND B.EFF_END &gt; SYSDATE
+		           AND B.FACTORY_CODE = #factoryCode#
+		        UNION
+		        SELECT DISTINCT D.WORKCENTER,
+		                        C.PART_NO,
+		                        D.FACTORY_CODE,
+		                        C.MODEL_CODE
+		          FROM MM_JIT_PART C
+		          LEFT JOIN MM_PUB_PLAN_CODE D
+		            ON C.PLAN_CODE = D.PLAN_CODE
+		         WHERE C.EFF_START &lt;= SYSDATE
+		           AND C.EFF_END &gt; SYSDATE
+		           AND D.FACTORY_CODE = #factoryCode#
+		        UNION
+		        SELECT DISTINCT G.WORKCENTER,
+		                        E.PART_NO,
+		                        G.FACTORY_CODE,
+		                        E.MODEL_CODE
+		          FROM MM_JISO_PART E
+		          LEFT JOIN MM_JISO_PARTGROUP F
+		            ON E.PARTGROUP_ID = F.ID
+		          LEFT JOIN MM_PUB_PLAN_CODE G
+		            ON F.PLAN_CODE = G.PLAN_CODE
+		         WHERE E.EFF_START &lt;= SYSDATE
+		           AND E.EFF_END &gt; SYSDATE
+		           AND G.FACTORY_CODE = #factoryCode#
+		           ) H
+		  LEFT JOIN MM_PUB_PART_UDA J
+		    ON H.PART_NO = J.PART_NO AND J.FACTORY_CODE = #factoryCode#
+		    
+		    LEFT JOIN MM_PUB_DATA_DICT DI ON DI.CODE_VALUE = H.WORKCENTER
+           		AND DI.CODE_TYPE = 'PUB_WORKCENTER' AND DI.FACTORY_CODE = H.FACTORY_CODE
+		    
+		   AND H.FACTORY_CODE = J.FACTORY_CODE
+		  LEFT JOIN MM_PUB_DATA_DICT D ON D.CODE_VALUE = H.WORKCENTER
+		       AND D.CODE_TYPE = 'PUB_WORKCENTER' AND D.FACTORY_CODE = H.FACTORY_CODE
+		 WHERE NOT EXISTS (SELECT 1
+		          FROM MM_PUB_SUPER_BOM I
+		         WHERE I.PURCHASE_TYPE IN ('W', 'AW')
+		           AND H.WORKCENTER = SUBSTR(I.PROCESS_TYPE, 0, 2)
+		           AND H.PART_NO = I.PART_NO
+		           AND H.MODEL_CODE = I.MODEL_CODE
+		           AND H.FACTORY_CODE = I.FACTORY_CODE
+		           AND H.FACTORY_CODE = #factoryCode#)
+		 AND H.FACTORY_CODE = #factoryCode#
+	</select>
+
+	<!-- 系统不存在零件属地信息生效记录     (BOM生效) -->
+	<select id="select_queryPubOrderD" parameterClass="pubOrderVO" resultClass="pubOrderVO">
+	SELECT wm_concat(errorMessage) errorMessage,
+		       MIN(partNo) partNo,
+		       MIN(modelCode) modelCode,
+		       MIN(workcenter) workcenter,
+		       MIN(factoryCode) factoryCode,
+		       MIN(partName) partName
+		       FROM (
+		        SELECT OO.errorMessage,
+             OO.partNo,
+             OO.modelCode,
+             DI.CODE_VALUE_NAME workcenter,
+             OO.factoryCode,
+             OO.partName
+      FROM ( 
+		SELECT DISTINCT A.PART_NO partNo,
+		                A.MODEL_CODE modelCode,
+		                SUBSTR(A.PROCESS_TYPE, 0, 2) workcenter,
+		                A.FACTORY_CODE factoryCode,
+		                A.PART_NAME_CN partName, 
+		                '系统不存在订购零件基本信息生效记录' errorMessage
+		  FROM MM_PUB_SUPER_BOM A
+		 WHERE NOT EXISTS (SELECT 1
+		          FROM (SELECT DISTINCT B.WORKCENTER,
+		                                B.PART_NO,
+		                                B.FACTORY_CODE,
+		                                B.MODEL_CODE
+		                  FROM MM_MP_PART B
+		                 WHERE B.EFF_START &lt;= SYSDATE
+		                   AND B.EFF_END &gt; SYSDATE
+		                   AND B.FACTORY_CODE = #factoryCode#
+		                UNION
+		                SELECT DISTINCT D.WORKCENTER,
+		                                C.PART_NO,
+		                                D.FACTORY_CODE,
+		                                C.MODEL_CODE
+		                  FROM MM_JIT_PART C
+		                  LEFT JOIN MM_PUB_PLAN_CODE D
+		                    ON C.PLAN_CODE = D.PLAN_CODE
+		                 WHERE C.EFF_START &lt;= SYSDATE
+		                   AND C.EFF_END &gt; SYSDATE
+		                   AND D.FACTORY_CODE = #factoryCode#
+		                UNION
+		                SELECT DISTINCT G.WORKCENTER,
+		                                E.PART_NO,
+		                                G.FACTORY_CODE,
+		                                E.MODEL_CODE
+		                  FROM MM_JISO_PART E
+		                  LEFT JOIN MM_JISO_PARTGROUP F
+		                    ON E.PARTGROUP_ID = F.ID
+		                  LEFT JOIN MM_PUB_PLAN_CODE G
+		                    ON F.PLAN_CODE = G.PLAN_CODE
+		                 WHERE E.EFF_START &lt;= SYSDATE
+		                   AND E.EFF_END &gt; SYSDATE
+		                   AND G.FACTORY_CODE = #factoryCode#
+		                   ) H
+		         WHERE A.FACTORY_CODE = H.FACTORY_CODE
+		           AND SUBSTR(A.PROCESS_TYPE, 0, 2) = H.WORKCENTER
+		           AND A.MODEL_CODE = H.MODEL_CODE
+		           AND A.PART_NO = H.PART_NO)
+		   AND A.PURCHASE_TYPE IN ('W', 'AW')
+		   AND A.PROCESS_TYPE IS NOT NULL
+		UNION
+		SELECT DISTINCT A.PART_NO partNo,
+		                A.MODEL_CODE modelCode,
+		                SUBSTR(A.PROCESS_TYPE, 0, 2) workcenter,
+		                A.FACTORY_CODE factoryCode,
+		                A.PART_NAME_CN partName,
+		                '系统不存在零件属地信息生效记录' errorMessage
+		  FROM MM_PUB_SUPER_BOM A
+		 WHERE A.PURCHASE_TYPE IN ('W', 'AW')
+		   AND A.PROCESS_TYPE IS NOT NULL
+		   AND A.FACTORY_CODE = #factoryCode#
+		   AND NOT EXISTS (SELECT 1
+		          FROM MM_INV_PART_LOCATION B
+		         WHERE B.EFF_START &lt;= SYSDATE
+		           AND B.EFF_END &gt; SYSDATE
+		           AND B.PART_NO = A.PART_NO
+		           AND B.WORKCENTER = SUBSTR(A.PROCESS_TYPE, 0, 2)
+		           AND B.FACTORY_CODE = A.FACTORY_CODE)
+		UNION         
+		SELECT DISTINCT A.PART_NO partNo,
+		                A.MODEL_CODE modelCode,
+		                SUBSTR(A.PROCESS_TYPE, 0, 2) workcenter,
+		                A.FACTORY_CODE factoryCode,
+		                A.PART_NAME_CN partName,
+		                '系统不存在此零件实物审核通过的包装信息生效记录' errorMessage
+		FROM MM_PUB_SUPER_BOM A   
+		WHERE A.PURCHASE_TYPE IN ('W', 'AW')
+		   AND A.PROCESS_TYPE IS NOT NULL
+		   AND A.FACTORY_CODE = #factoryCode#
+		   AND NOT EXISTS (SELECT 1
+		   FROM MM_PKG_PROPOSAL B
+		   WHERE B.EFF_START &lt;= SYSDATE
+		   AND   B.EFF_END &gt;= SYSDATE
+		   AND   B.PART_NO = A.PART_NO
+		   AND   B.PROPOSAL_STATUS = 5
+		   AND   B.FACTORY_CODE = A.FACTORY_CODE)
+		   
+		   ) OO
+   			LEFT JOIN MM_PUB_DATA_DICT DI ON DI.CODE_VALUE = OO.workcenter AND DI.FACTORY_CODE = #factoryCode#
+   				AND DI.CODE_TYPE = 'PUB_WORKCENTER' AND DI.FACTORY_CODE = OO.factoryCode
+   				AND DI.FACTORY_CODE = #factoryCode#
+		    ) GROUP BY partNo,modelCode,workcenter,factoryCode,partName
+	</select>
+	
+	<select id="select_queryPartSupplierInvalid" parameterClass="pubOrderVO" resultClass="pubOrderVO">
+		SELECT DISTINCT A.PART_NO partNo,
+                    '系统不存在物料与供应商关系生效记录' errorMessage
+      FROM MM_PUB_PART_SUPPLIER A
+     WHERE NOT EXISTS (SELECT 1
+              FROM (SELECT DISTINCT B.PART_NO 
+                      FROM MM_MP_PART B
+                     WHERE B.EFF_START &lt; SYSDATE
+                       AND B.EFF_END &gt; SYSDATE
+                    UNION
+                    SELECT DISTINCT C.PART_NO
+                      FROM MM_PUB_PART_UDA C
+                    UNION 
+                    SELECT DISTINCT D.PART_NO
+                     FROM MM_PUB_PART_SUPPLIER D 
+                   WHERE D.EFF_START &lt; SYSDATE
+                         AND D.EFF_END &gt; SYSDATE
+                      ) D
+             WHERE D.PART_NO = A.PART_NO)
+	</select>
+	
+	<!-- 零件异常信息 -->
+	<select id="select_queryPartSupplier" parameterClass="pubOrderVO" resultClass="pubOrderVO">
+		SELECT HIS.PART_NO      partNo,
+	           HIS.FACTORY_CODE factoryCode,
+	           HIS.SUPPLIER_NO  supplierNo,
+	           HIS.SUP_FACTORY  supFactory,
+	           HIS.EFF_START    effStart,
+	           HIS.EFF_END      effEnd,
+	           '零件存在多条生效记录(同一个零件存在多条生效的零件与供应商关系)' errorMessage
+	      FROM (SELECT T.PART_NO
+	              FROM MM_PUB_PART_SUPPLIER_HIS T
+	             WHERE T.FACTORY_CODE = #factoryCode#
+	               AND T.EFF_START &lt; SYSDATE
+	               AND T.EFF_END &gt;  SYSDATE
+	             GROUP BY T.PART_NO
+	            HAVING COUNT(1) &gt; 1) T1
+	      LEFT JOIN MM_PUB_PART_SUPPLIER_HIS HIS
+	        ON T1.PART_NO = HIS.PART_NO
+	        AND HIS.FACTORY_CODE = #factoryCode#
+	</select>
+	
+	<!-- 系统不存在卸货口、仓库生效记录 -->
+	<select id="queryPubOrderE" parameterClass="pubOrderVO" resultClass="pubOrderVO">
+		SELECT 
+			  L.PART_NO partNo,
+			  L.MODEL_CODE modelCode,
+			  L.ARR_DEPOT arrDepot,
+			  L.UNLOAD_PORT unloadPort,
+			  D.CODE_VALUE_NAME workcenterDesc,
+			  L.FACTORY_CODE factoryCode,
+			  O.PART_NAME_CN partName,
+		      '系统不存在卸货口、仓库生效记录' errorMessage
+		  FROM (SELECT A.PART_NO,
+		               A.MODEL_CODE,
+		               A.ORDER_DEPOT ARR_DEPOT,
+		               B.UNLOAD_PORT,
+		               A.WORKCENTER,
+		               A.FACTORY_CODE
+		          FROM MM_MP_PART A
+		          LEFT JOIN MM_PUB_PART_UNLOAD B
+		            ON A.PART_NO = B.PART_NO
+		           AND B.LOGISTICS_MODEL = 'SW'
+		           AND B.FACTORY_CODE = A.FACTORY_CODE
+		           AND A.FACTORY_CODE = #factoryCode#
+		           AND B.WORKCENTER = A.WORKCENTER
+		         WHERE A.EFF_START &lt; SYSDATE
+		           AND A.EFF_END &gt;= SYSDATE
+		        UNION ALL
+		        SELECT D.PART_NO,
+		               D.MODEL_CODE,
+		               D.ARR_DEPOT,
+		               G.UNLOAD_PORT,
+		               F.WORKCENTER,
+		               F.FACTORY_CODE
+		          FROM MM_JIT_PART D
+		          LEFT JOIN MM_PUB_PLAN_CODE F
+		            ON D.PLAN_CODE = F.PLAN_CODE
+		          LEFT JOIN MM_PUB_PART_UNLOAD G
+		            ON D.PART_NO = G.PART_NO
+		           AND F.WORKCENTER = G.WORKCENTER
+		           AND F.FACTORY_CODE = G.FACTORY_CODE
+		           AND F.FACTORY_CODE = #factoryCode#
+		           AND 'JIT' = G.LOGISTICS_MODEL
+		         WHERE D.EFF_START &lt; SYSDATE
+		           AND D.EFF_END &gt;= SYSDATE
+		        UNION ALL
+		        SELECT H.PART_NO,
+		               H.MODEL_CODE,
+		               J.ARR_DEPOT,
+		               I.UNLOAD_PORT,
+		               K.WORKCENTER,
+		               K.FACTORY_CODE
+		          FROM MM_JISO_PART H
+		          LEFT JOIN MM_JISO_PARTGROUP J
+		            ON H.PARTGROUP_ID = J.ID
+		          LEFT JOIN MM_PUB_PLAN_CODE K
+		            ON J.PLAN_CODE = K.PLAN_CODE
+		          LEFT JOIN MM_PUB_PART_UNLOAD I
+		            ON K.FACTORY_CODE = I.FACTORY_CODE
+		            AND K.FACTORY_CODE = #factoryCode#
+		           AND K.WORKCENTER = I.WORKCENTER
+		           AND H.PART_NO = I.PART_NO
+		           AND 'JISO' = I.LOGISTICS_MODEL
+		         WHERE H.EFF_START &lt; SYSDATE
+		           AND H.EFF_END &gt;= SYSDATE) L
+		           LEFT JOIN MM_PUB_PART_UDA O ON L.PART_NO = O.PART_NO AND O.FACTORY_CODE = #factoryCode#
+		           LEFT JOIN MM_PUB_DATA_DICT D ON D.CODE_VALUE = L.WORKCENTER
+		       		AND D.CODE_TYPE = 'PUB_WORKCENTER' AND D.FACTORY_CODE = L.FACTORY_CODE
+		 WHERE NOT EXISTS (SELECT 1
+		          FROM MM_INV_UNLOAD M
+		         WHERE L.UNLOAD_PORT = M.UNLOAD_PORT
+		           AND L.ARR_DEPOT = M.WARE_CODE
+		           AND L.FACTORY_CODE = #factoryCode#
+		           AND L.FACTORY_CODE = M.FACTORY_CODE)
+	</select>
+	
+	<!-- 查询推算停止信息  （超过30min）-->
+	<select id="queryReckonStopList" parameterClass="pubOrderVO" resultClass="pubOrderVO">
+		SELECT (SYSDATE - T.LAST_EXEC_TIME) * 24 * 60 stopTime,
+	         T.PLAN_CODE planCode,
+	         T.PLAN_CODE_DESC planCodeDesc
+	    FROM MM_PUB_PLAN_CODE T
+	   WHERE T.PLAN_CODE_TYPE LIKE '%' || 'JIT' || '%'
+	     AND (SYSDATE - T.LAST_EXEC_TIME) * 24 * 60 &gt; 30
+	     AND T.IS_AUTO_EXEC = '0' AND T.EXEC_STATE = '0'
+	     AND T.FACTORY_CODE = #factoryCode#
+	</select>
+	
+	<!-- 查询推算停止信息  （超过5min） -->
+	<select id="queryReckonStopList_jis" parameterClass="pubOrderVO" resultClass="pubOrderVO">
+		SELECT (SYSDATE - T.LAST_EXEC_TIME) * 24 * 60 stopTime,
+	         T.PLAN_CODE planCode,
+	         T.PLAN_CODE_DESC planCodeDesc
+	    FROM MM_PUB_PLAN_CODE T
+	   WHERE T.PLAN_CODE_TYPE LIKE '%' || 'JIS' || '%'
+	     AND (SYSDATE - T.LAST_EXEC_TIME) * 24 * 60 &gt; 5
+	     AND T.IS_AUTO_EXEC = '0' AND T.EXEC_STATE = '0'
+	     AND T.FACTORY_CODE = #factoryCode#
+	</select>
+	
+	<!-- 查询拉动未组单零件需求 -->
+	<select id="queryNotGroupOrder" parameterClass="pubOrderVO" resultClass="pubOrderVO">
+		select 
+	       c.plan_code_desc planCode,
+	       t.part_no partNo,
+	       t.part_name partName,
+	       t.supplier_no supplierNo,
+	       t.supplier_name supplierName,
+	       t.ship_depot shipDepot,
+	       t.arr_depot arrDepot
+	 from mm_jit_pkg_req t 
+	      left join mm_pub_plan_code c on c.plan_code = t.plan_code
+	  where t.order_deal_flag = '2'
+	</select>
+	
+	<!-- 查询区间流动数 -->
+	<select id="queryPubPaoffToAft1onJob" parameterClass="pubOrderVO" resultClass="pubOrderVO">
+		SELECT 
+		    S.PAOFF_AFON_NUM  paoffAfonNum,
+		    S.afonAft1onNum   afonAft1onNum,
+		    S.PAOFF_AFT1ON_NUM  paoffAft1onNum,
+		    S.IS_SEND_EMAIL isSendEmail,
+		    S.sysdateTime  sysdateTime
+		 FROM (
+		SELECT T.PAOFF_AFON_NUM,
+				      (T.PAOFF_AFT1ON_NUM - T.PAOFF_AFON_NUM) afonAft1onNum,
+		              T.PAOFF_AFT1ON_NUM ,
+		              (SELECT MAX(IS_SEND_EMAIL) FROM mm_pub_model_flow_num) IS_SEND_EMAIL,
+		              to_char(sysdate,'yyyy"年"mm"月"dd"日" HH24"":""mi"') sysdateTime
+		        FROM mm_pub_model_flow_num T 
+		       ORDER BY T.CREATION_TIME DESC) S WHERE ROWNUM &lt; = 2
+	<!--
+		SELECT 
+	       T.STATION_CODE stationCode,
+	       T.MODEL_NUM modelNum,
+	       T.CREATION_TIME creationTime
+	 FROM MM_PUB_PA0FF_AFT1ON_FLOW_NUM T
+	       WHERE T.STATION_CODE = 'PAOFF-AFT1ON'
+	       AND T.MODEL_NUM &lt; '100' AND T.CREATION_TIME &gt; SYSDATE - 5/1440
+	 ORDER BY T.CREATION_TIME DESC
+	--><!--
+	 SELECT T.FACTORY_CODE factoryCode,
+	      T.VIN vin,
+	      T.PASS_TIME passTime,
+	      to_char(SYSDATE, 'YYYY-MM-DD HH24:MI:SS') creationTime
+	    FROM MM_PUB_VEH_PASS T WHERE T.STATION_CODE = 'PA-OFF' 
+	    AND NOT EXISTS (
+	       SELECT 1 FROM MM_PUB_VEH_PASS P WHERE (P.STATION_CODE LIKE 'AF-%' AND P.STATION_CODE &lt;&gt; 'AF-ON' )
+	             AND P.ORDER_NO = T.ORDER_NO
+	   ) ORDER BY T.PASS_TIME DESC
+	--></select>
+	
+	<!-- 更新通廊低流动数邮件发送标识 -->
+	<update id="updateEmailSendFlag" parameterClass="pubOrderVO">
+		update mm_pub_model_flow_num t set t.is_send_email = #isSendEmail#
+	</update>
+	
+	<!-- 根据MM_PUB_VEH_PASS判断是否发送低流动数邮件 -->
+	<select id="queryIsSendEmail" parameterClass="pubOrderVO" resultClass="pubOrderVO">
+		SELECT  T.ORDER_NO orderNo,
+       			T.ERP_ORDER_NO erpOrderNo
+ 			FROM MM_PUB_VEH_PASS T WHERE T.PASS_TIME &gt; (SYSDATE - (30/1440))
+	</select>
+	
+	
+</sqlMap>

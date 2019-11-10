@@ -1,0 +1,154 @@
+package com.hanthink.sw.controller;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.hanthink.sw.manager.SwSupplierMsgManager;
+import com.hanthink.sw.model.SwSupplierMsgModel;
+import com.hanthink.util.constant.Constant;
+import com.hotent.base.api.model.ResultMessage;
+import com.hotent.base.core.web.GenericController;
+import com.hotent.base.core.web.RequestUtil;
+import com.hotent.org.api.model.IUser;
+import com.hotent.sys.util.ContextUtil;
+/**
+ * 
+* <p>Title: SwSupplierMsgController</p>  
+* <p>Description: 供应商信息更新controller</p> 
+* <p>Company: hanthink</p>
+* @author luoxq  
+* @date 2018年10月22日 上午11:19:27
+ */
+@Controller
+@RequestMapping("/sw/swSupplierMsg")
+public class SwSupplierMsgController extends GenericController{
+	
+	@Resource
+	private SwSupplierMsgManager manager;
+	
+	private static Logger log = LoggerFactory.getLogger(SwSupplierMsgController.class);
+
+	/**
+	 * 
+	 * <p>Title: save</p>  
+	 * <p>Description: 供应商信息更新界面，修改功能</p>  
+	 * @param request
+	 * @param response
+	 * @param dpmItemModel
+	 * @throws Exception  
+	 * @authoer luoxq
+	 * @time 2018年10月22日 上午11:02:48
+	 */
+	@RequestMapping("updateSupplier")
+	public void save(HttpServletRequest request,HttpServletResponse response, SwSupplierMsgModel model) throws Exception{
+		String resultMsg = null;
+		IUser user = ContextUtil.getCurrentUser(); 
+		try {
+			model.setUpdateBy(user.getAccount());//记录修改人
+			manager.updateAndLog(model, RequestUtil.getIpAddr(request));
+			resultMsg="更新成功";
+			writeResultMessage(response.getWriter(),resultMsg,ResultMessage.SUCCESS);
+		}catch (Exception e) {
+			e.printStackTrace();
+			log.error(e.toString());
+			resultMsg="操作失败";
+			writeResultMessage(response.getWriter(),resultMsg,e.getMessage(),ResultMessage.FAIL);
+		}
+	}
+	
+	/**
+	 * 供应商第一次登录
+	 * @param request
+	 * @param response
+	 * @param model
+	 * @throws Exception
+	 */
+    @RequestMapping("registSupplier")
+    public void registSupplier(HttpServletRequest request,HttpServletResponse response, SwSupplierMsgModel model) throws Exception{
+        String resultMsg = null;
+        IUser user = ContextUtil.getCurrentUser(); 
+        try {
+
+            model.setUpdateBy(user.getAccount());//记录修改人
+            manager.registSupplier(model,RequestUtil.getIpAddr(request));
+            resultMsg="更新成功";
+            writeResultMessage(response.getWriter(),resultMsg,ResultMessage.SUCCESS);
+        }catch (Exception e) {
+            e.printStackTrace();
+            log.error(e.toString());
+            throw new Exception("系统错误,请联系管理员");
+//            resultMsg="操作失败";
+//            writeResultMessage(response.getWriter(),resultMsg,e.getMessage(),ResultMessage.FAIL);
+        }
+    }
+	
+	/**
+	 * 
+	 * @Description: 通过供应商用户登录的id获取供应商代码
+	 * @param @param request
+	 * @param @param response
+	 * @param @return
+	 * @param @throws Exception   
+	 * @return String  
+	 * @throws  
+	 * @author luoxq
+	 * @date 2018年10月25日 下午2:29:15
+	 */
+	@RequestMapping("getSupplierNo")
+	public @ResponseBody SwSupplierMsgModel getSupplierNo(HttpServletRequest request, HttpServletResponse response) throws Exception{
+		String resultMsg = null;
+	    String supStatus = null;
+		IUser user = ContextUtil.getCurrentUser(); 
+		String userId = user.getAccount();
+		SwSupplierMsgModel model = new SwSupplierMsgModel();
+		model.setUserId(userId);		
+		//供应商出货地代码为账号最后一位
+		String supFactory = userId.substring(5,userId.length());
+		model.setSupFactory(supFactory);
+		
+		try {
+        	Map<String, Object> map = new HashMap<String, Object>();
+        	map.put("supplierNo", user.getSupplierNo());
+        	map.put("supFactory", supFactory);
+        	if (Constant.PUB_USER_FLAG_SU.equals(user.getUserType())) {
+        	   supStatus = manager.getSupStatusByUser(map);  //获取到当前供应商的供应商状态
+			}
+        	if (null != supStatus ) {
+				model.setSupStatus(supStatus);
+			}
+        	
+			if ( Constant.PUB_USER_FLAG_SU.equals(user.getUserType())) { //供应商用户根据账号查询出默认信息
+				
+				String activeStatus = manager.getActiveStatusByMap(map);
+				model.setActiveStatus(activeStatus);
+				model = manager.getSupplierByUserId(model);
+				if (null == model) {
+				    return new SwSupplierMsgModel();
+				}
+				return model;
+			} else {
+				return new SwSupplierMsgModel();
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.error(e.toString());
+			throw new Exception("系统错误,请联系管理员");
+//			resultMsg="获取供应商信息失败";
+//			writeResultMessage(response.getWriter(),resultMsg,e.getMessage(),ResultMessage.FAIL);
+		}
+//		return model;
+	}
+
+}

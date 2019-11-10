@@ -1,0 +1,282 @@
+.hkm-red-header{
+	background-color: #b21928;
+	color: #fff;
+}
+.hkm-red-header img{
+	width: 4.5rem;
+    padding-top: 0.39rem;
+}
+.hkm-red-header a,.hkm-red-header .title{
+	color: #fff;
+}
+.hkm-bottom-nav{
+	border-top: 1px solid rgb(189,198,207);
+}
+.hkm-bottom-nav a span.tab-label{
+	color: rgb(94,105,119);
+}
+.hkm-bottom-nav .tab-item.active{
+	color: rgb(175,25,40)!important;
+}
+.hkm-bottom-nav .tab-item.active span{
+	color: rgb(175,25,40)!important;
+}
+
+.bar{
+	border-bottom: none;
+}
+
+
+.tongzhiDetal-page .content-block {
+   margin-top:0rem ;
+}
+.tongzhiDetal-page .laiyuanBtn{
+	border-radius: 50%;
+	width: 3rem;
+	height: 3rem;
+	line-height: 3rem;
+}
+.tongzhiDetal-page .list-block{
+	margin: 0;
+}
+.tongzhiDetal-page .content-block{
+	padding-left: 0;
+	padding-right: 0;
+}
+
+.mybutton-danger{
+	border:1.5px solid #e34456;
+	color: #e34456;
+}
+.mybutton-success{
+	border:1.5px solid #23a452;
+	color: #23a452;
+}
+
+
+
+
+.xs-font{
+	font-size: 0.4rem!important;
+}
+.md-font{
+	font-size: 0.7rem!important;
+}
+
+
+#search{
+	text-align: center;
+	font-size: 0.6rem;
+}
+.searchbar-cancel{
+	font-size: 0.6rem;
+}
+label.icon-search{
+	display: inline;
+	left: 30%!important;
+	transition: all 0.3s;
+}
+#search:focus+label{
+	left: 5%!important;
+}
+#search:focus{
+	box-shadow: 1px 1px 5px rgba(0,0,0,0.3);
+}
+.mysearch .searchbar {
+     background: #fff!important;
+}
+
+.hkm-red-header .title,.hkm-red-header a{
+	font-size: 0.8rem!important;
+}
+.hkm-red-header .title{
+	line-height: 2.2rem!important;
+}
+.content{
+	background-color: #fff;
+}
+
+.email-list-page .list-block ul .media-list ul{
+	padding-left: 0;
+}
+.email-list-page .item-media img{
+	border-radius: 50%;
+	width: 2.5rem;
+}
+.email-list-page .media-list .item-inner{
+	width: 82%;
+	background-image: none;
+	border-bottom: none!important;
+	padding-right: 1.1rem;
+}
+.email-list-page .swipeout-content {
+    padding: 0.5rem 0px;
+}
+.formwho{
+	font-size: 0.8rem;
+	color: rgb(29,29,38);
+	font-weight: 700!important;
+}
+.email-time{
+	font-size: 0.5rem;
+	color: rgb(144,144,148);
+}
+.email-list-title{
+	font-size: 0.65rem;
+	color: rgb(29,29,38);
+}
+.email-list-text{
+	font-size: 0.6rem;
+	color: rgb(144,144,148);
+}
+.active-email{
+	background-color: rgb(232,66,108);
+	display: inline-block;
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	margin: 2px 5px;
+}
+/*li.swipeout.transitioning{
+	border-bottom: 1px solid rgba(0,0,0,0.1);
+}*/
+.email-list-page .list-block ul{
+	border-bottom: none;
+}
+
+/*writeEmailBtn*/
+.writeEmailBtn{
+	width:3rem;
+	height: 3rem;
+	background-color: rgb(252,164,10);
+	line-height: 3rem;
+	text-align: center;
+	color: #fff;
+	font-size: 1.2rem;
+	border-radius: 50%;
+	box-shadow: 1px 1px 10px rgba(0,0,0,0.3);
+	position: fixed;
+	right: 1rem;
+	bottom: 1rem;
+	z-index: 99999999;
+}
+.writeEmailBtn:active{
+	background-color: rgba(252,164,10,0.8);
+}
+
+.email-setting-page .content-block{
+	margin: 0;
+	padding: 0;
+}
+.email-setting-page .list-block.media-list{
+	margin: 0;
+}
+.email-setting-page .media-list .item-inner{
+	padding-top: 0.8rem;
+
+}
+.email-setting-page .setting-list .item-inner{
+		border-bottom: none;
+}
+.email-setting-page .setting-list{
+	margin: 0;
+}
+.email-setting-page .setting-list ul{
+	border: none;
+}
+.email-setting-page .setting-list li{
+	border-bottom: 1px solid rgba(0,0,0,0.1);
+}
+.email-setting-page .item-media img{
+	border-radius: 50%;
+	width: 3rem;
+}
+.email-setting-page .media-list li{
+	padding: 0.5rem 0;
+	background-color: rgb(246,248,250);
+}
+.email-setting-page .email-setting-title-font{
+	font-size: 0.9rem;
+	font-weight: bolder;
+	color: rgb(0,0,0);
+}
+.email-setting-page .email-setting-little-font{
+	font-size: 0.6rem;
+	color: rgb(142,142,142);
+}
+.setting-font{
+	font-size: 0.8rem;
+}
+.email-setting-page .item-title.setting-font{
+	padding: 0.45rem 0;
+}
+.email-setting-page .item-input{
+	width: auto;
+}
+
+.email-huifu-page .content-block {
+   margin-top:0rem ;
+}
+
+.email-huifu-page .list-block{
+	margin: 0;
+}
+.email-huifu-page .content-block{
+	padding-left: 0;
+	padding-right: 0;
+}
+
+.hkm-red-header .title,.hkm-red-header a{
+	font-size: 0.8rem!important;
+}
+.hkm-red-header .title{
+	line-height: 2.2rem!important;
+}
+.content{
+	background-color: #fff;
+}
+.title-font{
+	font-size: 0.8rem;
+	text-align: left;
+	font-weight: 600;
+}
+.email-huifu-page{
+	position: relative;
+}
+.emailTarget{
+	margin: 0;
+}
+.emailTarget ul{
+	border-top: none;
+}
+.emailMessage ul{
+	border-bottom: none;
+}
+.emailTarget .item-input input{
+	border: none;
+	font-size: 0.7rem;
+	color: #333;
+}
+.email-huifu-page .item-inner{
+	border-bottom:hidden;
+}
+.email-huifu-page{
+	background-color: #fff;
+}
+.email-huifu-page textarea{
+	min-height: 18rem;
+	text-align: left;
+	font-size: 0.7rem;
+	border: none;
+}
+.writeBottom{
+	position: absolute;
+	bottom: 0px;
+	width: 100%;
+	padding: 10px;
+	background-color: #fff;
+	border-top: 1px solid rgba(119,119,119,0.1);
+	font-size: 0.7rem;
+	z-index: 9999999;
+	color: rgb(119,119,119);
+}

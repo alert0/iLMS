@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:ns1="http://org.apache.axis2/xsd" xmlns:ns="http://localhost/BOI/" xmlns:ax21="http://localhost/BOI/xsd" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+  xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/" xmlns:http="http://schemas.xmlsoap.org/wsdl/http/" xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" xmlns:wsaw="http://www.w3.org/2006/05/addressing/wsdl" targetNamespace="http://localhost/BOI/">
+  <wsdl:documentation>Service</wsdl:documentation>
+  <wsdl:types>
+    <xs:schema attributeFormDefault="qualified" elementFormDefault="qualified" targetNamespace="http://localhost/BOI/xsd">
+      <xs:complexType name="Result">
+        <xs:sequence>
+          <xs:element minOccurs="0" name="invokeResult" type="xs:boolean" />
+          <xs:element minOccurs="0" name="result" nillable="true" type="xs:string" />
+        </xs:sequence>
+      </xs:complexType>
+    </xs:schema>
+    <xs:schema xmlns:ax22="http://localhost/BOI/xsd" attributeFormDefault="qualified" elementFormDefault="qualified" targetNamespace="http://localhost/BOI/">
+      <xs:import namespace="http://localhost/BOI/xsd" />
+      <xs:element name="Invoke">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element minOccurs="0" name="from" nillable="true" type="xs:string" />
+            <xs:element minOccurs="0" name="token" nillable="true" type="xs:string" />
+            <xs:element minOccurs="0" name="funcName" nillable="true" type="xs:string" />
+            <xs:element minOccurs="0" name="parameters" nillable="true" type="xs:string" />
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="InvokeResponse">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element minOccurs="0" name="return" nillable="true" type="ax21:Result" />
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:schema>
+  </wsdl:types>
+  <wsdl:message name="InvokeRequest">
+    <wsdl:part name="parameters" element="ns:Invoke" />
+  </wsdl:message>
+  <wsdl:message name="InvokeResponse">
+    <wsdl:part name="parameters" element="ns:InvokeResponse" />
+  </wsdl:message>
+  <wsdl:portType name="ServicePortType">
+    <wsdl:operation name="Invoke">
+      <wsdl:input message="ns:InvokeRequest" wsaw:Action="urn:Invoke" />
+      <wsdl:output message="ns:InvokeResponse" wsaw:Action="urn:InvokeResponse" />
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="ServiceSoap11Binding" type="ns:ServicePortType">
+    <soap:binding transport="http://schemas.xmlsoap.org/soap/http" style="document" />
+    <wsdl:operation name="Invoke">
+      <soap:operation soapAction="urn:Invoke" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:binding name="ServiceSoap12Binding" type="ns:ServicePortType">
+    <soap12:binding transport="http://schemas.xmlsoap.org/soap/http" style="document" />
+    <wsdl:operation name="Invoke">
+      <soap12:operation soapAction="urn:Invoke" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:binding name="ServiceHttpBinding" type="ns:ServicePortType">
+    <http:binding verb="POST" />
+    <wsdl:operation name="Invoke">
+      <http:operation location="Invoke" />
+      <wsdl:input>
+        <mime:content type="application/xml" part="parameters" />
+      </wsdl:input>
+      <wsdl:output>
+        <mime:content type="application/xml" part="parameters" />
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="Service">
+    <wsdl:port name="ServiceHttpSoap11Endpoint" binding="ns:ServiceSoap11Binding">
+      <soap:address location="http://localhost:9004/SmartWorkESB/services/Service.ServiceHttpSoap11Endpoint/" />
+    </wsdl:port>
+    <wsdl:port name="ServiceHttpSoap12Endpoint" binding="ns:ServiceSoap12Binding">
+      <soap12:address location="http://localhost:9004/SmartWorkESB/services/Service.ServiceHttpSoap12Endpoint/" />
+    </wsdl:port>
+    <wsdl:port name="ServiceHttpEndpoint" binding="ns:ServiceHttpBinding">
+      <http:address location="http://localhost:9004/SmartWorkESB/services/Service.ServiceHttpEndpoint/" />
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

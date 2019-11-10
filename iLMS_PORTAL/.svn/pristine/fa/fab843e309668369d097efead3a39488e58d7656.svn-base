@@ -1,0 +1,40 @@
+package com.hotent.sys.api.auth;
+
+import com.hotent.org.api.model.IUser;
+
+public interface IAuthService {
+	
+	/**
+	 * 登录后设置缓存。
+	 * @param uid
+	 * @param user
+	 */
+	String setAuth(IUser user);
+	
+	/**
+	 * 根据ID获取缓存。
+	 * @param uid
+	 * @return
+	 */
+	IAuthUser getByUid(String uid);
+	
+	/**
+	 * 获取appId 获取客户端验证的URL。
+	 * @param appId
+	 * @return
+	 */
+	String getClientUrlByAppId(String appId);
+	
+	/**
+	 * 根据APPID获取返回的URL。
+	 * @param appId
+	 * @return
+	 */
+	String getReturnUrlByAppId(String appId);
+
+	/**
+	 * 是否集群运行环境
+	 * @return
+	 */
+	Boolean isCluster();
+}

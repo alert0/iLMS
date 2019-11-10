@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.sys.persistence.model.MessageReceiver">
+	<resultMap id="MessageReceiver" type="com.hotent.sys.persistence.model.MessageReceiver">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="msgId" column="msg_id_" jdbcType="VARCHAR"/>
+		<result property="receiverType" column="receiver_type_" jdbcType="VARCHAR"/>
+		<result property="receiverId" column="receiver_id_" jdbcType="VARCHAR"/>
+		<result property="receiver" column="receiver_" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.sys.persistence.model.MessageReceiver">
+		INSERT INTO sys_msg_receiver
+		(id_,msg_id_,receiver_type_,receiver_id_,receiver_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{msgId,jdbcType=VARCHAR}, #{receiverType,jdbcType=VARCHAR}, #{receiverId,jdbcType=VARCHAR}, #{receiver,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="MessageReceiver">
+		SELECT * FROM sys_msg_receiver 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="MessageReceiver">
+		SELECT * FROM sys_msg_receiver
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.sys.persistence.model.MessageReceiver">
+		UPDATE sys_msg_receiver SET
+		msg_id_=#{msgId,jdbcType=VARCHAR},
+		receiver_type_=#{receiverType,jdbcType=VARCHAR},
+		receiver_id_=#{receiverId,jdbcType=VARCHAR},
+		receiver_=#{receiver,jdbcType=VARCHAR}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_msg_receiver 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	
+</mapper>

@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.bpmx.persistence.model.BpmCommuReceiver">
+	<resultMap id="BpmCommuReceiver" type="com.hotent.bpmx.persistence.model.BpmCommuReceiver">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="commuId" column="commu_id_" jdbcType="VARCHAR"/>
+		<result property="receiverId" column="receiver_id_" jdbcType="VARCHAR"/>
+		<result property="receiver" column="receiver" jdbcType="VARCHAR"/>
+		<result property="status" column="status_" jdbcType="VARCHAR"/>
+		<result property="opinion" column="opinion_" jdbcType="VARCHAR"/>
+		<result property="receiveTime" column="receive_time_" jdbcType="TIMESTAMP"/>
+		<result property="feedbackTime" column="feedback_time_" jdbcType="TIMESTAMP"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.bpmx.persistence.model.BpmCommuReceiver">
+		INSERT INTO bpm_commu_receiver
+		(id_,commu_id_,receiver_id_,receiver,status_,opinion_,receive_time_,feedback_time_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{commuId,jdbcType=VARCHAR}, #{receiverId,jdbcType=VARCHAR}, #{receiver,jdbcType=VARCHAR}, #{status,jdbcType=VARCHAR}, #{opinion,jdbcType=VARCHAR}, #{receiveTime,jdbcType=TIMESTAMP}, #{feedbackTime,jdbcType=TIMESTAMP})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="BpmCommuReceiver">
+		SELECT * FROM bpm_commu_receiver 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="BpmCommuReceiver">
+		SELECT * FROM bpm_commu_receiver
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.bpmx.persistence.model.BpmCommuReceiver">
+		UPDATE bpm_commu_receiver SET
+		commu_id_=#{commuId,jdbcType=VARCHAR},
+		receiver_id_=#{receiverId,jdbcType=VARCHAR},
+		receiver=#{receiver,jdbcType=VARCHAR},
+		status_=#{status,jdbcType=VARCHAR},
+		opinion_=#{opinion,jdbcType=VARCHAR},
+		receive_time_=#{receiveTime,jdbcType=TIMESTAMP},
+		feedback_time_=#{feedbackTime,jdbcType=TIMESTAMP}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM bpm_commu_receiver 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	<select id="getByCommuUser" resultMap="BpmCommuReceiver">
+		SELECT * FROM bpm_commu_receiver 
+		WHERE 
+		commu_id_=#{commuId} and receiver_id_=#{receiverId}  and status_ = 'no'
+	</select>
+	
+	<select id="getByCommuStatus" resultMap="BpmCommuReceiver">
+		SELECT * FROM bpm_commu_receiver 
+		WHERE 
+		commu_id_=#{commuId} 
+		<if test="status!=null">
+		and status_=#{status}
+		</if>
+	</select>
+	
+	<select id="checkHasCommued" resultType="int">
+		SELECT count(*) FROM bpm_commu_receiver 
+		WHERE 
+		commu_id_=#{commuId} and
+		receiver_id_=#{receiverId} and status_ = 'no'
+	</select>
+
+</mapper>

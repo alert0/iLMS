@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context" 
+	xsi:schemaLocation="http://www.springframework.org/schema/beans   http://www.springframework.org/schema/beans/spring-beans.xsd
+	http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+	<!-- Activiti流程定义缓存配置 -->
+	<bean id="activitiDefCache" class="com.hotent.bpmx.activiti.cache.ActivitiDefCache"/>
+	<!-- 流程引擎配置 -->
+	<bean id="processEngineConfiguration" class="org.activiti.spring.SpringProcessEngineConfiguration">
+		<property name="dataSource" ref="dataSource" />
+		
+		<property name="dbIdentityUsed" value="false" /> 
+		<property name="history" value="audit" />
+		<property name="transactionManager" ref="transactionManager" /> 
+		<property name="databaseSchemaUpdate" value="true" />
+		<property name="jobExecutorActivate" value="false" />
+		<property name="idGenerator" ref="activitiIdGenerator" />
+		<property name="processDefinitionCache" ref="activitiDefCache"/>
+		<property name="labelFontName" value="宋体"></property>
+		<property name="activityFontName" value="宋体"></property>
+		<!-- 
+		<property name="databaseType" value="${jdbc.dbType}" />
+		<property name="eventListeners">
+	      <list>
+	        <ref bean="globalEventListener"/>
+	      </list>
+	    </property>
+	     -->
+	</bean>
+	<!-- 
+	<bean id="globalEventListener" class="com.hotent.bpmx.activiti.listener.GlobalListener">
+		 <property name="handlers">
+			  <map>
+			   	<entry key="ACTIVITY_COMPLETED" value-ref="activityCompletedListener"/>
+			   	<entry key="ACTIVITY_STARTED" value-ref="activityStartListener"/>
+			  </map>
+		</property>
+	</bean>
+	
+	<bean id="activityCompletedListener" class="com.hotent.bpmx.activiti.listener.ActivitiCompletedHandler"></bean>
+	
+	<bean id="activityStartListener" class="com.hotent.bpmx.activiti.listener.ActivitiStartHandler"></bean>
+	 -->
+	<bean id="activitiIdGenerator" class="com.hotent.bpmx.activiti.id.ActivitiIdGenerator">
+		<property name="idGenerator" ref="idGenerator"/>
+	</bean>
+
+	<bean id="processEngine" class="org.activiti.spring.ProcessEngineFactoryBean">
+		<property name="processEngineConfiguration" ref="processEngineConfiguration" />
+	</bean>
+
+	<bean id="repositoryService" factory-bean="processEngine" factory-method="getRepositoryService" />
+	<bean id="runtimeService" factory-bean="processEngine" factory-method="getRuntimeService" />
+	<bean id="taskService" factory-bean="processEngine" factory-method="getTaskService" />
+	<bean id="historyService" factory-bean="processEngine" factory-method="getHistoryService" />
+	<bean id="managementService" factory-bean="processEngine" factory-method="getManagementService" />
+	<!--流程图生成服务类-->
+	<bean id="flowImageService" class="com.hotent.bpmx.activiti.def.graph.FlowImageService"/>
+	
+	<bean id="diagramService" class="com.hotent.bpmx.activiti.def.graph.DefaultDiagramService"/> 
+	
+	<!--加载扩展的流程组件 -->
+	<context:component-scan base-package="com.hotent.bpmx.activiti.*.service.impl" />
+	<context:component-scan base-package="com.hotent.bpmx.activiti.*.dao.impl" />
+</beans>

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.inv.model.InvOutLogModel">
+	<!-- 分页数据查询 -->
+	<select id="queryOutLogForPage" parameterType="com.hanthink.inv.model.InvOutLogModel" resultType="com.hanthink.inv.model.InvOutLogModel">
+		SELECT MIO.INV_OUT_NO outNo,
+	           MIO.TO_DEPOT_NO toDepotNo,
+	           MPD.CODE_VALUE_NAME outType,
+	           MID.PART_NO partNo,
+	           MUA.PART_SHORT_NO partShortNo,
+	           MPU.PART_NAME_CN partName,
+	           MID.REC_QTY recNum,
+	           MPPD.STANDARD_PACKAGE standardPac,
+	           CEIL(MID.REC_QTY/NVL(MPPD.STANDARD_PACKAGE,1)) recQty,
+	           TO_CHAR(MID.CREATION_TIME,'yyyy-MM-dd HH24:mm:ss') outTime
+	    FROM MM_INV_OUT_DETAIL MID
+	    LEFT JOIN MM_INV_OUT MIO
+	      ON MID.INV_OUT_NO = MIO.INV_OUT_NO
+		LEFT JOIN MM_PUB_PART MPU
+		  ON MID.PART_NO = MPU.PART_NO
+		  AND MPU.FACTORY_CODE = MIO.FACTORY_CODE
+		LEFT JOIN MM_PUB_PART_UDA MUA
+		  ON MUA.PART_NO = MPU.PART_NO
+		  AND MUA.FACTORY_CODE = MIO.FACTORY_CODE
+		LEFT JOIN MM_PUB_DATA_DICT MPD
+		  ON MPD.CODE_TYPE = 'INV_OUT_TYPE'
+		  AND MPD.CODE_VALUE = MIO.OUT_TYPE
+		  <!-- i-LMS2019053001 mod by 赵明健 -->
+		  AND MPD.FACTORY_CODE = MIO.FACTORY_CODE
+		LEFT JOIN MM_PKG_PROPOSAL MPPR
+		  ON MID.PART_NO = MPPR.PART_NO
+		  AND MIO.FACTORY_CODE = MPPR.FACTORY_CODE
+		  AND MPPR.PROPOSAL_STATUS = 5
+		  AND TRUNC(SYSDATE) BETWEEN TRUNC(MPPR.EFF_START) AND TRUNC(MPPR.EFF_END)
+		LEFT JOIN MM_PKG_PROPOSAL_DETAIL MPPD
+		  ON MPPR.ID = MPPD.PROPOSAL_ID
+	   WHERE MIO.FACTORY_CODE = #{factoryCode}
+	   <if test="outNo != null and outNo != ''">
+	   		AND MIO.INV_OUT_NO LIKE CONCAT(#{outNo},'%')
+	   </if>
+	   <if test="toDepotNo != null and toDepotNo != ''">
+	   		AND MIO.TO_DEPOT_NO = #{toDepotNo}
+	   </if>
+	   <if test="partNo != null and partNo != ''">
+	   		AND MID.PART_NO LIKE CONCAT(#{partNo},'%')
+	   </if>
+	   <if test="partShortNo != null and partShortNo != ''">
+	   		AND MUA.PART_SHORT_NO = #{partShortNo}
+	   </if>
+	   <if test="partName != null and partName != ''">
+	   		AND MPU.PART_NAME_CN LIKE CONCAT('%', CONCAT(#{partName}, '%'))
+	   </if>
+	   <if test="outTimeStart != null and outTimeStart != ''">
+	   		AND MID.CREATION_TIME >= TO_DATE(#{outTimeStart},'yyyy-MM-dd')
+	   </if>
+	   <if test="outTimeEnd != null and outTimeEnd != ''">
+	   		AND MID.CREATION_TIME <![CDATA[<=]]> TO_DATE(#{outTimeEnd},'yyyy-MM-dd')+1
+	   </if>
+	   <if test="outType != null and outType != ''">
+	   		AND MIO.OUT_TYPE = #{outType}
+	   </if>
+	   ORDER BY MIO.INV_OUT_NO,MID.PART_NO
+	</select>
+	<!-- 加载出库类型下拉框 -->
+	<select id="queryOutType" parameterType="java.lang.String" resultType="com.hanthink.inv.model.InvOutLogModel">
+		SELECT MPD.CODE_VALUE value,
+			MPD.CODE_VALUE_NAME label 
+		FROM MM_PUB_DATA_DICT MPD
+		WHERE MPD.FACTORY_CODE = #{factoryCode}
+		AND MPD.CODE_TYPE = 'INV_OUT_TYPE'
+	</select>
+</mapper>

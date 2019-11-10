@@ -1,0 +1,333 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.inv.model.InvDevelopModel">
+	<!-- 库存推移分页查 -->
+	<select id="queryForPage" parameterType="com.hanthink.inv.model.InvDevelopModel" resultType="com.hanthink.inv.model.InvDevelopModel">
+		SELECT MID.ID id,
+			   MPDD.CODE_VALUE_NAME workCenter,
+			   MID.PART_NO partNo,
+			   MUA.PART_SHORT_NO partShortNo,
+			   MPP.PART_NAME_CN partName,
+			   MID.CAL_POINT calPoint,
+			   MID.STOCK stock,
+			   MID.PLAN_QTY planQTY,
+			   MID.PRO_QTY proQTY,
+			   MID.STOCK+MID.PLAN_QTY-MID.PRO_QTY invSummary
+		FROM MM_INV_DEVELOP MID
+		LEFT JOIN MM_PUB_PART MPP
+		ON MID.PART_NO = MPP.PART_NO
+		<!-- i-LMS2019053001 mod by 赵明健  -->
+		AND MPP.FACTORY_CODE = MID.FACTORY_CODE
+		LEFT JOIN MM_PUB_PART_UDA MUA
+		ON MUA.PART_NO = MPP.PART_NO
+		<!-- i-LMS2019053001 mod by 赵明健  -->
+		AND MUA.FACTORY_CODE = MID.FACTORY_CODE
+		LEFT JOIN MM_PUB_DATA_DICT MPDD
+		ON MPDD.CODE_TYPE = 'PUB_WORKCENTER'
+		AND MID.WORK_CENTER = MPDD.CODE_VALUE
+		AND MPDD.FACTORY_CODE = #{factoryCode}
+		WHERE MID.FACTORY_CODE = #{factoryCode}
+		<if test="partNo != null and partNo != ''">
+			AND MID.PART_NO LIKE CONCAT(CONCAT('%',#{partNo}),'%')
+		</if>
+		ORDER BY MPDD.CODE_VALUE_NAME,MID.PART_NO,MID.CAL_POINT
+	</select>
+	<!-- 零件消耗量查询 -->
+	<select id="queryConsumptionForPage" parameterType="com.hanthink.inv.model.InvDevelopModel" resultType="com.hanthink.inv.model.InvDevelopModel">
+		SELECT MID.ID id,
+			   MPDD.CODE_VALUE_NAME workCenter,
+			   MID.PART_NO partNo,
+			   MUA.PART_SHORT_NO partShortNo,
+			   MPP.PART_NAME_CN partName,
+			   MID.CAL_POINT calPoint,
+			   MID.CAR_TYPE carType,
+			   MID.PRO_QTY proQTY
+		FROM MM_INV_DEVELOP MID
+		LEFT JOIN MM_PUB_PART MPP
+		ON MID.PART_NO = MPP.PART_NO
+		<!-- i-LMS2019053001 mod by 赵明健  -->
+		AND MPP.FACTORY_CODE = MPP.FACTORY_CODE
+		LEFT JOIN MM_PUB_PART_UDA MUA
+		ON MUA.PART_NO = MPP.PART_NO
+		<!-- i-LMS2019053001 mod by 赵明健  -->
+		AND MUA.FACTORY_CODE = MPP.FACTORY_CODE
+		LEFT JOIN MM_PUB_DATA_DICT MPDD
+		ON MPDD.CODE_TYPE = 'PUB_WORKCENTER'
+		AND MID.WORK_CENTER = MPDD.CODE_VALUE
+		AND MPDD.FACTORY_CODE = #{factoryCode}
+		WHERE MID.FACTORY_CODE = #{factoryCode}
+		<if test="partNo != null and partNo != ''">
+			AND MID.PART_NO LIKE CONCAT(#{partNo},'%')
+		</if>
+		<if test="partShortNo != null and partShortNo != ''">
+			AND MUA.PART_SHORT_NO = #{partShortNo}
+		</if>
+		ORDER BY MPDD.CODE_VALUE_NAME,MID.PART_NO
+	</select>
+	
+	<!-- 库存推移管理数据分页查询 -->
+	<select id="queryDevelopManagerForPage" parameterType="com.hanthink.inv.model.InvDevelopModel" resultType="com.hanthink.inv.model.InvDevelopModel">
+		SELECT MID.ID,
+	         MID.PART_NO partNo,
+	         MUA.PART_SHORT_NO partShortNo,
+	         MPP.PART_NAME_CN partName,
+	         MID.STOCK stock,
+	         MID.ADJ_STOCK adjStock,
+	         MPD.CODE_VALUE_NAME workCenter,
+	         MPPD.STANDARD_PACKAGE standardPac,
+	         CASE WHEN MPPD.STANDARD_PACKAGE IS NULL
+                THEN NULL
+                WHEN MPPD.STANDARD_PACKAGE IS NOT NULL
+                THEN CEIL(MID.STOCK / MPPD.STANDARD_PACKAGE)
+             END AS codeNum
+	    FROM MM_INV_DEV_BASE MID
+	      LEFT JOIN MM_PUB_PART MPP
+	      ON MID.PART_NO = MPP.PART_NO
+	      <!-- i-LMS2019053001 mod by 赵明健  -->
+	      AND MPP.FACTORY_CODE = MID.FACTORY_CODE
+	      LEFT JOIN MM_PUB_PART_UDA MUA
+	      ON MUA.PART_NO = MID.PART_NO
+	      <!-- i-LMS2019053001 mod by 赵明健  -->
+	      AND MUA.FACTORY_CODE = MID.FACTORY_CODE
+	      LEFT JOIN MM_PUB_DATA_DICT MPD
+	      ON MPD.CODE_TYPE = 'PUB_WORKCENTER'
+	      AND MID.WORK_CENTER = MPD.CODE_VALUE
+	      AND MPD.FACTORY_CODE = MID.FACTORY_CODE
+	      LEFT JOIN MM_PKG_PROPOSAL MPPR
+	           ON MID.PART_NO = MPPR.PART_NO
+	           AND MID.FACTORY_CODE = MPPR.FACTORY_CODE
+	           AND MPPR.PROPOSAL_STATUS = 5
+	           AND TRUNC(SYSDATE) BETWEEN TRUNC(MPPR.EFF_START) AND TRUNC(MPPR.EFF_END)
+	        LEFT JOIN MM_PKG_PROPOSAL_DETAIL MPPD
+	        ON MPPR.ID = MPPD.PROPOSAL_ID
+		WHERE MID.FACTORY_CODE = #{factoryCode}
+		<if test="partNo != null and partNo != ''">
+			AND MID.PART_NO LIKE CONCAT(#{partNo},'%')
+		</if>
+		ORDER BY MID.WORK_CENTER,MID.PART_NO
+	</select>
+	
+	<!-- 修改库存数据 -->
+	<update id="updateStock" parameterType="com.hanthink.inv.model.InvDevelopModel">
+		UPDATE MM_INV_DEV_BASE MID SET
+			   MID.STOCK = #{stock,jdbcType = NUMERIC},
+			   MID.ADJ_STOCK = #{adjStock,jdbcType = NUMERIC}
+		WHERE MID.ID = #{id,jdbcType = NUMERIC}
+	</update>
+	
+	<!-- 获取库存数据总数 -->
+	<parameterMap type="map" id="paramMap">  
+		<parameter property="factoryCode" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeUser" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="resultFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="resultMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap>
+	<select id="getStock" parameterMap="paramMap" statementType="CALLABLE">
+		{CALL PKG_INV_CHECK.INV_GET_STOCK_TOTAL(?, ?, ?,  ?)}
+	</select>
+	
+	<!-- 根据uuid删除临时表数据 -->
+	<delete id="deleteImportByUUID" parameterType="java.lang.String">
+		DELETE FROM MM_INV_DEV_BASE_IMP
+		WHERE IMP_UUID = #{uuid}
+	</delete>
+	
+	<!-- 将数据写入正式表 -->
+	<insert id="insertExcelToTemp">
+		INSERT INTO MM_INV_DEV_BASE_IMP
+		(IMP_UUID,WORK_CENTER,WARE_CODE,PART_NO,STOCK,ADJ_STOCK,CHECK_RESULT,CHECK_INFO,
+		IMPORT_STATUS,OPE_TYPE,FACTORY_CODE,CREATION_USER,CREATION_TIME)
+		<foreach  collection="list" item="item" index="index" separator=" UNION ALL" >
+			SELECT #{item.uuid,jdbcType=VARCHAR},#{item.workCenter,jdbcType=VARCHAR},#{item.wareCode,jdbcType=VARCHAR},
+				#{item.partNo,jdbcType=VARCHAR},#{item.stock,jdbcType=VARCHAR},#{item.adjStock,jdbcType=VARCHAR},#{item.checkResult,jdbcType=VARCHAR},
+				#{item.checkInfo,jdbcType=VARCHAR},#{item.importStatus,jdbcType=VARCHAR},#{item.opeType,jdbcType=VARCHAR},
+				#{item.factoryCode,jdbcType=VARCHAR},#{item.creationUser,jdbcType=VARCHAR},sysdate
+			FROM DUAL
+		</foreach>
+	</insert>
+	
+	<!-- 检查导入临时表数据 -->
+	<parameterMap type="map" id="impCkParamMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="userName" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<select id="checkStockImport" parameterMap="impCkParamMap" statementType="CALLABLE">
+		{CALL PKG_PUP_CHECK.INV_DEV_BASE_CEHCK(?, ?, ?,  ?,?)}
+	</select>
+	
+	<!-- 分页查询导入数据 -->
+	<select id="queryImportForPage" parameterType="java.lang.String" resultType="com.hanthink.inv.model.InvDevelopModel">
+		SELECT MID.WORK_CENTER workCenter,
+	         MID.WARE_CODE wareCode,
+	         MID.PART_NO partNo,
+	         MID.STOCK stock,
+	         MID.ADJ_STOCK adjStock,
+	         MID.CHECK_RESULT checkResult,
+	         MID.CHECK_INFO checkInfo,
+	         MID.IMPORT_STATUS importStatus,
+	         MID.OPE_TYPE opeType,
+	         MPD.CODE_VALUE_NAME excelImportStatus,
+	         MPDP.CODE_VALUE_NAME excelCheckResult
+	    FROM MM_INV_DEV_BASE_IMP MID
+	    LEFT JOIN MM_PUB_DATA_DICT MPD
+	    ON MPD.CODE_TYPE  = 'PUB_IMP_STATUS'
+	    AND MPD.CODE_VALUE = MID.IMPORT_STATUS
+	    AND MPD.FACTORY_CODE = MID.FACTORY_CODE
+	    LEFT JOIN MM_PUB_DATA_DICT MPDP
+	    ON MPDP.CODE_TYPE  = 'PUB_IMP_CK_RESULT'
+	    AND MID.CHECK_RESULT = MPDP.CODE_VALUE
+	    AND MPDP.FACTORY_CODE = MID.FACTORY_CODE
+		WHERE MID.IMP_UUID = #{uuid}
+	</select>
+	
+	<!-- 查询是否有数据可以写入 -->
+	<select id="queryImportCounts" parameterType="java.util.Map" resultType="java.lang.Integer">
+		SELECT COUNT(*) FROM MM_INV_DEV_BASE_IMP MID
+		WHERE MID.IMP_UUID = #{uuid}
+			  AND MID.CHECK_RESULT = #{checkResult}
+			  AND MID.IMPORT_STATUS = #{importStatus}
+	</select>
+	
+	
+	<!-- 将临时表数据写入正式表 -->
+	<insert id="insertTempToFormal" parameterType="java.util.Map">
+		INSERT INTO MM_INV_DEV_BASE
+		(ID,FACTORY_CODE,WARE_CODE,PART_NO,STOCK,ADJ_STOCK,CREATION_TIME,CREATION_USER,WORK_CENTER)
+		(SELECT PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_PUP_ROTE'),FACTORY_CODE,WARE_CODE,PART_NO,STOCK,ADJ_STOCK,
+			   CREATION_TIME,CREATION_USER,WORK_CENTER
+		 FROM MM_INV_DEV_BASE_IMP
+		 WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		       AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+		       AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR})
+	</insert>
+	<!-- 修改导入数据的状态 -->
+	<update id="updateImportStatus">
+		UPDATE MM_INV_DEV_BASE_IMP SET 
+			IMPORT_STATUS = #{IMPORT_STATUS_YES,jdbcType=VARCHAR} 
+		WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		  AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR}
+		  AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR}
+	</update>
+	
+	<!-- 查询推算服务的运行状态 -->
+	<select id="queryRunStatus" parameterType="java.lang.String" resultType="com.hanthink.inv.model.InvLockModel">
+		select a.type_value isLock
+	     from mm_inv_lock a
+	    where a.type_name = 'IS_AUTO'
+	      and a.factory = #{factoryCode}
+	</select>
+	
+	<!-- 修改推算服务的状态 -->
+	<update id="elapseUpdate" parameterType="com.hanthink.inv.model.InvLockModel">
+		update mm_inv_lock a set 
+				a.Type_Value = #{isAuto}
+		 where a.factory = #{factory}
+		   and a.type_name = 'IS_AUTO'
+	</update>
+	<update id="elapseUpdateFirst" parameterType="com.hanthink.inv.model.InvLockModel">
+		update mm_inv_lock a set 
+				a.Type_Value = #{isFirst}
+		 where a.factory = #{factory}
+		   and a.type_name = 'IS_FIRST'
+	</update>
+	<!-- 查询零件日消耗量 -->
+	<select id="queryDailyConsumption" parameterType="com.hanthink.inv.model.InvDevelopModel" resultType="com.hanthink.inv.model.InvDevelopModel">
+		SELECT TEMP.workCenter workCenter,
+		       TEMP.calPoint calPoint,
+		       CEIL(TEMP.dailyConsumption / NVL(TEMP.standPack, 1)) dailyConsumption,
+		       TEMP.partNo,
+		       TEMP.partShortNo
+		  FROM (SELECT MID.WORK_CENTER workCenter,
+		               TO_CHAR(MID.CAL_POINT, 'yyyy-MM-dd') calPoint,
+		               SUM(MID.PRO_QTY) dailyConsumption,
+		               MID.PART_NO partNo,
+		               MUA.PART_SHORT_NO partShortNo,
+		               MPPD.STANDARD_PACKAGE standPack
+		          FROM MM_INV_DEVELOP MID
+		          LEFT JOIN MM_PUB_PART MPP
+		            ON MPP.FACTORY_CODE = MID.FACTORY_CODE
+		           AND MPP.PART_NO = MID.PART_NO
+		          LEFT JOIN MM_PUB_PART_UDA MUA
+					ON MUA.PART_NO = MPP.PART_NO
+					AND MUA.FACTORY_CODE = MID.FACTORY_CODE
+		          LEFT JOIN MM_PKG_PROPOSAL MPPR
+		            ON MID.PART_NO = MPPR.PART_NO
+		           AND MID.FACTORY_CODE = MPPR.FACTORY_CODE
+		           AND MPPR.PROPOSAL_STATUS = 5
+		           AND TRUNC(SYSDATE) BETWEEN TRUNC(MPPR.EFF_START) AND
+		               TRUNC(MPPR.EFF_END)
+		          LEFT JOIN MM_PKG_PROPOSAL_DETAIL MPPD
+		            ON MPPR.ID = MPPD.PROPOSAL_ID
+		         WHERE MID.FACTORY_CODE = #{factoryCode}
+		         GROUP BY MID.WORK_CENTER,
+		                  TO_CHAR(MID.CAL_POINT, 'yyyy-MM-dd'),
+		                  MID.PART_NO,
+		                  MPPD.STANDARD_PACKAGE,
+		                  MUA.PART_SHORT_NO) TEMP
+         <if test="partNo != null and partNo != ''">
+         	WHERE TEMP.partNo = #{partNo}
+         </if>
+         <if test="partShortNo != null and partShortNo != ''">
+         	WHERE TEMP.partShortNo = #{partShortNo}
+         </if>
+	</select>
+	<!-- 零件消耗量详细查询 -->
+	<select id="queryDailyConsumptionDetail" parameterType="com.hanthink.inv.model.InvDevelopModel" resultType="com.hanthink.inv.model.InvDevelopModel">
+		SELECT TM.calPoint calPoint,
+		       TM.carType carType,
+		       CEIL(NVL(TM.stock,0) / NVL(MPPD.STANDARD_PACKAGE, 1)) stock,
+		       CEIL(NVL(TM.planQTY,0) / NVL(MPPD.STANDARD_PACKAGE, 1)) planQTY,
+		       CEIL(NVL(TM.proQTY,0) / NVL(MPPD.STANDARD_PACKAGE, 1)) proQTY,
+		       CEIL(NVL(TM.invSummary,0) / NVL(MPPD.STANDARD_PACKAGE, 1)) invSummary
+		  FROM (SELECT DISTINCT TO_CHAR(MID.CAL_POINT, 'hh24:mi') calPoint,
+		                        MID.CAR_TYPE carType,
+		                        SUM(MID.STOCK) stock,
+		                        SUM(MID.PLAN_QTY) planQTY,
+		                        SUM(MID.PRO_QTY) proQTY,
+		                        SUM(MID.STOCK + MID.PLAN_QTY - MID.PRO_QTY) invSummary
+		          FROM MM_INV_DEVELOP MID
+		         WHERE MID.WORK_CENTER = #{workCenter}
+		           AND MID.PART_NO = #{partNo}
+		           AND TO_CHAR(MID.CAL_POINT, 'yyyy-mm-dd') = #{calPoint}
+		           AND MID.FACTORY_CODE = #{factoryCode}
+		         GROUP BY MID.CAL_POINT, MID.CAR_TYPE) TM
+		  LEFT JOIN MM_PKG_PROPOSAL MPPR
+		    ON MPPR.PART_NO = #{partNo}
+		   AND MPPR.FACTORY_CODE = #{factoryCode}
+		   AND MPPR.PROPOSAL_STATUS = 5
+		   AND TRUNC(SYSDATE) BETWEEN TRUNC(MPPR.EFF_START) AND TRUNC(MPPR.EFF_END)
+		  LEFT JOIN MM_PKG_PROPOSAL_DETAIL MPPD
+		    ON MPPR.ID = MPPD.PROPOSAL_ID
+		ORDER BY TM.calPoint
+	</select>
+	<!-- 获取车间下的仓库信息 -->
+	<select id="queryWareForWorkcenter" parameterType="java.util.Map" resultType="java.lang.String">
+		SELECT MIW.WARE_CODE FROM MM_INV_WAREHOUSE MIW
+		 WHERE MIW.FACTORY_CODE = #{factoryCode}
+		  AND MIW.WARE_CODE LIKE CONCAT(#{wareCodeStart},'%');
+	</select>
+	<!-- 获取当前仓库下零件最小、最大库存 -->
+	<select id="queryWareListForStock" parameterType="java.util.Map" resultType="com.hanthink.inv.model.InvDevelopModel">
+		SELECT CEIL(NVL(TM.SAFE_STOCK,0) / NVL(MPPD.STANDARD_PACKAGE,1)) minStock,
+		       CEIL(NVL(TM.MAX_STOCK,0) / NVL(MPPD.STANDARD_PACKAGE,1)) maxStock
+		  FROM (SELECT SUM(MIS.SAFE_STOCK) SAFE_STOCK, SUM(MIS.MAX_STOCK) MAX_STOCK
+		          FROM MM_INV_STOCK MIS
+		         WHERE MIS.FACTORY_CODE = #{factoryCode}
+		           AND MIS.PART_NO = #{partNo}
+		           AND MIS.WARE_CODE IN 
+			<foreach collection="wareList" item="wareList" separator="," open="(" close=")">
+                #{wareList}
+            </foreach>
+				) TM
+		  LEFT JOIN MM_PKG_PROPOSAL MPPR
+		    ON MPPR.PART_NO = #{partNo}
+		   AND MPPR.FACTORY_CODE = #{factoryCode}
+		   AND MPPR.PROPOSAL_STATUS = 5
+		   AND TRUNC(SYSDATE) BETWEEN TRUNC(MPPR.EFF_START) AND TRUNC(MPPR.EFF_END)
+		  LEFT JOIN MM_PKG_PROPOSAL_DETAIL MPPD
+		    ON MPPR.ID = MPPD.PROPOSAL_ID
+	</select>
+</mapper>

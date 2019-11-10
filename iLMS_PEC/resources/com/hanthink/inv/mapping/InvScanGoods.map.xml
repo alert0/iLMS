@@ -1,0 +1,412 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.inv.model.InvScanGoodsModel">
+
+	<!-- 判断该订单是否存在于拉动订单表 -->
+	<select id="queryOrderTypeFromJit" resultType="java.lang.String">
+		SELECT 'JIT' orderType
+		FROM MM_JIT_ORDER
+		WHERE ORDER_NO = #{orderNo}
+    </select>
+    
+    <!-- 判断该订单是否存在于同步订单表 -->
+	<select id="queryOrderTypeFromJiso" resultType="java.lang.String">
+		SELECT 'JISO' orderType
+		  FROM MM_JISO_ORDER
+		 WHERE ORDER_NO = #{orderNo}
+    </select>
+    
+    <!-- 判断该订单是否存在于协同订单表 -->
+	<select id="queryOrderTypeFromSw" resultType="java.lang.String">
+		 SELECT 'SW' orderType
+		  FROM MM_SW_ORDER
+		 WHERE ORDER_NO = #{orderNo}
+    </select>
+    
+  	<!-- 查询拉动订单明细 -->
+	<select id="queryJitListByOrderNo" parameterType="com.hanthink.inv.model.InvScanGoodsModel"  resultType="com.hanthink.inv.model.InvScanGoodsModel">
+		 SELECT MJO.ORDER_NO orderNo,
+		 		MJO.ARR_DEPOT depotNo,
+		 		MJOD.ORDER_ROWNO orderRowNo,
+		        MJO.SUPPLIER_NO supplier,
+		        MPS.SUPPLIER_NAME supplierName,
+		        MJO.SUP_FACTORY supFactory,
+		        MJOD.PART_NO partNo,
+		        MUA.PART_SHORT_NO partShortNo,
+		        MPP.PART_NAME_CN partName,
+		        MJOD.REQUIRE_NUM shipQuantity,
+		        NVL(MJOD.ARRIVE_NUM, 0) receiveNum,
+		        MJOD.REQUIRE_NUM - NVL(MJOD.ARRIVE_NUM, 0) thisTimeReceiveNum,
+		        MMK.CURR_BATCH_SEQNO curSeq
+		  FROM MM_JIT_ORDER MJO
+		  LEFT JOIN MM_JIT_ORDER_DETAIL MJOD
+		    ON MJO.ORDER_NO = MJOD.ORDER_NO
+		  LEFT JOIN MM_PUB_PART MPP
+		    ON MJOD.PART_NO = MPP.PART_NO
+		    AND MPP.FACTORY_CODE = #{factoryCode}
+		  LEFT JOIN MM_PUB_PART_UDA MUA
+		  	ON MUA.PART_NO = MPP.PART_NO
+		  	AND MUA.FACTORY_CODE = #{factoryCode}
+		  LEFT JOIN MM_PUB_SUPPLIER MPS
+		    ON MJO.SUPPLIER_NO = MPS.SUPPLIER_NO
+		  LEFT JOIN MM_PUB_PLAN_CODE MPPC
+		    ON MJO.PLAN_CODE = MPPC.PLAN_CODE
+		    AND MPPC.FACTORY_CODE = #{factoryCode}
+		  LEFT JOIN MM_MON_KB MMK
+		    ON MPPC.KB_ID = MMK.ID
+		 WHERE MJO.ORDER_NO = #{orderNo}
+		 <if test="flag = '0'" >
+		 	AND MJOD.REQUIRE_NUM > NVL(MJOD.ARRIVE_NUM, 0)
+		 </if>
+		 ORDER BY MJOD.ORDER_ROWNO
+    </select>
+    
+    <!-- 查询同步订单明细 -->
+	<select id="queryJisoListByOrderNo" parameterType="com.hanthink.inv.model.InvScanGoodsModel"  resultType="com.hanthink.inv.model.InvScanGoodsModel">
+		 SELECT MJO.ORDER_NO orderNo,
+		 		MJO.ARR_DEPOT depotNo,
+		 		MJOD.ORDER_ROWNO orderRowNo,
+		        MJO.SUPPLIER_NO supplier,
+		        MPS.SUPPLIER_NAME supplierName,
+		        MJO.SUP_FACTORY supFactory,
+		        MJOD.PART_NO partNo,
+		        MUA.PART_SHORT_NO partShortNo,
+		        MPP.PART_NAME_CN partName,
+		        MJOD.REQUIRE_NUM shipQuantity,
+		        NVL(MJOD.ARRIVE_NUM, 0) receiveNum,
+		        MJOD.REQUIRE_NUM - NVL(MJOD.ARRIVE_NUM, 0) thisTimeReceiveNum,
+		        MMK.CURR_BATCH_SEQNO curSeq
+		  FROM MM_JISO_ORDER MJO
+		  LEFT JOIN MM_JISO_ORDER_DETAIL MJOD
+		    ON MJO.ORDER_NO = MJOD.ORDER_NO
+		  LEFT JOIN MM_PUB_PART MPP
+		    ON MJOD.PART_NO = MPP.PART_NO
+		    AND MPP.FACTORY_CODE = #{factoryCode}
+		  LEFT JOIN MM_PUB_PART_UDA MUA
+		  	ON MUA.PART_NO = MPP.PART_NO
+		  	AND MUA.FACTORY_CODE = #{factoryCode}
+		  LEFT JOIN MM_PUB_SUPPLIER MPS
+		    ON MJO.SUPPLIER_NO = MPS.SUPPLIER_NO
+		  LEFT JOIN MM_PUB_PLAN_CODE MPPC
+		    ON MJO.PLAN_CODE = MPPC.PLAN_CODE
+		    AND MPPC.FACTORY_CODE = #{factoryCode}
+		  LEFT JOIN MM_MON_KB MMK
+		    ON MPPC.KB_ID = MMK.ID
+		 WHERE MJO.ORDER_NO = #{orderNo}
+		 <if test="flag = '0'" >
+		 	AND MJOD.REQUIRE_NUM > NVL(MJOD.ARRIVE_NUM, 0)
+		 </if>
+		 ORDER BY MJOD.ORDER_ROWNO
+    </select>
+    
+    <!-- 查询协同订单明细 -->
+	<select id="querySwListByOrderNo" parameterType="com.hanthink.inv.model.InvScanGoodsModel"  resultType="com.hanthink.inv.model.InvScanGoodsModel">
+		 SELECT MJO.ORDER_NO orderNo,
+		 		MJO.DEPOT_NO depotNo,
+		 		MJOD.ORDER_ROWNO orderRowNo,
+		        MJO.SUPPLIER_NO supplier,
+		        MPS.SUPPLIER_NAME supplierName,
+		        MJO.SUP_FACTORY supFactory,
+		        MJOD.PART_NO partNo,
+		        MUA.PART_SHORT_NO partShortNo,
+		        MPP.PART_NAME_CN partName,
+		        MJOD.ORDER_QTY - NVL(MJOD.CANCEL_NUM, 0) shipQuantity,
+		        NVL(MJOD.ARRIVE_NUM, 0) receiveNum,
+		        MJOD.ORDER_QTY - NVL(MJOD.ARRIVE_NUM, 0) - NVL(MJOD.CANCEL_NUM, 0) thisTimeReceiveNum
+		  FROM MM_SW_ORDER MJO
+		  LEFT JOIN MM_SW_ORDER_DETAIL MJOD
+		    ON MJO.PURCHASE_NO = MJOD.PURCHASE_NO
+		  LEFT JOIN MM_PUB_PART MPP
+		    ON MJOD.PART_NO = MPP.PART_NO
+		    AND MPP.FACTORY_CODE = #{factoryCode}
+		  LEFT JOIN MM_PUB_PART_UDA MUA
+		  	ON MUA.PART_NO = MPP.PART_NO
+		  	AND MUA.FACTORY_CODE = #{factoryCode}
+		  LEFT JOIN MM_PUB_SUPPLIER MPS
+		    ON MJO.SUPPLIER_NO = MPS.SUPPLIER_NO
+		 WHERE MJO.ORDER_NO = #{orderNo}
+		 <if test="flag = '0'" >
+		 	AND MJOD.ORDER_QTY - NVL(MJOD.CANCEL_NUM, 0) > NVL(MJOD.ARRIVE_NUM, 0)
+		 </if>
+		 ORDER BY MJOD.ORDER_ROWNO
+    </select>
+    
+     <!-- 根据订单号查询拉动订单收货数量 -->
+     <select id="queryJitShNum" parameterType="java.lang.String" resultType="java.lang.Integer">
+     	SELECT NVL(MJO.ARRIVE_COUNT, 0)
+		  FROM MM_JIT_ORDER MJO
+		 WHERE MJO.ORDER_NO = #{orderNo}
+     </select>
+     
+     <!-- 根据订单号查询同步订单收货数量 -->
+     <select id="queryJisoShNum" parameterType="java.lang.String" resultType="java.lang.Integer">
+     	SELECT NVL(MJO.ARRIVE_COUNT, 0)
+		  FROM MM_JISO_ORDER MJO
+		 WHERE MJO.ORDER_NO = #{orderNo}
+     </select>
+     
+     <!-- 根据订单号查询协同订单收货数量 -->
+     <select id="querySwShNum" parameterType="java.lang.String" resultType="java.lang.Integer">
+     	SELECT NVL(MSO.RECEIVE_COUNT, 0)
+		  FROM MM_SW_ORDER MSO
+		 WHERE MSO.ORDER_NO = #{orderNo}
+     </select>
+     
+     <!-- 更新拉动订单 -->
+     <update id="updateJitOrdetailByDealOrderSh" parameterType="com.hanthink.inv.model.InvScanGoodsModel">
+     	UPDATE MM_JIT_ORDER_DETAIL MJOD
+		   SET MJOD.ARRIVE_COUNT             = NVL(MJOD.ARRIVE_COUNT, 0) + 1,
+		       MJOD.LAST_MODIFIED_TIME       = SYSDATE,
+		       MJOD.RECEIVE_DATE             = SYSDATE,
+		       MJOD.ARRIVE_NUM               = NVL(MJOD.ARRIVE_NUM, 0) +
+		                                       TO_NUMBER(#{thisTimeReceiveNum}),
+		       MJOD.ACTUAL_ARR_PRODUCT_SEQNO = #{curSeq,
+		       jdbcType                      = NUMERIC},
+		       MJOD.ARRIVE_STATUS = CASE
+		                              WHEN NVL(MJOD.ARRIVE_NUM, 0) +
+		                                   TO_NUMBER(#{thisTimeReceiveNum}) =
+		                                   NVL(MJOD.REQUIRE_NUM, 0) THEN
+		                               2
+		                              WHEN NVL(MJOD.ARRIVE_NUM, 0) +
+		                                   TO_NUMBER(#{thisTimeReceiveNum}) &lt;
+		                                   NVL(MJOD.REQUIRE_NUM, 0) AND
+		                                   NVL(MJOD.ARRIVE_NUM, 0) +
+		                                   TO_NUMBER(#{thisTimeReceiveNum}) > 0 THEN
+		                               1
+		                              ELSE
+		                               2
+		                            END
+		 WHERE MJOD.ORDER_ROWNO = #{orderRowNo}
+		   AND MJOD.ORDER_NO = #{orderNo}
+     </update>
+     
+    <!-- 更新同步订单 -->
+    <update id="updateJisoOrdetailByDealOrderSh" parameterType="com.hanthink.inv.model.InvScanGoodsModel">
+    	UPDATE MM_JISO_ORDER_DETAIL MJOD
+		   SET MJOD.ARRIVE_COUNT             = NVL(MJOD.ARRIVE_COUNT, 0) + 1,
+		       MJOD.RECEIVE_DATE             = SYSDATE,
+		       MJOD.ARRIVE_NUM               = NVL(MJOD.ARRIVE_NUM, 0) +
+		                                       TO_NUMBER(#{thisTimeReceiveNum}),
+		       MJOD.ACTUAL_ARR_PRODUCT_SEQNO = #{curSeq,
+		       jdbcType = NUMERIC}, MJOD.ARRIVE_STATUS = CASE
+		                    WHEN NVL(MJOD.ARRIVE_NUM, 0) +
+		                         TO_NUMBER(#{thisTimeReceiveNum}) =
+		                         NVL(MJOD.REQUIRE_NUM, 0) THEN
+		                     2
+		                    WHEN NVL(MJOD.ARRIVE_NUM, 0) +
+		                         TO_NUMBER(#{thisTimeReceiveNum}) &lt;
+		                         NVL(MJOD.REQUIRE_NUM, 0) AND
+		                         NVL(MJOD.ARRIVE_NUM, 0) +
+		                         TO_NUMBER(#{thisTimeReceiveNum}) > 0 THEN
+		                     1
+		                    ELSE
+		                     0
+		                  END
+		 WHERE MJOD.ORDER_ROWNO = #{orderRowNo}
+		   AND MJOD.ORDER_NO = #{orderNo}
+    </update>
+    
+    <!-- 更新协同订单 -->
+    <update id="updateSwOrdetailByDealOrderSh" parameterType="com.hanthink.inv.model.InvScanGoodsModel">
+    	UPDATE MM_SW_ORDER_DETAIL MSOD
+		   SET MSOD.RECEIVE_COUNT  = NVL(MSOD.RECEIVE_COUNT, 0) + 1,
+		       MSOD.RECEIVE_DATE   = SYSDATE,
+		       MSOD.ARRIVE_NUM     = NVL(MSOD.ARRIVE_NUM, 0) +
+		                             TO_NUMBER(#{thisTimeReceiveNum}),
+		       MSOD.RECEIVE_STATUS = CASE
+		                               WHEN NVL(MSOD.ARRIVE_NUM, 0) +
+		                                    TO_NUMBER(#{thisTimeReceiveNum}) =
+		                                    NVL(MSOD.ORDER_QTY, 0) -
+		                                    NVL(MSOD.CANCEL_NUM, 0) THEN
+		                                2
+		                               WHEN NVL(MSOD.ARRIVE_NUM, 0) +
+		                                    TO_NUMBER(#{thisTimeReceiveNum}) &lt;
+		                                    NVL(MSOD.ORDER_QTY, 0) -
+		                                    NVL(MSOD.CANCEL_NUM, 0) AND
+		                                    NVL(MSOD.ARRIVE_NUM, 0) +
+		                                    TO_NUMBER(#{thisTimeReceiveNum}) > 0 THEN
+		                                1
+		                               ELSE
+		                                0
+		                             END
+		 WHERE MSOD.PURCHASE_NO = #{orderNo}
+		   AND MSOD.ORDER_ROWNO = #{orderRowNo}
+    </update>
+    
+    <!-- 添加收货记录头表 -->
+    <insert id="insertOrderShHeadLog" parameterType="com.hanthink.inv.model.InvScanGoodsModel">
+    	INSERT INTO MM_INV_IN
+		  (REC_NO,
+		   FACTORY_CODE,
+		   ORDER_NO,
+		   REC_TIMES,
+		   DEPOT_NO,
+		   OPE_IP,
+		   REC_CLIENT,
+		   ORDER_TYPE,
+		   ACTUAL_ARR_PRO_SEQNO,
+		   CREATION_USER,
+		   CREATION_TIME)
+		VALUES
+		  (#{orderNoSeq},
+		   #{factoryCode},
+		   #{orderNo,jdbcType=VARCHAR},
+		   #{recTimes,jdbcType=NUMERIC},
+		   #{depotNo,jdbcType=VARCHAR},
+		   #{ipAddr,jdbcType=VARCHAR},
+		   1,
+		   #{orderType,jdbcType=VARCHAR},
+		   #{curSeq,jdbcType=NUMERIC},
+		   #{opeUser,jdbcType=VARCHAR},
+		   SYSDATE)
+    </insert>
+     <!-- 添加收货记录头表 -->
+    <insert id="insertOrderShDetailLog" parameterType="com.hanthink.inv.model.InvScanGoodsModel">
+    	INSERT INTO MM_INV_IN_DETAIL
+		  (REC_NO, ROW_NO, REC_TIMES, PART_NO, ORDER_QTY, REC_QTY, CREATION_TIME)
+		VALUES
+		  (#{orderNoSeq,jdbcType=VARCHAR},
+		   #{orderRowNo,jdbcType=NUMERIC},
+		   #{recTimes,jdbcType=NUMERIC},
+		   #{partNo,jdbcType=VARCHAR},
+		   #{shipQuantity,jdbcType=NUMERIC},
+		   #{thisTimeReceiveNum,jdbcType=NUMERIC},
+		   SYSDATE)
+    </insert>
+    
+    <!-- 查看拉动订单行收货状态 -->
+    <select id="queryJitShStatusByOrderNo" parameterType="java.lang.String" resultType="java.lang.Integer">
+    	SELECT CASE
+	             WHEN SUM(shStatus) / COUNT(*) &lt; 1 THEN
+	              CEIL(SUM(shStatus) / COUNT(*))
+	             ELSE
+	              FLOOR(SUM(shStatus) / COUNT(*))
+	           END shStatus
+	      FROM (SELECT CASE MJOD.REQUIRE_NUM - NVL(MJOD.ARRIVE_NUM, 0)
+	                     WHEN MJOD.REQUIRE_NUM THEN
+	                      0
+	                     WHEN 0 THEN
+	                      2
+	                     ELSE
+	                      1
+	                   END shStatus
+	              FROM MM_JIT_ORDER_DETAIL MJOD
+	             WHERE MJOD.ORDER_NO = #{orderNo})
+    </select>
+    
+    <!-- 查询同步订单行收货状态 -->
+    <select id="queryJisoShStatusByOrderNo" parameterType="java.lang.String" resultType="java.lang.Integer">
+    	SELECT CASE
+             WHEN SUM(shStatus) / COUNT(*) &lt; 1 THEN
+              CEIL(SUM(shStatus) / COUNT(*))
+             ELSE
+              FLOOR(SUM(shStatus) / COUNT(*))
+           END shStatus FROM (SELECT CASE
+                                A.REQUIRE_NUM - NVL(A.ARRIVE_NUM, 0)
+                                 WHEN A.REQUIRE_NUM THEN
+                                  0
+                                 WHEN 0 THEN
+                                  2
+                                 ELSE
+                                  1
+                               END shStatus
+                          FROM MM_JISO_ORDER_DETAIL A
+                         WHERE A.ORDER_NO = #{orderNo})
+    </select>
+    
+    <!-- 查询协同订单行收货状态 -->
+    <select id="querySwShStatusByOrderNo" parameterType="java.lang.String" resultType="java.lang.Integer">
+    	SELECT CASE
+             WHEN SUM(shStatus) / COUNT(*) &lt; 1 THEN
+              CEIL(SUM(shStatus) / COUNT(*))
+             ELSE
+              FLOOR(SUM(shStatus) / COUNT(*))
+           END shStatus
+        FROM (SELECT CASE
+                     A.ORDER_QTY -
+                          NVL(A.ARRIVE_NUM, 0) - NVL(A.CANCEL_NUM, 0) WHEN
+                      A.ORDER_QTY THEN
+                      0
+                     WHEN 0 THEN
+                      2
+                     ELSE
+                      1
+                   END shStatus
+              FROM MM_SW_ORDER_DETAIL A
+             WHERE A.PURCHASE_NO = #{orderNo})
+    </select>
+    
+    <!-- 更新拉动订单收货状态 -->
+    <update id="updateJitOrderShStatus" parameterType="com.hanthink.inv.model.InvScanGoodsModel">
+    	UPDATE MM_JIT_ORDER MJO
+	       SET MJO.ARRIVE_COUNT = NVL(MJO.ARRIVE_COUNT, 0) + 1,
+	           MJO.ARRIVE_STATUS = #{shStatus},
+	           MJO.ACTUAL_ARR_PRODUCT_SEQNO = #{curSeq,jdbcType=NUMERIC},
+	           MJO.RECEIVE_DATE = SYSDATE
+	     WHERE MJO.ORDER_NO = #{orderNo}
+    </update>
+    
+    <!-- 更新同步订单收货状态   -->
+	<update id="updateJisoOrderShStatus" parameterType="com.hanthink.inv.model.InvScanGoodsModel">
+		  UPDATE MM_JISO_ORDER MJO
+	        SET MJO.ARRIVE_COUNT = NVL(MJO.ARRIVE_COUNT, 0) + 1,
+	            MJO.ARRIVE_STATUS = #{shStatus},
+	            MJO.ACTUAL_ARR_PRODUCT_SEQNO = #{curSeq,jdbcType=NUMERIC},
+              MJO.RECEIVE_DATE = SYSDATE
+	      WHERE MJO.ORDER_NO = #{orderNo}
+    </update>
+    
+    <!-- 更新协同订单收货状态 -->
+	<update id="updateSwOrderShStatus" parameterType="com.hanthink.inv.model.InvScanGoodsModel">
+		UPDATE MM_SW_ORDER MSO
+	         SET MSO.RECEIVE_DATE = SYSDATE,
+	             MSO.RECEIVE_COUNT = NVL(MSO.RECEIVE_COUNT, 0) + 1,
+	             MSO.RECEIVE_STATUS = #{shStatus},
+	             MSO.DEAL_FLAG = 0
+	       WHERE MSO.ORDER_NO = #{orderNo}
+    </update>
+    
+    <!-- 查询同步订单对应的线边仓库 -->
+	<select id="queryJISOWareCode" parameterType="java.lang.String" resultType="com.hanthink.inv.model.InvScanGoodsModel">
+		SELECT CASE
+		         WHEN B.WORKCENTER = 'A1' THEN
+		          'AW11'
+		         WHEN B.WORKCENTER = 'W1' THEN
+		          'WW11'
+		       END depotNo
+		  FROM MM_JISO_ORDER A
+		  LEFT JOIN MM_PUB_PLAN_CODE B
+		    ON A.PLAN_CODE = B.PLAN_CODE
+		    AND B.FACTORY_CODE = #{factoryCode}
+		  WHERE A.ORDER_NO = #{orderNo}
+    </select>
+    
+    <!-- 拉动单找工厂 -->
+	<select id="queryJitFactoryByOrderNo" parameterType="com.hanthink.inv.model.InvScanGoodsModel" resultType="java.lang.String">
+		  SELECT B.FACTORY_CODE  factoryCode
+	        FROM MM_JIT_ORDER A
+	   LEFT JOIN MM_PUB_PLAN_CODE B
+	          ON A.PLAN_CODE = B.PLAN_CODE
+	       WHERE A.ORDER_NO = #{orderNo}
+	         AND ROWNUM = 1
+    </select>
+    
+    <!-- 同步单找工厂 -->
+	<select id="queryJisoFactoryByOrderNo" parameterType="com.hanthink.inv.model.InvScanGoodsModel" resultType="java.lang.String">
+		  SELECT B.FACTORY_CODE  factoryCode
+	        FROM MM_JISO_ORDER A
+	   LEFT JOIN MM_PUB_PLAN_CODE B
+	          ON A.PLAN_CODE = B.PLAN_CODE
+	       WHERE A.ORDER_NO = #{orderNo}
+	         AND ROWNUM = 1
+    </select>
+    
+    <!-- 协同单找工厂-->
+	<select id="querySwFactoryByOrderNo" parameterType="com.hanthink.inv.model.InvScanGoodsModel" resultType="java.lang.String">
+		 SELECT A.FACTORY_CODE  factoryCode
+		  FROM MM_SW_ORDER A
+		 WHERE A.ORDER_NO = #{orderNo}
+		   AND ROWNUM = 1
+    </select>
+    
+</mapper>

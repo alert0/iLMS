@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html ng-app="myApp">
+<head>
+<title>X5手机平台</title>
+<meta charset="utf-8">
+<script src="../assets/js/importJs.js"></script>
+
+<script type="text/javascript">
+var demId = 1;
+var myApp = angular.module("myApp", ['base','mobileDirective']);
+myApp.controller("myTaskCtrl",['$scope','baseService','$sce','$q', function(scope,baseService,$sce,$q) {
+	// 进行异步操作
+	var deferred = $q.defer();
+	// 加载顶级组织
+	scope.loadOrg = function(){
+		var param = {"demId":demId,"scope":"son"};
+		var url = __ctx + "/org/org/getTreeDataByDemid";
+		baseService.postForm(url,param).then(
+				function(data){
+					scope.parentOrg = data[0];
+					deferred.resolve();
+				},function(){}
+		)
+	}
+	// 加载组织
+	scope.loadSonOrg = function(){
+		var param = {"demId":demId,"id":scope.parentOrg.id};
+		var url = __ctx + "/org/org/getTreeDataByDemid";
+		baseService.postForm(url,param).then(
+				function(data){
+					scope.childrenOrg = data;
+				},function(){}
+			)
+	}
+	scope.loadOrg();
+	deferred.promise.then(function(){
+		scope.loadSonOrg();
+	});
+	scope.contactChild = function(item){
+		location.href = "contactChild.html?demId="+demId+"&id="+item.id+"&orgname="+item.name;
+	}
+}]);
+
+$(function(){
+	$("a.item-inner").click(function(){
+		$.closePanel()
+	});
+	$(".search-input").click(function(){
+		location.href = "contactSearch.html";
+	});
+})
+</script>
+</head>
+<body ng-controller="myTaskCtrl" class="body_foot">
+<div class="page" id="taskToDo">
+ 	<header class="hkm-red-header bar bar-nav">
+	  <a class="icon icon-menu open-panel pull-left" href="#"></a>
+	  <span class='title'>联系人</span>
+	</header>
+	<div class="bar bar-header-secondary">
+	  <div class="searchbar">
+	    <a class="searchbar-cancel">取消</a>
+	    <div class="search-input">
+	      <label class="icon icon-search" for="search"></label>
+	      <input type="search" id='search' placeholder=''/>
+	    </div>
+	  </div>
+	</div>
+   <div class="txl_part01 clearfix">
+		<a class="txl_part01_a" href="##"><img class="txl_img01" src="../assets/img/lxr.svg" alt="" /><span class="txl_link_word">常用联系人</span></a>
+		<a class="txl_part01_a" href="##"><img class="txl_img01" src="../assets/img/qunzu.svg" alt="" /><span class="txl_link_word">我的群组</span></a>
+		<a class="txl_part01_a" href="myDepartment.html" external><img class="txl_img01" src="../assets/img/bumen.svg" alt="" /><span class="txl_link_word">我的部门</span></a>
+		<a class="txl_part01_a" href="##"><img class="txl_img01" src="../assets/img/huibaox.svg" alt="" /><span class="txl_link_word">汇报线</span></a>
+	</div>
+ 
+	<div class="txl_jiagou">
+		<div class="txl_jiagou_tit clearfix"><img class="txl_img02" src="../assets/img/hotent_logo.jpg" alt="" /><p class="txl_jiagou_p">{{parentOrg.name}}（<span>{{parentOrg.population}}</span>人）</p></div>
+		<div>
+			<a class="txl_jiagou_list" href="##" ng-click="contactChild(item)" ng-repeat="item in childrenOrg"><span class="txl_jiagou_word">{{item.name}}</span><span class="txl_jiagou_num">{{item.population}}</span></a>
+		</div>
+	</div>
+
+	<div class="hot_foot clearfix">
+		<a href="../index.html" class="hot_foot_cell" external><span class="iconfont hot_foot_icon">&#xe601;</span><span class="hot_foot_word">首页</span></a>
+		<a href="workbench.html" class="hot_foot_cell" external><span class="iconfont hot_foot_icon">&#xe66b;</span><span class="hot_foot_word">工作台</span></a>
+		<!-- <a href="../im/session.html" class="hot_foot_cell" external><span class="iconfont hot_foot_icon">&#xe61c;</span><span class="hot_foot_word">消息</span></a> -->
+		<a href="##" class="hot_foot_cell current"><span class="iconfont hot_foot_icon">&#xe612;</span><span class="hot_foot_word">通讯录</span></a>
+		<a href="myCenter.html" class="hot_foot_cell" external><span class="iconfont hot_foot_icon">&#xe630;</span><span class="hot_foot_word">我的</span></a>
+	</div>
+</div>
+	<div index-page></div>
+	
+	<div class="panel-overlay"></div>
+</body>
+</html>

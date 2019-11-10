@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.bo.persistence.model.BOEntRel">
+	<resultMap id="BOEntRel" type="com.hotent.bo.persistence.model.BOEntRel">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="boDefid" column="bo_defid_" jdbcType="VARCHAR"/>
+		<result property="parentId" column="parent_id_" jdbcType="VARCHAR"/>
+		<result property="refEntId" column="ref_ent_id_" jdbcType="VARCHAR"/>
+		<result property="type" column="type_" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.bo.persistence.model.BOEntRel">
+		INSERT INTO xbo_ent_rel
+		(id_,bo_defid_,parent_id_,ref_ent_id_,type_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{boDefid,jdbcType=VARCHAR}, #{parentId,jdbcType=VARCHAR}, #{refEntId,jdbcType=VARCHAR}, #{type,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="BOEntRel">
+		SELECT * FROM xbo_ent_rel 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="BOEntRel">
+		SELECT * FROM xbo_ent_rel
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.bo.persistence.model.BOEntRel">
+		UPDATE xbo_ent_rel SET
+		bo_defid_=#{boDefid,jdbcType=VARCHAR},
+		parent_id_=#{parentId,jdbcType=VARCHAR},
+		ref_ent_id_=#{refEntId,jdbcType=VARCHAR},
+		type_=#{type,jdbcType=VARCHAR}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM xbo_ent_rel 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	<delete id="removeByDefId" parameterType="java.lang.String">
+		DELETE FROM xbo_ent_rel 
+		WHERE
+		bo_defid_=#{defId}
+	</delete>
+	
+	<select id="getByDefId"   parameterType="java.lang.String" resultMap="BOEntRel">
+		SELECT b.*,
+		a.id_ as "refEnt.id",a.package_id_ as "refEnt.packageId" ,a.name_ as "refEnt.name",a.desc_ as "refEnt.desc",
+		a.status_ as "refEnt.status",a.create_by_ as "refEnt.createBy" ,a.create_time_ as "refEnt.createTime",
+		a.is_create_table_ as "refEnt.isCreateTable",a.ds_name_ as "refEnt.dsName",a.table_name_ as "refEnt.tableName",
+		a.is_external_ as "refEnt.isExternal",a.pk_ as "refEnt.pk",a.fk_ as "refEnt.fk",a.pk_type_ as "refEnt.pkType",b.type_ as "refEnt.type"
+		 FROM xbo_ent a,xbo_ent_rel b
+		WHERE a.id_=b.ref_ent_id_ and b.bo_defid_=#{defId}
+	</select>
+	
+	<select id="getByEntId" parameterType="java.lang.String" resultMap="BOEntRel">
+		SELECT * FROM xbo_ent_rel 
+		WHERE 
+		ref_ent_id_=#{entId}
+	</select>
+	
+</mapper>

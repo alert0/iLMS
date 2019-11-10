@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.pup.model.PupVersionModel">
+	<!-- 版本比对数据分页查询 -->
+	<select id="queryVersionGap" parameterType="com.hanthink.pup.model.PupVersionPageModel" resultType="com.hanthink.pup.model.PupVersionModel">
+		SELECT MPLP.AREA area,
+			  MPLP.UNLOAD_PLACE unloadPlace,
+			  MPLP.PICKUP_TYPE pickupType,
+			  MPLP.CAR_TYPE carType,
+			  MPLP.ROUTE_CODE routeCode,
+			  MPLP.TOTAL_NO totalNo,
+			  MPLP.MERGE_NO mergeNo,
+			  TO_CHAR(MPLP.WORKDAY,'yyyy-MM-dd') newWorkday,
+			  TO_CHAR(MPV.WORKDAY,'yyyy-MM-dd') oldWorkday,
+			  ROUND(TO_NUMBER(MPLP.WORKDAY - MPV.WORKDAY)) workdayGap,
+			  MPLP.TODAY_NO todayNo,
+			  TO_CHAR(MPLP.PICK_DATE,'yyyy-MM-dd') pickDate,
+			  TO_CHAR(MPLP.PICK_DATE,'hh24:mi:ss') pickTime,
+			  TO_CHAR(MPLP.ARRIVE_DATE,'yyyy-MM-dd') arriveDate,
+			  TO_CHAR(MPLP.ARRIVE_DATE,'hh24:mi:ss') arriveTime,
+			  TO_CHAR(MPLP.ASSEMBLE_DATE,'yyyy-MM-dd') newAssembleDate,
+			  TO_CHAR(MPV.ASSEMBLE_DATE,'yyyy-MM-dd') oldAssembleDate,
+			  TO_CHAR(MPLP.ASSEMBLE_DATE,'hh24:mi:ss') newAssembleTime,
+			  TO_CHAR(MPV.ASSEMBLE_DATE,'hh24:mi:ss') oldAssembleTime
+		FROM MM_PUP_LOCK_PLAN MPLP,MM_PUP_VERSION MPV
+		WHERE MPLP.ID = MPV.ID
+		<if test="routeCode != null">
+			AND MPLP.ROUTE_CODE = #{routeCode}
+		</if>
+		<if test="carType != null">
+			AND MPLP.CAR_TYPE = #{carType}
+		</if>
+		<if test="diffFlag != null">
+			AND MPLP.ROUTE_CODE = #{diffFlag}
+		</if>
+	</select>
+	<!-- 查询差异标识 -->
+	<select id="getDiffFlag" parameterType="java.util.Map" resultType="com.hanthink.base.model.DictVO">
+		SELECT DISTINCT CODE_VALUE valueKey, CODE_VALUE_NAME valueName FROM MM_PUB_DATA_DICT 
+		WHERE 
+		CODE_TYPE = 'PUP_DIFF_FLAG'
+	</select>
+	<!-- 导入版本数据 -->
+	<insert id="importVesion">
+		INSERT INTO MM_PUP_LOCK_PLAN
+		(ID,FACTORY_CODE,AREA,UNLOAD_PLACE,PICKUP_TYPE,CAR_TYPE,ROUTE_CODE,TOTAL_NO,MERGE_NO,TODAY_NO,WORKDAY,
+			PICK_DATE,ARRIVE_DATE,ASSEMBLE_DATE,CREATION_USER,CREATION_TIME,LAST_MODIFIED_USER,LAST_MODIFIED_TIME)
+		<foreach  collection="list" item="item" index="index" separator=" UNION ALL" >
+			SELECT PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_PUP_LOCK_PLAN'),
+				   #{item.factoryCode,jdbcType=VARCHAR},
+				   #{item.area,jdbcType=VARCHAR},
+				   #{item.unloadPlace,jdbcType=VARCHAR},
+				   #{item.pickupType,jdbcType=VARCHAR},
+				   #{item.carType,jdbcType=VARCHAR},
+				   #{item.routeCode,jdbcType=VARCHAR},
+				   #{item.totalNo,jdbcType=VARCHAR},
+				   #{item.mergeNo,jdbcType=VARCHAR},
+				   #{item.todayNo,jdbcType=VARCHAR},
+				   TO_DATE(#{item.workday,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss'),
+				   TO_DATE(#{item.pickDate,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss'),
+				   TO_DATE(#{item.arriveDate,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss'),
+				   TO_DATE(#{item.assembleDate,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss'),
+				   #{item.creationUser,jdbcType=VARCHAR},
+				   TO_DATE(#{item.creationTime,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss'),
+				   #{item.lastModifiedUser,jdbcType=VARCHAR},
+				   TO_DATE(#{item.lastModifiedTime,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss')
+			FROM DUAL
+		</foreach>
+	</insert>
+</mapper>

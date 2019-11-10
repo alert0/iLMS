@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.system.worktime.model.CalendarShift">
+	<resultMap id="CalendarShift" type="com.hotent.system.worktime.model.CalendarShift">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="name" column="name_" jdbcType="VARCHAR"/>
+		<result property="memo" column="memo_" jdbcType="VARCHAR"/>
+		<result property="minutes" column="minutes_" jdbcType="NUMERIC"/>
+		<result property="isDefault" column="is_default_" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<sql id="columns">
+		id_,name_,memo_,minutes_,is_default_
+	</sql>
+	
+	<insert id="create" parameterType="com.hotent.system.worktime.model.CalendarShift">
+		INSERT INTO CAL_SHIFT
+		(id_,name_,memo_,minutes_,is_default_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR}, #{memo,jdbcType=VARCHAR}, #{minutes,jdbcType=NUMERIC} ,#{isDefault,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="CalendarShift">
+		SELECT * FROM CAL_SHIFT 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="CalendarShift">
+		SELECT * FROM CAL_SHIFT
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.system.worktime.model.CalendarShift">
+		UPDATE CAL_SHIFT SET
+		name_=#{name,jdbcType=VARCHAR},
+		memo_=#{memo,jdbcType=VARCHAR},
+		minutes_=#{minutes,jdbcType=NUMERIC},
+		is_default_=#{isDefault,jdbcType=VARCHAR} 
+		WHERE id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM CAL_SHIFT 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	<!-- 
+	  *获取cal_shit表的默认班次的id，初始化数据的时候，默认班次数据sql脚本insert到表里,
+      *亦可以由用户见面设定
+	 -->
+	<select id="getUniqueDefaultShift" parameterType="java.lang.String" resultMap="CalendarShift">
+		SELECT <include refid="columns"/> FROM CAL_SHIFT
+		WHERE is_default_ = 1
+	</select>
+	
+	<update id="setNotDefaultShift">
+		UPDATE CAL_SHIFT SET is_Default_=0
+	</update>
+</mapper>

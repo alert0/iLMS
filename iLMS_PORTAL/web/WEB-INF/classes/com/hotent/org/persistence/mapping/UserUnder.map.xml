@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.org.persistence.model.UserUnder">
+	<resultMap id="UserUnder" type="com.hotent.org.persistence.model.UserUnder">
+		<id property="id" column="ID_" jdbcType="VARCHAR"/>
+		<result property="userId" column="USER_ID_" jdbcType="VARCHAR"/>
+		<result property="underUserId" column="UNDER_USER_ID_" jdbcType="VARCHAR"/>
+		<result property="underUserName" column="UNDER_USER_NAME_" jdbcType="VARCHAR"/>
+		<result property="orgId" column="org_id_" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.org.persistence.model.UserUnder">
+		INSERT INTO sys_user_under
+		(ID_,USER_ID_,UNDER_USER_ID_,UNDER_USER_NAME_,org_id_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{userId,jdbcType=VARCHAR}, #{underUserId,jdbcType=VARCHAR}, #{underUserName,jdbcType=VARCHAR}, #{orgId,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="UserUnder">
+		SELECT * FROM sys_user_under 
+		WHERE 
+		ID_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="UserUnder">
+		SELECT * FROM sys_user_under
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY ID_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.org.persistence.model.UserUnder">
+		UPDATE sys_user_under SET
+		USER_ID_=#{userId,jdbcType=VARCHAR},
+		UNDER_USER_ID_=#{underUserId,jdbcType=VARCHAR},
+		UNDER_USER_NAME_=#{underUserName,jdbcType=VARCHAR},
+		org_id_=#{orgId,jdbcType=VARCHAR}
+		WHERE
+		ID_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_user_under 
+		WHERE
+		ID_=#{id}
+	</delete>
+	
+	<select id="getUserUnder" parameterType="java.util.Map" resultMap="UserUnder">
+		select * from sys_user_under where 1=1 
+		<if test="@Ognl@isNotEmpty(userId)">
+			AND user_id_ = #{userId}
+		</if>
+		<if test="@Ognl@isNotEmpty(orgId)">
+			AND org_id_ = #{orgId}
+		</if>
+		<if test="@Ognl@isNotEmpty(underUserId)">
+			AND under_user_id_ = #{underUserId}
+		</if>
+		<if test="@Ognl@isNotEmpty(underUserName)">
+			AND under_user_name_ like #{underUserName}
+		</if>
+		<if test="@Ognl@isNotEmpty(noUserId)">
+			AND user_id_ != #{noUserId}
+		</if>
+	</select>
+	
+	<delete id="delByOrgId" parameterType="java.lang.String">
+		delete from sys_user_under where ORG_ID_ = #{orgId}
+	</delete>
+	
+	<delete id="delByUpIdAndUderId" parameterType="java.util.Map">
+		delete from sys_user_under where USERID = #{upUserId} and UNDERUSERID = #{underUserId}
+	</delete>
+	
+</mapper>

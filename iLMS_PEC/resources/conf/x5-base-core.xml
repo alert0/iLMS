@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="
+        http://www.springframework.org/schema/beans     
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+        http://www.springframework.org/schema/context 
+        http://www.springframework.org/schema/context/spring-context.xsd" default-autowire="byType">
+       
+	<context:annotation-config />
+
+	<!-- context:property-placeholder  location="classpath:conf/x5-base-db.properties" /-->
+	
+	 <!-- spring上下文,可以获取 上下文的Context -->
+    <bean id="appUtil" class="com.hotent.base.core.util.AppUtil" />
+	
+	
+	<bean class="com.hotent.base.core.spring.HtPropertyPlaceholderConfigurer" id="corePlaceHolder">
+	    <property name="ignoreUnresolvablePlaceholders" value="true"/>
+	    <property name="systemPropertiesModeName" value="SYSTEM_PROPERTIES_MODE_OVERRIDE"/>
+	    <property name="searchSystemEnvironment" value="true"/>
+	    <property name="locations">
+	        <list>
+	            <value>classpath:conf/*.properties</value>
+	        </list>
+	    </property>
+	</bean>  
+	
+	<!-- <bean id="tableDataLogDao" class="com.hanthink.base.dao.impl.TableDataLogDaoImpl"></bean> -->
+	
+	<bean id="uniqueIdUtil" class="com.hotent.base.db.id.UniqueIdUtil">
+		<property name="idGenerator" ref="idGenerator"></property>
+	</bean>
+
+	<bean id="idGenerator" class="com.hotent.base.db.id.DefaultIdGenerator">
+		<property name="jdbcTemplate" ref="jdbcTemplate" />
+		<property name="machineName" value="${machine.name}" />
+		<property name="increaseBound" value="${increaseBound}" />
+	</bean>
+	
+	<!-- 邮件发送 -->
+	<bean id="mailSeting" class="com.hotent.base.core.mail.model.MailSetting">
+		<property name="sendHost" value="${mail.host}"/>
+		<property name="sendPort" value="${mail.port}"/>
+		<property name="SSL" value="${mail.ssl}"/>
+		<property name="protocal" value="smtp"/>
+		<property name="validate" value="true"/>
+		<property name="nickName" value="${mail.nickName}"/>
+		<property name="mailAddress" value="${mail.username}"/>
+		<property name="password" value="${mail.password}"/>
+	</bean>
+	
+	<!-- 阿里大于消息平台-->
+	<bean id="alidayuSetting" class="com.hotent.base.core.sms.AlidayuSetting">
+		<property name="freeSignName" value="${alidayu.freeSignName}"/>
+		<property name="appkey" value="${alidayu.appkey}"/>
+		<property name="secret" value="${alidayu.secret}"/>
+	    <property name="url" value="${alidayu.url}"/>
+	    <property name="extend" value="${alidayu.extend}"/>
+	    <property name="calledShowNum" value="${alidayu.calledShowNum}"/>
+	</bean>
+
+	<bean id="mailSender" class="com.hotent.base.core.mail.MailUtil">
+		<constructor-arg ref="mailSeting"></constructor-arg>
+	</bean>
+</beans>

@@ -1,0 +1,53 @@
+package com.hotent.base.authimpl;
+
+import com.hotent.org.api.model.IUser;
+import com.hotent.sys.api.auth.IAuthUser;
+
+public class AuthUser implements IAuthUser {
+	
+	private Long createTime=0L;
+	
+	private IUser user=null;
+	
+	private String tokenValue;
+	
+	public AuthUser(){}
+	
+	public AuthUser(IUser user){
+		this.createTime=System.currentTimeMillis();
+		this.user=user;
+	}
+
+	public AuthUser(IUser user, String tokenValue) {
+		this.createTime = System.currentTimeMillis();
+		this.user = user;
+		this.tokenValue = tokenValue;
+	}
+
+	@Override
+	public boolean isTimeOut() {
+		Long time= System.currentTimeMillis()-createTime;
+		if(time/1000<7200){  //time/1000<3600*24
+			return false;
+		}
+		return true;
+	}
+
+	@Override
+	public IUser getUser() {
+		return user;
+	}
+
+
+
+	@Override
+	public void resetTimeout() {
+		createTime=System.currentTimeMillis();
+	}
+
+	@Override
+	public String getTokenValue() {
+		return this.tokenValue;
+	}
+
+}

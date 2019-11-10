@@ -1,0 +1,295 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.sps.model.SpsConfigDetailModel">
+
+	<!-- 配置项明细维护查询 -->
+	<select id="queryConfigDetailsForPage" parameterType="com.hanthink.sps.model.SpsConfigDetailModel" resultType="com.hanthink.sps.model.SpsConfigDetailModel">
+		SELECT MSCD.ID id,
+	        MSCD.MODEL_CODE modelCode,
+	        MSCD.STATION_CODE stationCode,
+	        MSCD.PART_NO partNo,
+	        MPP.PART_SHORT_NO partShortNo,
+	        MPP.PART_NAME_CN partName,
+	        MSCD.PART_MARK partMark,
+	        MSCD.SHELF_NO shelfNo,
+	        MSC.CONFIG_CODE configCode,
+	        MSC.CONFIG_DESC configDesc
+	    FROM MM_SPS_CONFIG_DETAIL MSCD
+	    LEFT JOIN MM_SPS_CONFIG MSC
+	    ON MSC.ID = MSCD.CONFIG_ID
+	    <!-- i-LMS2019053001 mod by dtp -->
+	    LEFT JOIN MM_PUB_PART MPP
+	    ON MSCD.PART_NO = MPP.PART_NO AND MPP.FACTORY_CODE = #{factoryCode}
+		WHERE MSC.FACTORY_CODE = #{factoryCode}
+		<if test="configDesc != null and configDesc != ''">
+			AND MSC.CONFIG_DESC LIKE CONCAT(CONCAT('%',#{configDesc}),'%')
+		</if>
+		<if test="partNo != null and partNo != ''">
+			AND MSCD.PART_NO LIKE CONCAT(#{partNo},'%')
+		</if>
+		<if test="partShortNo != null and partShortNo != ''">
+			AND MPP.PART_SHORT_NO = #{partShortNo}
+		</if>
+		<if test="null != configCode and '' != configCode">
+			AND  MSC.CONFIG_CODE = #{configCode}
+		</if>
+		ORDER BY MSCD.ID DESC
+	</select>
+	
+	<!-- 判断零件号是否存在 -->
+	<select id="partNoIsExist" parameterType="com.hanthink.sps.model.SpsConfigDetailModel" resultType="java.lang.Object">
+		<!-- i-LMS2019053001 mod by dtp -->
+		SELECT COUNT(*) FROM MM_PUB_PART 
+		WHERE PART_NO = #{partNo} AND FACTORY_CODE = #{factoryCode}
+	</select>
+	
+	<!-- 判断业务主键是否存在 -->
+	<select id="mainKeyIsExist" parameterType="com.hanthink.sps.model.SpsConfigDetailModel" resultType="java.lang.Boolean">
+		SELECT COUNT(*) 
+		FROM 
+			MM_SPS_CONFIG_DETAIL MSCD
+			LEFT JOIN MM_SPS_CONFIG MSC
+			ON MSCD.CONFIG_ID = MSC.ID
+		WHERE MSC.CONFIG_CODE = #{configCode}
+			  AND MSCD.MODEL_CODE = #{modelCode}
+			  AND MSCD.STATION_CODE = #{stationCode}
+			  AND MSCD.PART_NO = #{partNo}
+	</select>
+	
+	<!-- 获取id值 -->
+	<select id="getConfigId" parameterType="com.hanthink.sps.model.SpsConfigDetailModel" resultType="java.lang.String">
+		SELECT MSC.ID
+		FROM MM_SPS_CONFIG MSC
+		WHERE MSC.FACTORY_CODE = #{factoryCode}
+			AND MSC.PRODUCTION_LINE =  #{productLine}
+			AND MSC.CONFIG_CODE = #{configCode}
+	</select>
+
+	<!-- 配置项数据信息详情 -->
+	<insert id="saveConfigDetailAdd" parameterType="com.hanthink.sps.model.SpsConfigDetailModel">
+		INSERT INTO MM_SPS_CONFIG_DETAIL
+		(ID,CONFIG_ID,MODEL_CODE,STATION_CODE,PART_NO,PART_MARK,SHELF_NO,CREATION_TIME,CREATION_USER,
+		LAST_MODIFIED_USER,LAST_MODIFIED_IP,LAST_MODIFIED_TIME)
+		VALUES
+		(PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_SPS_CONFIG_DETAIL'),#{configId},#{modelCode},#{stationCode},#{partNo},#{partMark},#{shelfNo},sysdate,#{creationUser},
+		#{creationUser},#{lastModifiedIp},sysdate)
+	</insert>
+	
+	<!-- 修改配置项数据信息 -->
+	<update id="updateConfigDetails" parameterType="com.hanthink.sps.model.SpsConfigDetailModel">
+		UPDATE MM_SPS_CONFIG_DETAIL MSC SET
+			MSC.PART_MARK = #{partMark},
+			SHELF_NO = #{shelfNo}
+		WHERE MSC.ID = #{id}
+	</update>
+	
+	<!-- 删除配置项数据信息 -->
+	<delete id="removeConfigDetailsByIds">
+		DELETE FROM MM_SPS_CONFIG_DETAIL MSC
+		WHERE MSC.ID IN
+		<foreach item="ids" collection="array" open="(" separator="," close=")">
+			#{ids,jdbcType=VARCHAR}
+		</foreach>
+	</delete>
+	
+	<!-- 根据uuid删除数据 -->
+	<delete id="deleteTempCongfigByUUID" parameterType="java.lang.String">
+		DELETE FROM MM_SPS_CONFIG_DETAIL_IMP MSC
+		WHERE MSC.IMP_UUID = #{uuid}
+	</delete>
+	
+	<!-- 将数据写入临时表 -->
+	<insert id="insertConfigToTemp" parameterType="java.util.List">
+		INSERT INTO MM_SPS_CONFIG_DETAIL_IMP
+		(ID,FACTORY_CODE,PRODUCTION_LINE,CONFIG_CODE,STATION_CODE,PART_NO,MODEL_CODE,PART_MARK,
+		 SHELF_NO,IMP_UUID,CHECK_RESULT,CHECK_INFO,IMPORT_STATUS,BUSI_ID)
+		<foreach  collection="list" item="item" index="index" separator=" UNION ALL" >
+		SELECT #{item.id},#{item.factoryCode},#{item.productLine},#{item.configCode,jdbcType=VARCHAR},
+		#{item.stationCode,jdbcType=VARCHAR},#{item.partNo,jdbcType=VARCHAR},#{item.modelCode,jdbcType=VARCHAR},
+		trim(replace(replace(#{item.partMark,jdbcType=VARCHAR}, chr(13), ''), chr(10), '')),
+		#{item.shelfNo,jdbcType=VARCHAR},#{item.uuid,jdbcType=VARCHAR},
+		#{item.checkResult,jdbcType=VARCHAR},#{item.checkInfo,jdbcType=VARCHAR},#{item.importStatus,jdbcType=VARCHAR},
+			   PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_SPS_CONFIG_DETAIL')
+		FROM DUAL
+		</foreach>
+	</insert>
+	
+	<!-- 调用存储校验数据 -->
+	<parameterMap type="map" id="checkResultMap">  
+	<parameter property="uuid"  mode="IN"/>  
+	<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+	<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<select id="ckeckImportConfig" parameterMap="checkResultMap" statementType="CALLABLE">
+		{CALL PKG_PUB_CHECK.USP_SPSCONFIG_IMPORT_CHECK(?, ?, ?)}
+	</select>
+	
+	<!-- Excel数据导入查询 -->
+	<select id="queryImportForPage" parameterType="java.lang.String" resultType="com.hanthink.sps.model.SpsConfigDetailModel">
+		SELECT MSC.CONFIG_CODE configCode,
+			   MSC.STATION_CODE stationCode,
+			   MSC.PART_NO partNo,
+			   MSC.MODEL_CODE modelCode,
+			   MSC.PART_MARK partMark,
+			   MSC.SHELF_NO shelfNo,
+			   MSC.CHECK_RESULT checkResult,
+			   MSC.CHECK_INFO checkInfo,
+			   MSC.IMPORT_STATUS importStatus,
+			   MPD.CODE_VALUE_NAME excelImportStatus,
+	           MPDP.CODE_VALUE_NAME excelCheckResult
+		FROM MM_SPS_CONFIG_DETAIL_IMP MSC
+			 LEFT JOIN MM_PUB_DATA_DICT MPD
+		     ON MPD.CODE_TYPE  = 'PUB_IMP_STATUS'
+		     AND MPD.CODE_VALUE = MSC.IMPORT_STATUS
+		     LEFT JOIN MM_PUB_DATA_DICT MPDP
+		     ON MPDP.CODE_TYPE  = 'PUB_IMP_CK_RESULT'
+		     AND MSC.CHECK_RESULT = MPDP.CODE_VALUE
+		WHERE MSC.IMP_UUID = #{uuid}
+		ORDER BY MSC.CHECK_RESULT
+	</select>
+	
+	<!-- 获取正确数据的条数 -->
+	<select id="getCountConfigImport" parameterType="java.util.Map" resultType="java.lang.Integer">
+		SELECT COUNT(*) FROM MM_SPS_CONFIG_DETAIL_IMP
+		WHERE IMP_UUID = #{uuid}
+			AND IMPORT_STATUS = #{importStatus}
+			AND CHECK_RESULT = #{checkResult}
+	</select>
+	
+	<!-- 将临时数据表的信息写入正式表 -->
+	<insert id="insertSPSConfigToFormal" parameterType="java.util.Map">
+		INSERT INTO MM_SPS_CONFIG_DETAIL
+		  (ID,
+		   CONFIG_ID,
+		   MODEL_CODE,
+		   STATION_CODE,
+		   PART_NO,
+		   PART_MARK,
+		   SHELF_NO,
+		   CREATION_TIME,
+		   CREATION_USER,
+		   LAST_MODIFIED_USER,
+		   LAST_MODIFIED_IP,
+		   LAST_MODIFIED_TIME)
+		  (SELECT MSCI.BUSI_ID,
+		          MSC.ID CONFIGID,
+		          MSCI.MODEL_CODE,
+		          MSCI.STATION_CODE,
+		          MSCI.PART_NO,
+		          MSCI.PART_MARK,
+		          MSCI.SHELF_NO,
+		          sysdate,
+		          #{creationUser},
+		          #{creationUser},
+		          #{ipAddr},
+		          sysdate
+		     FROM MM_SPS_CONFIG_DETAIL_IMP MSCI
+		     LEFT JOIN MM_SPS_CONFIG MSC
+		       ON MSCI.CONFIG_CODE = MSC.CONFIG_CODE
+		      AND MSCI.PRODUCTION_LINE = MSC.PRODUCTION_LINE
+		      AND MSCI.FACTORY_CODE = MSC.FACTORY_CODE
+		    WHERE IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		      AND CHECK_RESULT = '1'
+		      AND IMPORT_STATUS = '0')
+	   <!-- MERGE INTO MM_SPS_CONFIG_DETAIL A
+	      USING (SELECT * FROM MM_SPS_CONFIG_DETAIL_IMP B
+	            WHERE B.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+	              AND B.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+			          AND B.IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}) C
+	      ON (A.MODEL_CODE = C.MODEL_CODE AND A.STATION_CODE = C.STATION_CODE 
+	         AND A.PART_NO = C.PART_NO AND 
+	         A.CONFIG_ID = (SELECT DISTINCT F.ID FROM MM_SPS_CONFIG F ON F.CONFIG_VALUE = C.CONFIG_ID))
+	      WHEN MATCHED THEN
+	        UPDATE SET
+	               A.PART_MARK = C.PART_MARK,
+	               A.SHELF_NO = C.SHELF_NO,
+	               LAST_MODIFIED_USER = #{lastModifiedUser, jdbcType = VARCHAR},
+				         LAST_MODIFIED_IP = #{lastModifiedIp, jdbcType = VARCHAR},
+				         LAST_MODIFIED_TIME = SYSDATE
+	       WHEN NOT MATCHED THEN	
+					 INSERT
+	         (ID,
+	          CONFIG_ID,
+	          MODEL_CODE,
+	          STATION_CODE,
+	          PART_NO,
+	          PART_MARK,
+	          SHELF_NO,
+	          CREATION_TIME,
+			      CREATION_USER,
+	          LAST_MODIFIED_USER,
+	          LAST_MODIFIED_IP,
+	          LAST_MODIFIED_TIME) VALUES
+	          (
+	          C.BUSI_ID,
+	          (SELECT DISTINCT F.ID FROM MM_SPS_CONFIG F ON F.CONFIG_VALUE = C.CONFIG_ID),
+	          C.MODEL_CODE,
+	          C.STATION_CODE,
+	          C.PART_NO,
+	          C.PART_MARK,
+	          C.SHELF_NO,
+	          sysdate,
+	          #{creationUser},
+	          #{creationUser},
+	          #{ipAddr},
+	          sysdate
+	          ) -->
+	</insert>
+	
+	<!-- 修改临时数据表的导入状态 -->
+	<update id="updateImportStatus" parameterType="java.util.Map">
+		UPDATE MM_SPS_CONFIG_DETAIL_IMP SET 
+			IMPORT_STATUS = #{IMPORT_STATUS_YES,jdbcType=VARCHAR} 
+		WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		  AND CHECK_RESULT IN ('1', '2')
+		  AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR}
+	</update>
+	
+	<!-- 查询导入校验结果是否包含不通过 -->
+	<select id="queryIsExistsCheckResultFalse" parameterType="java.lang.String"
+		resultType="java.lang.Object">
+		SELECT COUNT(*)
+				FROM MM_SPS_CONFIG_DETAIL_IMP T
+			WHERE T.IMP_UUID = #{uuid, jdbcType=VARCHAR} AND T.CHECK_RESULT = 0		
+	</select>
+	
+	<!-- 查询更新数据 check_result = 2 -->
+	<select id="queryUpdateList" parameterType="java.util.Map" resultType="com.hanthink.sps.model.SpsConfigDetailModel">
+		SELECT 
+		   T.ID id,
+		   C.ID configId,
+	       T.FACTORY_CODE factoryCode,
+	       T.PRODUCTION_LINE productLine,
+	       T.CONFIG_CODE configCode,
+	       T.STATION_CODE stationCode,
+	       T.PART_NO partNo,
+	       T.MODEL_CODE modelCode,
+	       T.PART_MARK partMark,
+	       T.SHELF_NO shelfNo
+	  FROM MM_SPS_CONFIG_DETAIL_IMP T
+	  INNER JOIN MM_SPS_CONFIG C ON C.CONFIG_CODE = T.CONFIG_CODE AND T.FACTORY_CODE = C.FACTORY_CODE
+	  	WHERE T.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+	  	AND T.CHECK_RESULT = '2' 
+	  	AND T.IMPORT_STATUS = '0'
+	</select>
+	
+	<!-- 将临时表数据更新到正式表  check_result = 2-->
+	<update id="updateTempDataList" parameterType="com.hanthink.sps.model.SpsConfigDetailModel">
+		UPDATE MM_SPS_CONFIG_DETAIL T
+			SET 
+			T.PART_MARK = #{partMark, jdbcType = VARCHAR},
+			T.SHELF_NO  = #{shelfNo, jdbcType = VARCHAR},
+		    T.LAST_MODIFIED_USER = #{creationUser, jdbcType = VARCHAR}, 
+            T.LAST_MODIFIED_IP = #{lastModifiedIp, jdbcType = VARCHAR},   
+            T.LAST_MODIFIED_TIME = SYSDATE
+		WHERE 
+				T.PART_NO = #{partNo}
+			AND	T.MODEL_CODE = #{modelCode}
+			AND	T.CONFIG_ID = #{configId}
+			<if test="null != stationCode and ''!=stationCode ">
+				AND	T.STATION_CODE = #{stationCode}
+			</if>
+	</update>
+	
+	
+</mapper>

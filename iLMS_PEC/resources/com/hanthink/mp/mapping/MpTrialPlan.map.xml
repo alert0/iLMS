@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.mp.model.MpTrialPlanModel">
+
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="queryMpTrialPlanForPage" parameterType="com.hanthink.mp.model.MpTrialPlanModel" resultType="com.hanthink.mp.model.MpTrialPlanModel">
+		SELECT a.SORT_ID sortId,
+	    TO_CHAR(a.AFOFF_DATE, 'YYYY-MM-DD')  afoffDateStr,
+	    a.CAR_TYPE  carType,
+	    a.PRO_PHASE proPhase,
+	    a.ORDER_NO  orderNo,
+	    a.CAL_STATUS  calStatus,
+	    TO_CHAR(a.WEON_TIME, 'YYYY-MM-DD')  weonTimeStr,
+	    b.CODE_VALUE_NAME codeValueName,
+	    c.CODE_VALUE_NAME codeValueNameP
+	    FROM MM_MP_TRIAL_PLAN a
+	    LEFT JOIN MM_PUB_DATA_DICT b
+	        ON a.CAL_STATUS = b.CODE_VALUE
+	        AND b.CODE_TYPE = 'MP_CAL_STATUS'
+	        AND b.FACTORY_CODE = a.FACTORY_CODE
+	    LEFT JOIN MM_PUB_DATA_DICT c
+	        ON a.PRO_PHASE = c.CODE_VALUE
+	        AND c.CODE_TYPE = 'PUB_PHASE'
+	        <!-- i-LMS2019053001 mod by 赵明健 -->
+	        AND c.FACTORY_CODE = a.FACTORY_CODE
+		WHERE  1=1 
+		<if test="carType!=null and carType!='' ">
+		AND	a.CAR_TYPE = #{carType}
+		</if>
+		<if test="orderNo!=null and orderNo!='' ">
+		AND	a.ORDER_NO LIKE CONCAT(#{orderNo}, '%')
+		</if>
+		<if test="sortIdStrStart != null and sortIdStrStart != ''">
+		<![CDATA[ AND A.SORT_ID >= #{sortIdStrStart} ]]>
+		</if>
+        <if test="sortIdStrEnd != null and sortIdStrEnd != ''">
+        <![CDATA[ AND A.SORT_ID <= #{sortIdStrEnd} ]]>
+        </if>
+		<if test="afoffDateStrStart != null and afoffDateStrStart != ''">
+		<![CDATA[ AND a.AFOFF_DATE >= TO_DATE(#{afoffDateStrStart},'yyyy-MM-dd') ]]>
+		</if>
+        <if test="afoffDateStrEnd != null and afoffDateStrEnd != ''">
+        <![CDATA[ AND a.AFOFF_DATE <= TO_DATE(#{afoffDateStrEnd},'yyyy-MM-dd') ]]>
+        </if>
+        <if test="calStatus!=null and calStatus!='' ">
+		AND	a.CAL_STATUS = #{calStatus}
+		</if>
+        AND a.FACTORY_CODE = #{factoryCode}
+		ORDER BY a.SORT_ID 
+	</select>
+	
+	<!-- 批量导入数据写入到临时表 -->
+	<insert id="insertMpTrialPlanImportTempData" parameterType="java.util.List">
+		INSERT INTO  MM_MP_TRIAL_PLAN_IMP
+		(SORT_ID,
+		CAR_TYPE,
+		ORDER_NO,
+		AFOFF_DATE,
+		PRO_PHASE,
+		FACTORY_CODE,
+		WEON_TIME,
+		CREATE_USER,
+		CREATE_TIME,
+		CHECK_RESULT,
+		CHECK_INFO,
+		IMPORT_STATUS,
+		IMP_UUID)
+		<foreach collection="list" item="item" index="index" separator=" UNION ALL ">
+	  SELECT #{item.sortId,jdbcType=VARCHAR},
+	         #{item.carType,jdbcType=VARCHAR},
+			 #{item.orderNo,jdbcType=VARCHAR},
+			 to_date(#{item.afoffDateStr,jdbcType=VARCHAR}, 'yyyy-mm-dd'),
+			 #{item.proPhase,jdbcType=VARCHAR},
+			 #{item.factoryCode,jdbcType=VARCHAR},
+			 to_date(#{item.weonTimeStr,jdbcType=VARCHAR}, 'yyyy-mm-dd'),
+			 #{item.creationUser,jdbcType=VARCHAR},
+			 sysdate,
+			 #{item.checkResult,jdbcType=NUMERIC}, 
+			 #{item.checkInfo,jdbcType=VARCHAR}, 
+			 #{item.importStatus,jdbcType=NUMERIC},
+			 #{item.uuid,jdbcType=VARCHAR}
+			FROM DUAL 
+    	</foreach>
+	</insert>
+	
+	<!-- 检查导入临时表数据 -->
+	<parameterMap type="map" id="impCkParamMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="userName" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<select id="checkMpTrialPlanImportData" parameterMap="impCkParamMap" statementType="CALLABLE">
+		{CALL PKG_MP_CHECK.USP_MP_TRIAL_PLAN_CHECK(?, ?, ?,  ?,?)}
+	</select>
+	
+	<!-- 查询临时表数据 -->
+	<select id="queryMpTrialPlanImportTempData" parameterType="java.util.Map" resultType="com.hanthink.mp.model.MpTrialPlanModelImport">
+			  SELECT A.ID  id,
+		             A.SORT_ID   sortId,
+		             A.CAR_TYPE  carType,
+		             A.ORDER_NO   orderNo,
+		             TO_CHAR(A.AFOFF_DATE, 'YYYY-MM-DD')  afoffDateStr,
+		             A.PRO_PHASE  proPhase,
+		             A.FACTORY_CODE  factoryCode,
+		             TO_CHAR(A.WEON_TIME, 'YYYY-MM-DD')  weonTimeStr,
+		             A.CREATE_TIME   createTime,
+		             A.CREATE_USER  createUser,
+		             A.CHECK_RESULT   checkResult,
+		             A.CHECK_INFO   checkInfo,
+		             A.IMPORT_STATUS   importStatus,
+		             A.OPE_TYPE  opeType,
+		             A.IMP_UUID  uuid,
+		             B.CODE_VALUE_NAME codeValueNameB,
+		             C.CODE_VALUE_NAME codeValueNameC,
+		             D.CODE_VALUE_NAME codeValueNameD
+		        FROM MM_MP_TRIAL_PLAN_IMP A
+		        LEFT JOIN MM_PUB_DATA_DICT B
+			     ON A.CHECK_RESULT = B.CODE_VALUE
+			     AND B.CODE_TYPE ='PUB_IMP_CK_RESULT'
+			     AND B.FACTORY_CODE = A.FACTORY_CODE
+			     LEFT JOIN MM_PUB_DATA_DICT C
+			     ON A.IMPORT_STATUS = C.CODE_VALUE
+			     AND C.CODE_TYPE ='PUB_IMP_STATUS'
+			     AND C.FACTORY_CODE = A.FACTORY_CODE
+			     LEFT JOIN MM_PUB_DATA_DICT D
+		         ON A.PRO_PHASE = D.CODE_VALUE
+		        AND D.CODE_TYPE = 'PUB_PHASE'
+		        <!-- i-LMS2019053001 mod by 赵明健 -->
+		        AND D.FACTORY_CODE = A.FACTORY_CODE
+		       WHERE A.IMP_UUID = #{uuid,jdbcType=VARCHAR}
+	</select>
+	
+	<!-- 查询出最大的sortId -->
+	<select id="selectMaxSortId" resultType="java.lang.Integer">
+	     SELECT MAX(A.SORT_ID) 
+	     FROM MM_MP_TRIAL_PLAN A
+	</select>
+	
+	<!-- 导入临时数据写入到正式表 -->
+	<insert id="insertMpTrialPlanImportData" parameterType="java.util.Map" >
+		 INSERT INTO MM_MP_TRIAL_PLAN 
+				(SORT_ID, 
+				FACTORY_CODE, 
+				CAR_TYPE, 
+				ORDER_NO,
+				AFOFF_DATE,
+				PRO_PHASE,
+				WEON_TIME,
+				CREATION_USER,
+				CREATION_TIME
+				)
+        (SELECT NVL(#{sortIdMax,jdbcType=NUMERIC},0)+1 , 
+				FACTORY_CODE, 
+				CAR_TYPE, 
+				ORDER_NO, 
+				AFOFF_DATE,
+				PRO_PHASE,
+				WEON_TIME,
+				CREATE_USER,
+				CREATE_TIME
+		   FROM MM_MP_TRIAL_PLAN_IMP
+		  WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		    AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+		    AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR}
+		    AND OPE_TYPE = 'I')
+	</insert>
+	
+	<!-- 更新临时表数据导入状态 -->
+	<update id="updateMpTrialPlanImportDataImpStatus" parameterType="java.util.Map">
+		UPDATE MM_MP_TRIAL_PLAN_IMP SET IMPORT_STATUS = #{IMPORT_STATUS_YES,jdbcType=VARCHAR} 
+		WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		  AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+		  AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR} 
+	</update>
+	
+	<!-- 根据UUID删除导入的临时数据 -->
+	<delete id="deleteMpTrialPlanImportTempDataByUUID" parameterType="java.lang.String">
+		DELETE FROM MM_MP_TRIAL_PLAN_IMP WHERE IMP_UUID = #{value,jdbcType=VARCHAR}
+	</delete>
+	
+	<!-- 查询临时表中的数据是否可以导入 -->
+	<select id="queryMpTrialPlanIsImportFlag" parameterType="java.lang.String" resultType="java.lang.String">
+		WITH TEMPA AS
+		 (SELECT COUNT(1) s
+		    FROM MM_MP_TRIAL_PLAN_IMP A
+		   WHERE A.CHECK_RESULT = 0
+		     AND A.IMP_UUID = #{VALUE}),
+		TEMPB AS
+		 (SELECT COUNT(1) S
+		    FROM MM_MP_TRIAL_PLAN_IMP B
+		   WHERE B.IMP_UUID = #{VALUE})
+		SELECT CASE
+		         WHEN A.S >= B.S THEN
+		          0
+		         ELSE
+		          1
+		       END AS FLAG
+		  FROM TEMPA A, TEMPB B
+	</select>
+	
+	<!-- 查询可导入数据 -->
+	<select id="queryForInsertList" parameterType="java.util.Map" resultType="com.hanthink.mp.model.MpTrialPlanModel">
+		SELECT A.ID id
+		FROM  MM_MP_TRIAL_PLAN_IMP A
+		WHERE A.IMP_UUID = #{uuid}
+			  AND A.IMPORT_STATUS = #{importStatus}
+			  AND A.CHECK_RESULT = #{checkResult}
+	</select>
+	
+	<!-- 查询未订购数据的SortId用于记录日志 -->
+	<select id="querySortIdAndLogByCalStatus" resultType="java.lang.String">
+		SELECT 
+		a.SORT_ID
+		FROM MM_MP_TRIAL_PLAN a
+		WHERE  1=1 
+		AND a.CAL_STATUS = 0 
+	</select>
+	
+	<!-- 删除未订购数据 -->
+	<delete id="removeAndLogByCalStatus" >
+		DELETE FROM MM_MP_TRIAL_PLAN a
+		WHERE 1=1
+		AND a.CAL_STATUS = 0
+	</delete>
+	
+	<!-- 获取新车型计划 -->
+	<parameterMap type="map" id="getMpTrialPlanMap">  
+		<parameter property="factoryCode" jdbcType="VARCHAR" mode="IN"/> 
+		<parameter property="outCode" jdbcType="INTEGER" mode="OUT"/> 
+	</parameterMap> 
+	<select id="getMpTrialPlan" parameterMap="getMpTrialPlanMap" statementType="CALLABLE">
+		{CALL PKG_MP_MAIN.USP_MP_GET_TRIAL_PLAN(?,?)}
+	</select>
+</mapper>

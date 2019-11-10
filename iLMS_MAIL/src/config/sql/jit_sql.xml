@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="jit">
+	<typeAlias alias="jitJitPartVO" type="com.hanthink.gps.jit.vo.JitPartVO" />
+	<typeAlias alias="jitJitCalVO" type="com.hanthink.gps.jit.vo.JitCalVO"/>
+	
+	<typeAlias alias="jitPartOneToMoreVO" type="com.hanthink.gps.jit.vo.JitPartOneToMoreVO"/>
+	<typeAlias alias="pubPlanCodeVO" type="com.hanthink.gps.pub.vo.PubPlanCodeVO"/>
+	
+	<!-- 查询拉动配送基本信息未维护数据 
+	updated by chenjq 2016-11-9 
+	修改拉动配送基本信息未维护数据提醒邮件内容为：
+	增加截止未来14天生效限制；增加显示工作中心、最小生效日期、MTOC前4位、多供应商列表。
+	-->
+	<select id="select_queryJitBaseInfoExce" parameterClass="jitJitPartVO" resultClass="jitJitPartVO">
+      select p.part_no as partNo, 
+        p.part_short_no as partShortNo, 
+        p.part_name_zh as partNameZh,
+        n.workcenter as workcenter,
+        LISTAGG(n.model_code,',') WITHIN GROUP(ORDER BY n.model_code) as modelList,
+        min(n.eff_date) as effDate,
+        h.supplier_list  as supplierList
+      from (select distinct substr(m.partfid,1,4) as model_code,m.partid,PKG_MM_IF.USF_TRANS_PROCESS_WORKCENTER(m.process) as workcenter,
+                   to_date(to_char(m.changeeffdate,'yyyy-mm-dd'),'yyyy-mm-dd') eff_date 
+              from mm_mbom m
+             where m.arr_factory = #factoryCode#
+               and m.partid in
+                   (select c.part_no
+                      from (select distinct substr(a.part_no, 1, 10) jit_part_no
+                              from mm_jit_part a
+                             where sysdate &lt; a.eff_end
+                               and a.arr_factory = #factoryCode#) b,
+                           mm_part c
+                     where c.arr_factory = #factoryCode#
+                       and substr(c.part_no, 1, 10) = b.jit_part_no
+                       and not exists (select 1
+                              from mm_jit_part d
+                             where d.arr_factory = #factoryCode#
+                               and d.part_no = c.part_no
+                               and sysdate &lt; d.eff_end))
+               and m.changeuneffdate > sysdate and m.changeeffdate &lt; (sysdate+14)) n join 
+           mm_part p
+     on n.partid = p.part_no
+       and p.arr_factory = #factoryCode# 
+     left join 
+     (select k.arr_factory,k.part_no,LISTAGG(k.supplier_no,',') WITHIN GROUP(ORDER BY k.part_no) as supplier_list 
+              from mm_part_supplier k
+             where sysdate > k.eff_start and k.eff_end > sysdate and k.arr_factory=#factoryCode#
+               group by k.arr_factory,k.part_no having count(distinct k.supplier_no)>=2) h 
+      on p.part_no=h.part_no and p.arr_factory=h.arr_factory 
+    group by p.part_no,p.part_short_no,p.part_name_zh,n.workcenter,h.supplier_list
+	</select>
+	
+	<!-- 查询拉动落点车体数未维护数据 -->
+	<select id="select_queryJitLocCarExce" parameterClass="jitJitPartVO" resultClass="jitJitPartVO">
+		  select location as location
+		  from (select distinct a.location
+		          from mm_loc_part a
+		         where a.factory = #factoryCode#
+		        union all
+		        select distinct b.location
+		          from mm_loc_part_mto b
+		         where b.factory = #factoryCode#) c
+		 where not exists (select 1
+		          from mm_loc_num d
+		         where d.location = c.location
+		           and d.arr_factory = #factoryCode#
+		           and d.eff_start &lt;= sysdate
+		           and sysdate &lt; d.eff_end)
+	</select>
+	
+	<!-- 查询拉动零件落点未维护数据 -->
+	<select id="select_queryJitPartLocExce" parameterClass="jitJitPartVO" resultClass="jitJitPartVO">
+		select distinct t2.mto as mto, 
+		  t2.part_no as partNo
+        from (select t.mto, t1.part_no
+                from (
+                      <!--需检查的MTO列表(取锁定计划的MTOC，取当前已锁定sortId的前2000台)-->
+                      select distinct substr(a.mtoc, 1, 11) mto
+                        from if_mm_veh_plan a
+                       where a.sortid > (select b.max_sortid - 2000
+                                           from MM_JIT_QUEUE_CONFIG b
+                                          where b.plan_code = 'AFPLAN'
+                                            and b.factory = #factoryCode#)
+                         and a.factory = #factoryCode#
+                         and a.phase in (4, 5, 7)) t,
+                     mm_jit_part t1
+               where t1.arr_factory = #factoryCode#
+                 and t1.eff_end > sysdate) t2
+       where not exists (select 1 
+                from mm_loc_part n
+               where n.part_no = t2.part_no
+                 and n.factory = #factoryCode#
+                 and n.location &lt;&gt; 'no')
+      minus
+      select distinct l.mto, l.part_no
+        from mm_loc_part_mto l
+       where l.factory = #factoryCode#
+	</select>
+	
+	<!-- 查询拉动推算服务停止提醒信息 
+	updated by chenjq 2016-11-11 
+	去除不提醒PAOFF、ENGPLAN信息点的限制
+	-->
+	<select id="select_queryJitCalStopInfo" parameterClass="jitJitCalVO" resultClass="jitJitCalVO">
+		select (sysdate - t.last_update_time) * 24 * 60 as stopTime, 
+		  t.param_code as paramCode,
+		  substr(t.param_code,20) as jitPlanCode
+	    from MM_PUB_SYS_PARAM t
+	    where t.param_code like #paramCode# || '%' 
+		   and (sysdate - t.last_update_time) * 24 * 60 > 30
+	</select>
+	
+	<!-- 
+	 厂外拉动一点零件多个供应商异常提醒
+	 add by chenyong 2016-09-21
+	 -->
+	<select id="select_queryJitPartOneToMoreInfo" parameterClass="jitPartOneToMoreVO" resultClass="jitPartOneToMoreVO">
+	  select a.arr_factory as factory,a.part_no as partNo,LISTAGG(a.supplier_no,',') WITHIN GROUP(ORDER BY a.part_no) as supplierList 
+              from mm_part_supplier a
+             where exists (select 1
+                      from mm_jit_part m
+                     where m.eff_end > sysdate and m.part_no=a.part_no and m.arr_factory=a.arr_factory
+                     and m.ship_depot in(select n.ship_depot from mm_jit_order_config n))
+               and sysdate > a.eff_start and a.eff_end > sysdate and a.arr_factory=#factory#
+               and a.supplier_no not in
+                                (select supplier_no from mm_part_supplier_other)
+               group by a.arr_factory,a.part_no having count(distinct a.supplier_no)>=2
+	</select>
+	
+	<!-- add by dtp 20180806 统计最近二小时修改的余量日志 -->
+	<select id="select_queryPartRemainOpeAlertList" parameterClass="jitJitPartVO" resultClass="jitJitPartVO">
+		select t.part_no partNo,t.location location,t.plan_code planCode,t.factory factory,t.workcenter workcenter
+              ,t.part_remain_old partRemainOld,t.part_remain_new partRemainNew,t.part_remain_new-t.part_remain_old modNum
+              ,t.ope_user opeUser,t.ope_time opeTime
+              ,t.ope_ip opeIp
+	    from mm_jit_part_remain_log t
+	    where t.ope_time > sysdate - 1/12 
+	       	and t.factory = #factoryCode#
+	</select>
+	
+	<!-- add by dtp 20180807 统计拉动未收货数据 -->
+	<select id="select_queryNotRecGoodsList" parameterClass="jitJitPartVO" resultClass="jitJitPartVO">
+		select to_char(sysdate, 'yyyy-mm-dd') as repDate,
+		       a.workcenter,
+		       a.plan_code planCode,
+		       a.creation_time creationTime,
+		       a.order_no orderNo,
+		       a.arrive_batch arriveBatch,
+		       b.supplier_no supplierNo,
+		       b.supplier_name supplierName,
+		       b.part_no partNo,
+		       b.part_name partName,
+		       b.standard_package standardPackage,
+		       b.order_qty orderQty,
+		       (b.order_qty - b.total_actual_qty) as notRecQty,
+		       a.arr_factory factoryCode
+		  from mm_jit_sup_order a, mm_jit_sup_order_detail b
+		 where a.order_no = b.order_no
+		   and a.arr_factory = #factory# 
+		   and a.ship_depot_type = #shipDepotType#
+		   and a.workcenter = #workcenter#
+		   and b.total_actual_qty != b.order_qty 
+		   and a.arrive_product_seqno &lt;= to_number(#kbProductSeqNo#) -30
+		   and a.receive_status in(0,1)
+		   and a.depot_no not in('WZ01','WZ02','WZ03','WZ04') 
+		   and exists (select 1 from mm_jit_order_config cf where cf.arr_factory = a.arr_factory 
+		   and cf.workcenter = a.workcenter and cf.plan_code = a.plan_code and 
+		   cf.ship_depot = a.depot_no and cf.arr_depot = a.arr_depot and cf.is_show_monitor = '1' )
+		   order by a.creation_time,a.order_no,b.rowno
+	</select>
+	
+	<!-- add by dtp 20180809 查询当前看板批次进度 -->
+	<select id="select_queryKbBatch" parameterClass="jitJitPartVO" resultClass="jitJitPartVO">
+		select a.kb_product_seqno as kbProductSeqNo,pkg_mm_jit.USF_GET_BATCH_BY_PRODSEQNO(a.kb_product_seqno) as kbBatch
+		  from mm_jit_kb a
+		 where a.factory = #factory#
+		   and a.workcenter = #workcenter#
+		   and a.kb_code=#kbCode#
+	</select>
+	
+	<!-- add by dtp 20180809 厂外拉动零件并且bom生效但物料供应商关系数据失效或者没有维护物料供应商关系数据 -->
+	<select id="select_queryJitPartSupplierInvalid" parameterClass="jitPartOneToMoreVO" resultClass="jitPartOneToMoreVO">
+		select distinct a.arr_factory factory,a.workcenter workcenter,a.part_no partNo
+		  from mm_jit_part a
+		 where a.arr_factory = #factory#
+		   and a.ship_depot in (select n.ship_depot from mm_jit_order_config n)
+		   and a.eff_end &gt; sysdate
+		   and not exists (select 1
+		          from mm_part_supplier c
+		         where c.arr_factory = a.arr_factory
+		           and c.part_no = a.part_no 
+		           and c.supplier_no not in(select supplier_no from mm_part_supplier_other) 
+		           and c.eff_start &lt; sysdate 
+		           and c.eff_end &gt; sysdate) 
+		   and exists (select 1
+		          from mm_mbom b
+		         where b.arr_factory = a.arr_factory
+		           and b.partid = a.part_no
+		           and b.changeuneffdate &gt; sysdate)
+	</select>
+	
+	<!-- add by dtp 20180810 厂外拉动零件并且bom生效但物料供应商关系数据在3天后即将失效的  -->
+	<select id="select_querySupInvalidAfterThreeDayList"  parameterClass="jitPartOneToMoreVO" resultClass="jitPartOneToMoreVO">
+		select distinct a.arr_factory factory,a.workcenter workcenter,a.part_no partNo
+		  from mm_jit_part a
+		 where a.arr_factory = #factory#
+		   and a.ship_depot in (select n.ship_depot from mm_jit_order_config n)
+		   and a.eff_end &gt; sysdate
+		   and exists (select 1
+		          from mm_part_supplier c
+		         where c.arr_factory = a.arr_factory
+		           and c.part_no = a.part_no 
+		           and c.eff_end &gt; sysdate 
+		           and c.eff_end &lt; sysdate+3) 
+		   and exists(select 1
+		          from mm_part_supplier d
+		         where d.arr_factory = a.arr_factory
+		           and d.part_no = a.part_no 
+		           and d.supplier_no not in(select supplier_no from mm_part_supplier_other) 
+		           and d.eff_end &gt; sysdate group by d.arr_factory,d.part_no having count(distinct d.supplier_no)=1) 
+		   and exists (select 1
+		          from mm_mbom b
+		         where b.arr_factory = a.arr_factory
+		           and b.partid = a.part_no
+		           and b.changeuneffdate &gt; sysdate)
+	</select>
+	
+	<!-- 查询拉动推算异常停止信息(是否自动推算为0,推算状态为0) -->
+	<select id="select_queryJitReckonStopJob" parameterClass="pubPlanCodeVO" resultClass="pubPlanCodeVO">
+		SELECT (SYSDATE - T.LAST_EXEC_TIME) * 24 * 60 stopTime,
+	         T.PLAN_CODE planCode,
+	         T.PLAN_CODE_DESC planCodeDesc
+	    FROM MM_PUB_PLAN_CODE T
+	   WHERE T.PLAN_CODE_TYPE IN (#planCodeType#)
+	     AND (SYSDATE - T.LAST_EXEC_TIME) * 24 * 60 > 30
+	     AND T.IS_AUTO_EXEC = 0 AND T.EXEC_STATE = 0
+	     AND T.FACTORY_CODE = #factoryCode#
+	</select>
+	
+	
+</sqlMap>

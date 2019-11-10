@@ -1,0 +1,348 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.pup.model.PupRouteMessageModel">
+	
+	<!-- 基础数据查询 -->
+	<select id="queryRouteMessageForPage" resultType="com.hanthink.pup.model.PupRouteMessageModel">
+		SELECT mpp.ID id,
+			   mpp.FACTORY_CODE factoryCode,
+			   mpp.AREA area,
+			   mpp.UNLOAD_PLACE unloadPlace,
+			   mpp.SUPPLIER_NO supplierNo,
+			   mpp.SUP_FACTORY supFactory,
+			   mpp.UNLOAD_PORT unloadPort,
+			   mpp.CAR_TYPE carType,
+			   mpp.SUP_CAL_NUM supCalNum,
+			   mpp.START_SORT_ID startSortId,
+			   mpp.WARE_CODE wareCode,
+			   mpp.PICKUP_TYPE pickupType,
+			   mpp.ROUTE_CODE routeCode,
+			   mpp.ROUTE_NAME routeName,
+			   mpp.PICKUP_CAR pickupCar,
+			   mpp.LOC_DEPTH locDepth,
+			   mpp.ADVANCE_ARR_NUM advanceArrNum,
+			   TO_CHAR(mpp.FIRST_ARRIVE_TIME,'hh24:mi:ss') firstArriveTime,
+			   TO_CHAR(mpp.SPE_ARRIVE_TIME,'hh24:mi:ss') speArriveTime,
+			   mpp.TRANS_TIME transTime,
+			   mpp.REC_SHIFT_A recShiftA,
+			   mpp.REC_SHIFT_B recShiftB,
+			   mpp.MERGE_NUM mergeNum,
+			   mpp.WWL_MANAGER wwlManager,
+			   mpp.NWL_MANAGER nwlManager,
+			   mpp.PICK_CYCLE pickCycle,
+			   TO_CHAR(mpp.SUP_OUT_TIME,'hh24:mi:ss') supOutTime,
+			   mpp.CREATION_USER creationUser,
+			   TO_CHAR(mpp.CREATION_TIME,'yyyy-MM-dd hh24:mi:ss') creationTime,
+			   mpp.LAST_MODIFIED_USER lastModifiedUser,
+			   TO_CHAR(mpp.LAST_MODIFIED_TIME,'yyyy-MM-dd hh24:mi:ss') lastModifiedTime,
+			   mpp.FIRST_SORT_ID firstSortId,
+			   mpp.BATCH batch,
+			   MPD.CODE_VALUE_NAME excelBatch,
+			   mpp.ROUTE_DIST routeDist,
+			   mpp.DEPART_TIME_POINT departTimePoint,
+			   mpp.RET_EMPTY_PLATFORM retEmptyPlatform,
+			   mps.SUPPLIER_NAME supplierName
+		FROM MM_PUP_ROUTE mpp
+			LEFT JOIN MM_PUB_SUPPLIER mps
+			ON mpp.SUPPLIER_NO = mps.SUPPLIER_NO
+			LEFT JOIN MM_PUB_DATA_DICT MPD
+			ON MPD.code_type = 'PUB_TRUE_FALSE'
+			AND mpp.BATCH = MPD.CODE_VALUE
+			AND MPD.FACTORY_CODE = #{factoryCode}
+		WHERE mpp.FACTORY_CODE = #{factoryCode}
+		<if test="area != null and area != ''">
+			AND mpp.area = #{area}
+		</if>
+		<if test="unloadPlace != null and unloadPlace != ''">
+			AND mpp.UNLOAD_PLACE = #{unloadPlace}
+		</if>
+		<if test="unloadPort != null and unloadPort != ''">
+			AND mpp.UNLOAD_PORT = #{unloadPort}
+		</if>
+		<if test="routeCode != null and routeCode != ''">
+			AND mpp.ROUTE_CODE = #{routeCode}
+		</if>
+		<if test="supplierNo != null and supplierNo != ''">
+			AND mpp.SUPPLIER_NO = #{supplierNo}
+		</if>
+		<if test="pickupType != null and pickupType != ''">
+			AND mpp.PICKUP_TYPE = #{pickupType}
+		</if>
+		<if test="carType != null and carType != ''">
+			AND mpp.CAR_TYPE = #{carType}
+		</if>
+		<if test="batch != null and batch != ''">
+			AND mpp.BATCH = #{batch}
+		</if>
+		ORDER BY mpp.SUPPLIER_NO,mpp.SUP_FACTORY,mpp.CAR_TYPE
+	</select>
+	<!-- 查询批次取货标志
+	<select id="getBatch" parameterType="java.util.Map" resultType="com.hanthink.base.model.DictVO">
+		SELECT DISTINCT CODE_VALUE valueKey, CODE_VALUE_NAME valueName FROM MM_PUB_DATA_DICT 
+		WHERE 
+		CODE_TYPE = 'PUB_TRUE_FLASE'
+	</select> -->
+	
+	<!-- 根据id删除基础数据 -->
+	<delete id="removeRouteMessagesByIds" parameterType="java.lang.String">
+		DELETE FROM MM_PUP_ROUTE
+		WHERE ID IN
+		<foreach item="ids" collection="array" open="(" separator="," close=")">
+			#{ids}
+		</foreach>
+	</delete>
+	<!-- 根据UUID删除临时表中已存在的数据 -->
+	<delete id="deleteTempRouteMessageByUUID" parameterType="java.lang.String">
+		DELETE FROM MM_PUP_ROUTE_IMP
+		WHERE
+		IMP_UUID = #{uuid}
+	</delete>
+	<!-- 导入数据到临时表 -->
+	<insert id="insertRouteMessageToTempTable" parameterType="java.util.List">
+		INSERT INTO MM_PUP_ROUTE_IMP
+		(ID,FACTORY_CODE,AREA,ROUTE_DIST,UNLOAD_PLACE,SUPPLIER_NO,SUP_FACTORY,UNLOAD_PORT,CAR_TYPE,SUP_CAL_NUM,START_SORT_ID,
+		 WARE_CODE,ROUTE_CODE,ROUTE_NAME,PICKUP_TYPE,PICKUP_CAR,LOC_DEPTH,ADVANCE_ARR_NUM,FIRST_ARRIVE_TIME,SPE_ARRIVE_TIME,
+		 TRANS_TIME,REC_SHIFT_A,REC_SHIFT_B,MERGE_NUM,WWL_MANAGER,NWL_MANAGER,PICK_CYCLE,SUP_OUT_TIME,IMP_UUID,CHECK_RESULT,
+		 CHECK_INFO,IMPORT_STATUS,OPE_TYPE,CREATION_USER,CREATION_TIME,BATCH,DEPART_TIME_POINT,RET_EMPTY_PLATFORM)
+		 <foreach  collection="list" item="item" index="index" separator=" UNION ALL" >
+		 	SELECT #{item.id,jdbcType=VARCHAR},#{item.factoryCode,jdbcType=VARCHAR},#{item.area,jdbcType=VARCHAR},
+		 		   #{item.routeDist,jdbcType=VARCHAR},#{item.unloadPlace,jdbcType=VARCHAR},#{item.supplierNo,jdbcType=VARCHAR},
+		 		   #{item.supFactory,jdbcType=VARCHAR},#{item.unloadPort,jdbcType=VARCHAR},#{item.carType,jdbcType=VARCHAR},
+		 		   #{item.supCalNum,jdbcType=VARCHAR},#{item.startSortId,jdbcType=VARCHAR},#{item.wareCode,jdbcType=VARCHAR},
+		 		   #{item.routeCode,jdbcType=VARCHAR},#{item.routeName,jdbcType=VARCHAR},#{item.pickupType,jdbcType=VARCHAR},
+		 		   #{item.pickupCar,jdbcType=VARCHAR},#{item.locDepth,jdbcType=VARCHAR},#{item.advanceArrNum,jdbcType=VARCHAR},
+		 		   TO_DATE(#{item.firstArriveTime,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss'),
+		 		   TO_DATE(#{item.speArriveTime,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss'),
+		 		   #{item.transTime,jdbcType=VARCHAR},#{item.recShiftA,jdbcType=VARCHAR},#{item.recShiftB,jdbcType=VARCHAR},
+		 		   #{item.mergeNum,jdbcType=VARCHAR},#{item.wwlManager,jdbcType=VARCHAR},#{item.nwlManager,jdbcType=VARCHAR},
+		 		   #{item.pickCycle,jdbcType=VARCHAR},
+		 		   TO_DATE(#{item.supOutTime,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss'),
+		 		   #{item.impUUID,jdbcType=VARCHAR},
+		 		   #{item.checkResult,jdbcType=VARCHAR},#{item.checkInfo,jdbcType=VARCHAR},#{item.importStatus,jdbcType=VARCHAR},
+		 		   #{item.opeType,jdbcType=VARCHAR},#{item.creationUser,jdbcType=VARCHAR},
+		 		   sysdate,
+		 		   #{item.batch,jdbcType=VARCHAR},#{item.departTimePoint,jdbcType=VARCHAR},
+		 		   #{item.retEmptyPlatform,jdbcType=VARCHAR}
+		 	FROM DUAL
+		 </foreach>
+	</insert>
+	<!-- 检查导入临时表数据 -->
+	<parameterMap type="map" id="impCkParamMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="userName" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<select id="checkImportRouteMessage" parameterMap="impCkParamMap" statementType="CALLABLE">
+		{CALL PKG_PUP_CHECK.PUP_ROUTE_MESSAGE_CHECK(?, ?, ?,  ?,?)}
+	</select>
+	
+	<!-- 获导入数据正确数据的条数 -->
+	<select id="getCountForRouteImport" parameterType="java.util.Map" resultType="java.lang.Integer">
+		SELECT COUNT(*) FROM MM_PUP_ROUTE_IMP
+		WHERE IMP_UUID = #{uuid,jdbcType = VARCHAR} 
+		   AND CHECK_RESULT =#{checkResult,jdbcType = VARCHAR}
+		   AND IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}
+	</select>
+	
+	<!-- 查询导入数据 -->
+	<select id="queryImportModelForPage" parameterType="java.util.Map" resultType="com.hanthink.pup.model.PupRouteMessageModel">
+		SELECT mpp.ID id,
+			   mpp.FACTORY_CODE factoryCode,
+			   mpp.AREA area,
+			   ROUTE_DIST routeDist,
+			   mpp.UNLOAD_PLACE unloadPlace,
+			   mpp.SUPPLIER_NO supplierNo,
+			   mpp.SUP_FACTORY supFactory,
+			   mpp.UNLOAD_PORT unloadPort,
+			   mpp.CAR_TYPE carType,
+			   mpp.SUP_CAL_NUM supCalNum,
+			   mpp.START_SORT_ID startSortId,
+			   mpp.WARE_CODE wareCode,
+			   mpp.ROUTE_CODE routeCode,
+			   mpp.ROUTE_NAME routeName,
+			   mpp.PICKUP_TYPE pickupType,
+			   mpp.PICKUP_CAR pickupCar,
+			   mpp.LOC_DEPTH locDepth,
+			   mpp.ADVANCE_ARR_NUM advanceArrNum,
+			   TO_CHAR(mpp.FIRST_ARRIVE_TIME,'hh24:mi:ss') firstArriveTime,
+			   TO_CHAR(mpp.SPE_ARRIVE_TIME,'hh24:mi:ss') speArriveTime,
+			   mpp.TRANS_TIME transTime,
+			   mpp.REC_SHIFT_A recShiftA,
+			   mpp.REC_SHIFT_B recShiftB,
+			   mpp.MERGE_NUM mergeNum,
+			   mpp.WWL_MANAGER wwlManager,
+			   mpp.NWL_MANAGER nwlManager,
+			   mpp.PICK_CYCLE pickCycle,
+			   TO_CHAR(mpp.SUP_OUT_TIME,'hh24:mi:ss') supOutTime,
+			   mpp.CHECK_RESULT checkResult,
+			   mpd.CODE_VALUE_NAME excelCheckResult,
+			   mpp.CHECK_INFO checkInfo,
+			   mpp.IMPORT_STATUS importStatus,
+			   mpdd.CODE_VALUE_NAME excelImportStatus,
+			   mpp.OPE_TYPE opeType,
+			   mpp.CREATION_USER creationUser,
+			   TO_CHAR(mpp.CREATION_TIME,'yyyy-MM-dd hh24:mi:ss') creationTime,
+			   mppd.CODE_VALUE_NAME excelBatch,
+			   mpp.DEPART_TIME_POINT departTimePoint,
+			   mpp.RET_EMPTY_PLATFORM retEmptyPlatform,
+			   mpp.BATCH batch,
+			   MPS.SUPPLIER_NAME supplierName
+		FROM MM_PUP_ROUTE_IMP mpp
+			 LEFT JOIN MM_PUB_DATA_DICT mpd
+			 ON mpd.CODE_TYPE = 'PUB_IMP_CK_RESULT'
+			 AND mpd.CODE_VALUE = mpp.CHECK_RESULT
+			 AND mpd.FACTORY_CODE = #{factoryCode}
+			 LEFT JOIN MM_PUB_DATA_DICT mppd
+			 ON mppd.CODE_TYPE = 'PUB_TRUE_FALSE'
+			 AND mppd.CODE_VALUE = mpp.BATCH
+			 AND mppd.FACTORY_CODE = #{factoryCode}
+			 LEFT JOIN MM_PUB_DATA_DICT mpdd
+			 ON mpdd.CODE_TYPE = 'PUB_IMP_STATUS'
+			 AND mpdd.CODE_VALUE = mpp.IMPORT_STATUS
+			 AND mpdd.FACTORY_CODE = #{factoryCode}
+			 LEFT JOIN MM_PUB_SUPPLIER MPS
+       		ON MPP.SUPPLIER_NO = MPS.SUPPLIER_NO
+		WHERE mpp.IMP_UUID = #{uuid}
+	</select>
+	<!-- 查询数据的导入状态 -->
+	<select id="queryImportFlag" parameterType="java.lang.String" resultType="java.lang.String">
+		WITH TEMPA AS
+		 (SELECT COUNT(1) s
+		    FROM MM_PUP_ROUTE_IMP A
+		   WHERE A.CHECK_RESULT = 0
+		     AND A.IMP_UUID = #{uuid}),
+		TEMPB AS
+		 (SELECT COUNT(1) S
+		    FROM MM_PUP_ROUTE_IMP B
+		   WHERE B.IMP_UUID = #{uuid})
+		SELECT CASE
+		         WHEN A.S >= B.S THEN
+		          0
+		         ELSE
+		          1
+		       END AS FLAG
+		  FROM TEMPA A, TEMPB B
+	</select>
+	
+	<!-- 查询需要修改的数据 -->
+	<select id="queryUpdateRouteFromTemp" parameterType="java.util.Map" resultType="java.lang.String">
+		SELECT mpp.ID id
+		FROM MM_PUP_ROUTE_IMP mpp
+		WHERE mpp.OPE_TYPE = 'U'
+			  AND mpp.IMP_UUID = #{uuid,jdbcType=VARCHAR}
+			  AND mpp.IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR} 
+		      AND mpp.CHECK_RESULT = #{checkResult,jdbcType=VARCHAR}
+	</select>
+	
+	<!-- 修改导入的数据 -->
+	<update id="updatePickTimeImportData">
+		UPDATE MM_PUP_ROUTE mpp  SET 
+		   (mpp.FACTORY_CODE,mpp.AREA,mpp.ROUTE_DIST,mpp.UNLOAD_PLACE,mpp.SUPPLIER_NO,mpp.SUP_FACTORY,mpp.UNLOAD_PORT,mpp.CAR_TYPE,
+		   mpp.SUP_CAL_NUM,mpp.START_SORT_ID,mpp.WARE_CODE,mpp.ROUTE_CODE,mpp.ROUTE_NAME,mpp.PICKUP_TYPE,mpp.PICKUP_CAR,mpp.LOC_DEPTH,
+		   mpp.ADVANCE_ARR_NUM,mpp.FIRST_ARRIVE_TIME,mpp.SPE_ARRIVE_TIME,mpp.TRANS_TIME,mpp.REC_SHIFT_A,mpp.REC_SHIFT_B,mpp.MERGE_NUM,
+		   mpp.WWL_MANAGER,mpp.NWL_MANAGER,mpp.PICK_CYCLE,mpp.SUP_OUT_TIME,mpp.BATCH,mpp.DEPART_TIME_POINT,mpp.RET_EMPTY_PLATFORM,mpp.LAST_MODIFIED_USER,mpp.LAST_MODIFIED_TIME) =
+		   (SELECT mpi.FACTORY_CODE,mpi.AREA,mpi.ROUTE_DIST,mpi.UNLOAD_PLACE,mpi.SUPPLIER_NO,mpi.SUP_FACTORY,mpi.UNLOAD_PORT,mpi.CAR_TYPE,
+		   mpi.SUP_CAL_NUM,mpi.START_SORT_ID,mpi.WARE_CODE,mpi.ROUTE_CODE,mpi.ROUTE_NAME,mpi.PICKUP_TYPE,mpi.PICKUP_CAR,mpi.LOC_DEPTH,
+		   mpi.ADVANCE_ARR_NUM,mpi.FIRST_ARRIVE_TIME,mpi.SPE_ARRIVE_TIME,mpi.TRANS_TIME,mpi.REC_SHIFT_A,mpi.REC_SHIFT_B,mpi.MERGE_NUM,
+		   mpi.WWL_MANAGER,mpi.NWL_MANAGER,mpi.PICK_CYCLE,mpi.SUP_OUT_TIME,mpi.BATCH,mpi.DEPART_TIME_POINT,mpi.RET_EMPTY_PLATFORM,mpi.LAST_MODIFIED_USER, sysdate
+		   FROM MM_PUP_ROUTE_IMP mpi
+		WHERE IMP_UUID = #{uuid,jdbcType = VARCHAR} 
+		   AND CHECK_RESULT =#{checkResult,jdbcType = VARCHAR}
+		   AND IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}
+		   AND OPE_TYPE = 'U')
+	</update>
+	<!-- 删除以前的数据 -->
+	<delete id="deleteRouteMessageFromRegula" parameterType="java.util.Map">
+		DELETE FROM MM_PUP_ROUTE WHERE FACTORY_CODE = #{factoryCode}
+	</delete>
+	<!-- 将临时表数据写入正式表 -->
+	<insert id="insertTempRouteToRegula">
+		INSERT INTO MM_PUP_ROUTE
+		(ID,FACTORY_CODE,AREA,UNLOAD_PLACE,SUPPLIER_NO,SUP_FACTORY,UNLOAD_PORT,CAR_TYPE,SUP_CAL_NUM,
+		 START_SORT_ID,WARE_CODE,PICKUP_TYPE,ROUTE_CODE,ROUTE_NAME,PICKUP_CAR,LOC_DEPTH,ADVANCE_ARR_NUM,
+		 FIRST_ARRIVE_TIME,SPE_ARRIVE_TIME,TRANS_TIME,REC_SHIFT_A,REC_SHIFT_B,MERGE_NUM,WWL_MANAGER,
+		 NWL_MANAGER,PICK_CYCLE,SUP_OUT_TIME,CREATION_USER,CREATION_TIME,LAST_MODIFIED_USER,LAST_MODIFIED_TIME,
+		 FIRST_SORT_ID,BATCH,ROUTE_DIST,DEPART_TIME_POINT,RET_EMPTY_PLATFORM)
+		(SELECT PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_PUP_ROTE'),FACTORY_CODE,AREA,UNLOAD_PLACE,SUPPLIER_NO,SUP_FACTORY,UNLOAD_PORT,CAR_TYPE,SUP_CAL_NUM,
+		 START_SORT_ID,WARE_CODE,PICKUP_TYPE,ROUTE_CODE,ROUTE_NAME,PICKUP_CAR,LOC_DEPTH,ADVANCE_ARR_NUM,
+		 FIRST_ARRIVE_TIME,SPE_ARRIVE_TIME,TRANS_TIME,REC_SHIFT_A,REC_SHIFT_B,MERGE_NUM,WWL_MANAGER,
+		 NWL_MANAGER,PICK_CYCLE,SUP_OUT_TIME,CREATION_USER,CREATION_TIME,CREATION_USER,sysdate,
+		 START_SORT_ID,BATCH,ROUTE_DIST,DEPART_TIME_POINT,RET_EMPTY_PLATFORM
+		FROM MM_PUP_ROUTE_IMP
+		WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		  AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+		  AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR}
+		  AND OPE_TYPE = 'I')
+	</insert>
+	<!-- 修改临时表的数据导入状态 -->
+	<update id="updateRouteMessageImpStatus">
+		UPDATE MM_PUP_ROUTE_IMP SET 
+			IMPORT_STATUS = #{IMPORT_STATUS_YES,jdbcType=VARCHAR} 
+		WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		  AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+		  AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR} 
+	</update>
+	<!-- 根据id查询数据 -->
+	<select id="queryRouteMessageById" parameterType="java.lang.String" resultType="com.hanthink.pup.model.PupRouteMessageModel">
+		SELECT mpp.FACTORY_CODE factoryCode,
+			   mpp.AREA area,
+			   mpp.UNLOAD_PLACE unloadPlace,
+			   mpp.SUPPLIER_NO supplierNo,
+			   mpp.SUP_FACTORY supFactory,
+			   mpp.UNLOAD_PORT unloadPort,
+			   mpp.CAR_TYPE carType,
+			   mpp.SUP_CAL_NUM supCalNum,
+			   mpp.START_SORT_ID startSortId,
+			   mpp.WARE_CODE wareCode,
+			   mpp.PICKUP_TYPE pickupType,
+			   mpp.ROUTE_CODE routeCode,
+			   mpp.ROUTE_NAME routeName,
+			   mpp.PICKUP_CAR pickupCar,
+			   mpp.LOC_DEPTH locDepth,
+			   mpp.ADVANCE_ARR_NUM advanceArrNum,
+			   TO_CHAR(mpp.FIRST_ARRIVE_TIME,'hh24:mi:ss') firstArriveTime,
+			   TO_CHAR(mpp.SPE_ARRIVE_TIME,'hh24:mi:ss') speArriveTime,
+			   mpp.TRANS_TIME transTime,
+			   mpp.REC_SHIFT_A recShiftA,
+			   mpp.REC_SHIFT_B recShiftB,
+			   mpp.MERGE_NUM mergeNum,
+			   mpp.WWL_MANAGER wwlManager,
+			   mpp.NWL_MANAGER nwlManager,
+			   mpp.PICK_CYCLE pickCycle,
+			   TO_CHAR(mpp.SUP_OUT_TIME,'hh24:mi:ss') supOutTime,
+			   mpp.CREATION_USER creationUser,
+			   TO_CHAR(mpp.CREATION_TIME,'hh24:mi:ss') creationTime,
+			   mpp.LAST_MODIFIED_USER lastModifiedUser,
+			   TO_CHAR(mpp.LAST_MODIFIED_TIME,'hh24:mi:ss') lastModifiedTime,
+			   mpp.FIRST_SORT_ID firstSortId,
+			   mpp.BATCH batch,
+			   mpp.ROUTE_DIST routeDist,
+			   mpp.DEPART_TIME_POINT departTimePoint,
+			   mpp.RET_EMPTY_PLATFORM retEmptyPlatform,
+			   mps.SUPPLIER_NAME supplierName
+		FROM MM_PUP_ROUTE mpp
+		LEFT JOIN MM_PUB_SUPPLIER mps
+		ON mpp.SUPPLIER_NO = mps.SUPPLIER_NO
+		WHERE ID = #{id,jdbcType=VARCHAR}
+	</select>
+	<!-- 修改线路信息 -->
+	<update id="updateRouteMessageById" parameterType="com.hanthink.pup.model.PupRouteMessageModel">
+		UPDATE MM_PUP_ROUTE SET
+			LOC_DEPTH = #{locDepth,jdbcType=VARCHAR},
+			PICK_CYCLE = #{pickCycle,jdbcType=VARCHAR},
+			ADVANCE_ARR_NUM = #{advanceArrNum,jdbcType=VARCHAR},
+			SUP_OUT_TIME = TO_DATE(#{supOutTime,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss'),
+			FIRST_ARRIVE_TIME = TO_DATE(#{firstArriveTime,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss'),
+			TRANS_TIME = #{transTime,jdbcType=VARCHAR},
+			SPE_ARRIVE_TIME = TO_DATE(#{speArriveTime,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss'),
+			MERGE_NUM =  #{mergeNum,jdbcType=VARCHAR},
+			BATCH = #{batch,jdbcType=VARCHAR},
+			DEPART_TIME_POINT = #{departTimePoint,jdbcType=VARCHAR},
+			FIRST_SORT_ID = #{firstSortId,jdbcType=VARCHAR},
+			LAST_MODIFIED_USER = #{lastModifiedUser,jdbcType=VARCHAR},
+			LAST_MODIFIED_TIME = sysdate
+		WHERE ID = #{id,jdbcType=VARCHAR}
+	</update>
+</mapper>

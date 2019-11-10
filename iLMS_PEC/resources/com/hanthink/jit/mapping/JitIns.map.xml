@@ -1,0 +1,376 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.jit.model.JitInsModel">
+	
+	<!-- 配送单查询 -->
+	<select id="queryJitInsPage" parameterType="com.hanthink.jit.model.JitInsModel" 
+			resultType="com.hanthink.jit.model.JitInsModel">
+		SELECT D.CODE_VALUE_NAME workcenter,
+	           T.PLAN_CODE planCode,
+	           C.PLAN_CODE_DESC planCodeDesc,
+	           T.SHIP_DEPOT shipDepot,
+	           T.ORDER_NO orderNo,  
+	           DDD.CODE_VALUE_NAME insNoDiffseq,
+	           PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(T.PLAN_CODE, T.PREPARE_PRODUCT_SEQNO) prepareProductSeqno,
+	           PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(T.PLAN_CODE, T.DELIVERY_PRODUCT_SEQNO) deliveryProductSeqno,
+	           PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(T.PLAN_CODE, T.ARRIVE_PRODUCT_SEQNO) arriveProductSeqno,
+	           PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(T.PLAN_CODE, T.DISTRI_PRODUCT_SEQNO) distriProductSeqno,
+	           T.PREPARE_PERSON preparePerson,
+	           T.DISTRI_PERSON distriPerson,
+	           T.CARPOOL carpool,
+	           DD.CODE_VALUE_NAME printStatus,
+	           P.PRINTER_NAME printerName,
+	           T.PRINT_TIME printTime,
+	           T.CREATION_TIME creationTime,
+	           T.PREPARE_STATUS prepareStatus,
+               DDDD.CODE_VALUE_NAME prepareStatusDesc,  
+               T.PREPARE_TIME prepareTime, 
+	           T.INS_NO insNo,
+	           D5.CODE_VALUE_NAME genInsWay,
+	           T.PREPARE_BATCH_NO prepareBatchNo
+	      FROM MM_JIT_INS T
+	      INNER JOIN MM_PUB_PLAN_CODE C ON C.PLAN_CODE = T.PLAN_CODE 
+	      LEFT JOIN MM_JIT_INS_PRINTER_CONFIG CO ON CO.PLAN_CODE = T.PLAN_CODE AND CO.PREPARE_PERSON = T.PREPARE_PERSON
+	      LEFT JOIN MM_PR_PRINTER P ON P.ID = CO.PRINTER_ID
+	      LEFT JOIN MM_PUB_DATA_DICT D ON D.CODE_VALUE = C.WORKCENTER AND D.CODE_TYPE = 'PUB_WORKCENTER' AND D.FACTORY_CODE = C.FACTORY_CODE
+	      LEFT JOIN MM_PUB_DATA_DICT DD ON DD.CODE_VALUE = T.PRINT_STATUS AND DD.CODE_TYPE = 'PUB_PRINT_STATUS' AND DD.FACTORY_CODE = C.FACTORY_CODE
+	      LEFT JOIN MM_PUB_DATA_DICT DDD ON DDD.CODE_TYPE = 'PUB_TRUE_FALSE' AND DDD.CODE_VALUE = CASE WHEN T.INS_NO_DIFFSEQ > 0 THEN 1 ELSE 0 END
+	      LEFT JOIN MM_PUB_DATA_DICT DDDD ON DDDD.CODE_VALUE = T.PREPARE_STATUS AND DDDD.CODE_TYPE = 'JIT_PREPARE_STATUS' 
+             AND DDDD.FACTORY_CODE = C.FACTORY_CODE
+          LEFT JOIN MM_PUB_DATA_DICT D5 ON D5.CODE_VALUE = T.GEN_INS_WAY AND D5.CODE_TYPE = 'JITI_GEN_INS_WAY' 
+             AND D5.FACTORY_CODE = C.FACTORY_CODE
+		  WHERE 1=1 AND C.FACTORY_CODE = #{factoryCode}
+	      <if test="null != planCode and ''!= planCode">
+	      	AND T.PLAN_CODE = #{planCode}
+	      </if>
+	      <if test="null != partNo and ''!=partNo">
+	      	 AND EXISTS (SELECT 1 FROM MM_JIT_INS_DETAIL DE WHERE DE.PART_NO = #{partNo}
+	      	 AND DE.INS_NO = T.INS_NO)
+	      </if>
+	      <if test="null != partShortNo and ''!=partShortNo">
+	      	 AND EXISTS (SELECT 1 FROM MM_JIT_INS_DETAIL DE  WHERE DE.PART_SHORT_NO = #{partShortNo}
+	      	 	AND DE.INS_NO = T.INS_NO)
+	      </if>
+	      <if test="null != distriPerson and ''!= distriPerson">
+	      	AND T.DISTRI_PERSON = #{distriPerson}
+	      </if>
+	      <if test="null != prepareBatchNo and ''!= prepareBatchNo">
+	      	AND T.PREPARE_BATCH_NO &gt;= #{prepareBatchNo}
+	      </if>
+	      <if test="null != prepareBatchNoTo and ''!= prepareBatchNoTo">
+	      	AND T.PREPARE_BATCH_NO &lt;= #{prepareBatchNoTo}
+	      </if>
+	      <!-- 是否急件 (急件)-->
+	      <if test="'1'.toString()==insNoDiffseq">
+	      	AND T.INS_NO_DIFFSEQ &gt; 0
+	      </if>
+	      <!-- 是否急件 (非急件)-->
+	      <if test="'0'.toString()==insNoDiffseq">
+	      	AND T.INS_NO_DIFFSEQ &lt;= 0
+	      </if>
+	      <if test="null != orderNo and ''!= orderNo">
+	      	AND T.ORDER_NO = #{orderNo}
+	      </if>
+	      <!-- 打印机 -->
+	      <if test="null != prPrinter and ''!=prPrinter">
+	      	AND CO.PRINTER_ID = #{prPrinter}
+	      </if>
+	      <if test="null != printStatus and ''!= printStatus">
+	      	AND T.PRINT_STATUS = #{printStatus}
+	      </if>
+	      <if test="null != prepareStatus and ''!= prepareStatus">
+	      	AND T.PREPARE_STATUS = #{prepareStatus}
+	      </if>
+	      <if test="null != creationTime and '' != creationTime">
+	  	    AND T.CREATION_TIME &gt;= to_date(#{creationTime}, 'yyyy-mm-dd hh24:mi:ss')
+	  	  </if>
+	  	  <if test="null != creationTimeTo and '' != creationTimeTo">
+	  	    AND T.CREATION_TIME &lt;= to_date(#{creationTimeTo}, 'yyyy-mm-dd hh24:mi:ss') + 1
+	  	  </if>
+	  	  <if test="null != genInsWay and ''!= genInsWay">
+	      	AND T.GEN_INS_WAY = #{genInsWay}
+	      </if>
+	  	  ORDER BY C.WORKCENTER, T.PLAN_CODE, T.PREPARE_PRODUCT_SEQNO
+	</select>
+	
+	<!-- 配送单明细查询 -->
+	<select id="queryJitInsDetailPage" parameterType="com.hanthink.jit.model.JitInsModel" 
+			resultType="com.hanthink.jit.model.JitInsModel">
+		SELECT T.INS_NO insNo,
+		       nvl(T.CARPOOL,I.CARPOOL) carpool,
+               nvl(T.DISTRI_PERSON,I.DISTRI_PERSON) distriPerson,
+		       T.LOCATION location,
+		       T.PART_NO partNo,
+		       T.PART_NAME partName,
+		       T.PART_SHORT_NO partShortNo,
+		       T.REQUIRE_NUM requireNum,
+		       T.SUPPLIER_NO supplierNo,
+		       T.SUPPLIER_NAME supplierName,
+		       T.STANDARD_PACKAGE standardPackage,
+		       T.STORAGE storage
+		  FROM MM_JIT_INS_DETAIL T
+		  LEFT JOIN MM_JIT_INS I ON I.INS_NO = T.INS_NO
+		  WHERE 1=1
+		  AND T.INS_NO = #{insNo}
+	</select>
+	
+	<!-- 配送单明细查询(配送单打印) -->
+	<select id="queryJitInsDetailList" parameterType="com.hanthink.jit.model.JitInsModel" 
+			resultType="com.hanthink.jit.model.JitInsModel">
+		SELECT T.INS_NO insNo,
+	           T.PREPARE_PERSON preparePerson,
+	           T.DISTRI_PERSON distriPerson,
+	           <!-- 当前“配送工程”台车数量 -->
+	           (SELECT COUNT(*) FROM MM_JIT_INS II WHERE II.DISTRI_PERSON = T.DISTRI_PERSON) totalCarPool,
+	           (SELECT MAX(T.CARPOOL) FROM MM_JIT_INS II WHERE II.DISTRI_PERSON = T.DISTRI_PERSON) maxCarPool,
+	           T.CARPOOL carpool,
+	           to_char(sysdate, 'yyyy"年"mm"月"dd"日"') printTime,
+	           T.PREPARE_BATCH_NO prepareBatchNo,
+	           D.PART_SHORT_NO partShortNo,
+	           D.STORAGE storage,
+	           D.REQUIRE_NUM requireNum,
+	           ceil(D.REQUIRE_NUM/D.STANDARD_PACKAGE) xs,
+	           T.GEN_INS_WAY genInsWay,
+	           D.LOCATION location  
+	      FROM MM_JIT_INS T
+	      LEFT JOIN MM_JIT_INS_DETAIL D ON D.INS_NO = T.INS_NO
+	      WHERE 1=1
+	      AND T.INS_NO = #{insNo}	
+	      ORDER BY D.STORAGE
+	</select>
+	
+	<!-- 更新配送单打印状态(List) -->
+	<update id="updatePrintInfo" parameterType="java.util.List">
+		<foreach collection="list" item="item" index="index" open="" close="" separator=";">
+			UPDATE MM_JIT_INS T
+				<set>
+					 T.PRINT_STATUS = 1,
+				     T.PRINT_TIME = SYSDATE,
+				     T.PRINT_USER = #{item.printUser, jdbcType=VARCHAR}
+				</set> 
+				<where>
+					T.INS_NO = #{item.insNo}
+				</where>	
+		</foreach>
+	</update>
+	
+	<!-- 更新配送单打印状态(JitInsModel)已打印示为已备件 -->
+	<update id="updatePrintState" parameterType="com.hanthink.jit.model.JitInsModel">
+		UPDATE MM_JIT_INS T SET
+			T.PRINT_STATUS = 1,
+			T.PRINT_TIME = SYSDATE,
+			T.PREPARE_STATUS = 2,
+      		T.PREPARE_TIME = SYSDATE,
+		    T.PRINT_USER = #{printUser, jdbcType=VARCHAR},
+		    T.PRINT_USER_IP = #{printUserIp, jdbcType=VARCHAR}
+		WHERE T.INS_NO = #{insNo}
+	</update>
+	
+	<!-- 更新明细备货数量、备货次数、 -->
+	<update id="updateDetailPrepareStatus" parameterType="com.hanthink.jit.model.JitInsModel">
+		UPDATE MM_JIT_INS_DETAIL T
+	       SET T.PREPARE_COUNT = (T.PREPARE_COUNT + 1),
+	       	   T.PREPARE_NUM = T.REQUIRE_NUM
+	     WHERE T.INS_NO = #{insNo}
+	</update>
+	
+	<!-- 配送单明细导出 -->
+	<select id="downloadJitInsDetail" parameterType="com.hanthink.jit.model.JitInsModel" 
+		resultType="com.hanthink.jit.model.JitInsModel">
+		SELECT 
+		     D.CODE_VALUE_NAME workcenter,
+             C.PLAN_CODE_DESC planCodeDesc,
+             T.SHIP_DEPOT shipDepot,
+             T.ORDER_NO orderNo, 
+             TT.PART_NO partNo, 
+             TT.PART_SHORT_NO partShortNo,
+             DDD.CODE_VALUE_NAME insNoDiffseq,
+             T.PREPARE_BATCH_NO prepareBatchNo,
+             T.PREPARE_PERSON preparePerson,
+             nvl(TT.CARPOOL, T.CARPOOL) carpool,
+             D5.CODE_VALUE_NAME genInsWay,
+             CEIL(TT.REQUIRE_NUM/TT.STANDARD_PACKAGE) planPrepareXs,
+             ceil(tt.prepare_num/tt.standard_package) actualPrepareXs,
+             CASE WHEN tt.prepare_num = '0' THEN '未备件'
+                 WHEN tt.prepare_num &gt; '0' AND tt.prepare_num &lt; TT.REQUIRE_NUM THEN '部分备件'
+                WHEN tt.prepare_num &gt;= TT.REQUIRE_NUM THEN '全部备件'
+             ELSE '未备件' END prepareStatus,
+             PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(T.PLAN_CODE, T.DISTRI_PRODUCT_SEQNO) distriProductSeqno,
+             nvl(TT.DISTRI_PERSON,T.DISTRI_PERSON) distriPerson,
+             CEIL(TT.REQUIRE_NUM/TT.STANDARD_PACKAGE) planDistriXs,
+             nvl(ceil(CON.REC_QTY/tt.standard_package), 0) actualDistriXs,
+             CASE WHEN CON.REC_QTY = '0' THEN '未配送'
+             	  WHEN CON.REC_QTY &gt; '0' AND CON.REC_QTY &lt; TT.REQUIRE_NUM THEN '部分配送'
+	              WHEN CON.REC_QTY &gt;= TT.REQUIRE_NUM THEN '全部配送'
+	         ELSE '未配送' END fdistriStatus,
+             P.PRINTER_NAME printerName,
+             T.DISTRI_TIME distriTime,
+             T.INS_NO insNo
+        FROM MM_JIT_INS T
+        INNER JOIN MM_PUB_PLAN_CODE C ON C.PLAN_CODE = T.PLAN_CODE
+        LEFT JOIN MM_JIT_INS_PRINTER_CONFIG CO ON CO.PLAN_CODE = T.PLAN_CODE AND CO.PREPARE_PERSON = T.PREPARE_PERSON
+        LEFT JOIN MM_JIT_INS_DETAIL TT ON TT.INS_NO = T.INS_NO
+        LEFT JOIN MM_PR_PRINTER P ON P.ID = CO.PRINTER_ID
+        LEFT JOIN MM_PUB_DATA_DICT D ON D.CODE_VALUE = C.WORKCENTER AND D.CODE_TYPE = 'PUB_WORKCENTER' AND D.FACTORY_CODE = C.FACTORY_CODE
+        LEFT JOIN MM_PUB_DATA_DICT DD ON DD.CODE_VALUE = T.PRINT_STATUS AND DD.CODE_TYPE = 'PUB_PRINT_STATUS' AND DD.FACTORY_CODE = C.FACTORY_CODE
+        LEFT JOIN MM_PUB_DATA_DICT DDD ON DDD.CODE_TYPE = 'PUB_TRUE_FALSE' AND DDD.CODE_VALUE = CASE WHEN T.INS_NO_DIFFSEQ > 0 THEN 1 ELSE 0 END
+        LEFT JOIN MM_PUB_DATA_DICT DDDD ON DDDD.CODE_VALUE = T.PREPARE_STATUS AND DDDD.CODE_TYPE = 'JIT_PREPARE_STATUS' 
+             AND DDDD.FACTORY_CODE = C.FACTORY_CODE
+        LEFT JOIN MM_PUB_DATA_DICT D5 ON D5.CODE_VALUE = T.GEN_INS_WAY AND D5.CODE_TYPE = 'JITI_GEN_INS_WAY' 
+             AND D5.FACTORY_CODE = C.FACTORY_CODE
+        LEFT JOIN (
+              SELECT c2.part_no,c1.distri_person,c1.batch_seq,sum(C2.REC_QTY) REC_QTY
+               FROM MM_INV_CONFIRM C1
+             LEFT JOIN MM_INV_CONFIRM_DETAIL C2 ON C1.CONFIRM_NO = C2.CONFIRM_NO group by c2.part_no,c1.distri_person,c1.batch_seq
+        ) CON ON CON.DISTRI_PERSON = TT.DISTRI_PERSON AND CON.PART_NO = TT.PART_NO AND CON.BATCH_SEQ = PKG_PUB.USF_GET_BATCHSEQ_BY_PRODSEQNO(C.KB_ID,
+                                                    T.DISTRI_PRODUCT_SEQNO)
+       WHERE 1=1 AND C.FACTORY_CODE = #{factoryCode}
+	  <if test="null != planCode and ''!= planCode">
+	      	AND T.PLAN_CODE = #{planCode}
+	      </if>
+	      <if test="null != partNo and ''!=partNo">
+	      	 AND EXISTS (SELECT 1 FROM MM_JIT_INS_DETAIL DE WHERE DE.PART_NO = #{partNo}
+	      	 AND DE.INS_NO = T.INS_NO)
+	      </if>
+	      <if test="null != partShortNo and ''!=partShortNo">
+	      	 AND EXISTS (SELECT 1 FROM MM_JIT_INS_DETAIL DE  WHERE DE.PART_SHORT_NO = #{partShortNo}
+	      	 	AND DE.INS_NO = T.INS_NO)
+	      </if>
+	      <if test="null != distriPerson and ''!= distriPerson">
+	      	AND T.DISTRI_PERSON = #{distriPerson}
+	      </if>
+	      <if test="null != prepareBatchNo and ''!= prepareBatchNo">
+	      	AND T.PREPARE_BATCH_NO &gt;= #{prepareBatchNo}
+	      </if>
+	      <if test="null != prepareBatchNoTo and ''!= prepareBatchNoTo">
+	      	AND T.PREPARE_BATCH_NO &lt;= #{prepareBatchNoTo}
+	      </if>
+	      <!-- 是否急件 (急件)-->
+	      <if test="'1'.toString()==insNoDiffseq">
+	      	AND T.INS_NO_DIFFSEQ &gt; 0
+	      </if>
+	      <!-- 是否急件 (非急件)-->
+	      <if test="'0'.toString()==insNoDiffseq">
+	      	AND T.INS_NO_DIFFSEQ &lt;= 0
+	      </if>
+	      <if test="null != orderNo and ''!= orderNo">
+	      	AND T.ORDER_NO = #{orderNo}
+	      </if>
+	      <!-- 打印机 -->
+	      <if test="null != prPrinter and ''!=prPrinter">
+	      	AND CO.PRINTER_ID = #{prPrinter}
+	      </if>
+	      <if test="null != printStatus and ''!= printStatus">
+	      	AND T.PRINT_STATUS = #{printStatus}
+	      </if>
+	      <if test="null != prepareStatus and ''!= prepareStatus">
+	      	AND T.PREPARE_STATUS = #{prepareStatus}
+	      </if>
+	      <if test="null != creationTime and '' != creationTime">
+	  	    AND T.CREATION_TIME &gt;= to_date(#{creationTime}, 'yyyy-mm-dd hh24:mi:ss')
+	  	  </if>
+	  	  <if test="null != creationTimeTo and '' != creationTimeTo">
+	  	    AND T.CREATION_TIME &lt;= to_date(#{creationTimeTo}, 'yyyy-mm-dd hh24:mi:ss') + 1
+	  	  </if>
+	  	  <if test="null != genInsWay and ''!= genInsWay">
+	      	AND T.GEN_INS_WAY = #{genInsWay}
+	      </if>
+	</select>
+	
+	<!-- 根据订单号查询是否有备件出库日志 -->
+	<select id="queryInvOutLogList" parameterType="com.hanthink.jit.model.JitInsModel" 
+		resultType="com.hanthink.jit.model.JitInsModel">
+		SELECT 
+			T.INV_OUT_NO invOutNo,
+	        T.INS_NO insNo,
+	        T.OUT_TIMES outTimes,
+	        T.FROM_DEPOT_NO fromDepotNo,
+            T.TO_DEPOT_NO toDepotNo,
+	        D.LOCATION location,
+	        D.PART_NO partNo,
+	        D.ORDER_QTY orderQty,
+	        D.REC_QTY recQty
+			FROM MM_INV_OUT T 
+			LEFT JOIN MM_INV_OUT_DETAIL D ON D.INV_OUT_NO = T.INV_OUT_NO
+		WHERE T.INS_NO = #{insNo}
+		ORDER BY T.OUT_TIMES DESC
+	</select>
+	
+	<!-- 根据订单号查询指示票配送明细 ,订单数量==配送量-->
+	<select id="queryJitInsDetailListForUpdateInvOutLog" parameterType="com.hanthink.jit.model.JitInsModel"
+		resultType="com.hanthink.jit.model.JitInsModel">
+		SELECT 
+			   C.WORKCENTER workcenter,
+			   T.PREPARE_STATUS prepareStatus,
+		       T.INS_NO insNo,
+		       D.LOCATION location,
+		       D.PART_NO partNo,
+		       D.REQUIRE_NUM orderQty
+			FROM MM_JIT_INS T
+			LEFT JOIN MM_JIT_INS_DETAIL D ON D.INS_NO = T.INS_NO
+			LEFT JOIN MM_PUB_PLAN_CODE C ON C.PLAN_CODE = T.PLAN_CODE
+		WHERE T.INS_NO = #{insNo}
+	</select>
+	
+	<!-- 拉动配送单出库记录insert  mm_inv_out表 -->
+	<insert id="insertInvOutLog" parameterType="com.hanthink.jit.model.JitInsModel">
+		INSERT INTO MM_INV_OUT
+		  (INV_OUT_NO,
+		   FACTORY_CODE,
+		   INS_NO,
+		   OUT_TIMES,
+		   INS_TYPE,
+		   FROM_DEPOT_NO,
+		   TO_DEPOT_NO,
+		   CREATION_USER,
+		   CREATION_TIME,
+		   OUT_TYPE,
+		   NOTE)
+		VALUES
+		  (#{invOutNo, jdbcType=VARCHAR},
+		   #{factoryCode, jdbcType=VARCHAR},
+		   #{insNo, jdbcType=VARCHAR},
+		   #{outTimes, jdbcType=VARCHAR},
+		   'JIT',
+		   #{fromDepotNo, jdbcType=VARCHAR},
+		   #{toDepotNo, jdbcType=VARCHAR},
+		   #{creationUser, jdbcType=VARCHAR},
+		   SYSDATE,
+		   '1',
+		   '')
+	</insert>
+	
+	<!-- 拉动配送单出库记录insert  mm_inv_out_detail表 -->
+	<insert id="insertInvOutDetailLog" parameterType="com.hanthink.jit.model.JitInsModel">
+		INSERT INTO MM_INV_OUT_DETAIL
+		  (INV_OUT_NO,
+		   LOCATION,
+		   OUT_TIMES,
+		   PART_NO,
+		   ORDER_QTY,
+		   REC_QTY,
+		   CREATION_TIME)
+		VALUES
+		  (#{invOutNo, jdbcType=VARCHAR},
+		   #{location, jdbcType=VARCHAR},
+		   #{outTimes, jdbcType=VARCHAR},
+		   #{partNo, jdbcType=VARCHAR},
+		   #{orderQty, jdbcType=VARCHAR},
+		   #{recQty, jdbcType=VARCHAR},
+		   SYSDATE)
+	</insert>
+	
+	<!-- 根据INS_NO,LOCATION,PART_NO查询已出库记录 -->
+	<select id="queryInvOutLogByModelDetail" parameterType="com.hanthink.jit.model.JitInsModel"
+			resultType="com.hanthink.jit.model.JitInsModel">
+		SELECT 
+		       sum(T.REC_QTY) recQty
+			FROM MM_INV_OUT_DETAIL T 
+		WHERE T.INV_OUT_NO LIKE #{insNo} || '%'
+			AND T.PART_NO = #{partNo}
+			AND T.LOCATION = #{location}
+	</select>
+	
+	
+	
+</mapper>

@@ -1,0 +1,444 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.mp.model.MpExcepOrderModel">
+
+    <insert id="create" parameterType="com.hanthink.mp.model.MpExcepOrderModel">
+		INSERT INTO MM_MP_EXCEP_ORDER_DEMAND
+			(ID,
+			SUPPLIER_NO,
+			SUP_FACTORY,
+			PART_NO,
+			ORDER_NUM,
+			STORAGE,
+			ARRIVE_DATE,
+			USE,
+			DEMAND_DEPARTMENT,
+			DEMANDER,
+			CON_NUMBER,
+			OPT_USER,
+			OPT_TIME,
+			FACTORY_CODE,
+			CREATION_USER,
+			CREATION_TIME
+			)
+			VALUES 
+			(SEQ_MM_MP_EXCEP_ORDER_DEMAND.NEXTVAL,
+			#{supplierNo,jdbcType=VARCHAR},
+			#{supFactory,jdbcType=VARCHAR}, 
+			#{partNo,jdbcType=VARCHAR}, 
+			#{orderNum,jdbcType=VARCHAR}, 
+			#{storage,jdbcType=VARCHAR}, 
+			to_date(#{arriveDateStr,jdbcType=VARCHAR}, 'yyyy-mm-dd'),
+			#{use,jdbcType=VARCHAR}, 
+			#{demandDepartment,jdbcType=VARCHAR}, 
+			#{demander,jdbcType=VARCHAR}, 
+			#{conNumber,jdbcType=VARCHAR}, 
+			#{optUser,jdbcType=VARCHAR}, 
+			sysdate, 
+			#{factoryCode,jdbcType=VARCHAR}, 
+			#{createUser,jdbcType=VARCHAR},
+			sysdate)
+	</insert>
+    
+    <!-- 检查导入临时表数据 -->
+	<parameterMap type="map" id="impCkParamMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="userName" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+    
+	<!-- 分页查询导出结果-->
+	<select id="queryMpExcepOrderForPage" parameterType="com.hanthink.mp.model.MpExcepOrderModel" 
+	resultType="com.hanthink.mp.model.MpExcepOrderModel">
+		   SELECT  A.ID   id,
+			       B.ORDER_NO  orderNo,
+			       D.PURCHASE_NO  purchaseNo,
+			       C.ROW_NO  rowNo,
+			       A.PART_NO partNo,
+			       A.SUP_FACTORY supFactory,
+			       E.SUPPLIER_NAME  supplierName,
+			       TO_CHAR(A.ARRIVE_DATE, 'YYYY-MM-DD') arriveDateStr,
+			       A.ORDER_NUM orderNum,
+			       A.SUPPLIER_NO supplierNo,
+			       A.FACTORY_CODE factoryCode,
+			       A.STORAGE  storage,
+			       A.USE  use,
+			       A.DEMAND_DEPARTMENT  demandDepartment,
+			       A.DEMANDER   demander,
+			       A.CON_NUMBER   conNumber,
+			       A.OPT_USER   optUser,
+			       TO_CHAR(A.OPT_TIME, 'YYYY-MM-DD')   optTimeStr,
+			       0  delFlag,
+			       F.CODE_VALUE_NAME delFlagStr,
+                   G.PURCHASE_TYPE purchaseType
+				   FROM MM_MP_EXCEP_ORDER_DEMAND A
+			       LEFT JOIN MM_MP_EXC_OD_RELATION B
+			       ON A.ID = B.DEMAND_ID
+			       AND A.FACTORY_CODE = B.FACTORY_CODE
+			       LEFT JOIN MM_MP_EXCEP_ORDER_DETAIL C
+			       ON B.ORDER_NO = C.ORDER_NO
+			       AND A.PART_NO = C.PART_NO
+			       LEFT JOIN MM_MP_EXCEP_ORDER D
+			       ON B.ORDER_NO = D.ORDER_NO
+			       AND D.FACTORY_CODE = A.FACTORY_CODE
+			       LEFT JOIN MM_PUB_SUPPLIER E
+			       ON E.SUPPLIER_NO = A.SUPPLIER_NO
+			       LEFT JOIN MM_PUB_DATA_DICT F
+		             ON 0 = F.CODE_VALUE 
+		             AND F.CODE_TYPE = 'MP_ORDER_STATUS'
+		             AND F.FACTORY_CODE = A.FACTORY_CODE
+		           LEFT JOIN MM_PUB_PART G
+                     ON G.PART_NO = A.PART_NO
+                     AND G.FACTORY_CODE = A.FACTORY_CODE
+				   WHERE 1=1
+			 		<if test="supplierNo!=null and supplierNo!='' ">
+						AND A.SUPPLIER_NO = #{supplierNo}
+					</if> 
+					<if test="delFlag!=null and delFlag!='' ">
+						AND 0 = #{delFlag}
+					</if> 
+					<if test="supFactory!=null and supFactory!='' ">
+						AND A.SUP_FACTORY = #{supFactory}
+					</if> 
+					<if test="partNo!=null and partNo!='' ">
+						AND A.PART_NO LIKE CONCAT(#{partNo}, '%')
+					</if>
+					<if test="arriveDateStrStart != null and arriveDateStrStart != ''">
+					<![CDATA[ AND A.ARRIVE_DATE >= TO_DATE(#{arriveDateStrStart},'yyyy-MM-dd') ]]>
+					</if>
+			        <if test="arriveDateStrEnd != null and arriveDateStrEnd != ''">
+			        <![CDATA[ AND A.ARRIVE_DATE <= TO_DATE(#{arriveDateStrEnd},'yyyy-MM-dd') ]]>
+			        </if>
+			        <if test="purchaseType!=null and purchaseType!='' ">
+						AND G.PURCHASE_TYPE = #{purchaseType}
+					</if> 
+					<if test="optTimeStrStart != null and optTimeStrStart != ''">
+					<![CDATA[ AND A.OPT_TIME >= TO_DATE(#{optTimeStrStart},'yyyy-MM-dd') ]]>
+					</if>
+			        <if test="optTimeStrEnd != null and optTimeStrEnd != ''">
+			        <![CDATA[ AND A.OPT_TIME <= TO_DATE(#{optTimeStrEnd},'yyyy-MM-dd') ]]>
+			        </if>
+			            AND A.FACTORY_CODE = #{factoryCode}
+	       UNION ALL
+           SELECT  A.ID   id,
+			       B.ORDER_NO  orderNo,
+			       D.PURCHASE_NO  purchaseNo,
+			       C.ROW_NO  rowNo,
+			       A.PART_NO partNo,
+			       A.SUP_FACTORY supFactory,
+			       E.SUPPLIER_NAME  supplierName,
+			       TO_CHAR(A.ARRIVE_DATE, 'YYYY-MM-DD HH24:MI:SS') arriveDateStr,
+			       A.ORDER_NUM orderNum,
+			       A.SUPPLIER_NO supplierNo,
+			       A.FACTORY_CODE factoryCode,
+			       A.STORAGE storage,
+			       A.USE  use,
+			       A.DEMAND_DEPARTMENT  demandDepartment,
+			       A.DEMANDER   demander,
+			       A.CON_NUMBER   conNumber,
+			       A.OPT_USER   optUser,
+			       TO_CHAR(A.OPT_TIME, 'YYYY-MM-DD HH24:MI:SS')   optTimeStr,
+			       9  delFlag,
+			       F.CODE_VALUE_NAME delFlagStr,
+			       G.PURCHASE_TYPE purchaseType
+				   FROM MM_MP_EXCEP_ORDER_DEMAND_HIS A
+			       LEFT JOIN MM_MP_EXC_OD_RELATION B
+			       ON A.ID = B.DEMAND_ID
+			       AND A.FACTORY_CODE = B.FACTORY_CODE
+			       LEFT JOIN MM_MP_EXCEP_ORDER_DETAIL C
+			       ON B.ORDER_NO = C.ORDER_NO
+			       AND A.PART_NO = C.PART_NO
+			       AND A.STORAGE = C.ORDER_DEPOT
+			       LEFT JOIN MM_MP_EXCEP_ORDER D
+			       ON B.ORDER_NO = D.ORDER_NO
+			       AND D.FACTORY_CODE = A.FACTORY_CODE
+			       LEFT JOIN MM_PUB_SUPPLIER E
+			       ON E.SUPPLIER_NO = A.SUPPLIER_NO
+			       LEFT JOIN MM_PUB_DATA_DICT F
+		             ON 9 = F.CODE_VALUE 
+		             AND F.CODE_TYPE = 'MP_ORDER_STATUS'
+		             AND F.FACTORY_CODE = A.FACTORY_CODE
+		           LEFT JOIN MM_PUB_PART G
+                     ON G.PART_NO = A.PART_NO
+                     AND G.FACTORY_CODE = A.FACTORY_CODE
+				   WHERE 1=1
+			 		<if test="supplierNo!=null and supplierNo!='' ">
+						AND A.SUPPLIER_NO = #{supplierNo}
+					</if> 
+					<if test="delFlag!=null and delFlag!='' ">
+						AND 9 = #{delFlag}
+					</if> 
+					<if test="supFactory!=null and supFactory!='' ">
+						AND A.SUP_FACTORY = #{supFactory}
+					</if> 
+					<if test="partNo!=null and partNo!='' ">
+						AND A.PART_NO LIKE CONCAT(#{partNo}, '%')
+					</if>
+					<if test="arriveDateStrStart != null and arriveDateStrStart != ''">
+					<![CDATA[ AND A.ARRIVE_DATE >= TO_DATE(#{arriveDateStrStart},'yyyy-MM-dd ') ]]>
+					</if>
+			        <if test="arriveDateStrEnd != null and arriveDateStrEnd != ''">
+			        <![CDATA[ AND A.ARRIVE_DATE <= TO_DATE(#{arriveDateStrEnd},'yyyy-MM-dd ') ]]>
+			        </if>
+			        <if test="purchaseType!=null and purchaseType!='' ">
+						AND G.PURCHASE_TYPE = #{purchaseType}
+					</if> 
+					<if test="optTimeStrStart != null and optTimeStrStart != ''">
+					<![CDATA[ AND A.OPT_TIME >= TO_DATE(#{optTimeStrStart},'yyyy-MM-dd') ]]>
+					</if>
+			        <if test="optTimeStrEnd != null and optTimeStrEnd != ''">
+			        <![CDATA[ AND A.OPT_TIME <= TO_DATE(#{optTimeStrEnd},'yyyy-MM-dd') ]]>
+			        </if>
+			            AND A.FACTORY_CODE = #{factoryCode}
+		     ORDER BY delFlag,optTimeStr,orderNo,rowNo
+	</select>
+	 
+	<!-- 例外订单生成 -->
+	<parameterMap type="map" id="generateMpExcepOrderMap">  
+		<parameter property="factoryCode" jdbcType="VARCHAR" mode="IN"/>   
+		<parameter property="outCode" jdbcType="INTEGER" mode="OUT"/> 
+	</parameterMap> 
+	<select id="generateMpExcepOrder" parameterMap="generateMpExcepOrderMap" statementType="CALLABLE">
+		{CALL PKG_MP_MAIN.USP_MP_EXC_ZSB(?,?)}
+	</select>
+	
+	<!-- 例外订单发布 -->
+	<parameterMap type="map" id="releaseMpExcepOrderMap">  
+		<parameter property="factoryCode" jdbcType="VARCHAR" mode="IN"/>   
+		<parameter property="opeId" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="outCode" jdbcType="INTEGER" mode="OUT"/>  
+	</parameterMap> 
+	<select id="releaseMpExcepOrder" parameterMap="releaseMpExcepOrderMap" statementType="CALLABLE">
+		{CALL PKG_MP_MAIN.USP_MP_EXC_PO(?,?,?)}
+	</select>
+	
+	<!-- 根据IMP_UUID删除导入的临时例外订购需求数据 -->
+	<delete id="deleteExcepImportTempDataByUUID" parameterType="java.lang.String">
+		DELETE FROM MM_MP_EXCEP_ORDER_DEMAND_IMP A WHERE A.IMP_UUID = #{VALUE}
+	</delete>
+	
+	<!-- 将EXCEL数据导入到例外订单需求临时表 -->
+	<insert id="insertExcepImportTempData" parameterType="java.util.List">
+		INSERT INTO MM_MP_EXCEP_ORDER_DEMAND_IMP
+		(
+		   ID,
+		   SUPPLIER_NO,
+		   SUP_FACTORY,
+		   PART_NO,
+		   ORDER_NUM,
+		   ARRIVE_DATE,
+		   FACTORY_CODE,
+		   STORAGE,
+		   USE,
+	       DEMAND_DEPARTMENT,
+	       DEMANDER,
+	       CON_NUMBER,
+	       OPT_USER,
+	       OPT_TIME,
+		   IMP_UUID,
+		   CHECK_RESULT,
+		   CHECK_INFO,
+		   CREATION_USER,
+		   CREATION_TIME,
+		   IMPORT_STATUS
+		   ) 
+		<foreach collection="list" item="item" index="index" separator=" UNION ALL ">
+		   SELECT 
+		   PKG_PUB.USF_GET_SEQUENCE('SEQ_IMPORT_DATA_TEMP'),
+		   #{item.supplierNo,jdbcType=VARCHAR},
+		   #{item.supFactory,jdbcType=VARCHAR},
+		   #{item.partNo,jdbcType=VARCHAR},
+		   #{item.orderNum,jdbcType=VARCHAR},
+		   to_date(#{item.arriveDateStr,jdbcType=VARCHAR}, 'yyyy-mm-dd'),
+		   #{item.factoryCode,jdbcType=VARCHAR},
+		   #{item.storage,jdbcType=VARCHAR},
+		   #{item.use,jdbcType=VARCHAR},
+		   #{item.demandDepartment,jdbcType=VARCHAR},
+		   #{item.demander,jdbcType=VARCHAR},
+		   #{item.conNumber,jdbcType=VARCHAR},
+		   #{item.optUser,jdbcType=VARCHAR},
+		   to_date(#{item.optTimeStr,jdbcType=VARCHAR}, 'yyyy-mm-dd'),
+		   #{item.uuid,jdbcType=VARCHAR},
+		   #{item.checkResult,jdbcType=VARCHAR},
+		   #{item.checkInfo,jdbcType=VARCHAR},
+		   #{item.createUser,jdbcType=VARCHAR},
+		   SYSDATE,
+		   #{item.importStatus,jdbcType=VARCHAR}
+		   FROM DUAL 
+    	</foreach>
+	</insert>
+	 
+	<!-- 导入例外订购需求校验 -->
+	<select id="checkImportMpExcepData" parameterMap="impCkParamMap" statementType="CALLABLE">
+		{CALL PKG_MP_CHECK.USP_MP_EXC_ORDER_CHECK(?, ?, ?,  ?,?)}
+	</select>
+	
+	<!-- 查询导入的临时订购需求数据 -->
+	<select id="queryImportMpExcepTempData" parameterType="java.util.Map" resultType="com.hanthink.mp.model.MpExcepOrderModel">
+			SELECT A.SUPPLIER_NO  supplierNo,
+		           A.SUP_FACTORY  supFactory,
+		           A.PART_NO  partNo,
+		           A.ORDER_NUM  orderNum,
+		           TO_CHAR(A.ARRIVE_DATE, 'YYYY-MM-DD ')  arriveDateStr,
+		           A.FACTORY_CODE  factoryCode,
+		           A.STORAGE   storage,
+		           A.USE  use,
+			       A.DEMAND_DEPARTMENT  demandDepartment,
+			       A.DEMANDER   demander,
+			       A.CON_NUMBER   conNumber,
+			       A.OPT_USER   optUser,
+			       TO_CHAR(A.OPT_TIME, 'YYYY-MM-DD')   optTimeStr,
+		           A.CHECK_RESULT  checkResult,
+		           A.CHECK_INFO  checkInfo,
+		           A.IMPORT_STATUS  importStatus,
+		           A.OPE_TYPE   opeType,
+		           B.CODE_VALUE_NAME codeValueNameB,
+		           C.CODE_VALUE_NAME codeValueNameC
+		        FROM MM_MP_EXCEP_ORDER_DEMAND_IMP A
+		        LEFT JOIN MM_PUB_DATA_DICT B
+			    ON A.CHECK_RESULT = B.CODE_VALUE
+			    AND B.CODE_TYPE ='PUB_IMP_CK_RESULT'
+			    AND B.FACTORY_CODE = A.FACTORY_CODE
+			    LEFT JOIN MM_PUB_DATA_DICT C
+			    ON A.IMPORT_STATUS = C.CODE_VALUE
+			    AND C.CODE_TYPE ='PUB_IMP_STATUS'
+			    AND C.FACTORY_CODE = A.FACTORY_CODE
+		        WHERE A.IMP_UUID = #{uuid}
+		        ORDER BY A.CHECK_RESULT, TO_CHAR(A.ARRIVE_DATE, 'YYYY-MM-DD '), A.PART_NO
+	</select>
+	
+	<!-- 导入之前先删除例外订购需求表中处理标识为未处理的数据 -->
+	<delete id="deleteNotDealData" parameterType="java.util.Map">
+		DELETE FROM MM_MP_EXCEP_ORDER_DEMAND A
+		 WHERE A.FACTORY_CODE = #{factoryCode}
+	</delete>
+	
+	<!-- 将临时例外订购需求数据导入正式表 -->
+	<insert id="insertMpExcepImportData" parameterType="java.util.Map">
+		INSERT INTO MM_MP_EXCEP_ORDER_DEMAND
+		  (ID,
+		   SUPPLIER_NO,
+		   SUP_FACTORY,
+		   PART_NO,
+		   ORDER_NUM,
+		   ARRIVE_DATE,
+		   FACTORY_CODE,
+		   STORAGE,
+		   USE,
+	       DEMAND_DEPARTMENT,
+	       DEMANDER,
+	       CON_NUMBER,
+	       OPT_USER,
+	       OPT_TIME,
+		   CREATION_TIME)
+		  (SELECT PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_MP_EXCEP_ORDER_DEMAND'),
+		          A.SUPPLIER_NO,
+		          A.SUP_FACTORY,
+		          A.PART_NO,
+		          SUM(A.ORDER_NUM),
+		          TRUNC(A.ARRIVE_DATE),
+		          A.FACTORY_CODE,
+		          A.STORAGE,
+		          MIN(A.USE),
+		          MIN(A.DEMAND_DEPARTMENT),
+		          A.DEMANDER,
+		          MIN(A.CON_NUMBER),
+          		  MIN(A.OPT_USER),
+		          SYSDATE,
+		          SYSDATE
+		     FROM MM_MP_EXCEP_ORDER_DEMAND_IMP A
+		    WHERE A.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		      AND A.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		      AND A.IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+		      AND A.OPE_TYPE = 'I'
+		    GROUP BY A.SUP_FACTORY,
+		             A.SUPPLIER_NO,
+		             A.PART_NO,
+		             A.DEMANDER,
+		             TRUNC(A.ARRIVE_DATE),
+		             A.FACTORY_CODE,
+		             A.STORAGE)
+	</insert>
+	
+	<!-- 导入成功更新导入状态 -->
+	<update id="updateMpExcepImportDataImpStatus" parameterType="java.util.Map">
+		UPDATE MM_MP_EXCEP_ORDER_DEMAND_IMP A
+		   SET A.IMPORT_STATUS = #{IMPORT_STATUS_YES, jdbcType = VARCHAR}
+		 WHERE A.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		   AND A.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		   AND A.IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+	</update>
+	
+	<!-- 查询临时表中的数据是否可以导入 -->
+	<select id="queryMpExcepIsImportFlag" parameterType="java.lang.String" resultType="java.lang.String">
+		WITH TEMPA AS
+		 (SELECT COUNT(1) s
+		    FROM MM_MP_EXCEP_ORDER_DEMAND_IMP A
+		   WHERE A.CHECK_RESULT = 0
+		     AND A.IMP_UUID = #{VALUE}),
+		TEMPB AS
+		 (SELECT COUNT(1) S
+		    FROM MM_MP_EXCEP_ORDER_DEMAND_IMP B
+		   WHERE B.IMP_UUID = #{VALUE})
+		SELECT CASE
+		         WHEN A.S >= B.S THEN
+		          0
+		         ELSE
+		          1
+		       END AS FLAG
+		  FROM TEMPA A, TEMPB B
+	</select>
+	 
+	<!-- 查询可导入数据 -->
+	<select id="queryForInsertList" parameterType="java.util.Map" resultType="com.hanthink.mp.model.MpExcepOrderModel">
+		SELECT A.ID id
+		FROM  MM_MP_EXCEP_ORDER_DEMAND_IMP A
+		WHERE A.IMP_UUID = #{uuid}
+			  AND A.IMPORT_STATUS = #{importStatus}
+			  AND A.CHECK_RESULT = #{checkResult}
+	</select>
+	
+	<!-- 根据车间取仓库代码 -->
+	<select id="selectStorageByWorkCenter" parameterType="com.hanthink.mp.model.MpExcepOrderModel"
+	     resultType="java.lang.String">
+		      SELECT A.WARE_CODE 
+				FROM  MM_INV_PART_LOCATION   A
+				WHERE A.PART_NO = #{partNo}
+				AND A.WORKCENTER = #{workcenter}
+				AND A.WARE_CODE IS NOT NULL
+				AND A.FACTORY_CODE = #{factoryCode}
+				AND ROWNUM = 1
+	</select>
+	
+	<!-- 校验批量删除里面是否有已订购数据 
+	index指的是下标
+	item是实体对象-->
+	<select id="queryMpExcepOrderCheck" parameterType="java.util.List" resultType="java.lang.Integer">
+		SELECT 
+		COUNT(1)
+		FROM MM_MP_EXCEP_ORDER_DEMAND_HIS A
+		WHERE  1=1 
+		AND A.ID IN(
+		<foreach collection="list" item="item" index="" separator="UNION ALL"> 
+          SELECT #{item, jdbcType=VARCHAR} FROM DUAL
+        </foreach>
+		)
+	</select>
+	
+	<!-- 单条/批量数据删除 -->
+	<delete id="deleteByIds" parameterType="java.lang.String">
+		DELETE FROM MM_MP_EXCEP_ORDER_DEMAND
+		WHERE ID IN
+		<foreach item="aryIds" collection="array" open="(" separator="," close=")">
+			#{aryIds,jdbcType=VARCHAR}
+		</foreach>
+	</delete>
+	
+	<!-- 获取到货仓库 -->
+	<select id="getInvWareHouse" parameterType="java.util.Map" resultType="com.hanthink.base.model.DictVO">
+		SELECT DISTINCT WARE_CODE valueKey, WARE_CODE valueName FROM MM_INV_WAREHOUSE 
+	</select>
+	
+</mapper>

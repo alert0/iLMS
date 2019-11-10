@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.bpmx.persistence.model.BpmTaskTransRecord">
+	<resultMap id="BpmTaskTransRecord" type="com.hotent.bpmx.persistence.model.BpmTaskTransRecord">
+		<id property="id" column="ID_" jdbcType="VARCHAR"/>
+		<result property="taskId" column="TASK_ID_" jdbcType="VARCHAR"/>
+		<result property="taskName" column="TASK_NAME_" jdbcType="VARCHAR"/>
+		<result property="taskSubject" column="TASK_SUBJECT_" jdbcType="VARCHAR"/>
+		<result property="status" column="STATUS_" jdbcType="NUMERIC"/>
+		<result property="transUsers" column="TRANS_USERS_" jdbcType="VARCHAR"/>
+		<result property="transUserIds" column="TRANS_USER_IDS_" jdbcType="VARCHAR"/>
+		<result property="transOpinion" column="TRANS_OPINION_" jdbcType="VARCHAR"/>
+		<result property="decideType" column="DECIDE_TYPE" jdbcType="VARCHAR"/>
+		<result property="action" column="ACTION_" jdbcType="VARCHAR"/>
+		<result property="voteType" column="VOTE_TYPE_" jdbcType="VARCHAR"/>
+		<result property="voteAmount" column="VOTE_AMOUNT_" jdbcType="NUMERIC"/>
+		<result property="signType" column="SIGN_TYPE_" jdbcType="VARCHAR"/>
+		<result property="totalAmount" column="TOTAL_AMOUNT_" jdbcType="NUMERIC"/>
+		<result property="agreeAmount" column="AGREE_AMOUNT_" jdbcType="NUMERIC"/>
+		<result property="opposeAmount" column="OPPOSE_AMOUNT_" jdbcType="NUMERIC"/>
+		<result property="transOwner" column="TRANS_OWNER_" jdbcType="VARCHAR"/>
+		<result property="creator" column="CREATOR_" jdbcType="VARCHAR"/>
+		<result property="creatorId" column="CREATOR_ID_" jdbcType="VARCHAR"/>
+		<result property="createTime" column="CREATE_TIME_" jdbcType="TIMESTAMP"/>
+		<result property="transTime" column="TRANS_TIME_" jdbcType="TIMESTAMP"/>
+		<result property="defName" column="DEF_NAME_" jdbcType="VARCHAR"/>
+		<result property="procInstId" column="PROC_INST_ID_" jdbcType="VARCHAR"/>
+		<collection property="receiverList" column="ID_"
+			ofType="com.hotent.bpmx.persistence.model.BpmTransReceiver"
+			select="com.hotent.bpmx.persistence.model.BpmTransReceiver.getByTransRecordid"
+			/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.bpmx.persistence.model.BpmTaskTransRecord">
+		INSERT INTO bpm_task_trans_record
+		(ID_,TASK_ID_,TASK_NAME_,TASK_SUBJECT_,STATUS_,TRANS_USERS_,TRANS_USER_IDS_,TRANS_OPINION_,DECIDE_TYPE,ACTION_,VOTE_TYPE_,VOTE_AMOUNT_,SIGN_TYPE_,TOTAL_AMOUNT_,AGREE_AMOUNT_,OPPOSE_AMOUNT_,TRANS_OWNER_,CREATOR_,CREATOR_ID_,CREATE_TIME_,TRANS_TIME_,DEF_NAME_,PROC_INST_ID_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{taskId,jdbcType=VARCHAR}, #{taskName,jdbcType=VARCHAR}, #{taskSubject,jdbcType=VARCHAR}, #{status,jdbcType=NUMERIC}, #{transUsers,jdbcType=VARCHAR}, #{transUserIds,jdbcType=VARCHAR}, #{transOpinion,jdbcType=VARCHAR}, #{decideType,jdbcType=VARCHAR}, #{action,jdbcType=VARCHAR}, #{voteType,jdbcType=VARCHAR}, #{voteAmount,jdbcType=NUMERIC}, #{signType,jdbcType=VARCHAR}, #{totalAmount,jdbcType=NUMERIC}, #{agreeAmount,jdbcType=NUMERIC}, #{opposeAmount,jdbcType=NUMERIC}, #{transOwner,jdbcType=VARCHAR}, #{creator,jdbcType=VARCHAR}, #{creatorId,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP}, #{transTime,jdbcType=TIMESTAMP}, #{defName,jdbcType=VARCHAR},#{procInstId,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="BpmTaskTransRecord">
+		SELECT * FROM bpm_task_trans_record 
+		WHERE 
+		ID_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="BpmTaskTransRecord">
+		SELECT * FROM bpm_task_trans_record
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY ID_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.bpmx.persistence.model.BpmTaskTransRecord">
+		UPDATE bpm_task_trans_record SET
+		TASK_ID_=#{taskId,jdbcType=VARCHAR},
+		TASK_NAME_=#{taskName,jdbcType=VARCHAR},
+		TASK_SUBJECT_=#{taskSubject,jdbcType=VARCHAR},
+		STATUS_=#{status,jdbcType=NUMERIC},
+		TRANS_USERS_=#{transUsers,jdbcType=VARCHAR},
+		TRANS_USER_IDS_=#{transUserIds,jdbcType=VARCHAR},
+		TRANS_OPINION_=#{transOpinion,jdbcType=VARCHAR},
+		DECIDE_TYPE=#{decideType,jdbcType=VARCHAR},
+		ACTION_=#{action,jdbcType=VARCHAR},
+		VOTE_TYPE_=#{voteType,jdbcType=VARCHAR},
+		VOTE_AMOUNT_=#{voteAmount,jdbcType=NUMERIC},
+		SIGN_TYPE_=#{signType,jdbcType=VARCHAR},
+		TOTAL_AMOUNT_=#{totalAmount,jdbcType=NUMERIC},
+		AGREE_AMOUNT_=#{agreeAmount,jdbcType=NUMERIC},
+		OPPOSE_AMOUNT_=#{opposeAmount,jdbcType=NUMERIC},
+		TRANS_OWNER_=#{transOwner,jdbcType=VARCHAR},
+		CREATOR_=#{creator,jdbcType=VARCHAR},
+		CREATOR_ID_=#{creatorId,jdbcType=VARCHAR},
+		CREATE_TIME_=#{createTime,jdbcType=TIMESTAMP},
+		TRANS_TIME_=#{transTime,jdbcType=TIMESTAMP},
+		DEF_NAME_=#{defName,jdbcType=VARCHAR},
+		PROC_INST_ID_ = #{procInstId,jdbcType=VARCHAR}
+		WHERE
+		ID_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM bpm_task_trans_record 
+		WHERE
+		ID_=#{id}
+	</delete>
+	
+	<select id="getByTaskId"   parameterType="java.lang.String" resultMap="BpmTaskTransRecord">
+		SELECT * FROM bpm_task_trans_record 
+		WHERE 
+		TASK_ID_=#{taskId} AND STATUS_ = 0
+	</select>
+	
+	<select id="getTransRecord" resultMap="BpmTaskTransRecord">
+		SELECT * FROM bpm_task_trans_record 
+		WHERE 1= 1 
+		<if test="@Ognl@isNotEmpty(userId)">
+			AND	TRANS_OWNER_=#{userId}
+		</if>
+		<if test="@Ognl@isNotEmpty(subject)">
+			AND TASK_SUBJECT_ like #{subject}
+		</if>
+		<if test="@Ognl@isNotEmpty(defName)">
+			AND DEF_NAME_ like #{defName}
+		</if>
+		<if test="@Ognl@isNotEmpty(transTimeStart)">
+			AND TRANS_TIME_ >= #{transTimeStart}
+		</if>
+		<if test="@Ognl@isNotEmpty(transTimeEnd)">
+			AND TRANS_TIME_ &lt;= #{transTimeEnd}
+		</if>
+		<if test="@Ognl@isNotEmpty(taskId)">
+			AND TASK_ID_ = #{taskId}
+		</if>
+		
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	
+</mapper>

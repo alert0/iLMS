@@ -1,0 +1,221 @@
+/*主表描述*/
+td.form-desc{
+	height: 50px;
+   	text-align: center;
+   	font-size: 26px;
+}
+.actionBtn{
+	font-size:20px;
+	line-height:30px;
+}
+.table-form th {
+	word-break: break-all;
+	width: 150px;
+	height:43px;
+	text-align:right;		
+	font-weight: 100;
+	color: #545252;
+	font-size:12px;
+	border:1px solid #b5b5b5;
+	padding:0px 10px !important;
+	font-weight:bold;
+}
+.table-form td {
+	border:1px solid #b5b5b5;
+	padding:10px;
+	color:#808080;
+}
+.table-form-inline th{
+	word-break: break-all;
+	width: 150px;
+	height:43px;
+	text-align:center;		
+	font-weight:100;
+	color: #545252;
+	font-size:12px;
+	border:1px solid #b5b5b5;
+	padding:0px 10px !important;
+	font-weight:bold;	
+}
+.table-form-inline td {
+	border:1px solid #b5b5b5;
+	padding:10px;
+	color:#808080;
+}
+.table-form tr th span{font-weight:bold;}
+/*表单输入框的样式*/
+.form-control
+ { 
+ 	display:inline-block;!important;
+	width: 80%;
+    margin-left:5px;
+    font-size:12px;
+    color:#808080;
+
+ }
+.sub-form-div {
+	padding: 10px;
+	position: relative;
+}
+.sub-group-form {
+	border: 3px solid #eee;
+	margin: 10px 20px;
+}
+.input-default {
+	white-space: inherit;
+	word-break: break-all;
+	/* height: 100% !important; */
+	width:80% !important;
+}
+
+.selector-button {
+	width: 50px;
+}
+
+.selector-button:hover {
+	cursor: pointer;
+}
+
+[selector-type].ht-input.so-long {
+	width: 145px;
+}
+
+[selector-type].ht-input.so-long.so-too-long {
+	width: 130px;
+}
+
+[selector-type].ht-input {
+	min-height: 33px;
+}
+
+.file-button {
+	cursor: pointer;
+	padding: 4px 0;
+	font-size: 12px;
+	min-height: 24px;
+}
+
+.file-div {
+	-webkit-appearance: textfield;
+	padding: 0;
+	min-height: 33px;
+	height: 100%;
+}
+
+.file-span {
+	margin-bottom: 5px;
+	margin-right: 5px;
+	text-overflow: ellipsis;
+	max-width: 130px;
+}
+input.customdialog-input{
+	display:inline-block;
+	min-height:30px;
+}
+.subdatamessage{
+	border:none !important;
+	width:100%;
+	float:left;
+}
+ /**表单样式20160930*/
+.table-form{width:99.2%; float:left; margin:5px 0.4%;}
+.table-form-inline{width:99.2%; float:left; margin:8px 0.4%;}
+.form-title{padding:10px; font-weight:bold; font-size:16px;}
+.btn-sm{margin-left:5px;}
+ 
+.block-title{
+	width:100%; 
+	float:left; 
+	padding:8px 0;
+	background-color:#f2f2f2;
+}
+.btn-add{
+	float:left;
+	background-color: #337ab7;
+	color:#fff;
+	border-radius:4px;
+	padding:7px 18px;
+	text-transform:none;
+	text-decoration:none;
+	margin-left:10px;
+ }
+.btn-add:hover{
+	background-color:#4489c4;
+	color: #fff;
+	text-decoration:none;
+ }
+ 
+ /*没有数据，提示样式和警告样式*/
+.nodata{
+	width:100%;
+	line-height:40px;
+	text-align:center;
+	border:1px solid #e1e1e1;
+	color:#d15f5f;
+ }
+.block-delete{
+	background-color:#dd5a43; 
+	padding:2px 10px; 
+	color:#fff; 
+	float:right;
+	border-radius:4px; 
+	margin:5px 0.4% 0 0;
+	cursor:hand;
+ }
+.div-block{ 
+	 border:1px solid #b5b5b5; 
+	 margin-top:10px; 
+	 border-radius:4px; 
+	 width:99.2%;
+	 margin-left:0.4%;
+	 float:left;
+ }
+.div-form{
+	 margin-top:10px; 
+	 border-radius:4px; 
+
+ }
+ .form-group{background-color:#f2f2f2; font-size:14px; color:#337ab7;}
+ /*切换追加卡样式*/
+ .nav-tabs>li{ background-color:#eeeeee;}
+ .nav-tabs{background-color:#eeeeee;}
+ 
+ .radio-inline{font-size:12px; line-height:20px; color:#808080; padding-right:6px;}
+ .checkbox-inline{font-size:12px; line-height:20px; color:#808080; padding-right:6px;}
+ .checkbox input[type=checkbox], .checkbox-inline input[type=checkbox], .radio input[type=radio], .radio-inline input[type=radio]{margin-left:-18px;}
+ 
+ .alert{
+	width:99.2%;
+	margin-left:0.4%;
+	border:1px solid #eee;
+	color:#d15f5f;
+ }
+
+ /*分组标题*/
+ .grid-groupTitle{
+ 	font-weight: bold;
+ 	font-size: 14px;
+ 	text-align: left;
+ 	padding-left: 5px;
+ 	line-height: 25px;
+ 	height: 25px;
+ 	vertical-align: middle;
+ 	background-color: #FBFBFB;
+ 	
+ }
+ /**时间控件样式*/
+.date,.datetime,.dateformat{
+	background: url(image/datePicker.gif) no-repeat scroll right
+		center #FFFFFF;
+	background-image: url(image/datePicker.gif) !important;
+}
+
+/** 覆盖select2 样式  */
+.select2-container{
+	width:80% !important;
+}
+/**选择器按钮样式*/
+div[ht-selector] div.input-group{
+	display: inline;
+}
+ 

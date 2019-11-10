@@ -1,0 +1,58 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.0.xsd">
+	<bean id="springContextUtil" class="com.hanthink.gps.util.SpringContextUtil"/>
+	<!-- 
+	<bean id="useForWebServiceAction" class="com.hanthink.gps.util.UseForWebServiceAction"/>
+	 -->
+	
+	<!-- 开发人员管理Action -->
+	<bean id="DevelopeAction" class="com.hanthink.gps.pub.web.DevelopeAction"
+		scope="prototype">
+		<property name="service">
+			<ref bean="DevelopeService" />
+		</property>
+	</bean>
+	
+	<!-- 登录后的首页管理 -->
+	<bean id="IndexAction" class="com.hanthink.gps.pub.web.IndexAction"
+		scope="prototype">
+		<property name="loginService">
+			<ref bean="loginService" />
+		</property>
+	</bean>
+	<!-- 登录管理 -->
+	<bean id="loginAction" class="com.hanthink.gps.pub.web.LoginAction"
+		scope="prototype">
+		<property name="service">
+			<ref bean="loginService" />
+		</property>
+	</bean>	
+	<!-- 共同管理 -->
+	<bean id="CommAction" class="com.hanthink.gps.pub.web.CommAction"
+        scope="prototype">
+        <property name="service">
+            <ref bean="CommService" />
+        </property>
+    </bean> 
+    
+    
+	   
+   <!-- 定时器管理 -->
+	<bean id="EmailManageAction" class="com.hanthink.gps.email.web.EmailManageAction"
+		scope="prototype">
+		<property name="service">
+			<ref bean="emailManageService" />
+		</property>
+	</bean> 
+	
+	<!-- 分组维护 -->
+	<bean id="MsgGroupAction" class="com.hanthink.gps.email.web.MsgGroupAction"
+		scope="prototype">
+		<property name="service">
+			<ref bean="msgGroupService" />
+		</property>
+	</bean>  
+	
+</beans>

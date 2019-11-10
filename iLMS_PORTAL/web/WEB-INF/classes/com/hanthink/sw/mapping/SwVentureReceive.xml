@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hanthink.sw.model.SwVentureReceiveModel">
+	<!-- 查询、导出数据 -->
+	<select id="querySwVentureReceiveForPage"
+		parameterType="com.hanthink.sw.model.SwVentureReceiveModel"
+		resultType="com.hanthink.sw.model.SwVentureReceiveModel">
+		SELECT B.JV_PLACE ordPlace,
+	           B.ORDER_NO ordOrderNo,
+	           A.ROW_NO ordOrderRowNo,
+	           B.REC_TIME recTime,
+	           A.PART_NO partNo,
+	           E.PART_NAME_CN partName,
+	           F.PART_SHORT_NO partShortNo,
+	           D.ORDER_QTY orderQty,
+	           NVL(D.REC_QTY, 0) + A.REC_QTY totalRecQty,
+	           A.REC_QTY recQty,
+	           B.CHECK_STATUS checkStatus,
+	           H.CODE_VALUE_NAME excelCheckStatus,
+	           B.CHECK_RESULT checkResult,
+	           G.CODE_VALUE_NAME excelCheckResult,
+	           CASE
+	             WHEN NVL(D.REC_QTY, 0) + A.REC_QTY = D.ORDER_QTY THEN
+	              '已收齐'
+	             WHEN NVL(D.REC_QTY, 0) + A.REC_QTY &lt; D.ORDER_QTY THEN
+	              '未收齐'
+	           END AS receiveStatus,
+	           B.CREATION_TIME creationTime
+	      FROM MM_SW_REC_JV_DETAIL A
+	      LEFT JOIN MM_SW_REC_JV B
+	        ON A.REC_NO = B.REC_NO
+	      LEFT JOIN MM_SW_ORDER_JV C
+	        ON B.ORDER_NO = C.ORDER_NO
+	       AND B.FACTORY_CODE = C.FACTORY_CODE
+	       AND B.JV_PLACE = C.JV_PLACE
+	      LEFT JOIN MM_SW_ORDER_JV_DETAIL D
+	        ON C.PURCHASE_NO = D.PURCHASE_NO
+	       AND A.ROW_NO = D.PURCHASE_ROWNO
+	       AND A.PART_NO = D.PART_NO
+	      LEFT JOIN MM_PUB_PART E
+	        ON E.PART_NO = A.PART_NO
+	       AND E.FACTORY_CODE = B.FACTORY_CODE
+	      LEFT JOIN MM_PUB_PART_UDA F
+	        ON F.PART_NO = A.PART_NO
+	       AND F.FACTORY_CODE = B.FACTORY_CODE
+	      LEFT JOIN MM_PUB_DATA_DICT G
+	        ON G.CODE_TYPE = 'PUB_CHECK_STATUS'
+	       AND G.CODE_VALUE = B.CHECK_STATUS
+	       AND G.FACTORY_CODE = B.FACTORY_CODE
+	      LEFT JOIN MM_PUB_DATA_DICT H
+	        ON H.CODE_TYPE = 'PUB_TRUE_FLASE'
+	       AND H.CODE_VALUE = B.CHECK_STATUS
+	       AND H.FACTORY_CODE = B.FACTORY_CODE
+		WHERE B.FACTORY_CODE = #{factoryCode}
+		<if test="null != creationTimeStr and '' != creationTimeStr">
+			AND B.CREATION_TIME &gt;= TO_DATE(#{creationTimeStr},'yyyy-mm-dd')
+		</if>
+		<if test="null != creationTimeEnd and '' != creationTimeEnd">
+			AND B.CREATION_TIME &lt; TO_DATE(#{creationTimeEnd},'yyyy-mm-dd')+1
+		</if>
+		<if test="null != ordOrderNo and '' != ordOrderNo">
+			AND B.ORDER_NO = #{ordOrderNo}
+		</if>
+		<if test="null != partNo and '' != partNo">
+			AND A.PART_NO LIKE CONCAT('%',CONCAT(#{partNo},'%'))
+		</if>
+		<if test="null != partShortNo and '' != partShortNo">
+			AND F.PART_SHORT_NO = #{partShortNo}
+		</if>
+		<if test="null != partName and '' != partName">
+			AND E.PART_NAME_CN LIKE CONCAT('%',CONCAT(#{partName},'%'))
+		</if>
+		<if test="null != ordPlace and '' != ordPlace">
+			AND B.JV_PLACE = #{ordPlace}
+		</if>
+		<if test="null != userType and '' != userType and userType == '6'">
+			<if test="null != userId and ''!= userId">
+		       AND B.JV_PLACE IN (SELECT V.VALUE_CODE FROM VIEW_SYS_USER_DATA_PERM V 
+		        WHERE V.USER_ID = #{userId} AND V.TYPE_CODE = 'JV_FORE_PLACE')
+		    </if>
+		</if>
+	 ORDER BY B.CHECK_STATUS, B.ORDER_NO, A.ROW_NO
+	</select>
+	<!-- 删除上一次未导入的数据 -->
+	<delete id="deleteLastTimeImportExcel"
+		parameterType="java.lang.String">
+		DELETE FROM MM_SW_REC_JV_IMP MSR WHERE MSR.IMP_UUID = #{uuid}
+	</delete>
+	<!-- 将数据写入临时表 -->
+	<insert id="importReceiveExcel">
+		INSERT INTO MM_SW_REC_JV_IMP
+		(FACTORY_CODE,ORDER_NO,ORDER_ROWNO,PART_NO,REC_TIME,JV_PLACE,REC_QTY,
+		IMP_UUID,CHECK_RESULT,CHECK_INFO,IMPORT_STATUS,CREATION_USER,CREATION_TIME)
+		<foreach collection="list" item="item" index="index"
+			separator=" UNION ALL">
+			SELECT #{item.factoryCode,jdbcType=VARCHAR},
+			#{item.ordOrderNo,jdbcType=VARCHAR},
+			#{item.ordOrderRowNo,jdbcType=VARCHAR},
+			#{item.partNo,jdbcType=VARCHAR},
+			#{item.recTime,jdbcType=VARCHAR},
+			#{item.ordPlace,jdbcType=VARCHAR},
+			#{item.recQty,jdbcType=VARCHAR},
+			#{item.impUUID,jdbcType=VARCHAR},
+			#{item.checkResult,jdbcType=VARCHAR},
+			#{item.checkInfo,jdbcType=VARCHAR},
+			#{item.importStatus,jdbcType=VARCHAR},
+			#{item.creationUser,jdbcType=VARCHAR},
+			SYSDATE
+			FROM DUAL
+		</foreach>
+	</insert>
+	<!-- 导入数据校验 -->
+	<parameterMap type="map" id="checkMap">
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN" />
+		<parameter property="factoryCode" jdbcType="VARCHAR"
+			mode="IN" />
+		<parameter property="result" jdbcType="VARCHAR" mode="OUT" />
+		<parameter property="console" jdbcType="VARCHAR" mode="OUT" />
+	</parameterMap>
+	<select id="checkImportReceiveExcel" parameterMap="checkMap"
+		statementType="CALLABLE">
+		{CALL PKG_JV_REC.USP_IMPORT_CHECK_MAIN(?, ?, ?,?)}
+	</select>
+	<!-- 查询导入数据 -->
+	<select id="queryVentureImportForPage" parameterType="java.lang.String" resultType="com.hanthink.sw.model.SwVentureReceiveModel">
+		SELECT MSR.ORDER_NO ordOrderNo,
+		       MSR.ORDER_ROWNO ordOrderRowNo,
+		       MSR.PART_NO partNo,
+		       MSR.REC_TIME recTime,
+		       MSR.CREATION_TIME creationTime,
+		       MSR.JV_PLACE ordPlace,
+		       MSR.REC_QTY recQty,
+		       MSR.IMPORT_STATUS importStatus,
+		       MSR.CHECK_RESULT checkResult,
+		       MSR.CHECK_INFO checkInfo,
+		       MPP.PART_NAME_CN partName,
+		       MPPU.PART_SHORT_NO partShortNo,
+		       MPD.CODE_VALUE_NAME  excelImportStatus,
+		       MPDD.CODE_VALUE_NAME excelCheckResult
+		  FROM MM_SW_REC_JV_IMP MSR
+		  LEFT JOIN MM_PUB_PART MPP
+		    ON MPP.PART_NO = MSR.PART_NO
+		   AND MPP.FACTORY_CODE = MSR.FACTORY_CODE
+		  LEFT JOIN MM_PUB_PART_UDA MPPU
+		    ON MPPU.PART_NO = MSR.PART_NO
+		   AND MPPU.FACTORY_CODE = MSR.FACTORY_CODE
+		  LEFT JOIN MM_PUB_DATA_DICT MPD
+		    ON MPD.CODE_TYPE = 'PUB_IMP_STATUS'
+		   AND MPD.CODE_VALUE = MSR.IMPORT_STATUS
+		   AND MPD.FACTORY_CODE = MSR.FACTORY_CODE
+		  LEFT JOIN MM_PUB_DATA_DICT MPDD
+		    ON MPDD.CODE_TYPE = 'PUB_IMP_CK_RESULT'
+		   AND MPDD.CODE_VALUE = MSR.CHECK_RESULT
+		   AND MPDD.FACTORY_CODE = MSR.FACTORY_CODE
+		 WHERE MSR.IMP_UUID = #{uuid}
+		 ORDER BY MSR.CHECK_RESULT, MSR.ORDER_NO, MSR.ORDER_ROWNO
+	</select>
+	<!-- 检查导入数据是否全部正确 -->
+	<select id="checkImportCount" parameterType="java.lang.String" resultType="java.lang.Boolean">
+		SELECT COUNT(1)
+		  FROM MM_SW_REC_JV_IMP A
+		 WHERE A.IMP_UUID = #{uuid}
+		   AND (SELECT COUNT(1)
+		          FROM MM_SW_REC_JV_IMP B
+		         WHERE B.IMP_UUID = A.IMP_UUID) =
+		       (SELECT COUNT(1)
+		          FROM MM_SW_REC_JV_IMP C
+		         WHERE C.IMP_UUID = A.IMP_UUID
+		           AND C.CHECK_RESULT = 1)
+	</select>	
+	<!-- 确认导入数据 -->
+	<parameterMap type="map" id="paramMap">
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN" />
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN" />
+	</parameterMap>
+	<select id="isImportForRecNum" parameterMap="paramMap" statementType="CALLABLE">
+		{CALL PKG_JV_REC.USP_IMPORT_MAIN(?, ?)}
+	</select>
+	<!-- 获取未审核的收货订单 -->
+	<select id="selecteNeedCheck" parameterType="java.util.Map" resultType="com.hanthink.sw.model.SwVentureReceiveModel">
+		SELECT A.ORDER_NO orderNo,A.REC_NO recNo
+		  FROM MM_SW_REC_JV A
+		 WHERE EXISTS (SELECT 1
+		          FROM MM_SW_REC_JV_DETAIL B
+		         WHERE B.REC_NO = A.REC_NO
+		           AND B.CHECK_STATUS = 0)
+		   AND A.FACTORY_CODE = #{factoryCode}
+		   AND A.DEAL_FLAG IS NULL
+	</select>
+	<!-- 将订单更新为已处理 -->
+	<update id="updateOrderList">
+		UPDATE MM_SW_REC_JV A
+		SET A.DEAL_FLAG = 0
+		WHERE A.ORDER_NO IN
+		<foreach collection="list" index="index" item="instId" open="(" separator="," close=")"> 
+            #{instId.orderNo}
+        </foreach>
+	</update>
+	<!-- 全部审核通过 -->
+	<parameterMap type="map" id="checkparamMap">
+		<parameter property="user" jdbcType="VARCHAR" mode="IN" />
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN" />
+		<parameter property="factoryCode" jdbcType="VARCHAR" mode="IN" />
+		<parameter property="errFlag" jdbcType="VARCHAR" mode="OUT" />
+		<parameter property="errMsg" jdbcType="VARCHAR" mode="OUT" />
+	</parameterMap>
+	<select id="checkRecForUploadAll" parameterMap="checkparamMap" statementType="CALLABLE">
+		{CALL PKG_JV_REC.USP_CHECK_REC_MAIN(?, ?, ?, ?, ?)}
+	</select>
+</mapper>

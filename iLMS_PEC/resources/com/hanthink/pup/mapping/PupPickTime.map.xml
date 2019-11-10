@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.pup.model.PupPickTimeModel">
+	
+	<!-- 固定取货时间维护分页查询 -->
+	<select id="queryPickupTimeForPage" parameterType="com.hanthink.pup.model.PupPickTimeModel" resultType="com.hanthink.pup.model.PupPickTimeModel">
+		SELECT ID id,FACTORY_CODE factoryCode,ROUTE_CODE routeCode,TODAY_NO todayNo,TO_CHAR(PICK_TIME,'hh24:mi:ss') pickTime,
+				TO_CHAR(ARRIVE_TIME,'hh24:mi:ss') arriveTime,CREATION_USER creationUser,TO_CHAR(CREATION_TIME,'yyyy-MM-dd hh24:mi:ss') creationTime,
+				LAST_MODIFIED_USER lastModifiedUser,TO_CHAR(LAST_MODIFIED_TIME,'yyyy-MM-dd hh24:mi:ss') lastModifiedTime
+		FROM MM_PUP_FIX_PICKUP_TIME
+		WHERE FACTORY_CODE = #{factoryCode}
+		<if test="routeCode != null and routeCode != ''">
+			AND ROUTE_CODE = #{routeCode}
+		</if>
+		ORDER BY ID
+	</select>
+
+	<!-- 根据集货线路、当日车次查询数据 -->
+	<select id="getPickTimeByRouteCode" parameterType="com.hanthink.pup.model.PupPickTimeModel" resultType="com.hanthink.pup.model.PupPickTimeModel">
+		SELECT FACTORY_CODE factoryCode,ROUTE_CODE routeCode,TODAY_NO todayNo,TO_CHAR(PICK_TIME,'hh24:mi:ss') pickTime,
+				TO_CHAR(ARRIVE_TIME,'hh24:mi:ss') arriveTime,CREATION_USER creationUser,TO_CHAR(CREATION_TIME,'yyyy-MM-dd hh24:mi:ss') creationTime,
+				LAST_MODIFIED_USER lastModifiedUser,TO_CHAR(LAST_MODIFIED_TIME,'yyyy-MM-dd hh24:mi:ss') lastModifiedTime
+		FROM MM_PUP_FIX_PICKUP_TIME
+		WHERE FACTORY_CODE = #{factoryCode}
+			  AND ROUTE_CODE = #{routeCode}
+			  AND TODAY_NO = #{todayNo}
+	</select>
+	
+	<!-- 新增固定取货时间信息 -->
+	<insert id="createPickTime" parameterType="com.hanthink.pup.model.PupPickTimeModel">
+		INSERT INTO MM_PUP_FIX_PICKUP_TIME
+		(ID,FACTORY_CODE,ROUTE_CODE,TODAY_NO,PICK_TIME,ARRIVE_TIME,CREATION_USER,
+			CREATION_TIME,LAST_MODIFIED_USER,LAST_MODIFIED_TIME)
+		VALUES
+		(PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_PUP_FIX_PICKTIME'),#{factoryCode},#{routeCode},#{todayNo,jdbcType=NUMERIC},to_date(#{pickTime},'yyyy-MM-dd HH24:mi:ss'),
+			to_date(#{arriveTime},'yyyy-MM-dd HH24:mi:ss'),#{creationUser},
+			sysdate,#{lastModifiedUser},sysdate)
+	</insert>
+	<!-- 修改固定取货时间信息 -->
+	<update id="updatePickTime" parameterType="com.hanthink.pup.model.PupPickTimeModel">
+		UPDATE MM_PUP_FIX_PICKUP_TIME SET
+			PICK_TIME=to_date(#{pickTime},'yyyy-MM-dd HH24:mi:ss'),
+			ARRIVE_TIME=to_date(#{arriveTime},'yyyy-MM-dd HH24:mi:ss'),
+			LAST_MODIFIED_USER=#{lastModifiedUser,jdbcType=VARCHAR},
+			LAST_MODIFIED_TIME=to_date(#{lastModifiedTime},'yyyy-MM-dd HH24:mi:ss')
+		WHERE FACTORY_CODE = #{factoryCode,jdbcType=VARCHAR}
+			  AND ID = #{id}
+	</update>
+	
+	<!-- 删除页面选中的数据 -->
+	<delete id="removeByRouteCodes" parameterType="java.util.List">
+		DELETE FROM MM_PUP_FIX_PICKUP_TIME
+		WHERE (FACTORY_CODE,ID) IN
+		<foreach item="item" collection="list" open="(" separator="," close=")">
+            (#{item.factoryCode},#{item.id})
+        </foreach>
+	</delete>
+	
+	<!-- 根据UUID查询数据导入数据 -->
+	<select id="queryPickTimeForImport" parameterType="java.util.Map" resultType="com.hanthink.pup.model.PupPickTimeModel">
+		SELECT MPF.ID id,
+			   MPF.FACTORY_CODE factoryCode,
+			   MPF.ROUTE_CODE routeCode,
+			   MPF.TODAY_NO todayNo,
+			   TO_CHAR(MPF.PICK_TIME,'hh24:mi:ss') pickTime,
+			   TO_CHAR(MPF.ARRIVE_TIME,'hh24:mi:ss') arriveTime,
+			   MPF.CHECK_RESULT checkResult,
+			   MPF.CHECK_INFO checkInfo,
+			   MPF.IMPORT_STATUS importStatus,
+			   MPF.OPE_TYPE opeType,
+			   MPF.CREATION_USER creationUser,
+			   TO_CHAR(MPF.CREATION_TIME,'yyyy-MM-dd hh24:mi:ss') creationTime,
+			   MPD.CODE_VALUE_NAME excelImportStatus,
+	           MPDP.CODE_VALUE_NAME excelCheckResult
+		FROM MM_PUP_FIX_PICKUP_TIME_IMP MPF
+			LEFT JOIN MM_PUB_DATA_DICT MPD
+		    ON MPD.CODE_TYPE  = 'PUB_IMP_STATUS'
+		    AND MPD.CODE_VALUE = MPF.IMPORT_STATUS
+		    LEFT JOIN MM_PUB_DATA_DICT MPDP
+		    ON MPDP.CODE_TYPE  = 'PUB_IMP_CK_RESULT'
+		    AND MPF.CHECK_RESULT = MPDP.CODE_VALUE
+		WHERE MPF.IMP_UUID = #{uuid,jdbcType=VARCHAR}
+	</select>
+	
+	<!-- 根据UUID删除数据 -->
+	<delete id="deleteTempDataByUUID">
+		DELETE FROM MM_PUP_FIX_PICKUP_TIME_IMP
+		WHERE
+		IMP_UUID = #{uuid,jdbcType=VARCHAR}
+	</delete>
+	
+	<!-- 将Excel数据写入临时表 -->
+	<insert id="insertDataIntoTempTable" parameterType="java.util.List">
+		INSERT INTO MM_PUP_FIX_PICKUP_TIME_IMP
+		(ID,FACTORY_CODE,ROUTE_CODE,TODAY_NO,PICK_TIME,ARRIVE_TIME,IMP_UUID,CHECK_RESULT,
+			CHECK_INFO,IMPORT_STATUS,OPE_TYPE,CREATION_USER,CREATION_TIME)
+		<foreach  collection="list" item="item" index="index" separator=" UNION ALL" >
+			SELECT #{item.id,jdbcType=VARCHAR}, #{item.factoryCode,jdbcType=VARCHAR}, 
+				   #{item.routeCode,jdbcType=VARCHAR},#{item.todayNo,jdbcType=VARCHAR},
+				   to_date(#{item.pickTime,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss'),
+				   to_date(#{item.arriveTime,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss'),
+			 	   #{item.impUUID,jdbcType=VARCHAR}, #{item.checkResult,jdbcType=VARCHAR}, 
+			 	   #{item.checkInfo,jdbcType=VARCHAR}, #{item.importStatus,jdbcType=VARCHAR},
+			 	   #{item.opeType,jdbcType=VARCHAR}, #{item.creationUser,jdbcType=VARCHAR},
+			 	   to_date(#{item.creationTime},'yyyy-MM-dd hh24:mi:ss')
+			FROM DUAL
+		</foreach>
+	</insert>
+	
+	<!-- 检查导入临时表数据 -->
+	<parameterMap type="map" id="impCkParamMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="userName" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap>
+	<select id="checkImportPickTimeData" parameterMap="impCkParamMap" statementType="CALLABLE">
+		{CALL PKG_PUP_CHECK.PUP_FIX_TIME_CHECK(?, ?, ?,  ?,?)}
+	</select>
+	
+	<!-- 查询导入状态 -->
+	<select id="queryImportFlag" parameterType="java.lang.String" resultType="java.lang.String">
+		WITH TEMPA AS
+		 (SELECT COUNT(1) s
+		    FROM MM_PUP_FIX_PICKUP_TIME_IMP A
+		   WHERE A.CHECK_RESULT = 0
+		     AND A.IMP_UUID = #{uuid}),
+		TEMPB AS
+		 (SELECT COUNT(1) S
+		    FROM MM_PUP_FIX_PICKUP_TIME_IMP B
+		   WHERE B.IMP_UUID = #{uuid})
+		SELECT CASE
+		         WHEN A.S >= B.S THEN
+		          0
+		         ELSE
+		          1
+		       END AS FLAG
+		  FROM TEMPA A, TEMPB B
+	</select>
+	<!-- 查询需要修改的数据的ID -->
+	<select id="queryUpdateDataFromTemp" parameterType="java.util.Map" resultType="java.lang.String">
+		SELECT A.ID
+		  FROM MM_PUP_FIX_PICKUP_TIME_IMP A
+		 WHERE A.OPE_TYPE = 'U'
+		   AND A.IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR} 
+		   AND A.IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		   AND A.CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+	</select>
+	<!-- 修改导入的数据 -->
+	<update id="updatePickTimeImportData">
+		UPDATE MM_PUP_FIX_PICKUP_TIME A
+	       SET (A.PICK_TIME,
+	            A.ARRIVE_TIME,
+	            A.LAST_MODIFIED_USER,
+	            A.LAST_MODIFIED_TIME) =
+	           (SELECT B.PICK_TIME, B.ARRIVE_TIME, B.CREATION_USER, sysdate
+	              FROM MM_PUP_FIX_PICKUP_TIME_IMP B
+	             WHERE B.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+	               AND B.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+	               AND B.IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}
+	               AND B.OPE_TYPE = 'U'
+	               AND B.BUSI_ID = A.ID)
+	     WHERE EXISTS
+	     (SELECT 1
+	              FROM MM_PUP_FIX_PICKUP_TIME_IMP B
+	             WHERE B.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+	               AND B.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+	               AND B.IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}
+	               AND B.OPE_TYPE = 'U'
+	               AND B.BUSI_ID = A.ID)
+	</update>
+	
+	<!-- 获取临时表中当前导入数据的正确数据的条数 -->
+	<select id="getCountForPickTimeImport" parameterType="java.util.Map" resultType="java.lang.Integer">
+		SELECT COUNT(*) FROM MM_PUP_FIX_PICKUP_TIME_IMP
+		WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		  AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+		  AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR}
+	</select>
+	<select id="getUpdateList" parameterType="java.util.Map" resultType="java.lang.String">
+		SELECT BUSI_ID id
+		FROM MM_PUP_FIX_PICKUP_TIME_IMP
+		WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR}
+			AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+			AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR}
+			AND OPE_TYPE = 'U'
+	</select>
+	<!-- 获取需要更新导入的数据条数 -->
+	<select id="getCountForUpdate" parameterType="java.util.Map" resultType="java.lang.Integer">
+		SELECT COUNT(*) FROM MM_PUP_FIX_PICKUP_TIME_IMP
+		WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR}
+			AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+			AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR}
+			AND OPE_TYPE = 'U'
+	</select>
+	<!-- 将临时表数据写到正式表 -->
+	<insert id="insertTempDataToRegula">
+		INSERT INTO MM_PUP_FIX_PICKUP_TIME 
+		(ID,FACTORY_CODE, ROUTE_CODE, TODAY_NO, PICK_TIME,
+			ARRIVE_TIME,CREATION_USER,CREATION_TIME)
+		(SELECT PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_PUP_FIX_PICKTIME'), FACTORY_CODE, ROUTE_CODE, TODAY_NO, PICK_TIME,
+			ARRIVE_TIME,CREATION_USER,CREATION_TIME
+		FROM MM_PUP_FIX_PICKUP_TIME_IMP
+		WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		  AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+		  AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR}
+		  AND OPE_TYPE = 'I')
+	</insert>
+	
+	<!-- 修改导入数据的状态 -->
+	<update id="updatePickTimeImportDataImpStatus">
+		UPDATE MM_PUP_FIX_PICKUP_TIME_IMP SET 
+			IMPORT_STATUS = #{IMPORT_STATUS_YES,jdbcType=VARCHAR} 
+		WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		  AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+		  AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR} 
+	</update>
+</mapper>

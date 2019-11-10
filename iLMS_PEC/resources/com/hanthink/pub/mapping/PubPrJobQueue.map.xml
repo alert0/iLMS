@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.pub.model.PubPrJobQueueModel">
+		
+	<!-- 分页查询结果 /导出查询结果 -->
+			<select id="queryPubPrJobQueueForPage" parameterType="com.hanthink.pub.model.PubPrJobQueueModel" resultType="com.hanthink.pub.model.PubPrJobQueueModel">
+						SELECT T.BUSINESS         business,
+						       T.JOB_NAME         jobName,
+						       T.PRINT_TYPE       printType,
+						       T.JOB_TYPE       jobType,
+						       T.STATUS         status,
+						       B.CODE_VALUE_NAME  codeValueNameB,
+						       A.CODE_VALUE_NAME  codeValueNameA,
+						       T.SERIAL_NUMBER    serialNumber,
+						       T.CREATION_TIME    creationTimeStr
+						  FROM MM_PR_JOB_QUEUE T
+						  LEFT JOIN MM_PR_JOB D
+						    ON D.JOB_NAME = T.JOB_NAME
+						   AND T.FACTORY_CODE = D.FACTORY_CODE
+						  LEFT JOIN MM_PR_PRINTER C
+						    ON C.PRINTER_NAME = D.PRINTER_NAME
+						   AND T.FACTORY_CODE = C.FACTORY
+						  LEFT JOIN MM_PUB_DATA_DICT A
+						    ON T.STATUS = A.CODE_VALUE
+						   AND T.FACTORY_CODE = A.FACTORY_CODE
+						   AND A.CODE_TYPE = 'PR_PRINT_STATUS'
+						  LEFT JOIN MM_PUB_DATA_DICT B
+						    ON T.JOB_TYPE = B.CODE_VALUE
+						   AND T.FACTORY_CODE = B.FACTORY_CODE
+						   AND B.CODE_TYPE = 'PR_TASK_TYPE'
+						 WHERE 1 = 1
+					  <if test="jobType!=null and jobType!='' ">
+					      AND	T.JOB_TYPE LIKE CONCAT(#{jobType}, '%')
+					  </if>
+					  <if test="serialNumber!=null and serialNumber!='' ">
+					      AND	T.SERIAL_NUMBER LIKE CONCAT(#{serialNumber}, '%')
+					  </if>
+					  <if test="creationTimeStrStart != null and creationTimeStrStart != '' ">
+					  <![CDATA[ AND T.CREATION_TIME >= TO_DATE(#{creationTimeStrStart},'yyyy-MM-dd hh24:mi:ss') ]]>
+					  </if>
+			          <if test="creationTimeStrEnd != null and creationTimeStrEnd != '' ">
+			          <![CDATA[ AND T.CREATION_TIME <= TO_DATE(#{creationTimeStrEnd},'yyyy-MM-dd hh24:mi:ss') ]]>
+			          </if>
+					  <if test="status!=null and status!='' ">
+					      AND	T.STATUS LIKE CONCAT(#{status}, '%')
+					  </if>
+					     AND T.FACTORY_CODE = #{factoryCode}
+					    ORDER   BY T.JOB_NO
+	</select>
+	
+</mapper>

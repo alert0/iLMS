@@ -1,0 +1,23 @@
+#database jdbc config
+drivername=oracle.jdbc.driver.OracleDriver
+
+#url=jdbc:oracle:thin:@172.18.80.200:1521:GPS
+#
+#username=GPS
+#
+#password=gpsprod1314@
+
+#url=jdbc:oracle:thin:@172.18.81.71:1521:gpsdev
+#
+#username=gpsdev
+#password=GAMCgps3P
+
+url=jdbc:oracle:thin:@172.18.80.210:1521:GPS
+
+username=GPS
+password=gps20160831
+
+#url=jdbc:oracle:thin:@ (DESCRIPTION = (ADDRESS_LIST = (ADDRESS = (PROTOCOL = TCP)(HOST = 172.18.65.16 )(PORT = 1521))(ADDRESS = (PROTOCOL = TCP)(HOST = 172.18.65.18 )(PORT = 1521))(FAILOVER=yes)(LOAD_BALANCE =yes))(CONNECT_DATA = (SERVER = DEDICATED) (SERVICE_NAME = gpsor )))
+#
+#username=GPS
+#password=gpsprod1314@

@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.org.persistence.model.OrgUser">
+	<resultMap id="OrgUser" type="com.hotent.org.persistence.model.OrgUser">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="orgId" column="org_id_" jdbcType="VARCHAR"/>
+		<result property="userId" column="user_id_" jdbcType="VARCHAR"/>
+		<result property="isMaster" column="is_master_" jdbcType="NUMERIC"/>
+		<result property="isCharge" column="is_charge_" jdbcType="NUMERIC"/>
+		<result property="relId" column="rel_id_" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.org.persistence.model.OrgUser">
+		INSERT INTO sys_org_user
+		(id_,org_id_,user_id_,is_master_,is_charge_,rel_id_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{orgId,jdbcType=VARCHAR}, #{userId,jdbcType=VARCHAR}, #{isMaster,jdbcType=NUMERIC}, #{isCharge,jdbcType=NUMERIC},  #{relId,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="OrgUser">
+		SELECT * FROM sys_org_user 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="getByParms"   parameterType="java.lang.String" resultMap="OrgUser">
+		SELECT * FROM sys_org_user 
+		WHERE 1=1
+		<if test="orgId!=null">
+			and org_id_=#{orgId}
+		</if>
+		<if test="userId!=null">
+			and user_id_=#{userId}
+		</if>
+		<if test="relId!=null">
+			and rel_id_=#{relId}
+		</if>
+		<if test="relIdNull!=null">
+			and rel_id_  is null
+		</if>
+		<if test="isMaster!=null">
+			and is_master_=#{isMaster}
+		</if>
+		<if test="isCharge!=null">
+			and is_charge_=#{isCharge}
+		</if>
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="OrgUser">
+		SELECT * FROM sys_org_user
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		 
+	
+		
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.org.persistence.model.OrgUser">
+		UPDATE sys_org_user SET
+		org_id_=#{orgId,jdbcType=VARCHAR},
+		user_id_=#{userId,jdbcType=VARCHAR},
+		is_master_=#{isMaster,jdbcType=NUMERIC},
+		is_charge_=#{isCharge,jdbcType=NUMERIC},
+		rel_id_=#{relId,jdbcType=VARCHAR}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<update id="updateUserPost"  parameterType="java.util.Map">
+		UPDATE sys_org_user SET
+        rel_id_=#{relId,jdbcType=VARCHAR}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<!-- 设置用户的主岗位-->
+	<update id="updateUserMasterOrg" parameterType="java.util.Map" >
+      update sys_org_user set is_master_=1  where id_=#{id}   
+	</update>
+	
+	<!--取消用户所有主岗位-->
+	<update id="cancelUserMasterOrg" parameterType="java.util.Map" >
+	<![CDATA[
+	  update sys_org_user set is_master_=0 where user_id_=#{userId} 
+	]]>
+	</update>
+	
+	<!-- 将部门的主负责人取消， 设置为负责人  -->
+	<update id="cancleMainCharge" parameterType="java.util.Map" >
+	<![CDATA[
+	  update sys_org_user set is_charge_=1 where is_charge_=2 and org_id_=#{orgId} 
+	]]>
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_org_user 
+		WHERE
+		id_=#{id}
+	</delete>
+	<delete id="removeByOrgIdUserId" parameterType="java.util.Map">
+		DELETE FROM sys_org_user 
+		WHERE
+		user_id_=#{userId} and org_id_ =#{orgId}
+	</delete>
+	<delete id="removeByUserId" parameterType="java.lang.String">
+		DELETE FROM sys_org_user 
+		WHERE
+		user_id_=#{userId}
+	</delete>
+	<delete id="delByOrgId" parameterType="java.lang.String">
+		delete from sys_org_user where ORG_ID_ = #{orgId}
+	</delete>
+	
+	
+	
+	<select id="getUserByGroup" parameterType="java.util.Map" resultType="java.util.HashMap">
+		SELECT u.id_ "userId",u.mobile_ "mobile",u.weixin_ "weixin",u.email_ "email", u.fullname_ "fullName",u.account_ "account", 
+		u.create_time_ "createTime",u.sex_ "sex",u.status_ "status",orguser.id_ "orgUserId", org.id_ "orgId", org.name_ "orgName" ,org.code_ "orgCode",
+			orguser.is_master_ "isMaster",orguser.is_charge_ "isCharge",rel.rel_name_ "relName"  FROM  sys_user u join  sys_org_user orguser 
+			on u.id_=orguser.user_id_
+		 join sys_org org on org.id_=orguser.org_id_ LEFT JOIN sys_org_rel rel ON orguser.rel_id_=rel.id_
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY u.create_time_ DESC
+		</if>
+	</select>
+	
+	
+	<select id="getChargesByOrgId"   parameterType="java.lang.String" resultMap="OrgUser">
+		SELECT * FROM sys_org_user 
+		WHERE 1=1
+		<if test="orgId!=null">
+			and org_id_=#{orgId}
+		</if>
+		<if test="isCharge!=null">
+			and is_charge_=#{isCharge}
+		</if>
+		<if test="isCharge==null">
+			and is_charge_!='0'
+		</if>
+	</select>
+	<select id="getUserAndGroup" parameterType="java.util.Map" resultType="java.util.HashMap">
+		SELECT distinct u.id_ "userId",u.phone_ "phone",u.mobile_ "mobile",u.weixin_ "weixin",u.email_ "email", u.fullname_ "fullName",u.account_ "account", 
+		u.create_time_ "createTime",u.sex_ "sex",u.status_ "status",u.photo_ "photo",orguser.id_ "orgUserId", org.id_ "orgId", org.name_ "orgName" ,org.code_ "orgCode",
+			orguser.is_master_ "isMaster",orguser.is_charge_ "isCharge",rel.rel_name_ "relName" FROM  sys_user u left join  sys_org_user orguser 
+			on u.id_=orguser.user_id_
+		 left join sys_org org on org.id_=orguser.org_id_ LEFT JOIN sys_org_rel rel ON orguser.rel_id_=rel.id_ 
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY u.create_time_ DESC
+		</if>
+	</select>
+	<select id="getSerachUser" parameterType="java.util.Map" resultType="java.util.HashMap">
+		SELECT distinct u.id_ "userId",u.phone_ "phone",u.mobile_ "mobile",u.weixin_ "weixin",u.email_ "email", u.fullname_ "fullName",u.account_ "account", 
+		u.create_time_ "createTime",u.sex_ "sex",u.status_ "status",u.photo_ "photo",orguser.id_ "orgUserId", org.id_ "orgId", org.name_ "orgName" ,org.code_ "orgCode",
+			orguser.is_master_ "isMaster",orguser.is_charge_ "isCharge",rel.rel_name_ "relName" FROM  sys_user u left join  (SELECT*,max(is_master_)FROM sys_org_user group by USER_ID_) orguser 
+			on u.id_=orguser.user_id_
+		 left join sys_org org on org.id_=orguser.org_id_ LEFT JOIN sys_org_rel rel ON orguser.rel_id_=rel.id_ 
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY u.create_time_ DESC
+		</if>
+	</select>
+</mapper>

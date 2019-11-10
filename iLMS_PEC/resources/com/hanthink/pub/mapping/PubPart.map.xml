@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.pub.model.PubPartModel">
+		
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="queryPubPartForPage" parameterType="com.hanthink.pub.model.PubPartModel" resultType="com.hanthink.pub.model.PubPartModel">
+	       SELECT   a.PART_NO  partNo,
+					b.PART_SHORT_NO  partShortNo,
+					a.PART_NAME_CN  partNameCn,
+					a.PART_NAME_EN  partNameEn,
+					a.PART_SPEC  partSpec,
+					a.PURCHASE_TYPE  purchaseType,
+					a.PART_UNIT   partUnit
+					FROM MM_PUB_PART a
+					LEFT JOIN MM_PUB_PART_UDA b
+					ON b.PART_NO = a.PART_NO
+					AND a.FACTORY_CODE = b.FACTORY_CODE
+					WHERE 1=1 
+					<if test="partShortNo!=null and partShortNo!='' ">
+					AND	b.PART_SHORT_NO = #{partShortNo}
+					</if>
+					<if test="partNo!=null and partNo!='' ">
+					AND	a.PART_NO LIKE CONCAT(#{partNo}, '%')
+					</if>
+					<if test="partNameCn!=null and partNameCn!='' ">
+					AND	a.PART_NAME_CN LIKE '%${partNameCn}%' 
+					</if>
+					AND a.FACTORY_CODE = #{factoryCode}
+	</select>
+	
+</mapper>

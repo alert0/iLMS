@@ -1,0 +1,458 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hanthink.sw.model.SwZCOrderModel">
+	
+	<!-- 资材订单查询 -->
+	<select id="queryZCOrderPage" parameterType="com.hanthink.sw.model.SwZCOrderModel" 
+		resultType="com.hanthink.sw.model.SwZCOrderModel">
+		SELECT 
+		    T.PLANNER  planner,
+		    F.ID id,
+		    T.PURCHASE_NO purchaseNo,
+		    P.PART_SPEC partSpec,
+		    D.PURCHASE_ROWNO purchaseRowNo,
+		    F.REPLY_SEQ_NO replySeqNo,
+			D.PART_NO partNo,
+			P.PART_NAME_CN partNameCn,
+			D.STANDARD_PACKAGE standPackage,
+			D.ORDER_QTY orderQty,
+			D.ORDER_UNIT orderUnit,
+			to_char(T.ORDER_DATE, 'yyyy-mm-dd') orderDate,
+			T.REC_USER recUser,
+			T.REC_TEL recTel,
+			T.REC_ADDRESS recAdress,
+			T.SUPPLIER_NO supplierNo,
+			S.SUPPLIER_NAME supplierName,
+			D.INV_TYPE invType,
+			D.COST_CODE costCode,
+			D.COST_CENTER costCenter,
+			to_char(T.ARRIVE_DATE, 'yyyy-mm-dd') arriveDate,
+			CASE WHEN D.ORDER_QTY IS NOT NULL AND D.ORDER_QTY = D.CANCEL_NUM THEN '取消'
+			  ELSE '正常'
+			    END AS orderStatus,
+			CASE WHEN F.PLAN_NUM IS NOT NULL AND D.ORDER_QTY IS NOT NULL AND D.ORDER_QTY > F.PLAN_NUM
+		        THEN '多次发货'
+		      WHEN F.PLAN_NUM IS NOT NULL AND D.ORDER_QTY IS NOT NULL AND D.ORDER_QTY = F.PLAN_NUM
+		        THEN '满足'
+		      ELSE '未反馈'
+		      END AS feedBackStatus, 
+				case when F.PRINT_STATUS = '0' THEN '未打印'
+		           when F.PRINT_STATUS = '1' THEN '已打印'
+		      	else '未打印' end printStatusDesc,
+			F.PRINT_STATUS printStatus,
+			F.PRINT_TIME printTime,
+			F.RETURN_TIME returnTime,
+			F.PLAN_NUM planNum,
+			to_char(F.PLAN_TIME, 'yyyy-mm-dd') planTime,
+			F.RETURN_MSG returnMsg
+		FROM MM_SW_ORDER T
+		INNER JOIN MM_SW_ORDER_DETAIL D
+		ON D.PURCHASE_NO = T.PURCHASE_NO
+		LEFT JOIN MM_SW_FEEDBACK_ZC F
+		ON F.PURCHASE_NO = T.PURCHASE_NO AND F.PURCHASE_ROW_NO = D.PURCHASE_ROWNO
+		LEFT JOIN MM_PUB_PART P
+		ON P.PART_NO = D.PART_NO AND P.FACTORY_CODE = T.FACTORY_CODE
+		LEFT JOIN MM_PUB_SUPPLIER S 
+		ON S.SUPPLIER_NO = T.SUPPLIER_NO
+		LEFT JOIN MM_PUB_DATA_DICT DD 
+		ON DD.CODE_VALUE = F.PRINT_STATUS AND DD.CODE_TYPE = 'PUB_PRINT_STATUS' AND DD.FACTORY_CODE = T.FACTORY_CODE
+		WHERE T.ORDER_TYPE = '14'	
+		<if test="null != partNo and '' != partNo">
+			AND D.PART_NO LIKE #{partNo} || '%'
+		</if>
+		<if test="null != supplierName and '' != supplierName">
+			AND S.SUPPLIER_NAME LIKE  '%' ||  #{supplierName} || '%'
+		</if>
+		<if test="null != supplierNo and '' != supplierNo">
+			AND T.SUPPLIER_NO = #{supplierNo}
+		</if>
+		<if test="null != recUser and '' != recUser">
+			<!-- AND T.REC_USER = #{recUser}  -->
+			AND T.PLANNER LIKE '%' || #{recUser} || '%'
+		</if>
+      	<if test="null != arriveDate and '' != arriveDate">
+  	    	AND T.ARRIVE_DATE &gt;= to_date(#{arriveDate}, 'yyyy-mm-dd hh24:mi:ss')
+  	  	</if>
+  	  	<if test="null != arriveDateEnd and '' != arriveDateEnd">
+  	    	AND T.ARRIVE_DATE &lt;= to_date(#{arriveDateEnd}, 'yyyy-mm-dd hh24:mi:ss')
+  	  	</if>
+		<if test="null != printStatus and '' != printStatus">
+			<if test="'1'.toString() == printStatus">
+				AND F.PRINT_STATUS = #{printStatus}
+			</if>
+			<if test="'0'.toString() == printStatus">
+				AND (F.PRINT_STATUS IS NULL OR F.PRINT_STATUS = #{printStatus})
+			</if>
+		</if>
+		<if test="null != purchaseNo and '' != purchaseNo">
+			AND T.PURCHASE_NO LIKE #{purchaseNo} || '%'
+		</if>
+		<if test="null != feedBackStatus and ''!= feedBackStatus">
+			<!-- 1 未反馈, 2满足, 3多次发货 -->
+			<if test="'1'.toString() == feedBackStatus">
+				AND F.PLAN_TIME IS NULL AND F.PLAN_NUM IS NULL
+			</if>
+			<if test="'2'.toString() == feedBackStatus">
+				AND F.PLAN_NUM IS NOT NULL AND D.ORDER_QTY IS NOT NULL AND D.ORDER_QTY = F.PLAN_NUM
+			</if>
+			<if test="'3'.toString() == feedBackStatus">
+				AND F.PLAN_NUM IS NOT NULL AND D.ORDER_QTY IS NOT NULL AND D.ORDER_QTY > F.PLAN_NUM
+			</if>
+		</if>
+		<!-- 订单状态,取消,正常 -->
+		<if test="null != orderStatus and ''!= orderStatus">
+			<!-- 1 取消, 2 正常 -->
+			<if test="'1'.toString() == orderStatus">
+				AND D.ORDER_QTY IS NOT NULL AND D.ORDER_QTY = D.CANCEL_NUM
+			</if>
+			<if test="'2'.toString() == orderStatus">
+				AND 1=1
+			</if>
+		</if>
+		ORDER BY T.PURCHASE_NO DESC
+	</select>
+	
+	<!-- 根据UUID删除导入的临时数据 -->
+	<delete id="deleteImportTempDataByUUID" parameterType="java.lang.String">
+		DELETE FROM MM_SW_FEEDBACK_ZC_IMP WHERE IMP_UUID = #{value,jdbcType=VARCHAR}
+	</delete>
+	
+	<!-- 写入临时表 -->
+	<insert id="insertSwZCOrderTempData" parameterType="com.hanthink.sw.model.SwZCOrderModel">
+		INSERT INTO MM_SW_FEEDBACK_ZC_IMP A
+	        (
+	        A.ID,
+	        A.BUSI_ID,
+	        A.FACTORY_CODE,
+	        A.PURCHASE_NO,
+	        A.REPLY_SEQ_NO,
+	        A.PURCHASE_ROW_NO,
+	        A.ARRIVE_DATE,
+	        A.ORDER_QTY,
+	        A.PLAN_TIME,
+	        A.PLAN_NUM,
+	        A.RETURN_MSG,
+	        A.RETURN_TIME,
+	        A.CREATION_USER,
+	        A.IMP_UUID,
+		    A.CHECK_RESULT,
+		    A.CHECK_INFO,
+		    A.IMPORT_STATUS
+	        )VALUES (
+	        PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_SW_FEEDBACK_ZC_IMP'),
+	        PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_SW_FEEDBACK_ZC'),
+	        #{factoryCode, jdbcType=VARCHAR},
+	        #{purchaseNo, jdbcType=VARCHAR},
+	        #{replySeqNo, jdbcType=VARCHAR},
+	        <!-- 资材默认反馈行号10 -->
+	        '10',
+	        to_date(#{arriveDate, jdbcType=VARCHAR}, 'yyyy-MM-dd HH24:mi:ss'),
+	        #{orderQty, jdbcType=VARCHAR},
+	        <!-- #{purchaseRowNo, jdbcType=VARCHAR}, -->
+	        to_date(#{planTime, jdbcType=VARCHAR}, 'yyyy-MM-dd HH24:mi:ss'),
+	        #{planNum, jdbcType=VARCHAR},
+	        #{returnMsg, jdbcType=VARCHAR},
+	        SYSDATE,
+	        #{creationUser, jdbcType=VARCHAR},
+	        #{uuid, jdbcType=VARCHAR},
+	        #{checkResult, jdbcType=VARCHAR},
+	        #{checkInfo, jdbcType=VARCHAR},
+	        #{importStatus, jdbcType=VARCHAR}
+	        )
+	</insert>
+	
+	<!-- 查询导入校验结果是否包含不通过 -->
+	<select id="queryIsExistsCheckResultFalse" parameterType="java.lang.String"
+		resultType="java.lang.Object">
+		SELECT COUNT(*)
+				FROM MM_SW_FEEDBACK_ZC_IMP T
+			WHERE T.IMP_UUID = #{uuid, jdbcType=VARCHAR} AND T.CHECK_RESULT = 0		
+	</select>
+	
+ 	<!-- 写入反馈表 -->
+ 	<insert id="insertImportData">
+ 		INSERT INTO MM_SW_FEEDBACK_ZC A
+        (
+	        A.ID,
+	        A.FACTORY_CODE,
+	        A.PURCHASE_NO,
+	        A.REPLY_SEQ_NO,
+	        A.PURCHASE_ROW_NO,
+	        A.PLAN_TIME,
+	        A.PLAN_NUM,
+	        A.RETURN_MSG,
+	        A.RETURN_TIME,
+	        A.CREATION_USER
+	        )
+	        SELECT 
+	        I.BUSI_ID,
+	        I.FACTORY_CODE,
+	        I.PURCHASE_NO,
+	        I.REPLY_SEQ_NO,
+	        I.PURCHASE_ROW_NO,
+	        I.PLAN_TIME,
+	        I.PLAN_NUM,
+	        I.RETURN_MSG,
+	        SYSDATE,
+	        I.CREATION_USER
+	        FROM MM_SW_FEEDBACK_ZC_IMP I
+	        WHERE I.IMP_UUID = #{uuid} AND I.CHECK_RESULT = 1
+ 	</insert>
+	
+	<!-- 查询临时表数据 -->
+	<select id="queryImportTempPage" parameterType="com.hanthink.sw.model.SwZCOrderModel"
+			resultType="com.hanthink.sw.model.SwZCOrderModel">
+		SELECT 
+		      P.PART_SPEC partSpec,
+		      F.IMPORT_STATUS importStatus,
+	          F.CHECK_RESULT checkResult,
+	          D1.CODE_VALUE_NAME importStatusDesc,
+	          D2.CODE_VALUE_NAME checkResultDesc,
+	          F.CHECK_INFO checkInfo,
+	          F.ID id,
+	          T.PURCHASE_NO purchaseNo,
+	          D.PURCHASE_ROWNO purchaseRowNo,
+	          F.REPLY_SEQ_NO replySeqNo,
+		      D.PART_NO partNo,
+		      P.PART_NAME_CN partNameCn,
+		      D.STANDARD_PACKAGE standPackage,
+		      D.ORDER_QTY orderQty,
+		      D.ORDER_UNIT orderUnit,
+		      T.ORDER_DATE orderDate,
+		      T.REC_USER recUser,
+		      T.REC_TEL recTel,
+		      T.REC_ADDRESS recAdress,
+		      T.SUPPLIER_NO supplierNo,
+		      S.SUPPLIER_NAME supplierName,
+		      D.INV_TYPE invType,
+		      D.COST_CODE costCode,
+		      D.COST_CENTER costCenter,
+		      to_char(T.ARRIVE_DATE, 'yyyy-mm-dd') arriveDate,
+		      CASE WHEN D.ORDER_QTY IS NOT NULL AND D.ORDER_QTY = D.CANCEL_NUM THEN '取消'
+		        ELSE '正常'
+		          END AS orderStatus,
+		      CASE WHEN F.PLAN_NUM IS NOT NULL AND D.ORDER_QTY IS NOT NULL AND D.ORDER_QTY > F.PLAN_NUM
+		            THEN '多次发货'
+		          WHEN F.PLAN_NUM IS NOT NULL AND D.ORDER_QTY IS NOT NULL AND D.ORDER_QTY = F.PLAN_NUM
+		            THEN '满足'
+		          ELSE '未反馈'
+		          END AS feedBackStatus, 
+		      F.RETURN_TIME returnTime,
+		      F.PLAN_NUM planNum,
+		      to_char(F.PLAN_TIME, 'yyyy-mm-dd') planTime,
+		      F.RETURN_MSG returnMsg
+		    FROM MM_SW_ORDER T
+		    INNER JOIN MM_SW_ORDER_DETAIL D
+		    ON D.PURCHASE_NO = T.PURCHASE_NO
+		    LEFT JOIN MM_SW_FEEDBACK_ZC_IMP F
+		    ON F.PURCHASE_NO = T.PURCHASE_NO AND F.PURCHASE_ROW_NO = D.PURCHASE_ROWNO
+		    LEFT JOIN MM_PUB_PART P
+		    ON P.PART_NO = D.PART_NO AND P.FACTORY_CODE = T.FACTORY_CODE
+		    LEFT JOIN MM_PUB_SUPPLIER S 
+		    ON S.SUPPLIER_NO = T.SUPPLIER_NO
+		    LEFT JOIN MM_PUB_DATA_DICT D1 ON D1.CODE_VALUE = F.IMPORT_STATUS AND D1.CODE_TYPE = 'PUB_IMP_STATUS'
+           		AND D1.FACTORY_CODE = T.FACTORY_CODE
+	        LEFT JOIN MM_PUB_DATA_DICT D2 ON D2.CODE_VALUE = F.CHECK_RESULT AND D2.CODE_TYPE = 'PUB_IMP_CK_RESULT'
+	            AND D2.FACTORY_CODE = T.FACTORY_CODE
+		    WHERE T.ORDER_TYPE = '14' 
+		    AND F.IMP_UUID = #{uuid}
+		    ORDER BY F.CHECK_RESULT ASC
+	</select>
+	
+	<!-- 新增资材反馈 -->
+	<insert id="insertZCOrderFeedBack" parameterType="com.hanthink.sw.model.SwZCOrderModel">
+		INSERT INTO MM_SW_FEEDBACK_ZC A
+		    (
+		    A.ID,
+		    A.PURCHASE_NO,
+		    A.REPLY_SEQ_NO,
+		    A.PURCHASE_ROW_NO,
+		    A.PLAN_TIME,
+		    A.PLAN_NUM,
+		    A.RETURN_MSG,
+		    A.RETURN_TIME,
+		    A.CREATION_USER
+		    )VALUES (
+		    PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_SW_FEEDBACK_ZC'),
+		    #{purchaseNo, jdbcType=VARCHAR},
+		    #{replySeqNo, jdbcType=VARCHAR},
+		    #{purchaseRowNo, jdbcType=VARCHAR},
+		    #{planTime, jdbcType=VARCHAR},
+		    #{planNum, jdbcType=VARCHAR},
+		    #{returnMsg, jdbcType=VARCHAR},
+		    SYSDATE,
+		    #{lastModifiedUser, jdbcType=VARCHAR}
+		    )
+	</insert>
+	
+	<!-- 修改资材反馈 (更新接口处理状态)-->
+	<update id="updateZCOrderFeedBack" parameterType="com.hanthink.sw.model.SwZCOrderModel">
+		UPDATE MM_SW_FEEDBACK_ZC Z
+		    SET Z.PLAN_TIME = TO_DATE(#{planTime,jdbcType=VARCHAR}, 'yyyy-mm-dd HH24:mi:ss'),
+		    Z.PLAN_NUM = #{planNum, jdbcType=VARCHAR},
+		    Z.LAST_MODIFIED_USER = #{lastModifiedUser, jdbcType=VARCHAR},
+            Z.LAST_MODIFIED_TIME = SYSDATE,
+		    Z.DEAL_FLAG = 0,
+        	Z.DEAL_TIME = NULL,
+		    Z.RETURN_MSG = #{returnMsg, jdbcType=VARCHAR}
+		WHERE Z.ID = #{id}
+	</update>
+	
+	<!-- 资材PC端反馈 -->
+	<insert id="zcPCFeedback" parameterType="com.hanthink.sw.model.SwZCOrderModel">
+		INSERT INTO MM_SW_FEEDBACK_ZC
+		  (ID,
+		   FACTORY_CODE,
+		   PURCHASE_NO,
+		   REPLY_SEQ_NO,
+		   PURCHASE_ROW_NO,
+		   PLAN_TIME,
+		   PLAN_NUM,
+		   RETURN_MSG,
+		   RETURN_TIME,
+		   CREATION_USER,
+		   CREATION_TIME)
+		VALUES
+		  (PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_SW_FEEDBACK_ZC'),
+		   #{factoryCode, jdbcType=VARCHAR},
+		   #{purchaseNo, jdbcType=VARCHAR},
+		   #{replySeqNo, jdbcType=VARCHAR},
+		   #{purchaseRowNo, jdbcType=VARCHAR},
+		   to_date(#{planTime, jdbcType=VARCHAR}, 'yyyy-MM-dd HH24:mi:ss'),
+		   #{planNum, jdbcType=VARCHAR},
+		   #{returnMsg, jdbcType=VARCHAR},
+		   SYSDATE,
+		   #{creationUser, jdbcType=VARCHAR},
+		   SYSDATE)
+	</insert>
+	
+	<!-- 查询资材订单打印信息 -->
+	<select id="queryZCOrderPrintDetailList" parameterType="com.hanthink.sw.model.SwZCOrderModel"
+		resultType="com.hanthink.sw.model.SwZCOrderModel">
+		SELECT 
+        	F.ID id,
+        	D.DEPOT_ADDRESS depotAddress,
+        	T.PURCHASE_NO purchaseNo,
+        	T.PURCHASE_NO brCode,
+        	D.PURCHASE_ROWNO purchaseRowNo,
+        	F.REPLY_SEQ_NO replySeqNo,
+          P.PART_SPEC partSpec,
+          T.DEPOT_NO depotNo,
+	      D.PART_NO partNo,
+	      P.PART_NAME_CN partNameCn,
+	      D.STANDARD_PACKAGE standPackage,
+	      D.ORDER_QTY orderQty,
+	      D.ORDER_UNIT orderUnit,
+	      to_char(T.ORDER_DATE, 'yyyy/mm/dd') orderDate,
+	      T.REC_USER recUser,
+	      T.REC_TEL recTel,
+	      T.REC_ADDRESS recAdress,
+	      T.SUPPLIER_NO supplierNo,
+	      S.SUPPLIER_NAME supplierName,
+	      D.INV_TYPE invType,
+	      D.COST_CODE costCode,
+	      D.COST_CENTER costCenter,
+	      to_char(T.ARRIVE_DATE, 'yyyy/mm/dd') arriveDate,
+	      F.RETURN_TIME returnTime,
+	      F.PLAN_NUM planNum,
+	      to_char(F.PLAN_TIME, 'yyyy/mm/dd') planTime,
+	      F.RETURN_MSG returnMsg
+	    FROM MM_SW_ORDER T
+	    INNER JOIN MM_SW_ORDER_DETAIL D
+	    ON D.PURCHASE_NO = T.PURCHASE_NO
+	    LEFT JOIN MM_SW_FEEDBACK_ZC F
+	    ON F.PURCHASE_NO = T.PURCHASE_NO
+	    LEFT JOIN MM_PUB_PART P
+	    ON P.PART_NO = D.PART_NO AND P.FACTORY_CODE = T.FACTORY_CODE
+	    LEFT JOIN MM_PUB_SUPPLIER S 
+	    ON S.SUPPLIER_NO = T.SUPPLIER_NO
+	    WHERE T.ORDER_TYPE = '14' 
+	    AND T.PURCHASE_NO = #{purchaseNo}
+	    AND D.PURCHASE_ROWNO = #{purchaseRowNo}
+	    AND F.ID = #{id}
+	</select>
+	
+	<!-- 更新资材订单打印状态 -->
+	<update id="updatePrintInfo" parameterType="com.hanthink.sw.model.SwZCOrderModel">
+		UPDATE MM_SW_FEEDBACK_ZC T
+		SET T.PRINT_STATUS = 1,
+		    T.PRINT_TIME = SYSDATE,
+		    T.PRINT_USER = #{printUser,jdbcType=VARCHAR}
+		WHERE T.ID = #{id} AND T.PRINT_STATUS = 0
+	</update>
+	
+	<!-- 检查导入临时表数据 -->
+	<parameterMap type="map" id="impCkParamMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="userName" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<!-- 调用存储过程校验批量导出零件余量 -->
+	<select id="checkImportData" parameterMap="impCkParamMap" statementType="CALLABLE">
+		{CALL PKG_PUB_CHECK.USP_SW_ZC_ORDER_CHECK(?, ?, ?,  ?, ?)}
+	</select>
+	
+	<!-- 更新临时表数据导入状态 -->
+	<update id="updateImportDataImpStatus">
+		UPDATE MM_SW_FEEDBACK_ZC_IMP SET IMPORT_STATUS = '1'
+			WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		    AND CHECK_RESULT = '1'
+		    AND IMPORT_STATUS = '0'
+	</update>
+	
+	<!-- 资材标签打印 -->
+	<select id="queryZCOrderLabelDetailList" parameterType="com.hanthink.sw.model.SwZCOrderModel"
+		resultType="com.hanthink.sw.model.SwZCOrderModel">
+		SELECT F.ID id,
+		       T.PURCHASE_NO purchaseNo,
+		       P.PART_SPEC partSpec,
+		       D.PURCHASE_ROWNO purchaseRowNo,
+		       F.REPLY_SEQ_NO replySeqNo,
+		       D.PART_NO partNo,
+		       P.PART_NAME_CN partNameCn,
+		       D.STANDARD_PACKAGE standPackage,
+		       D.ORDER_QTY orderQty,
+		       D.ORDER_UNIT orderUnit,
+		       T.ORDER_DATE orderDate,
+		       T.REC_USER recUser,
+		       T.REC_TEL recTel,
+		       T.REC_ADDRESS recAdress,
+		       T.SUPPLIER_NO supplierNo,
+		       S.SUPPLIER_NAME supplierName,
+		       D.INV_TYPE invType,
+		       D.COST_CODE costCode,
+		       D.COST_CENTER costCenter,
+		       to_char(T.ARRIVE_DATE, 'yyyy/mm/dd') arriveDate,
+		       F.PLAN_NUM planNum,
+		       to_char(F.PLAN_TIME, 'yyyy/mm/dd') planTime,
+		       F.RETURN_MSG returnMsg
+		  FROM MM_SW_ORDER T
+		 INNER JOIN MM_SW_ORDER_DETAIL D
+		    ON D.PURCHASE_NO = T.PURCHASE_NO
+		  LEFT JOIN MM_SW_FEEDBACK_ZC F
+		    ON F.PURCHASE_NO = T.PURCHASE_NO
+		  LEFT JOIN MM_PUB_PART P
+		    ON P.PART_NO = D.PART_NO AND P.FACTORY_CODE = T.FACTORY_CODE
+		  LEFT JOIN MM_PUB_SUPPLIER S
+		    ON S.SUPPLIER_NO = T.SUPPLIER_NO
+		 WHERE T.ORDER_TYPE = '14'
+		 AND T.PURCHASE_NO = #{purchaseNo}
+	     AND D.PURCHASE_ROWNO = #{purchaseRowNo}
+	     AND F.ID = #{id}
+	</select>
+	
+	<!-- 更新mm_sw_order表订单打印状态 -->
+	<update id="updateSwOrderPrintInfo" parameterType="com.hanthink.sw.model.SwZCOrderModel">
+		UPDATE MM_SW_ORDER T
+          SET T.PRINT_STATUS  = '1',
+              T.PRINT_USER    = #{printUser,jdbcType=VARCHAR},
+              T.PRINT_USER_IP = #{lastModifiedIp,jdbcType=VARCHAR},
+              T.PRINT_TIME    = SYSDATE
+        WHERE T.PURCHASE_NO = #{purchaseNo,jdbcType=VARCHAR}
+          AND T.PRINT_STATUS = 0
+	</update>
+	
+</mapper>

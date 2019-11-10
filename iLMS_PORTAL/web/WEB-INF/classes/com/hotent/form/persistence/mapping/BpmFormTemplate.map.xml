@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.form.persistence.model.BpmFormTemplate">
+	<resultMap id="BpmFormTemplate" type="com.hotent.form.persistence.model.BpmFormTemplate">
+		<id property="templateId" column="template_id_" jdbcType="VARCHAR"/>
+		<result property="templateName" column="template_name_" jdbcType="VARCHAR"/>
+		<result property="templateType" column="template_type_" jdbcType="VARCHAR"/>
+		<result property="macrotemplateAlias" column="macrotemplate_alias_" jdbcType="VARCHAR"/>
+		<result property="html" column="html_" jdbcType="CLOB"/>
+		<result property="templateDesc" column="template_desc_" jdbcType="VARCHAR"/>
+		<result property="canedit" column="canedit_" jdbcType="NUMERIC"/>
+		<result property="alias" column="alias_" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.form.persistence.model.BpmFormTemplate">
+		INSERT INTO bpm_form_template
+		(template_id_,template_name_,template_type_,macrotemplate_alias_,html_,template_desc_,canedit_,alias_)
+		VALUES 
+		(#{templateId,jdbcType=VARCHAR}, #{templateName,jdbcType=VARCHAR}, #{templateType,jdbcType=VARCHAR}, #{macrotemplateAlias,jdbcType=VARCHAR}, #{html,jdbcType=CLOB}, #{templateDesc,jdbcType=VARCHAR}, #{canedit,jdbcType=NUMERIC}, #{alias,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="BpmFormTemplate">
+		SELECT * FROM bpm_form_template 
+		WHERE 
+		template_id_=#{templateId}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="BpmFormTemplate">
+		SELECT * FROM bpm_form_template
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY template_id_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.form.persistence.model.BpmFormTemplate">
+		UPDATE bpm_form_template SET
+		template_name_=#{templateName,jdbcType=VARCHAR},
+		template_type_=#{templateType,jdbcType=VARCHAR},
+		macrotemplate_alias_=#{macrotemplateAlias,jdbcType=VARCHAR},
+		html_=#{html,jdbcType=CLOB},
+		template_desc_=#{templateDesc,jdbcType=VARCHAR},
+		canedit_=#{canedit,jdbcType=NUMERIC},
+		alias_=#{alias,jdbcType=VARCHAR}
+		WHERE
+		template_id_=#{templateId}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM bpm_form_template 
+		WHERE
+		template_id_=#{templateId}
+	</delete>
+	<select id="getTemplateType" parameterType="java.util.Map" resultMap="BpmFormTemplate">
+		SELECT * FROM bpm_form_template where template_type_ = '${templateType}'
+	</select>
+	<delete id="delSystem">
+		DELETE FROM BPM_FORM_TEMPLATE WHERE canEdit_=0
+	</delete>
+	
+	<select id="getByTemplateAlias"  resultMap="BpmFormTemplate" parameterType="String">
+		SELECT *
+		FROM BPM_FORM_TEMPLATE
+		WHERE  alias_  =#{alias}
+	</select>
+	
+	<select id="getHasData"  resultType="Integer" parameterType="String">
+		SELECT count(*) amount
+		FROM BPM_FORM_TEMPLATE
+	</select>
+</mapper>

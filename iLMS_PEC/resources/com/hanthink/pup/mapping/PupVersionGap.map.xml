@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.pup.model.PupVersionModel">
+	<!-- 检查是否生成物流计划 -->
+	<select id="checkIsPlan" parameterType="java.lang.String" resultType="java.lang.Integer">
+		SELECT COUNT(*) FROM MM_PUP_ROUTE_CAL MPR WHERE MPR.FACTORY_CODE = #{factoryCode}
+	</select>
+	<!-- 检查是否导入上一版本物流计划 -->
+	<select id="checkIsPrePlan" parameterType="java.lang.String" resultType="java.lang.Integer">
+		SELECT COUNT(*) FROM MM_PUP_VERSION MPV WHERE MPV.FACTORY_CODE = #{factoryCode}
+	</select>
+	<!-- 版本比对数据分页查询 -->
+	<select id="queryVersionGap" parameterType="com.hanthink.pup.model.PupVersionModel" resultType="com.hanthink.pup.model.PupVersionModel">
+		SELECT T.*
+          FROM (SELECT MPV.FACTORY_CODE factoryCode,
+                       MPLP.AREA area,
+                       MPV.UNLOAD_PLACE unloadPlace,
+                       MPLP.UNLOAD_PORT unloadPort,
+                       MPV.PICKUP_TYPE pickupType,
+                       MPV.CAR_TYPE carType,
+                       MPV.ROUTE_CODE routeCode,
+                       MPV.TOTAL_NO totalNo,
+                       MPV.MERGE_NO mergeNo,
+                       MPLP.WORKDAY newWorkday,
+                       MPV.WORKDAY oldWorkday,
+                       floor(to_date(substr(MPLP.workday, 1, 10), 'yyyy-mm-dd') -
+                         to_date(to_char(MPV.workday,'yyyy-MM-dd'), 'yyyy-mm-dd')
+                         ) workdayGap,
+                       MPV.TODAY_NO todayNo,
+                       TO_CHAR(MPV.PICK_DATE, 'yyyy-MM-dd') pickDate,
+                       TO_CHAR(MPV.PICK_DATE, 'hh24:mi:ss') pickTime,
+                       TO_CHAR(MPV.ARRIVE_DATE, 'yyyy-MM-dd') arriveDate,
+                       TO_CHAR(MPV.ARRIVE_DATE, 'hh24:mi:ss') arriveTime,
+                       TO_CHAR(MPV.ASSEMBLE_DATE, 'yyyy-MM-dd') newAssembleDate,
+                       TO_CHAR(MPLP.ASSEMBLE_TIME, 'yyyy-MM-dd') oldAssembleDate,
+                       TO_CHAR(MPV.ASSEMBLE_DATE, 'hh24:mi:ss') newAssembleTime,
+                       TO_CHAR(MPLP.ASSEMBLE_TIME, 'hh24:mi:ss') oldAssembleTime
+                  FROM MM_PUP_ROUTE_CAL MPLP
+                  LEFT JOIN MM_PUP_VERSION MPV
+                    ON MPLP.FACTORY_CODE = MPV.FACTORY_CODE
+                   AND MPLP.ROUTE_CODE = MPV.ROUTE_CODE
+                   AND MPLP.CAR_TYPE = MPV.CAR_TYPE
+                   AND MPLP.UNLOAD_PORT = MPV.UNLOAD_PORT) T
+         WHERE T.factoryCode = #{factoryCode}
+		<if test="routeCode != null and routeCode != ''">
+			AND T.routeCode = #{routeCode}
+		</if>
+		<if test="carType != null and carType != ''">
+			AND T.carType = #{carType}
+		</if>
+		<choose>
+	        <when test="diffFlag !=null and diffFlag != '' and 0 == diffFlag">
+	            AND T.workdayGap &lt;= 0
+	        </when>
+	        <otherwise>
+	            AND T.workdayGap > 0
+	        </otherwise>
+	    </choose>
+		ORDER BY T.routeCode,T.carType
+	</select>
+	<!-- 查询差异标识 -->
+	<select id="getDiffFlag" parameterType="java.util.Map" resultType="com.hanthink.base.model.DictVO">
+		SELECT DISTINCT CODE_VALUE valueKey, CODE_VALUE_NAME valueName FROM MM_PUB_DATA_DICT 
+		WHERE 
+		CODE_TYPE = 'PUP_DIFF_FLAG'
+	</select>
+	<!-- 删除上一版本的数据 -->
+	<delete id="deleteOldVersion" parameterType="java.lang.String">
+		DELETE FROM MM_PUP_VERSION WHERE FACTORY_CODE = #{curFactoryCode}
+	</delete>
+	<!-- 将数据写入数据表 -->
+	<insert id="insertVersionToTable" parameterType="java.util.List">
+		INSERT INTO MM_PUP_VERSION
+		(ID,FACTORY_CODE,AREA,UNLOAD_PLACE,PICKUP_TYPE,CAR_TYPE,ROUTE_CODE,UNLOAD_PORT,
+		 TOTAL_NO,MERGE_NO,WORKDAY,TODAY_NO,PICK_DATE,ARRIVE_DATE,ASSEMBLE_DATE,CREATION_TIME)
+		<foreach  collection="list" item="item" index="index" separator=" UNION ALL" >
+		 SELECT #{item.id,jdbcType=VARCHAR},#{item.factoryCode,jdbcType=VARCHAR},#{item.area,jdbcType=VARCHAR},#{item.unloadPlace,jdbcType=VARCHAR},#{item.pickupType,jdbcType=VARCHAR},
+				#{item.carType,jdbcType=VARCHAR},#{item.routeCode,jdbcType=VARCHAR},#{item.unloadPort,jdbcType=VARCHAR},
+				#{item.totalNo,jdbcType=VARCHAR},#{item.mergeNo,jdbcType=VARCHAR},
+				TO_DATE(#{item.oldWorkday,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss'),
+				#{item.todayNo,jdbcType=VARCHAR},TO_DATE(#{item.pickTime,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss'),
+				TO_DATE(#{item.arriveTime,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss'),
+				TO_DATE(#{item.oldAssembleTime,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss'),
+				sysdate
+			FROM DUAL
+		</foreach>
+	</insert>
+	
+	<select id="queryforVesion" parameterType="java.lang.String" resultType="com.hanthink.pup.model.PupVersionModel">
+		SELECT MPV.VERSION_NO versionNo
+		  FROM MM_PUP_VERSION_RECORD MPV
+		 WHERE MPV.FACTORY_CODE = #{factoryCode}
+		 GROUP BY MPV.VERSION_NO
+		 ORDER BY versionNo
+	</select>
+	
+	<select id="queryOneVersion" parameterType="com.hanthink.pup.model.PupVersionModel" resultType="com.hanthink.pup.model.PupVersionModel">
+		SELECT MPV.FACTORY_CODE factoryCode,
+		       MPV.VERSION_NO versionNo,
+		       MPLP.AREA area,
+		       MPV.UNLOAD_PLACE unloadPlace,
+		       MPLP.UNLOAD_PORT unloadPort,
+		       MPV.PICKUP_TYPE pickupType,
+		       MPV.CAR_TYPE carType,
+		       MPV.ROUTE_CODE routeCode,
+		       MPV.TOTAL_NO totalNo,
+		       MPV.MERGE_NO mergeNo,
+		       MPLP.WORKDAY newWorkday,
+		       MPV.WORKDAY oldWorkday,
+		       floor(to_date(substr(MPLP.workday, 1, 10), 'yyyy-mm-dd') -
+		             to_date(to_char(MPV.workday, 'yyyy-MM-dd'), 'yyyy-mm-dd')) workdayGap,
+		       MPV.TODAY_NO todayNo,
+		       TO_CHAR(MPV.PICK_DATE, 'yyyy-MM-dd') pickDate,
+		       TO_CHAR(MPV.PICK_DATE, 'hh24:mi:ss') pickTime,
+		       TO_CHAR(MPV.ARRIVE_DATE, 'yyyy-MM-dd') arriveDate,
+		       TO_CHAR(MPV.ARRIVE_DATE, 'hh24:mi:ss') arriveTime,
+		       TO_CHAR(MPV.ASSEMBLE_DATE, 'yyyy-MM-dd') oldAssembleDate,
+		       TO_CHAR(MPLP.ASSEMBLE_TIME, 'yyyy-MM-dd') newAssembleDate,
+		       TO_CHAR(MPV.ASSEMBLE_DATE, 'hh24:mi:ss') oldAssembleTime,
+		       TO_CHAR(MPLP.ASSEMBLE_TIME, 'hh24:mi:ss') newAssembleTime
+		  FROM MM_PUP_ROUTE_CAL MPLP
+		  LEFT JOIN MM_PUP_VERSION_RECORD MPV
+		    ON MPLP.FACTORY_CODE = MPV.FACTORY_CODE
+		   AND MPLP.ROUTE_CODE = MPV.ROUTE_CODE
+		   AND MPLP.CAR_TYPE = MPV.CAR_TYPE
+		   AND MPLP.UNLOAD_PORT = MPV.UNLOAD_PORT
+		   AND MPLP.MERGE_NO = MPV.MERGE_NO
+		   AND MPLP.TOTAL_NO = MPV.TOTAL_NO
+		 WHERE MPLP.FACTORY_CODE = #{factoryCode}
+		   <choose>
+		   	<when test="firstVersion != null and firstVersion != ''">
+		   		AND MPV.VERSION_NO = #{firstVersion}
+		   	</when>
+		   	<when test="lastVersion != null and lastVersion != ''">
+		   		AND MPV.VERSION_NO = #{lastVersion}
+		   	</when>
+		   </choose>
+	       <if test="routeCode != null and routeCode != ''">
+				AND MPLP.ROUTE_CODE = #{routeCode}
+		   </if>
+		   <if test="carType != null and carType != ''">
+				AND MPLP.CAR_TYPE = #{carType}
+		   </if>
+		   <if test="diffFlag !=null and diffFlag != '' and 0 == diffFlag">
+		        AND floor(to_date(substr(MPLP.workday, 1, 10), 'yyyy-mm-dd') -
+		             to_date(to_char(MPV.workday, 'yyyy-MM-dd'), 'yyyy-mm-dd')) = 0
+		    </if>
+		    <if test="diffFlag !=null and diffFlag != '' and 1 == diffFlag">
+		        AND floor(to_date(substr(MPLP.workday, 1, 10), 'yyyy-mm-dd') -
+		             to_date(to_char(MPV.workday, 'yyyy-MM-dd'), 'yyyy-mm-dd')) &lt;&gt; 0
+		    </if>
+		ORDER BY MPLP.ROUTE_CODE, MPLP.CAR_TYPE
+	</select>
+	
+	<select id="queryTwoVersion" parameterType="java.util.Map" resultType="com.hanthink.pup.model.PupVersionModel">
+		WITH VERSIONA AS
+		 (SELECT VA.FACTORY_CODE,
+		         VA.AREA,
+		         VA.UNLOAD_PLACE,
+		         VA.UNLOAD_PORT,
+		         VA.PICKUP_TYPE,
+		         VA.CAR_TYPE,
+		         VA.ROUTE_CODE,
+		         VA.TOTAL_NO,
+		         VA.MERGE_NO,
+		         VA.WORKDAY,
+		         VA.TODAY_NO,
+		         VA.PICK_DATE,
+		         VA.ARRIVE_DATE,
+		         VA.ASSEMBLE_DATE
+		    FROM MM_PUP_VERSION_RECORD VA
+		   WHERE VA.VERSION_NO = #{firstVersion}
+		     AND VA.FACTORY_CODE = #{factoryCode}),
+		
+		VERSIONB AS
+		 (SELECT VB.FACTORY_CODE,
+		         VB.AREA,
+		         VB.UNLOAD_PLACE,
+		         VB.UNLOAD_PORT,
+		         VB.PICKUP_TYPE,
+		         VB.CAR_TYPE,
+		         VB.ROUTE_CODE,
+		         VB.TOTAL_NO,
+		         VB.MERGE_NO,
+		         VB.WORKDAY,
+		         VB.TODAY_NO,
+		         VB.PICK_DATE,
+		         VB.ARRIVE_DATE,
+		         VB.ASSEMBLE_DATE
+		    FROM MM_PUP_VERSION_RECORD VB
+		   WHERE VB.VERSION_NO = #{lastVersion}
+		     AND VB.FACTORY_CODE = #{factoryCode})
+		
+		SELECT A.AREA area,
+		       A.UNLOAD_PLACE unloadPlace,
+		       A.PICKUP_TYPE pickupType,
+		       A.CAR_TYPE carType,
+		       A.ROUTE_CODE routeCode,
+		       A.TOTAL_NO totalNo,
+		       A.MERGE_NO mergeNo,
+		       A.UNLOAD_PORT unloadPort,
+		       A.WORKDAY oldWorkday,
+		       B.WORKDAY newWorkday,
+		       (B.WORKDAY - A.WORKDAY) workdayGap,
+		       A.TODAY_NO todayNo,
+		       TO_CHAR(B.PICK_DATE,'yyyy-MM-dd') pickDate,
+		       TO_CHAR(B.PICK_DATE,'hh24:mi:ss') pickTime,
+		       TO_CHAR(B.ARRIVE_DATE,'yyyy-MM-dd') arriveDate,
+		       TO_CHAR(B.ARRIVE_DATE,'hh24:mi:ss') arriveTime,
+		       TO_CHAR(A.ASSEMBLE_DATE,'yyyy-MM-dd') oldAssembleDate,
+		       TO_CHAR(B.ASSEMBLE_DATE,'yyyy-MM-dd') newAssembleDate,
+		       TO_CHAR(A.ASSEMBLE_DATE,'hh24:mi:ss') oldAssembleTime,
+		       TO_CHAR(B.ASSEMBLE_DATE,'hh24:mi:ss') newAssembleTime
+		  FROM VERSIONA A 
+		  LEFT JOIN VERSIONB B
+		    ON A.FACTORY_CODE = B.FACTORY_CODE
+		    AND A.CAR_TYPE = B.CAR_TYPE
+		    AND A.ROUTE_CODE = B.ROUTE_CODE
+		    AND A.UNLOAD_PORT = B.UNLOAD_PORT
+		    AND A.TOTAL_NO = B.TOTAL_NO
+    		AND A.MERGE_NO = B.MERGE_NO
+		  WHERE A.FACTORY_CODE = #{factoryCode}
+         <if test="routeCode != null and routeCode != ''">
+			AND routeCode = #{routeCode}
+		</if>
+		<if test="carType != null and carType != ''">
+			AND carType = #{carType}
+		</if>
+        <if test="diffFlag !=null and diffFlag != '' and 0 == diffFlag">
+            AND workdayGap &lt;= 0
+        </if>
+        <if test="diffFlag !=null and diffFlag != '' and 1 == diffFlag">
+            AND workdayGap > 0
+        </if>
+		ORDER BY routeCode, carType
+	</select>
+	<!-- 记录版本 -->
+	<insert id="logVersionGap" parameterType="java.util.List">
+		INSERT INTO MM_PUP_VERSION_RECORD
+			  (FACTORY_CODE,
+			   AREA,
+			   UNLOAD_PLACE,
+			   PICKUP_TYPE,
+			   CAR_TYPE,
+			   VERSION_NO,
+			   ROUTE_CODE,
+			   TOTAL_NO,
+			   MERGE_NO,
+			   WORKDAY,
+			   TODAY_NO,
+			   PICK_DATE,
+			   ARRIVE_DATE,
+			   ASSEMBLE_DATE,
+			   CREATION_TIME,
+			   UNLOAD_PORT)
+		<foreach  collection="list" item="item" index="index" separator=" UNION ALL" >
+			SELECT #{item.factoryCode,jdbcType=VARCHAR},#{item.area,jdbcType=VARCHAR},#{item.unloadPlace,jdbcType=VARCHAR},
+				#{item.pickupType,jdbcType=VARCHAR},#{item.carType,jdbcType=VARCHAR},
+				#{item.versionNo,jdbcType=VARCHAR},#{item.routeCode,jdbcType=VARCHAR},
+				#{item.totalNo,jdbcType=VARCHAR},#{item.mergeNo,jdbcType=VARCHAR},
+				TO_DATE(#{item.oldWorkday,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss'),
+				#{item.todayNo,jdbcType=VARCHAR},TO_DATE(#{item.pickTime,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss'),
+				TO_DATE(#{item.arriveTime,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss'),
+				TO_DATE(#{item.oldAssembleTime,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss'),
+				sysdate,#{item.unloadPort,jdbcType=VARCHAR}
+			FROM DUAL
+		</foreach>
+	</insert>
+</mapper>

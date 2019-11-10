@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.org.persistence.model.OrgAuth">
+	<resultMap id="orgAuth" type="com.hotent.org.persistence.model.OrgAuth">
+		<id property="id" column="ID_" jdbcType="VARCHAR"/>
+		<result property="userId" column="USER_ID_" jdbcType="VARCHAR"/>
+		<result property="orgId" column="ORG_ID_" jdbcType="VARCHAR"/>
+		<result property="demId" column="DEM_ID_" jdbcType="VARCHAR"/>
+		<result property="orgPerms" column="ORG_PERMS_" jdbcType="VARCHAR"/>
+		<result property="userPerms" column="USER_PERMS_" jdbcType="VARCHAR"/>
+		<result property="posPerms" column="POS_PERMS_" jdbcType="VARCHAR"/>
+		<result property="orgauthPerms" column="ORGAUTH_PERMS_" jdbcType="VARCHAR"/>
+		<result property="layoutPerms" column="LAYOUT_PERMS_" jdbcType="VARCHAR"/>
+		
+		<result property="userName" column="USER_NAME" jdbcType="VARCHAR"/>
+		<result property="orgName" column="ORGNAME" jdbcType="VARCHAR"/>
+		<result property="demName" column="dem_name" jdbcType="VARCHAR"/>
+		<result property="orgPath" column="orgPath" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.org.persistence.model.OrgAuth">
+		INSERT INTO sys_org_auth
+		(ID_,USER_ID_,ORG_ID_,DEM_ID_,ORG_PERMS_,USER_PERMS_,POS_PERMS_,ORGAUTH_PERMS_,LAYOUT_PERMS_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{userId,jdbcType=VARCHAR}, #{orgId,jdbcType=VARCHAR}, #{demId,jdbcType=VARCHAR}, #{orgPerms,jdbcType=VARCHAR}, #{userPerms,jdbcType=VARCHAR}, #{posPerms,jdbcType=VARCHAR}, #{orgauthPerms,jdbcType=VARCHAR}, #{layoutPerms,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="orgAuth">
+		SELECT a.ID_,a.USER_ID_,a.ORG_ID_,a.DEM_ID_, a.ORG_PERMS_, a.USER_PERMS_,a.POS_PERMS_,a.ORGAUTH_PERMS_,a.LAYOUT_PERMS_,
+		b.fullname_ as USER_NAME,c.name_ as ORGNAME
+		FROM SYS_ORG_AUTH a
+		left join sys_user b on a.user_id_ = b.id_
+		left join sys_org c on a.org_id_ = c.id_
+		WHERE
+		a.ID_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="orgAuth">
+		SELECT a.ID_,a.USER_ID_,a.ORG_ID_,a.DEM_ID_, a.ORG_PERMS_, a.USER_PERMS_,a.POS_PERMS_,a.ORGAUTH_PERMS_,a.LAYOUT_PERMS_,
+		b.fullname_ as USER_NAME,c.name_ as ORGNAME ,d.dem_name_ as dem_name
+		FROM SYS_ORG_AUTH a
+		left join sys_user b on a.user_id_ = b.id_
+		left join sys_org c on a.org_id_ = c.id_
+		left join sys_demension d on a.dem_Id_ = d.id_ 
+		WHERE 1= 1 
+		<if test="@Ognl@isNotEmpty(userId)">
+			AND	a.user_id_ =#{userId}
+		</if>
+		<if test="@Ognl@isNotEmpty(orgId)">
+			AND a.org_id_ = #{orgId}
+		</if>
+		<if test="@Ognl@isNotEmpty(demName)">
+			AND a.dem_name_ like #{demName}
+		</if>
+		<if test="@Ognl@isNotEmpty(userName)">
+			AND b.fullname_ like #{userName}
+		</if>
+		<if test="@Ognl@isNotEmpty(orgName)">
+			AND c.name_ like #{orgName}
+		</if>
+		<if test="@Ognl@isNotEmpty(demId)">
+			AND a.dem_id_ = #{demId}
+		</if>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY a.ID_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.org.persistence.model.OrgAuth">
+		UPDATE sys_org_auth SET
+		USER_ID_=#{userId,jdbcType=VARCHAR},
+		ORG_ID_=#{orgId,jdbcType=VARCHAR},
+		DEM_ID_=#{demId,jdbcType=VARCHAR},
+		ORG_PERMS_=#{orgPerms,jdbcType=VARCHAR},
+		USER_PERMS_=#{userPerms,jdbcType=VARCHAR},
+		POS_PERMS_=#{posPerms,jdbcType=VARCHAR},
+		ORGAUTH_PERMS_=#{orgauthPerms,jdbcType=VARCHAR},
+		LAYOUT_PERMS_=#{layoutPerms,jdbcType=VARCHAR}
+		WHERE
+		ID_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_org_auth 
+		WHERE
+		ID_=#{id}
+	</delete>
+	
+	<select id="getAllOrgAuth" resultMap="orgAuth">
+		SELECT a.ID_,a.USER_ID_,a.ORG_ID_,a.DEM_ID_, a.ORG_PERMS_, a.USER_PERMS_,a.POS_PERMS_,a.ORGAUTH_PERMS_,a.LAYOUT_PERMS_,
+		b.fullname_ as USER_NAME,c.name_ as ORGNAME ,d.dem_name_ as dem_name
+		FROM SYS_ORG_AUTH a
+		inner join sys_user b on a.user_id_ = b.id_
+		inner join sys_org c on a.org_id_ = c.id_
+		inner join sys_demension d on a.dem_id_ = d.id_ 
+		WHERE 1= 1 
+		<if test="@Ognl@isNotEmpty(userId)">
+			AND	a.user_id_ =#{userId}
+		</if>
+		<if test="@Ognl@isNotEmpty(orgId)">
+			AND a.org_id_ = #{orgId}
+		</if>
+		<if test="@Ognl@isNotEmpty(demName)">
+			AND a.dem_name_ like #{demName}
+		</if>
+		<if test="@Ognl@isNotEmpty(userName)">
+			AND b.fullname_ = #{userName}
+		</if>
+		<if test="@Ognl@isNotEmpty(orgName)">
+			AND c.name_ = #{orgName}
+		</if>
+		<if test="@Ognl@isNotEmpty(demId)">
+			AND a.dem_id_ = #{demId}
+		</if>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY a.ID_ DESC
+		</if>
+	</select>
+	
+	<select id="getByOrgIdAndUserId" parameterType="java.util.Map" resultMap="orgAuth">
+		select * from sys_org_auth where org_id_ = #{orgId} and user_id_ = #{userId}
+	</select>
+	
+	<delete id="delByOrgId" parameterType="java.lang.String">
+		DELETE FROM sys_org_auth 
+		WHERE
+		ORG_ID_=#{orgId}
+	</delete>
+	
+	
+	<select id="getLayoutOrgAuth" parameterType="java.lang.String" resultMap="orgAuth">
+		SELECT a.ID_,a.USER_ID_,a.ORG_ID_,a.DEM_ID_,a.LAYOUT_PERMS_,
+		b.fullname_ as USER_NAME,c.name_ as ORGNAME ,d.dem_name_ as dem_name
+		FROM SYS_ORG_AUTH a
+		inner join sys_user b on a.user_id_ = b.id_
+		inner join sys_org c on a.org_id_ = c.id_
+		inner join sys_demension d on a.dem_id_ = d.id_ 
+		WHERE a.user_id_ =#{userId} AND ( a.LAYOUT_PERMS_ IS NOT NULL or a.LAYOUT_PERMS_ != '') ORDER BY ID_ DESC
+	</select>
+	
+	<select id="getByUserId" resultMap="orgAuth">
+		SELECT a.ID_,a.USER_ID_,a.ORG_ID_,a.DEM_ID_, a.ORG_PERMS_, a.USER_PERMS_,a.POS_PERMS_,a.ORGAUTH_PERMS_,
+		b.FULLNAME_ as userName,c.NAME_ as orgName,d.dem_name_ as demName,c.path_ as orgPath
+		FROM SYS_ORG_AUTH a 
+		left join sys_user b on a.user_id_ = b.ID_
+		left join sys_org c on a.org_id_ = c.ID_
+		left join sys_demension d on a.dem_id_ = d.id_
+		where a.user_id_ = #{userId}
+	</select>
+</mapper>

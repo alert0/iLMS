@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.jisi.model.JisiInsModel">
+
+		<!-- 厂内同步票据查询 -->
+		<select id="queryJisiInsForPage" parameterType="com.hanthink.jisi.model.JisiInsModel" resultType="com.hanthink.jisi.model.JisiInsModel">
+				SELECT A.INS_NO           insNo,
+				       A.PLAN_CODE        planCode,
+				       A.ORDER_NO         orderNo,
+				       A.PRINTER_ID       printerId,
+				       A.VIN              vin,
+				       A.MODEL_CODE       modelCode,
+				       DD.CODE_VALUE_NAME phase,
+				       A.WC_SEQNO         wcSeqno,
+				       A.PL_SEQNO         plSeqno,
+				       A.KB_PRODUCT_SEQNO kbProductSeqno,
+				       A.KB_TIME          kbTime,
+				       A.PASS_TIME        passTime,
+				       PD.CODE_VALUE_NAME printStatus,
+				       A.PRINT_TIME       printTime,
+				       A.CREATION_TIME    creationTime,
+				       B.PRINTER_NAME     printerName,
+				       B.DESCRIPTION      description
+				  FROM MM_JISI_INS A
+				  INNER JOIN MM_PUB_PLAN_CODE C ON C.PLAN_CODE = A.PLAN_CODE AND C.FACTORY_CODE = #{factoryCode}
+				  LEFT JOIN MM_PR_PRINTER B
+				    ON A.PRINTER_ID = B.ID
+				  LEFT JOIN MM_PUB_PLAN_CODE C
+				    ON A.PLAN_CODE = C.PLAN_CODE
+				      LEFT JOIN MM_PUB_DATA_DICT PD
+				    ON A.PRINT_STATUS = PD.CODE_VALUE
+				   AND PD.CODE_TYPE = 'PUB_PRINT_STATUS'
+				   AND PD.FACTORY_CODE = #{factoryCode}
+				  LEFT JOIN MM_PUB_DATA_DICT DD ON DD.CODE_VALUE = A.PHASE AND DD.CODE_TYPE = 'PUB_PHASE' 
+				  	 AND DD.FACTORY_CODE = #{factoryCode}
+				 WHERE 1=1 
+				 <!-- C.FACTORY_CODE = #{factoryCode} -->
+				 <if test="vin != null and vin != ''">
+				 AND A.VIN LIKE CONCAT(#{vin}, '%')
+				 </if>
+				 <if test="wcSeqno !=null and wcSeqno != ''">
+				 AND A.WC_SEQNO = #{wcSeqno}
+				 </if>
+				<if test="passTimeStart !=null and passTimeStart !='' ">
+				<![CDATA[ AND A.PASS_TIME >= TO_DATE(#{passTimeStart},'yyyy-MM-dd HH24:mi:ss') ]]>
+				</if>
+				<if test="passTimeEnd !=null and passTimeEnd !='' ">
+				<![CDATA[ AND A.PASS_TIME <= TO_DATE(#{passTimeEnd},'yyyy-MM-dd HH24:mi:ss') ]]>
+				</if>
+				<if test="printStatus != null and printStatus != ''">
+				AND A.PRINT_STATUS = #{printStatus}
+				</if>
+				ORDER BY A.CREATION_TIME DESC
+		</select>
+		
+		<!-- 厂内同步票据明细查看 -->
+		<select id="queryJisiInsDetailForPage" parameterType="com.hanthink.jisi.model.JisiInsModel" resultType="com.hanthink.jisi.model.JisiInsModel">
+				SELECT B.INS_NO         insNo,
+					   A.PASS_TIME      passTime,
+				       B.PRINT_LOCATION printLocation,
+				       B.PART_NO        partNo,
+				       B.REQUIRE_NUM    requireNum,
+				       B.PARTGROUP_NO   partgroupNo,
+				       B.PARTGROUP_NAME partgroupName,
+				       B.PART_SHORT_NO  partShortNo,
+				       B.PART_NAME      partName,
+				       B.PART_MARK      partMark,
+				       B.LOCATION       location,
+				       B.CREATION_TIME  creationTime
+				  FROM MM_JISI_INS A
+				  INNER JOIN MM_JISI_INS_DETAIL B
+				    ON A.INS_NO = B.INS_NO
+				  WHERE A.INS_NO = #{insNo}
+				 ORDER BY B.INS_NO DESC
+		</select>
+		
+		<!-- 查询指示票打印信息 -->
+		<select id="queryJisiInsDetailList"  parameterType="com.hanthink.jisi.model.JisiInsModel" 
+				resultType="com.hanthink.jisi.model.JisiInsModel">
+				SELECT I.WC_SEQNO       wcSeqno,
+				       T.PART_SHORT_NO  partShortNo,
+				       T.PART_MARK      partMark,
+				       T.LOCATION       location,
+				       T.REQUIRE_NUM    requireNum,
+				       T.PART_NO        partNo,
+				       T.PARTGROUP_NO   partgroupNo,
+				       T.PRINT_LOCATION printLocation,
+				       T.PARTGROUP_NAME partgroupName
+				  FROM MM_JISI_INS_DETAIL T
+				  LEFT JOIN MM_JISI_INS I ON I.INS_NO = T.INS_NO
+				 WHERE T.INS_NO = #{insNo}
+				<!-- SELECT A.INS_NO					insNo,
+				       B.PART_NO 				partNo,
+				       B.LOCATION				location,
+				       C.PART_SHORT_NO			partShortNo,
+				       B.PARTGROUP_NAME			partName,
+				       A.WC_SEQNO				csxh,
+				       A.WC_SEQNO				wcSeqno,
+				       C.PART_NAME_CN			partNameCn,
+				       D.SUPPLIER_NO			supplierNo,
+				       B.PRINT_LOCATION         printLocation,
+				       E.SUPPLIER_NAME			supplierName
+				  FROM MM_JISI_INS A
+				  INNER JOIN MM_JISI_INS_DETAIL B
+				    ON A.INS_NO = B.INS_NO
+				  LEFT JOIN MM_PUB_PART_UDA C
+				    ON B.PART_NO = C.PART_NO
+				  LEFT JOIN MM_PUB_PART_SUPPLIER D
+				    ON C.PART_NO = D.PART_NO
+				  LEFT JOIN MM_PUB_SUPPLIER E 
+				    ON D.SUPPLIER_NO = E.SUPPLIER_NO
+				  WHERE A.INS_NO = #{insNo} -->
+		</select>
+		
+		<!--更新打印状态 -->
+		<update id="updatePrintStatusModel" parameterType="com.hanthink.jisi.model.JisiInsModel">
+			UPDATE MM_JISI_INS T
+			   SET T.PRINT_STATUS = '1', 
+			   	   T.PRINT_TIME = SYSDATE
+			   	   <!-- T.PRINT_USER = #{printUser, jdbcType=VARCHAR},
+			   	   T.PRINT_USER_IP = #{printUserIp, jdbcType=VARCHAR} -->
+			 WHERE T.INS_NO = #{insNo} AND T.PRINT_STATUS &lt;&gt; '1'
+		</update>
+		
+</mapper>

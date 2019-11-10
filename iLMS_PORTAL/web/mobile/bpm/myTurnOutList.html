@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html ng-app="myApp">
+<head>
+<title>X5手机平台</title>
+<meta charset="utf-8">
+<script src="../assets/js/importJs.js"></script>
+
+<script type="text/javascript">
+var myApp = angular.module("myApp", ['base','mobileDirective']);
+myApp.controller("taskTurnCtrl",['$scope','baseService', function(scope,baseService) {
+	scope.msgType ={inner:true};
+	scope.cancelTaskTurn = function(taskTurn){
+		scope.taskId = taskTurn.taskId;
+		$.popover(".popover", "."+taskTurn.id);
+		
+	}
+	scope.postCancel = function(){
+		if(!scope.cancelReason){
+			$.alert("请填写意见！");
+			return ;
+		}
+		var msgType ="";
+		for (key in scope.msgType) {
+			if(scope.msgType[key])msgType=msgType+key+","
+		}
+		if(!msgType){
+			$.alert("请填写通知方式！");
+			return;
+		}
+		
+		baseService.postForm(__ctx+"/office/receivedProcess/doCancelTurn",{informType:msgType,taskId:scope.taskId,cause:scope.cancelReason}).then(function(data){
+			if(data.result){
+				$.closeModal(".popover");
+				$.alert("取消成功！");
+				scope.loadData();
+			}else{
+				$.alert(data.cause,data.message);
+			}
+		},function(code){
+			$.alert("出现了异常！"+code);
+		})
+		
+	}
+}]);
+
+</script>
+</head>
+<body list-load="/mobile/bpm/getMyTurnOutJson" ng-controller="taskTurnCtrl">
+<div class="page">
+<header class="bar bar-nav">
+  <a class="icon icon-left pull-left back"></a> 
+  <a class="icon icon-home pull-right" href="../index.html" external></a>
+  <span class='title'>我的代理转办</span>
+</header>
+  <div class="content pull-to-refresh-content infinite-scroll">
+  	 <div class="pull-to-refresh-layer">
+        <div class="preloader"></div>
+        <div class="pull-to-refresh-arrow"></div>
+    </div>
+  	
+      <div ng-repeat="taskTurn in dataList"  class="card {{taskTurn.id}}" >
+      		<div class="card-header">
+      			<div class="item-title">{{turnType=='agent'?'代理':'转办'}}</div>
+          		<div flow-status="taskTurn.status"></div>
+      		</div>
+      		<div class="card-header">
+         		<div class="item-text" title="不支持手机端。无法查看详情" ng-if="taskTurn.supportMobile==0" ng-bind-html="taskTurn.taskSubject" ></div>
+         		<a class="item-text" ng-if="taskTurn.supportMobile==1" ng-bind-html="taskTurn.taskSubject" href="getProcessRun.html?runId={{taskTurn.procInstId}}" external></a>
+      		</div>
+          	<div class="card-footer">
+          		<div class="item-title">{{taskTurn.assigneeName}}</div>
+          		<div class="item-after" ng-if="taskTurn.status!='running'">{{taskTurn.finishTime |date:'yyyy-MM-dd HH:mm:ss'}}</div>
+          		<div class="item-after button" ng-if="taskTurn.status=='running'" ng-click="cancelTaskTurn(taskTurn)">取消代理转办</div>
+          	</div>
+      </div>
+       <div ng-if="dataList.length==0" class="content-block-title">未查到任何数据</div>
+  </div>
+</div>
+<div class="popover">
+  <div class="popover-angle" style="display: none"></div>
+	<header class="bar bar-nav">
+	  <h1 class='title'>取消转办代理</h1>
+	</header>
+  <div class="popover-inner card list-block content">
+   <div class="card-header">
+        <div class="item-input">通知方式：
+         <label><input type="checkbox" ng-model="msgType.inner">站内消息</label>
+         <label><input type="checkbox" ng-model="msgType.mail">邮件</label>
+         <label><input type="checkbox" ng-model="msgType.sms">短信</label>
+        </div>
+    </div>
+    <div class="card-header">
+       <div class="item-text">
+        <div class="item-input">
+       		<textarea ng-model="cancelReason" placeholder="取消原因"></textarea>
+        </div>
+       </div>
+    </div>
+       <div class="card-footer">
+       	<div class="button button-link close-popover">取消</div>
+       	<div class="button button-link" ng-click="postCancel()">确定</div>
+       </div>
+  </div>
+</div>
+
+
+</body>
+</html>

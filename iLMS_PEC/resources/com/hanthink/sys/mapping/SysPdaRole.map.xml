@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.sys.model.SysPdaRoleModel">
+	
+	<insert id="create" parameterType="com.hanthink.sys.model.SysPdaRoleModel">
+		INSERT INTO MM_PDA_ROLE 
+		(PDA_ROLE_ID, ROLE_NAME, REMARK, CREATE_USER, CREATE_TIME)
+		VALUES 
+		(#{pdaRoleId,jdbcType=VARCHAR}, #{roleName,jdbcType=VARCHAR}, #{roleRemark,jdbcType=VARCHAR}, #{createBy,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultType="com.hanthink.sys.model.SysPdaRoleModel">
+		SELECT PDA_ROLE_ID pdaRoleId,
+		  ROLE_NAME roleName,
+		  REMARK roleRemark
+		FROM MM_PDA_ROLE WHERE PDA_ROLE_ID = #{id}
+	</select>
+	
+	<update id="update" parameterType="com.hanthink.sys.model.SysPdaRoleModel">
+		UPDATE MM_PDA_ROLE SET
+		ROLE_NAME=#{roleName,jdbcType=VARCHAR},
+		REMARK=#{roleRemark,jdbcType=VARCHAR}
+		WHERE PDA_ROLE_ID = #{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM MM_PDA_ROLE WHERE PDA_ROLE_ID=#{id}
+	</delete>
+		
+	<!-- 分页查询PDA角色信息 -->
+	<select id="queryPdaRole" parameterType="com.hanthink.sys.model.SysPdaRoleModel" resultType="com.hanthink.sys.model.SysPdaRoleModel">
+		SELECT A.PDA_ROLE_ID pdaRoleId, A.ROLE_NAME roleName, A.REMARK roleRemark
+		FROM MM_PDA_ROLE A
+		WHERE 1 = 1
+		<if test="roleName!=null and roleName!='' ">
+		  AND  A.ROLE_NAME LIKE '%' || #{roleName} || '%'
+		</if>
+	</select>
+	
+	<!-- 分页查询PDA角色的菜单信息信息 -->
+	<select id="queryPdaRoleMenu" parameterType="com.hanthink.sys.model.SysPdaRoleModel" resultType="com.hanthink.sys.model.SysPdaRoleModel">
+		SELECT A.PDA_ROLE_ID pdaRoleId, A.MENU_ID menuId, B.MENU_DESC menuNameDesc
+		FROM MM_PDA_ROLE_MENU A
+		  LEFT JOIN MM_PDA_MENU B ON B.MENU_ID = A.MENU_ID
+		WHERE A.PDA_ROLE_ID = #{pdaRoleId}
+		<if test="menuNameDesc!=null and menuNameDesc!='' ">
+		  AND  B.MENU_DESC LIKE '%' || #{menuNameDesc} || '%'
+		</if>
+	</select>
+	
+	<!-- 根据角色ID删除角色菜单权限ID -->
+	<delete id="removePdaRoleMenuByRoleId" parameterType="java.lang.String">
+		DELETE FROM MM_PDA_ROLE_MENU WHERE PDA_ROLE_ID=#{id}
+	</delete>
+	
+	<!-- 根据角色ID删除用户角色信息 -->
+	<delete id="removePdaUserRoleByRoleId" parameterType="java.lang.String">
+		DELETE FROM MM_PDA_USER_ROLE WHERE PDA_ROLE_ID=#{id}
+	</delete>
+	
+	<!-- 根据角色ID查询该角色还未添加的菜单数据信息 -->
+	<select id="queryNotAddPdaRoleDataByRoleId" parameterType="com.hanthink.sys.model.SysPdaRoleModel" resultType="com.hanthink.sys.model.SysPdaRoleModel">
+		SELECT A.MENU_ID menuId, A.MENU_DESC menuNameDesc
+		FROM MM_PDA_MENU A
+		WHERE NOT EXISTS (SELECT 1 FROM MM_PDA_ROLE_MENU WHERE MENU_ID = A.MENU_ID AND PDA_ROLE_ID = #{pdaRoleId,jdbcType=VARCHAR})
+		<if test="menuNameDesc!=null and menuNameDesc!='' ">
+		  AND  A.MENU_DESC LIKE '%' || #{menuNameDesc} || '%'
+		</if>
+	</select>
+	
+	<!-- 添加PDA角色菜单信息 -->
+	<insert id="insert_addPdaRoleMenu" parameterType="com.hanthink.sys.model.SysPdaRoleModel">
+		INSERT INTO MM_PDA_ROLE_MENU 
+		(PDA_ROLE_ID, MENU_ID, CREATE_USER, CREATE_TIME)
+		VALUES 
+		(#{pdaRoleId,jdbcType=VARCHAR}, #{menuId,jdbcType=VARCHAR}, #{createBy,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP})
+	</insert>
+	
+	<!-- 删除PDA角色菜单信息 -->
+	<delete id="deletePdaRoleMenu" parameterType="com.hanthink.sys.model.SysPdaRoleModel">
+		DELETE FROM MM_PDA_ROLE_MENU WHERE PDA_ROLE_ID=#{pdaRoleId,jdbcType=VARCHAR} AND MENU_ID=#{menuId,jdbcType=VARCHAR}
+	</delete>
+	
+	<!-- ********* -->
+	
+	<!-- 根据用户ID查询用户的PDA角色信息 -->
+	<select id="queryUserPdaRoleByUserId" parameterType="com.hanthink.sys.model.SysPdaRoleModel" resultType="com.hanthink.sys.model.SysPdaRoleModel">
+		SELECT A.PDA_ROLE_ID pdaRoleId, A.USER_ID userId, B.ROLE_NAME roleName, B.REMARK roleRemark
+		FROM MM_PDA_USER_ROLE A 
+		LEFT JOIN MM_PDA_ROLE B ON B.PDA_ROLE_ID = A.PDA_ROLE_ID
+		WHERE A.USER_ID = #{userId,jdbcType=VARCHAR}
+		<if test="roleName!=null and roleName!='' ">
+		  AND  B.ROLE_NAME LIKE '%' || #{roleName} || '%'
+		</if>
+	</select>
+	
+	<!-- 根据用户ID查询该用户所有未添加的的PDA角色信息 -->
+	<select id="queryAddUserPdaRoleByUserId" parameterType="com.hanthink.sys.model.SysPdaRoleModel" resultType="com.hanthink.sys.model.SysPdaRoleModel">
+		SELECT A.PDA_ROLE_ID pdaRoleId, A.ROLE_NAME roleName, A.REMARK roleRemark
+		FROM MM_PDA_ROLE A 
+		WHERE NOT EXISTS (SELECT 1 FROM MM_PDA_USER_ROLE WHERE PDA_ROLE_ID = A.PDA_ROLE_ID AND USER_ID = #{userId,jdbcType=VARCHAR})
+		<if test="roleName!=null and roleName!='' ">
+		  AND A.ROLE_NAME LIKE '%' || #{roleName} || '%'
+		</if>
+	</select>
+	
+	<!-- 根据用户ID查询该用户在当前登录用户有的角色中未添加的的PDA角色信息-->
+	<select id="queryCurUserAddUserPdaRoleByUserId" parameterType="com.hanthink.sys.model.SysPdaRoleModel" resultType="com.hanthink.sys.model.SysPdaRoleModel">
+		SELECT A.PDA_ROLE_ID pdaRoleId, A.ROLE_NAME roleName, A.REMARK roleRemark
+		FROM MM_PDA_ROLE A 
+		WHERE NOT EXISTS (SELECT 1 FROM MM_PDA_USER_ROLE WHERE PDA_ROLE_ID = A.PDA_ROLE_ID AND USER_ID = #{userId,jdbcType=VARCHAR})
+		  AND A.PDA_ROLE_ID IN(SELECT PDA_ROLE_ID FROM MM_PDA_USER_ROLE WHERE USER_ID = #{curLoginUserId,jdbcType=VARCHAR})
+		<if test="roleName!=null and roleName!='' ">
+		  AND A.ROLE_NAME LIKE '%' || #{roleName} || '%'
+		</if>
+	</select>
+	
+	<!-- 添加用户PDA角色信息 -->
+	<insert id="insert_addUserPdaRole" parameterType="com.hanthink.sys.model.SysPdaRoleModel">
+		INSERT INTO MM_PDA_USER_ROLE 
+		(PDA_ROLE_ID, USER_ID, CREATE_USER, CREATE_TIME)
+		VALUES 
+		(#{pdaRoleId,jdbcType=VARCHAR}, #{userId,jdbcType=VARCHAR}, #{createBy,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP})
+	</insert>
+	
+	<!-- 删除用户PDA角色信息 -->
+	<delete id="deleteUserPdaRole" parameterType="com.hanthink.sys.model.SysPdaRoleModel">
+		DELETE FROM MM_PDA_USER_ROLE WHERE PDA_ROLE_ID=#{pdaRoleId,jdbcType=VARCHAR} AND USER_ID=#{userId,jdbcType=VARCHAR}
+	</delete>
+	
+</mapper>

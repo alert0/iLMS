@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.sys.persistence.model.RoleResource">
+	<resultMap id="RoleResource" type="com.hotent.sys.persistence.model.RoleResource">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="roleId" column="role_id_" jdbcType="VARCHAR"/>
+		<result property="resId" column="res_id_" jdbcType="VARCHAR"/>
+		<result property="systemId" column="system_id_" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.sys.persistence.model.RoleResource">
+		INSERT INTO sys_role_res
+		(id_,role_id_,res_id_,system_id_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{roleId,jdbcType=VARCHAR}, #{resId,jdbcType=VARCHAR}, #{systemId,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="RoleResource">
+		SELECT * FROM sys_role_res 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="RoleResource">
+		SELECT * FROM sys_role_res
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.sys.persistence.model.RoleResource">
+		UPDATE sys_role_res SET
+		role_id_=#{roleId,jdbcType=VARCHAR},
+		res_id_=#{resId,jdbcType=VARCHAR},
+		system_id_=#{systemId,jdbcType=VARCHAR}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_role_res 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	<select id="getByRoleSystem" parameterType="java.util.Map" resultMap="RoleResource">
+		SELECT * FROM sys_role_res 
+		WHERE role_id_ =#{roleId} 
+		AND system_id_ =#{systemId}
+	</select>
+	
+	<delete id="deleteByRoleSystem" parameterType="java.util.Map">
+		DELETE FROM sys_role_res  
+		WHERE role_id_ =#{roleId} 
+		AND system_id_ =#{systemId}
+	</delete>
+</mapper>

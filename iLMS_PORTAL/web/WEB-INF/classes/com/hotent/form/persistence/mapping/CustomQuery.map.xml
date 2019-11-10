@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.form.persistence.model.CustomQuery"> 
+	<resultMap id="CustomQuery" type="com.hotent.form.persistence.model.CustomQuery">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="name" column="name_" jdbcType="VARCHAR"/>
+		<result property="alias" column="alias_" jdbcType="VARCHAR"/>
+		<result property="objName" column="obj_name_" jdbcType="VARCHAR"/>
+		<result property="needPage" column="need_page_" jdbcType="NUMERIC"/>
+		<result property="pageSize" column="page_size_" jdbcType="NUMERIC"/>
+		<result property="conditionfield" column="conditionfield_" jdbcType="CLOB"/>
+		<result property="resultfield" column="resultfield_" jdbcType="CLOB"/>
+		<result property="sortfield" column="sortfield_" jdbcType="CLOB"/>
+		<result property="dsalias" column="dsalias_" jdbcType="VARCHAR"/>
+		<result property="isTable" column="is_table_" jdbcType="NUMERIC"/>
+		<result property="sqlBuildType" column="sql_build_type_" jdbcType="NUMERIC"/>
+		<result property="diySql" column="diy_sql_" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.form.persistence.model.CustomQuery">
+		INSERT INTO custom_query
+		(id_,name_,alias_,obj_name_,need_page_,page_size_,conditionfield_,resultfield_,sortfield_,dsalias_,is_table_,sql_build_type_,diy_sql_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR}, #{alias,jdbcType=VARCHAR}, #{objName,jdbcType=VARCHAR}, #{needPage,jdbcType=NUMERIC}, #{pageSize,jdbcType=NUMERIC}, #{conditionfield,jdbcType=CLOB}, #{resultfield,jdbcType=CLOB}, #{sortfield,jdbcType=CLOB}, #{dsalias,jdbcType=VARCHAR}, #{isTable,jdbcType=NUMERIC},#{sqlBuildType,jdbcType=NUMERIC},#{diySql,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="CustomQuery">
+		SELECT * FROM custom_query 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="CustomQuery">
+		SELECT * FROM custom_query
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.form.persistence.model.CustomQuery">
+		UPDATE custom_query SET
+		name_=#{name,jdbcType=VARCHAR},
+		alias_=#{alias,jdbcType=VARCHAR},
+		obj_name_=#{objName,jdbcType=VARCHAR},
+		need_page_=#{needPage,jdbcType=NUMERIC},
+		page_size_=#{pageSize,jdbcType=NUMERIC},
+		conditionfield_=#{conditionfield,jdbcType=CLOB},
+		resultfield_=#{resultfield,jdbcType=CLOB},
+		sortfield_=#{sortfield,jdbcType=CLOB},
+		dsalias_=#{dsalias,jdbcType=VARCHAR},
+		is_table_=#{isTable,jdbcType=NUMERIC},
+		sql_build_type_=#{sqlBuildType,jdbcType=NUMERIC},
+		diy_sql_=#{diySql,jdbcType=VARCHAR}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM custom_query 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	
+</mapper>

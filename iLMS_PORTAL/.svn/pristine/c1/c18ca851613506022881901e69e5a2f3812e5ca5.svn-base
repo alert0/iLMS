@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.sys.model.SysPdaUserManagerModel">
+		
+	<!-- 先查询系统参数表里面是否有该图片信息 -->
+	<select id="queryPicture"  parameterType="com.hanthink.sys.model.SysPdaUserManagerModel"  resultType="java.lang.Integer">
+				  SELECT COUNT(*) 
+				    FROM  MM_PUB_SYS_PARAM A
+                   WHERE  A.PARAM_GROUP = 'PUB_PICTURE'
+                     AND  A.PARAM_NAME = 'app发布二维码'
+                     AND  A.FACTORY_CODE = #{factoryCode}
+	</select>
+	
+	<!-- 新增 -->
+	<insert id="insertImageId" parameterType="com.hanthink.sys.model.SysPdaUserManagerModel">
+		INSERT INTO MM_PUB_SYS_PARAM
+				  (ID,
+				   FACTORY_CODE,
+				   PARAM_CODE,
+				   PARAM_NAME,
+				   PARAM_VAL,
+				   PARAM_GROUP,
+				   IS_EDIT,
+				   CREATION_TIME,
+				   CREATION_USER
+				   )
+				VALUES
+				  (SEQ_MM_PUB_SYS_PARAM.NEXTVAL,
+				    #{factoryCode,jdbcType = VARCHAR},
+				   'PUB_PICTURE',
+				   'app发布二维码',
+				    #{imageId,jdbcType = VARCHAR},
+				   'PUB_PICTURE',
+				   '1',
+				   sysdate,
+				   #{creationUser,jdbcType = VARCHAR}
+				   )
+	</insert>
+	
+	<!-- 更新图片 -->
+	<update id="updateImageId" parameterType="com.hanthink.sys.model.SysPdaUserManagerModel">
+		 UPDATE MM_PUB_SYS_PARAM
+		    SET PARAM_VAL = #{imageId,jdbcType = VARCHAR},		    
+		        LAST_MODIFIED_TIME = sysdate,
+		        LAST_MODIFIED_USER = #{lastModifiedUser,jdbcType = VARCHAR},		
+		        LAST_MODIFIED_IP = #{lastModifiedIp,jdbcType = VARCHAR}
+		  WHERE PARAM_GROUP = 'PUB_PICTURE'
+            AND PARAM_NAME = 'app发布二维码'
+            AND FACTORY_CODE = #{factoryCode}
+	</update>
+	
+	<!-- 查询之前的图片ID-->
+	<select id="queryOlderPicture" parameterType="com.hanthink.sys.model.SysPdaUserManagerModel" 
+	    resultType="com.hanthink.sys.model.SysPdaUserManagerModel">
+					SELECT A.PARAM_CODE imageId
+					  FROM MM_PUB_SYS_PARAM A
+                     WHERE 1=1
+                       AND A.FACTORY_CODE = #{factoryCode}
+                       AND A.PARAM_GROUP = 'PUB_PICTURE'
+                       AND A.PARAM_NAME = 'app发布二维码'
+	</select>
+	
+</mapper>

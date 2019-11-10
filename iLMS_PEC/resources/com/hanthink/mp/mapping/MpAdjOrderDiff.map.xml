@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.mp.model.MpAdjOrderDiffModel">
+		
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="queryMpAdjOrderDiffForPage" parameterType="com.hanthink.mp.model.MpAdjOrderDiffModel" resultType="com.hanthink.mp.model.MpAdjOrderDiffModel">
+		     SELECT a.ID  idStr,
+		            a.ID  id,
+		            a.FACTORY_CODE factoryCode,
+		        a.PART_NO  partNo,
+		        b.PART_SHORT_NO partShortNo,
+		        b.PART_NAME_CN  partNameCn,
+		        a.ADJ_DIFF_NUM  adjDiffNum,
+		        a.SUPPLIER_NO  supplierNo,
+		        TO_CHAR(a.ADJ_DATE, 'YYYY-MM-DD')  adjDateStr,
+		        a.CAL_DIFF_NUM  calDiffNum,
+		        a.SEND_FLAG  sendFlag,
+		        TO_CHAR(a.SEND_TIME,  'YYYY-MM-DD')   sendTimeStr,
+		        c.CODE_VALUE_NAME  codeValueName,
+		        b.SUP_FACTORY  supFactory
+		        FROM  MM_MP_ADJ_ORDER_DIFF a
+		        LEFT JOIN MM_PUB_PART_UDA b 
+		        ON b.PART_NO = a.PART_NO
+		        AND b.SUPPLIER_NO = a.SUPPLIER_NO
+		        <!-- i-LMS2019053001 mod by 赵明健 -->
+		        AND b.FACTORY_CODE = a.FACTORY_CODE
+		        LEFT JOIN MM_PUB_DATA_DICT c
+		        ON c.CODE_TYPE = 'PUP_SEND_FLAG'
+		        AND c.CODE_VALUE = a.SEND_FLAG
+		        AND c.FACTORY_CODE = a.FACTORY_CODE
+				WHERE 1=1 
+				<if test="supplierNo!=null and supplierNo!='' ">
+				AND	a.SUPPLIER_NO = #{supplierNo}
+				</if>
+				<if test="partShortNo!=null and partShortNo!='' ">
+				AND	b.PART_SHORT_NO = #{partShortNo}
+				</if>
+				<if test="adjDateStrStart != null and adjDateStrStart != '' ">
+				<![CDATA[ AND a.ADJ_DATE >= TO_DATE(#{adjDateStrStart},'yyyy-MM-dd') ]]>
+				</if>
+		        <if test="adjDateStrEnd != null and adjDateStrEnd != '' ">
+		        <![CDATA[ AND a.ADJ_DATE <= TO_DATE(#{adjDateStrEnd},'yyyy-MM-dd') ]]>
+		        </if>
+		        <if test="partNo!=null and partNo!='' ">
+				AND	a.PART_NO LIKE CONCAT(#{partNo}, '%')
+				</if>
+				<if test="sendFlag!=null and sendFlag!='' ">
+				AND	a.SEND_FLAG  = #{sendFlag}
+				</if>
+				AND a.FACTORY_CODE = #{factoryCode}
+				ORDER BY a.SUPPLIER_NO,b.SUP_FACTORY,a.PART_NO
+	</select>
+		
+	<!-- 计划对比  -->
+	<parameterMap type="map" id="getAdjOrderDiffMap">  
+		<parameter property="arrFactory" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeId" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="outCode" jdbcType="INTEGER" mode="OUT"/>   
+	</parameterMap> 
+	<select id="getAdjOrderDiff" parameterMap="getAdjOrderDiffMap" statementType="CALLABLE">
+		{CALL PKG_MP_MAIN.USP_MP_ADJ_DIFF_MAIN(?, ?, ?)}
+	</select>
+	
+	<!-- 根据供应商代码查询相关信息 -->
+	<select id="queryEmail" parameterType="java.lang.String"  resultType="com.hanthink.mp.model.MpAdjOrderDiffModel">
+		 SELECT DISTINCT
+				D.IMPORT_MAIL  importMail,
+				D.PT_MAIL  ptMail,
+				D.MASS_MAIL  massMail,
+				D.EXCEP_MAIL_A   excepMailA,
+				D.EXCEP_MAIL_B   excepMailB,
+				D.DEVICE_MAIL   deviceMail,
+				D.IMPORT_MAIL_A   importMailA,
+				D.PT_MAIL_A    ptMailA,
+				D.MASS_MAIL_A    massMailA,
+				D.DEVICE_MAIL_A    deviceMailA,
+				D.PACK_MAIL_A    packMailA,
+				D.PACK_MAIL_B    packMailB,
+				D.PT_LOGISTICS_MAIL  ptLogisticsMail,
+				D.PT_LOGISTICS_MAIL_A   ptLogisticsMailA,
+				D.MASS_LOGISTICS_MAIL   massLogisticsMail,
+				D.MASS_LOGISTICS_MAIL_A  massLogisticsMailA
+				FROM MM_MP_ADJ_ORDER_DIFF  A  
+				LEFT JOIN MM_PUB_SUPPLIER  B
+				ON  A.SUPPLIER_NO =  B.SUPPLIER_NO
+				LEFT JOIN MM_PUB_PART_UDA C
+				ON  A.SUPPLIER_NO = C.SUPPLIER_NO
+				AND A.PART_NO = C.PART_NO
+				<!-- i-LMS2019053001 mod by 赵明健 -->
+				AND C.FACTORY_CODE = A.FACTORY_CODE
+				LEFT JOIN MM_PUB_SUPPLIER_DETAIL D
+				ON  A.SUPPLIER_NO = D.SUPPLIER_NO
+				AND C.SUP_FACTORY = D.SUP_FACTORY
+		  WHERE 1 = 1
+		   AND  A.SUPPLIER_NO = #{value}
+	</select>
+	
+	<!-- 向信息共享平台供应商能力反馈表批量插入数据 -->	
+	<select id="selectMpAdjSupFeedback" parameterType="com.hanthink.mp.model.MpAdjOrderDiffModel" resultType="java.lang.Integer">
+         SELECT COUNT(*) 
+         FROM MM_MP_ADJ_SUP_FEEDBACK@pmctest A
+         WHERE 1=1
+         <if test="partNo!=null and partNo!='' ">
+	      AND A.PART_NO = #{partNo}
+	     </if>
+	     <if test="supplierNo!=null and supplierNo!='' ">
+	      AND A.SUPPLIER_NO = #{supplierNo}
+	     </if>
+	     <if test="supFactory!=null and supFactory!='' ">
+	      AND A.SUP_FACTORY = #{supFactory}
+	     </if>
+     </select>
+	
+	<!-- 向信息共享平台供应商能力反馈表批量插入数据 -->	
+	<!--<insert id="insertMpAdjSupFeedback" parameterType="java.util.List">
+         INSERT INTO 
+         MM_MP_ADJ_SUP_FEEDBACK@pmctest A
+        (A.ID,
+         A.PART_NO,
+         A.SUPPLIER_NO,
+         A.DIFF_NUM,
+         A.CREATION_USER,
+         A.SUP_FACTORY,
+         A.SUPPLY_DATE,
+         A.FACTORY_CODE
+        )
+         SELECT B.* FROM (
+         <foreach collection="list" index="" item="item"
+             separator="UNION ALL">
+             SELECT
+             #{item.id, jdbcType=VARCHAR},
+             #{item.partNo, jdbcType=VARCHAR},
+             #{item.supplierNo, jdbcType=VARCHAR},
+             NVL(#{item.adjDiffNum, jdbcType=VARCHAR},0),
+             #{item.creationUser, jdbcType=VARCHAR},
+             #{item.supFactory, jdbcType=VARCHAR},
+             sysdate,
+             #{item.factoryCode, jdbcType=VARCHAR}
+             FROM DUAL
+         </foreach>
+         ) B
+     </insert>-->
+     <insert id="insertMpAdjSupFeedback" parameterType="java.util.List">
+		MERGE INTO MM_MP_ADJ_SUP_FEEDBACK@pmctest A 
+		USING  (SELECT * FROM (
+		         <foreach collection="list" index="" item="item"
+		             separator="UNION ALL">
+		             SELECT
+		             #{item.id, jdbcType=VARCHAR},
+		             #{item.partNo, jdbcType=VARCHAR},
+		             #{item.supplierNo, jdbcType=VARCHAR},
+		             NVL(#{item.adjDiffNum, jdbcType=VARCHAR},0),
+		             #{item.creationUser, jdbcType=VARCHAR},
+		             #{item.supFactory, jdbcType=VARCHAR},
+		             sysdate,
+		             #{item.factoryCode, jdbcType=VARCHAR}
+		             FROM DUAL
+		         </foreach>
+		         ) ) B
+		 
+		ON(A.SUPPLIER_NO = B.SUPPLIER_NO 
+		   AND A.PART_NO = B.PART_NO
+		   AND A.SUP_FACTORY = B.SUP_FACTORY)  
+		 
+		WHEN MATCHED THEN UPDATE SET A.DIFF_NUM = B.DIFF_NUM AND A.SUPPLY_DATE = B.SUPPLY_DATE
+		 
+		WHEN  NOT MACTHED THEN 
+		
+		INSERT INTO 
+		         MM_MP_ADJ_SUP_FEEDBACK@pmctest A
+		        (A.ID,
+		         A.PART_NO,
+		         A.SUPPLIER_NO,
+		         A.DIFF_NUM,
+		         A.CREATION_USER,
+		         A.SUP_FACTORY,
+		         A.SUPPLY_DATE,
+		         A.FACTORY_CODE
+		        )
+		        VALUES(
+		         B.ID,
+		         B.PART_NO,
+		         B.SUPPLIER_NO,
+		         B.DIFF_NUM,
+		         B.CREATION_USER,
+		         B.SUP_FACTORY,
+		         B.SUPPLY_DATE,
+		         B.FACTORY_CODE)
+     </insert>
+     
+	<!-- 修改方法 -->
+	<update id="update" parameterType="com.hanthink.mp.model.MpAdjOrderDiffModel">
+		UPDATE MM_MP_ADJ_ORDER_DIFF SET
+		ADJ_DIFF_NUM = #{adjDiffNum,jdbcType=NUMERIC}
+		WHERE 1=1
+		AND ID=#{id}
+	</update>
+	
+	<!-- 修改发送状态 -->
+	<update id="updateSendFlag" parameterType="com.hanthink.mp.model.MpAdjOrderDiffModel">
+		UPDATE MM_MP_ADJ_ORDER_DIFF SET
+		SEND_FLAG = '1',
+		SEND_TIME = sysdate
+		WHERE 1=1
+		AND ID IN(
+		<foreach collection="idArr" item="item" index="index" separator=" UNION ALL "> 
+          SELECT #{item, jdbcType=VARCHAR} FROM DUAL
+        </foreach>
+        )
+	</update>
+	
+</mapper>

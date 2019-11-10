@@ -1,0 +1,656 @@
+package com.hanthink.sw.controller;
+
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URLEncoder;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import javax.annotation.Resource;
+import javax.imageio.ImageIO;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import org.apache.ibatis.session.RowBounds;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.hanthink.business.util.MakeQrcodeImages;
+import com.hanthink.business.util.SessionKey;
+import com.hanthink.sw.manager.SwZCOrderManager;
+import com.hanthink.sw.model.SwZCOrderModel;
+import com.hanthink.util.BufferImage.BarCodeImage;
+import com.hanthink.util.excel.ExcelUtil;
+import com.hotent.base.api.model.ResultMessage;
+import com.hotent.base.core.util.FileUtil;
+import com.hotent.base.core.util.string.StringUtil;
+import com.hotent.base.core.web.GenericController;
+import com.hotent.base.core.web.RequestUtil;
+import com.hotent.base.db.mybatis.domain.DefaultPage;
+import com.hotent.base.db.mybatis.domain.PageJson;
+import com.hotent.base.db.mybatis.domain.PageList;
+import com.hotent.org.api.model.IUser;
+import com.hotent.sys.util.ContextUtil;
+import com.hotent.sys.util.SysPropertyUtil;
+import com.mysql.jdbc.StringUtils;
+
+import net.sf.jasperreports.engine.JRDataSource;
+import net.sf.jasperreports.engine.JREmptyDataSource;
+import net.sf.jasperreports.engine.JRExporterParameter;
+import net.sf.jasperreports.engine.JasperFillManager;
+import net.sf.jasperreports.engine.JasperPrint;
+import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
+import net.sf.jasperreports.engine.export.JRPdfExporter;
+import net.sf.json.JSONObject;
+
+/**
+ * @ClassName: SwZCOrderController
+ * @Description: 资材订单
+ * @author dtp
+ * @date 2019年3月1日
+ */
+@Controller
+@RequestMapping("/sw/swZCOrder")
+public class SwZCOrderController extends GenericController{
+	
+	@Resource
+	private SwZCOrderManager swZCOrderManager;
+	
+	private static Logger log = LoggerFactory.getLogger(SwZCOrderController.class);
+	
+	/**
+	 * @Description: 资材订单查询   
+	 * @param: @param request
+	 * @param: @param response
+	 * @param: @param model
+	 * @param: @return    
+	 * @return: PageJson   
+	 * @author: dtp
+	 * @date: 2019年3月1日
+	 */
+	@RequestMapping("queryZCOrderPage")
+	public @ResponseBody PageJson queryZCOrderPage(HttpServletRequest request,HttpServletResponse response, 
+			@ModelAttribute("model") SwZCOrderModel model) {
+		model.setFactoryCode(ContextUtil.getCurrentUser().getCurFactoryCode());
+		DefaultPage page=new DefaultPage(new RowBounds(getQueryFilter(request).getPage().getStartIndex(), 
+				getQueryFilter(request).getPage().getPageSize()));
+		IUser user = ContextUtil.getCurrentUser();
+		model.setUserId(ContextUtil.getCurrentUser().getUserId());
+		model.setUserType(ContextUtil.getCurrentUser().getUserType());
+		//判断当前用户类型
+		if("2".equals(user.getUserType())) {
+			model.setSupplierNo(user.getSupplierNo());
+		}
+		PageList<SwZCOrderModel> pageList = swZCOrderManager.queryZCOrderPage(model, page);
+		return new PageJson(pageList);
+		
+	}
+	
+	/**
+	 * @Description: 资材订单导出
+	 * @param: @param request
+	 * @param: @param response    
+	 * @return: void   
+	 * @author: dtp
+	 * @date: 2019年3月1日
+	 */
+	@RequestMapping("downloadZCOrder")
+	public void downloadZCOrder(HttpServletRequest request,HttpServletResponse response,
+			@ModelAttribute("model") SwZCOrderModel model) {
+		model.setFactoryCode(ContextUtil.getCurrentUser().getCurFactoryCode());
+		IUser user = ContextUtil.getCurrentUser();
+		model.setUserId(ContextUtil.getCurrentUser().getUserId());
+		model.setUserType(ContextUtil.getCurrentUser().getUserType());
+		//判断当前用户类型
+		if("2".equals(user.getUserType())) {
+			model.setSupplierNo(user.getSupplierNo());
+		}
+		String exportFileName = "资材订单导出" + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+		DefaultPage page=new DefaultPage(new RowBounds(getQueryFilter(request).getPage().getStartIndex(), 
+				getQueryFilter(request).getPage().getPageSize()));
+		PageList<SwZCOrderModel> pageList = swZCOrderManager.queryZCOrderPage(model, page);
+		int curNum = pageList.getPageResult().getTotalCount();
+		if(0 == curNum){
+			ExcelUtil.exportNoDataError(request, response);
+			return;
+		}
+		int sysMaxNum = SysPropertyUtil.getIntByAlias("EXCEL_EXPORT_MAX_SIZE", 10000);
+		//int sysMaxNum_T = SysPropertyUtil.getIntByAlias("EXCEL_EXPORT_MAX_SIZE_T", 100000);
+		if(curNum > sysMaxNum){
+			ExcelUtil.exportNumError(sysMaxNum, request, response);
+			return;
+		}
+		List<SwZCOrderModel> list = swZCOrderManager.queryZCOrderList(model);
+		if(null != list) {
+			String[] headers = {"订单号", "物料编号", "资材名称", "规格", "最小订购量",
+					"订购数量", "订购单位", "订购日期", "订购人",  "收货人",
+					"收货联系方式", "供应商代码", "供应商名称", "库存区分",
+					"费用归类代码","成本费用中心", "到货日期", "订单状态", 
+					"反馈状态",
+					"订单打印状态","订单打印时间", "反馈时间", 
+					"计划交货数量","计划交货日期", "反馈备注"};
+			String[] columns = {"purchaseNo", "partNo", "partNameCn", "partSpec", "standPackage",
+					"orderQty","orderUnit","orderDate", "planner", "recUser",
+					"recTel", "supplierNo", "supplierName","invType",
+					"costCode","costCenter", "arriveDate","orderStatus", 
+					"feedBackStatus", 
+					"printStatusDesc" ,"printTime", "returnTime",
+					"planNum", "planTime", "returnMsg"};
+			int[] widths = {80, 100, 120, 100, 60,
+					80, 80, 80, 60,  60,
+					90, 80, 120, 80,
+					100, 100, 100, 80,
+					80,
+					100, 100, 100,
+					100, 100, 120};
+			if(curNum <= sysMaxNum) {
+				ExcelUtil.exportExcel(ExcelUtil.EXCEL_XLSX, request, response, exportFileName, list, headers, widths, columns);
+			}else {
+				//ExcelExportUtil.exportExcel(ExcelUtil.EXCEL_XLSX, request, response, exportFileName, list, headers, widths, columns);
+			}
+		}
+		
+	}
+	
+	/**
+	 * @Description: 导出资材导入模板
+	 * @param: @param request
+	 * @param: @param response
+	 * @param: @param model    
+	 * @return: void   
+	 * @author: dtp
+	 * @date: 2019年3月13日
+	 */
+	@RequestMapping("downloadZCOrderExcel")
+	public void downloadZCOrderExcel(HttpServletRequest request,HttpServletResponse response,
+			@ModelAttribute("model") SwZCOrderModel model) {
+		IUser user = ContextUtil.getCurrentUser();
+		model.setUserId(ContextUtil.getCurrentUser().getUserId());
+		model.setUserType(ContextUtil.getCurrentUser().getUserType());
+		//判断当前用户类型
+		if("2".equals(user.getUserType())) {
+			model.setSupplierNo(user.getSupplierNo());
+		}
+		model.setFactoryCode(ContextUtil.getCurrentUser().getCurFactoryCode());
+		String exportFileName_A = "资材订单导入模板" + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+		
+		model.setFeedBackStatus("1");
+		List<SwZCOrderModel> list = swZCOrderManager.queryZCOrderList(model);
+		if(null != list) {
+			//如果未反馈数量为0,下载模板
+			if(0 == list.size()) {
+				try {
+					//String fileName = RequestUtil.getString(request, "fileName");
+					String fileName = "资材订单导入模板.xlsx";
+					if(StringUtil.isEmpty(fileName)){
+						return;
+					}
+					fileName = java.net.URLDecoder.decode(fileName, "UTF-8");
+					String filenurl = FileUtil.getClassesPath() + File.separator + "template" + File.separator +"excel" + File.separator + fileName;
+		            File file = new File(filenurl);
+		            String exportFileName  = file.getName();
+		            String downName = null;
+		            if (request.getHeader("user-agent").toLowerCase().contains("msie")
+		                    || request.getHeader("user-agent").toLowerCase().contains("like gecko")
+		            ) {
+		            	downName = URLEncoder.encode(exportFileName, "UTF-8");
+		            }else{
+		            	downName = new String(exportFileName.getBytes("UTF-8"), "ISO_8859_1");
+		            }
+		    		response.setContentType("multipart/form-data");
+		    		response.setHeader("Content-disposition", "attachment; filename=" + downName);
+		    		OutputStream out = response.getOutputStream();
+		    		byte[] buffer = new byte[1024];
+		    		int len = 0;
+		    		InputStream is = new FileInputStream(file);
+		    		while((len = is.read(buffer)) != -1){
+		    			out.write(buffer, 0, len);
+		    		}
+		    		out.flush();
+				} catch (Exception e) {
+					e.printStackTrace();
+					log.error(e.toString());
+				}
+			}
+			String[] headers = {"订单号", "物料编号", "资材名称", "最小订购量", "规格",
+					"订购数量", "订购单位", "到货日期",
+					"计划交货数量","计划交货日期", "反馈备注"};
+			String[] columns = {"purchaseNo", "partNo", "partNameCn", "standPackage", "partSpec",
+					"orderQty","orderUnit","arriveDate",
+					"planNum", "planTime", "returnMsg"};
+			int[] widths = {100, 100, 120, 60, 80,
+					80, 80, 100,
+					100, 100, 150};
+			ExcelUtil.exportExcel(ExcelUtil.EXCEL_XLSX, request, response, exportFileName_A, list, headers, widths, columns);
+		}
+		
+	}
+	
+	
+	/**
+	 * @Description:  反馈导入 
+	 * @param: @param file
+	 * @param: @param request
+	 * @param: @param response
+	 * @param: @throws IOException    
+	 * @return: void   
+	 * @author: dtp
+	 * @date: 2019年3月3日
+	 */
+	@RequestMapping("importZCOrder")
+	public void importZCOrder(@RequestParam("file") MultipartFile file,HttpServletRequest request,HttpServletResponse response) throws IOException {
+		try {
+			String uuid = null;
+			HttpSession session = request.getSession();
+			uuid = (String)session.getAttribute(SessionKey.SW_ZC_ORDER_IMPORT_UUID);
+			if(StringUtil.isEmpty(uuid)){
+				uuid = RequestUtil.getString(request, "uuid");
+			}
+			if(StringUtil.isNotEmpty(uuid)) {
+				swZCOrderManager.deleteImportTempDataByUUID(uuid); 
+			}else {
+				uuid = UUID.randomUUID().toString().replaceAll("-", "");
+			}
+			session.setAttribute(SessionKey.SW_ZC_ORDER_IMPORT_UUID, uuid);
+			Map<String,Object> rtn = swZCOrderManager.importZCOrder(file, uuid, RequestUtil.getIpAddr(request));
+			rtn.put("uuid", uuid);
+			if((Boolean)rtn.get("result")){
+				writeResultMessage(response.getWriter(), "成功", "", JSONObject.fromObject(rtn), ResultMessage.SUCCESS);
+			}else{
+				writeResultMessage(response.getWriter(), "失败", "", JSONObject.fromObject(rtn), ResultMessage.FAIL);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.error(e.toString());
+			writeResultMessage(response.getWriter(), e.getMessage(), ResultMessage.FAIL);
+		}
+		
+	}
+	
+	/**
+	 * @Description:  确认导入,临时表导入正式表
+	 * @param: @param request
+	 * @param: @param response
+	 * @param: @param model
+	 * @param: @throws IOException    
+	 * @return: void   
+	 * @author: dtp
+	 * @date: 2019年3月3日
+	 */
+	@RequestMapping("isImport")
+	public void isImport(HttpServletRequest request,HttpServletResponse response,
+			@ModelAttribute("model") SwZCOrderModel model) throws IOException {
+		ResultMessage message = null;
+		try {
+			//查询导入校验结果是否包含不通过
+			int count = swZCOrderManager.queryIsExistsCheckResultFalse(model.getUuid());
+			if(count > 0) {
+				writeResultMessage(response.getWriter(), "存在校验结果不通过数据", ResultMessage.FAIL);
+				return;
+			}
+			Map<String, String> paramMap = new HashMap<String, String>();
+			paramMap.put("uuid", model.getUuid());
+			paramMap.put("checkResult", ExcelUtil.EXCEL_IMPCKRESULT_SUCCESS);
+			paramMap.put("ipAddr", RequestUtil.getIpAddr(request));
+			paramMap.put("creationUser", ContextUtil.getCurrentUser().getAccount());
+			paramMap.put("lastModifiedUser", ContextUtil.getCurrentUser().getAccount());
+			paramMap.put("lastModifiedIp", RequestUtil.getIpAddr(request));
+			swZCOrderManager.insertImportData(paramMap);
+			message = new ResultMessage(ResultMessage.SUCCESS, "执行成功");
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.error(e.toString());
+			message = new ResultMessage(ResultMessage.FAIL, "执行失败",e.getMessage());
+		}
+		writeResultMessage(response.getWriter(), message);
+	}
+	
+	/**
+	 * @Description: 查询临时表数据 
+	 * @param: @param request
+	 * @param: @param reponse
+	 * @param: @param model
+	 * @param: @return    
+	 * @return: PageJson   
+	 * @author: dtp
+	 * @date: 2019年3月3日
+	 */
+	@RequestMapping("queryImportTempPage")
+	public @ResponseBody PageJson queryImportTempPage(HttpServletRequest request,HttpServletResponse reponse,
+			@ModelAttribute("model") SwZCOrderModel model) {
+		model.setFactoryCode(ContextUtil.getCurrentUser().getCurFactoryCode());
+		DefaultPage page=new DefaultPage(new RowBounds(getQueryFilter(request).getPage().getStartIndex(), 
+				getQueryFilter(request).getPage().getPageSize()));
+		PageList<SwZCOrderModel> pageList = swZCOrderManager.queryImportTempPage(model, page);
+		return new PageJson(pageList);
+		
+	}
+	
+	/**
+	 * @Description: 导出临时表数据 
+	 * @param: @param request
+	 * @param: @param response
+	 * @param: @param model    
+	 * @return: void   
+	 * @author: dtp
+	 * @date: 2019年3月3日
+	 */
+	@RequestMapping("exportTempData")
+	public void exportTempData(HttpServletRequest request,HttpServletResponse response,
+			@ModelAttribute("model") SwZCOrderModel model) {
+		model.setFactoryCode(ContextUtil.getCurrentUser().getCurFactoryCode());
+		String exportFileName =  "资材反馈导出" + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+		DefaultPage page=new DefaultPage(new RowBounds(getQueryFilter(request).getPage().getStartIndex(), 
+				getQueryFilter(request).getPage().getPageSize()));
+		PageList<SwZCOrderModel> pageList = swZCOrderManager.queryImportTempPage(model, page);
+		//判断记录是否超过系统允许数量
+		int curNum = pageList.getPageResult().getTotalCount();
+		if(0 == curNum){
+			ExcelUtil.exportNoDataError(request, response);
+			return;
+		}
+		int sysMaxNum = SysPropertyUtil.getIntByAlias("EXCEL_EXPORT_MAX_SIZE", 10000); //获取系统所允许的最大导出数量
+		if(curNum > sysMaxNum){
+			ExcelUtil.exportNumError(sysMaxNum, request, response);
+			return;
+		}
+		List<SwZCOrderModel> list = swZCOrderManager.queryImportTempList(model);
+		if(null != list) {
+			String[] headers = {"订单号", "物料编号", "资材名称", "规格",
+					"订购数量", "订购单位", "到货日期",
+					"计划交货数量","计划交货日期", "反馈备注",
+					"导入状态", "检查结果", "校验信息"};
+			String[] columns = {"purchaseNo", "partNo", "partNameCn", "standPackage", 
+					"orderQty","orderUnit", "arriveDate",
+					"planNum", "planTime", "returnMsg",
+					"importStatusDesc", "checkResultDesc", "checkInfo"};
+			int[] widths = {100, 100, 120, 60,
+					80, 80, 80,
+					100, 100, 80,
+					80, 80, 100};
+			ExcelUtil.exportExcel(ExcelUtil.EXCEL_XLSX, request, response, exportFileName, list, headers, widths, columns);
+		}
+		
+	}
+	
+	/**
+	 * @Description: 修改资材反馈 
+	 * @param: @param request
+	 * @param: @param response
+	 * @param: @param model
+	 * @param: @throws IOException    
+	 * @return: void   
+	 * @author: dtp
+	 * @date: 2019年3月3日
+	 */
+	@RequestMapping("updateZCOrder")
+	public void updateZCOrderFeedBack(HttpServletRequest request,HttpServletResponse response, 
+			@ModelAttribute("model") SwZCOrderModel model) throws IOException {
+		IUser user = ContextUtil.getCurrentUser();
+		model.setLastModifiedIp(RequestUtil.getIpAddr(request));
+		model.setLastModifiedUser(user.getAccount());
+		//根据id是否为空判断新增还是修改
+		if(StringUtils.isNullOrEmpty(model.getId())) {
+			try {
+				swZCOrderManager.insertZCOrderFeedBack(model, RequestUtil.getIpAddr(request));
+				writeResultMessage(response.getWriter(), "保存成功", ResultMessage.SUCCESS);
+			} catch (Exception e) {
+				e.printStackTrace();
+				log.error(e.toString());
+				writeResultMessage(response.getWriter(),"系统错误,请联系管理员",e.getMessage(),ResultMessage.FAIL);
+			}
+		}else {
+			try {
+				swZCOrderManager.updateZCOrderFeedBack(model, RequestUtil.getIpAddr(request));
+				writeResultMessage(response.getWriter(), "修改成功", ResultMessage.SUCCESS);
+			} catch (Exception e) {
+				e.printStackTrace();
+				log.error(e.toString());
+				writeResultMessage(response.getWriter(),"系统错误,请联系管理员",e.getMessage(),ResultMessage.FAIL);
+			}
+		}
+		
+	}
+	
+	/**
+	 * @Description: pc界面资材订单反馈 
+	 * @param: @param request
+	 * @param: @param response
+	 * @param: @param model    
+	 * @return: void   
+	 * @author: dtp
+	 * @throws IOException 
+	 * @date: 2019年3月7日
+	 */
+	@RequestMapping("zcPCFeedback")
+	public void zcPCFeedback(HttpServletRequest request,HttpServletResponse response,
+			@RequestBody SwZCOrderModel[] models) throws IOException {
+		try {
+			swZCOrderManager.zcPCFeedback(models, RequestUtil.getIpAddr(request));
+			writeResultMessage(response.getWriter(), "保存成功", ResultMessage.SUCCESS);
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.error(e.toString());
+			writeResultMessage(response.getWriter(),e.getMessage(),ResultMessage.FAIL);
+		}
+	}
+	
+	/**
+	 * @Description: 打印资材订单 
+	 * @param: @param request
+	 * @param: @param response    
+	 * @return: void   
+	 * @author: dtp
+	 * @throws IOException 
+	 * @date: 2019年3月10日
+	 */
+	@RequestMapping("printZCOrder")
+	public void printZCOrder(HttpServletRequest request,HttpServletResponse response) throws IOException {
+		String purchaseNoStr = RequestUtil.getString(request, "purchaseNoStr");
+		String purchaseRowNoStr = RequestUtil.getString(request, "purchaseRowNoStr");
+		String idStr = RequestUtil.getString(request, "idStr");
+		String[] purchaseNoArr = purchaseNoStr.split(",");
+		String[] purchaseRowNoArr = purchaseRowNoStr.split(",");
+		String[] idArr = idStr.split(",");
+		if(null != purchaseNoArr && null != purchaseRowNoArr && null != idArr && idArr.length > 0
+				&& purchaseNoArr.length == purchaseRowNoArr.length && purchaseNoArr.length == idArr.length) {
+			//打印N张
+			List<JasperPrint> JasperPrintList = new ArrayList<JasperPrint>();
+			//更新打印状态list
+			List<SwZCOrderModel> list_printInfo = new ArrayList<SwZCOrderModel>();
+			try {
+				for (int i = 0; i < purchaseNoArr.length; i++) {
+					HashMap<String, Object> parameters = new HashMap<String, Object>();
+					SwZCOrderModel model_q = new SwZCOrderModel(); 
+					//生成多个InputStream file,防止抛异常
+					String filenurl = FileUtil.getClassesPath() + File.separator + "template" 
+							+ File.separator +"ireport" + File.separator + "pub" + File.separator + "ZC_ORDER.jasper";
+					InputStream file = new FileInputStream(filenurl);
+					//GACNE logo
+					String imgUrl = FileUtil.getClassesPath() + File.separator + "template" + File.separator
+							+ "img" + File.separator + "gacneLogo.jpg";
+					BufferedImage img = ImageIO.read(new FileInputStream(imgUrl));
+					model_q.setPurchaseNo(purchaseNoArr[i]);
+					model_q.setPurchaseRowNo(purchaseRowNoArr[i]);
+					model_q.setId(idArr[i]);
+					model_q.setFactoryCode(ContextUtil.getCurrentUser().getCurFactoryCode());
+					//查询订单打印明细
+					List<SwZCOrderModel> detailList = swZCOrderManager.queryZCOrderPrintDetailList(model_q);
+					//订单内容
+					parameters.put("logo", img);
+					//二维码
+					String qrCode = purchaseNoArr[i];
+					if(null != detailList && detailList.size() > 0) {
+						SwZCOrderModel model_pr =  detailList.get(0);
+						qrCode = qrCode + "#";
+						qrCode = qrCode + model_pr.getPlanNum();
+						//仓库货架地址长度 10位  PD11000001
+						if(null != model_pr.getDepotAddress() && model_pr.getDepotAddress().length() == 10) {
+							StringBuffer depotAddress = new StringBuffer();
+							depotAddress.append(model_pr.getDepotAddress().substring(4, 6));
+							depotAddress.append("_");
+							depotAddress.append(model_pr.getDepotAddress().substring(6, 8));
+							depotAddress.append("_");
+							depotAddress.append(model_pr.getDepotAddress().substring(8, 10));
+							model_pr.setDepotAddress(depotAddress.toString());
+						}
+					}
+					parameters.put("qrCode", MakeQrcodeImages.getQrCodeImage(qrCode, "65", "65"));
+					//条形码
+					parameters.put("brCode", BarCodeImage.creatBarCode(purchaseNoArr[i]));
+					model_q.setPrintUser(ContextUtil.getCurrentUser().getAccount());
+					//更新打印状态list
+					list_printInfo.add(model_q); 
+					JRDataSource jRDataSource;
+					if (detailList.size() > 0) {
+						jRDataSource = new JRBeanCollectionDataSource(detailList);
+					} else {
+						jRDataSource = new JREmptyDataSource();
+					}
+					JasperPrint jasperPrint = JasperFillManager.fillReport(file, parameters, jRDataSource);
+					if(null != jasperPrint) {
+						JasperPrintList.add(jasperPrint); 
+					}   
+				}
+				if(null != JasperPrintList && JasperPrintList.size() > 0) {
+					response.setContentType("application/pdf");
+					response.setHeader("Content-disposition", "inline;");
+					JRPdfExporter exporter = new JRPdfExporter();
+					OutputStream out = response.getOutputStream();
+					exporter.setParameter(JRExporterParameter.JASPER_PRINT_LIST, JasperPrintList);
+					exporter.setParameter(JRExporterParameter.OUTPUT_STREAM, out);
+					exporter.exportReport();
+					swZCOrderManager.updatePrintInfo(list_printInfo);
+				}else {
+					String resultMsg="打印失败";
+					writeResultMessage(response.getWriter(),resultMsg,ResultMessage.FAIL);
+				}
+			} catch (Exception e) { 
+				e.printStackTrace();
+				log.error(e.toString()); 
+				String resultMsg="打印失败";
+				writeResultMessage(response.getWriter(),resultMsg,e.getMessage(),ResultMessage.FAIL);
+			}
+		}else {
+			String resultMsg="打印失败";
+			writeResultMessage(response.getWriter(),resultMsg, "系统错误,请联系管理员",ResultMessage.FAIL);
+		}
+	}
+	
+	/**
+	 * @Description: 资材标签打印  
+	 * @param: @param request
+	 * @param: @param response    
+	 * @return: void   
+	 * @author: dtp
+	 * @throws IOException 
+	 * @date: 2019年3月10日
+	 */
+	@RequestMapping("printZCLabel")
+	public void printZCLabel(HttpServletRequest request,HttpServletResponse response) throws IOException {
+		String purchaseNoStr = RequestUtil.getString(request, "purchaseNoStr");
+		String purchaseRowNoStr = RequestUtil.getString(request, "purchaseRowNoStr");
+		String idStr = RequestUtil.getString(request, "idStr");
+		String[] purchaseNoArr = purchaseNoStr.split(",");
+		String[] purchaseRowNoArr = purchaseRowNoStr.split(",");
+		String[] idArr = idStr.split(",");
+		if(null != purchaseNoArr && null != purchaseRowNoArr && null != idArr && idArr.length > 0
+				&& purchaseNoArr.length == purchaseRowNoArr.length && purchaseNoArr.length == idArr.length) {
+			HashMap<String, Object> parameters = new HashMap<String, Object>();
+			//打印N张
+			List<JasperPrint> JasperPrintList = new ArrayList<JasperPrint>();
+			try {
+				for (int i = 0; i < purchaseNoArr.length; i++) {
+					SwZCOrderModel model_q = new SwZCOrderModel(); 
+					//生成多个InputStream file,防止抛异常
+					String filenurl = FileUtil.getClassesPath() + File.separator + "template" 
+							+ File.separator +"ireport" + File.separator + "pub" + File.separator + "ZC_LABEL.jasper";
+					InputStream file = new FileInputStream(filenurl);
+					model_q.setPurchaseNo(purchaseNoArr[i]);
+					model_q.setPurchaseRowNo(purchaseRowNoArr[i]);
+					model_q.setId(idArr[i]);
+					model_q.setFactoryCode(ContextUtil.getCurrentUser().getCurFactoryCode());
+					//查询订单打印明细
+					List<SwZCOrderModel> detailList = swZCOrderManager.queryZCOrderLabelDetailList(model_q);
+					List<SwZCOrderModel> detailList_pr = new ArrayList<SwZCOrderModel>(); 
+					JRDataSource jRDataSource;
+					if (detailList.size() > 0) {
+						//资材标签张数 计划交货数/规格包装数
+						SwZCOrderModel model = detailList.get(0);
+						int copy = 1;
+						try {
+							if(Integer.valueOf(model.getPlanNum())%Integer.valueOf(model.getStandPackage()) == 0) {
+								copy = Integer.valueOf(model.getPlanNum())/Integer.valueOf(model.getStandPackage());
+							}else {
+								copy = Integer.valueOf(model.getPlanNum())/Integer.valueOf(model.getStandPackage()) + 1;
+							}
+						} catch (Exception e) {
+							e.printStackTrace();
+							copy = 1;
+						}
+						for (int j = 0; j < copy; j++) {
+							detailList_pr.add(model);
+						}
+						jRDataSource = new JRBeanCollectionDataSource(detailList_pr);
+					} else {
+						jRDataSource = new JREmptyDataSource();
+					}
+					JasperPrint jasperPrint = JasperFillManager.fillReport(file, parameters, jRDataSource);
+					if(null != jasperPrint) {
+						JasperPrintList.add(jasperPrint); 
+					}  
+				}
+				response.setContentType("application/pdf");
+				response.setHeader("Content-disposition", "inline;");
+				JRPdfExporter exporter = new JRPdfExporter();
+				OutputStream out = response.getOutputStream();
+				exporter.setParameter(JRExporterParameter.JASPER_PRINT_LIST, JasperPrintList);
+				exporter.setParameter(JRExporterParameter.OUTPUT_STREAM, out);
+				exporter.exportReport();
+			} catch (Exception e) { 
+				e.printStackTrace();
+				log.error(e.toString()); 
+				String resultMsg="打印失败";
+				writeResultMessage(response.getWriter(),resultMsg,e.getMessage(),ResultMessage.FAIL);
+			}
+		}else {
+			String resultMsg="打印失败";
+			writeResultMessage(response.getWriter(),"系统错误,请联系管理员", resultMsg, ResultMessage.FAIL);
+		}
+	}
+	
+	/**
+	 * 标签打印null换成""
+	 * @param qrCode
+	 * @param str
+	 * @author dtp
+	 * @return
+	 */
+	private static StringBuffer addEmptyStr(StringBuffer qrCode, String str) {
+		if(StringUtils.isNullOrEmpty(str)) {
+			qrCode.append("");
+		}else {
+			qrCode.append(str);
+		}
+		return qrCode;
+	}
+	
+
+}

@@ -1,0 +1,367 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.jit.model.JitOrderModel">
+	
+	<!-- 拉动订单查询 -->
+	<select id="queryJitOrderPage" parameterType="com.hanthink.jit.model.JitOrderModel"
+			resultType="com.hanthink.jit.model.JitOrderModel">
+		SELECT DDD.CODE_VALUE_NAME workcenter,
+				 T.SHIP_DEPOT_TYPE shipDepotType,
+	             T.PLAN_CODE planCode,
+	             C.PLAN_CODE_DESC planCodeDesc,
+	             T.SHIP_DEPOT shipDepot,
+				 T.ORDER_NO orderNo,
+	             DDDD.CODE_VALUE_NAME orderNoDiffseq,
+	             T.SUPPLIER_NO supplierNo,
+	             T.SUPPLIER_NAME supplierName,
+	             PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(T.PLAN_CODE, T.S_PREPARE_PRODUCT_SEQNO) sprepareProductSeqno,
+	             PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(T.PLAN_CODE, T.E_PREPARE_PRODUCT_SEQNO) eprepareProductSeqno,
+	             PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(T.PLAN_CODE, T.DISPATCH_PRODUCT_SEQNO) dispatchProductSeqno,
+	             PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(T.PLAN_CODE, T.DELIVERY_PRODUCT_SEQNO) deliveryProductSeqno,
+	             PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(T.PLAN_CODE, T.ARRIVE_PRODUCT_SEQNO) arriveProductSeqno,
+	             K.KB_NAME kbName,
+	             D.CODE_VALUE_NAME printStatus,
+	             T.PRINT_TIME printTime,
+	             DD.CODE_VALUE_NAME arriveStatus,
+	             T.CREATION_TIME creationTime,
+	             T.SUP_FACTORY supFactory,
+	             T.S_PREPARE_BATCH_NO eprepareBatchNo,
+	             T.DELIVERY_BATCH_NO  deliveryBatchNo
+	        FROM MM_JIT_ORDER T
+	        INNER JOIN MM_PUB_PLAN_CODE C ON C.PLAN_CODE = T.PLAN_CODE
+	        LEFT JOIN MM_PUB_DATA_DICT D ON D.CODE_VALUE = T.PRINT_STATUS AND D.CODE_TYPE = 'PUB_PRINT_STATUS' AND D.FACTORY_CODE = C.FACTORY_CODE
+	        LEFT JOIN MM_PUB_DATA_DICT DD ON DD.CODE_VALUE = T.ARRIVE_STATUS AND DD.CODE_TYPE = 'PUB_ARRIVE_STATUS' AND DD.FACTORY_CODE = C.FACTORY_CODE
+	        LEFT JOIN MM_PUB_DATA_DICT DDD ON DDD.CODE_VALUE = C.WORKCENTER AND DDD.CODE_TYPE = 'PUB_WORKCENTER' AND DDD.FACTORY_CODE = C.FACTORY_CODE
+	        LEFT JOIN MM_PUB_DATA_DICT DDDD ON DDDD.CODE_TYPE = 'PUB_TRUE_FALSE' AND DDDD.CODE_VALUE = CASE WHEN T.ORDER_NO_DIFFSEQ > 0 THEN 1 ELSE 0 END
+	      	LEFT JOIN MM_MON_KB K ON K.ID = C.KB_ID AND K.FACTORY_CODE = C.FACTORY_CODE
+	      	WHERE 1=1 AND C.FACTORY_CODE = #{factoryCode}
+	      <!-- 数据权限 -->
+	      <if test="null != userType and '2'.toString() == userType">
+		      <if test="null != userId and ''!= userId">
+		      	AND T.SHIP_DEPOT IN (SELECT V.VALUE_CODE FROM VIEW_SYS_USER_DATA_PERM V 
+		      		WHERE V.USER_ID = #{userId} AND V.TYPE_CODE = 'JIT_DEPOT')
+		      </if>
+	      </if>
+	      <!-- 车间 -->
+	      <if test="null != workcenter and ''!= workcenter">
+	      	AND C.WORKCENTER = #{workcenter}
+	      </if>
+	      <!-- 信息点 -->
+	      <if test="null != planCode and ''!= planCode">
+	      	AND T.PLAN_CODE = #{planCode}
+	      </if>
+	      <!-- 出货仓库 -->
+	      <if test="null != shipDepot and ''!= shipDepot">
+	      	AND T.SHIP_DEPOT = #{shipDepot}
+	      </if>
+	      <!-- 供应商代码 -->
+		  <if test="null != supplierNo and ''!= supplierNo">
+	      	AND T.SUPPLIER_NO = #{supplierNo}
+	      </if>
+	      <!-- 备件批次 -->
+		  <if test="null != sprepareBatchNo and ''!= sprepareBatchNo">
+	      	AND T.S_PREPARE_BATCH_NO &gt;= #{sprepareBatchNo}
+	      </if>
+		  <!-- 备件批次至 借用eprepareBatchNo -->
+		  <if test="null != eprepareBatchNo and ''!= eprepareBatchNo">
+	      	AND T.S_PREPARE_BATCH_NO &lt;= #{eprepareBatchNo}
+	      </if>
+	      <!-- 创建日期从 -->
+	      <if test="null != creationTime and '' != creationTime">
+	  	    AND T.CREATION_TIME &gt;= to_date(#{creationTime}, 'yyyy-mm-dd hh24:mi:ss')
+	  	  </if>
+	  	  <!-- 创建日期至 -->
+	  	  <if test="null != creationTimeTo and '' != creationTimeTo">
+	  	    AND T.CREATION_TIME &lt;= to_date(#{creationTimeTo}, 'yyyy-mm-dd hh24:mi:ss') + 1
+	  	  </if>
+	  	   <!-- 打印状态 -->
+	      <if test="null != printStatus and ''!= printStatus">
+	      	AND T.PRINT_STATUS = #{printStatus}
+	      </if>
+	      <!-- 物流单号 -->
+	      <if test="null != orderNo and ''!= orderNo">
+	      	AND T.ORDER_NO = #{orderNo}
+	      </if>
+	      <!-- 发货批次从 -->
+	      <if test="null != deliveryBatchNo and ''!= deliveryBatchNo">
+	      	AND T.DELIVERY_BATCH_NO &gt;= #{deliveryBatchNo}
+	      </if>
+	      <!-- 发货批次至 -->
+	      <if test="null != deliveryBatchNoTo and ''!= deliveryBatchNoTo">
+	      	AND T.DELIVERY_BATCH_NO &lt;= #{deliveryBatchNoTo}
+	      </if>
+	      <!-- 车间、信息点、备件批次进度、零件号、配送地址升序 -->
+	      ORDER BY C.WORKCENTER, C.PLAN_CODE, T.S_PREPARE_PRODUCT_SEQNO ASC
+	</select>
+
+	<!-- 拉动订单明细查询 -->
+	<select id="queryJitOrderDetailPage" parameterType="com.hanthink.jit.model.JitOrderModel"
+			resultType="com.hanthink.jit.model.JitOrderModel">
+		SELECT T.ORDER_NO         orderNo,
+		       T.ORDER_ROWNO      orderRowno,
+		       T.PART_NO          partNo,
+		       T.LOCATION         location,
+		       T.REQUIRE_NUM      requireNum,
+		       T.PART_SHORT_NO    partShortNo,
+		       T.PART_NAME        partName,
+		       T.STANDARD_PACKAGE standardPackage,
+		       T.PREPARE_NUM      prepareNum,
+		       T.BOX_NUM          boxNum,
+		       T.SUPPLIER_NO      supplierNo,
+		       D.CODE_VALUE_NAME  arriveStatus
+		  FROM MM_JIT_ORDER_DETAIL T
+	      LEFT JOIN MM_PUB_DATA_DICT D ON D.CODE_VALUE = T.ARRIVE_STATUS AND D.CODE_TYPE = 'PUB_ARRIVE_STATUS' 
+	      		AND D.FACTORY_CODE = #{factoryCode}
+		  WHERE T.ORDER_NO = #{orderNo}
+		  ORDER BY T.ORDER_ROWNO ASC
+	</select>
+	
+	<!-- 拉动订单明细导出excel -->
+	<select id="queryJitOrderDetailList" parameterType="com.hanthink.jit.model.JitOrderModel"
+			resultType="com.hanthink.jit.model.JitOrderModel">
+		SELECT T.ORDER_NO           orderNo,
+	           T.SHIP_DEPOT         shipDepot,
+	           T.E_PREPARE_BATCH_NO eprepareBatchNo,
+	           T.DELIVERY_BATCH_NO  deliveryBatchNo,
+	           DE.ORDER_ROWNO       orderRowno,
+	           DE.SUPPLIER_NO       supplierNo,
+	           DE.PART_NO           partNo,
+	           DE.PART_SHORT_NO     partShortNo,
+	           DE.PART_NAME         partName,
+	           DE.LOCATION          location,
+	           DE.STANDARD_PACKAGE  standardPackage,
+	           DE.BOX_NUM           boxNum,
+	           DE.PREPARE_NUM       prepareNum,
+	           DE.REQUIRE_NUM       requireNum,
+	           D.CODE_VALUE_NAME    arriveStatus
+		      FROM MM_JIT_ORDER T
+		      INNER JOIN MM_JIT_ORDER_DETAIL DE ON T.ORDER_NO = DE.ORDER_NO
+		      INNER JOIN MM_PUB_PLAN_CODE C ON C.PLAN_CODE = T.PLAN_CODE
+		      LEFT JOIN MM_PUB_DATA_DICT D ON D.CODE_VALUE = DE.ARRIVE_STATUS AND D.CODE_TYPE = 'PUB_ARRIVE_STATUS'
+		   		AND D.FACTORY_CODE = #{factoryCode}
+		  WHERE 1=1
+		  <!-- 数据权限 -->
+	      <if test="null != userType and '2'.toString() == userType">
+		      <if test="null != userId and ''!= userId">
+		      	AND T.SHIP_DEPOT IN (SELECT V.VALUE_CODE FROM VIEW_SYS_USER_DATA_PERM V 
+		      		WHERE V.USER_ID = #{userId} AND V.TYPE_CODE = 'JIT_DEPOT')
+		      </if>
+	      </if>
+		  <!-- 车间 -->
+	      <if test="null != workcenter and ''!= workcenter">
+	      	AND C.WORKCENTER = #{workcenter}
+	      </if>
+	      <!-- 信息点 -->
+	      <if test="null != planCode and ''!= planCode">
+	      	AND T.PLAN_CODE = #{planCode}
+	      </if>
+	      <!-- 出货仓库 -->
+	      <if test="null != shipDepot and ''!= shipDepot">
+	      	AND T.SHIP_DEPOT = #{shipDepot}
+	      </if>
+	      <!-- 供应商代码 -->
+		  <if test="null != supplierNo and ''!= supplierNo">
+	      	AND T.SUPPLIER_NO = #{supplierNo}
+	      </if>
+	      <!-- 备件批次 -->
+		  <if test="null != sprepareBatchNo and ''!= sprepareBatchNo">
+	      	AND T.S_PREPARE_BATCH_NO &gt;= #{sprepareBatchNo}
+	      </if>
+		  <!-- 备件批次至 -->
+		  <if test="null != eprepareBatchNo and ''!= eprepareBatchNo">
+	      	AND T.E_PREPARE_BATCH_NO &lt;= #{eprepareBatchNo}
+	      </if>
+	      <!-- 创建日期从 -->
+	      <if test="null != creationTime and '' != creationTime">
+	  	    AND T.CREATION_TIME &gt;= to_date(#{creationTime}, 'yyyy-mm-dd hh24:mi:ss')
+	  	  </if>
+	  	  <!-- 创建日期至 -->
+	  	  <if test="null != creationTimeTo and '' != creationTimeTo">
+	  	    AND T.CREATION_TIME &lt;= to_date(#{creationTimeTo}, 'yyyy-mm-dd hh24:mi:ss') + 1
+	  	  </if>
+	  	   <!-- 打印状态 -->
+	      <if test="null != printStatus and ''!= printStatus">
+	      	AND T.PRINT_STATUS = #{printStatus}
+	      </if>
+	      <!-- 物流单号 -->
+	      <if test="null != orderNo and ''!= orderNo">
+	      	AND T.ORDER_NO = #{orderNo}
+	      </if>
+	      <!-- 发货批次从 -->
+	      <if test="null != deliveryBatchNo and ''!= deliveryBatchNo">
+	      	AND T.DELIVERY_BATCH_NO &gt;= #{deliveryBatchNo}
+	      </if>
+	      <!-- 发货批次至 -->
+	      <if test="null != deliveryBatchNoTo and ''!= deliveryBatchNoTo">
+	      	AND T.DELIVERY_BATCH_NO &lt;= #{deliveryBatchNoTo}
+	      </if>
+	      <!-- 车间、信息点、备件批次进度、零件号、配送地址升序 -->
+	      ORDER BY C.WORKCENTER, C.PLAN_CODE, T.S_PREPARE_PRODUCT_SEQNO ASC
+	</select>
+	
+	<!-- 查询标签打印信息明细 (list)-->
+	<select id="queryJitOrderPrintLabelList" parameterType="java.util.List"
+			resultType="com.hanthink.jit.model.JitLabelModel">
+		SELECT T.PART_SHORT_NO partShortNo,
+                <!-- 拣货地址 -->
+				T.STORAGE storage,
+                <!-- 拣货工程 -->
+                T.PREPARE_PERSON preparePerson,
+                 T.Distri_Person distriPerson,
+                 T.PART_NO partNo,
+                 to_char(T.PREPARE_TIME, 'MM/DD') || '  ' || 
+                	PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(T.PLAN_CODE, T.PREPARE_PRODUCT_SEQNO) prepareProductSeqno,
+                 T.REQUIRE_NUM      requireNum,
+                 T.LOCATION         location,
+                 O.PURCHASE_ORDERNO purchaseOrderno,
+                 T.ORDER_NO         orderNo,
+                 <!-- 看板张数 kbzs (1/10) -->
+                 PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(T.PLAN_CODE, T.DISTRI_PRODUCT_SEQNO) distriProductSeqno,
+                 T.UNLOAD_PORT unloadPort,
+                 T.SUPPLIER_NAME supplierName,
+                 T.SUPPLIER_NO supplierNo,
+                 to_char(O.CREATION_TIME, 'hh24:mi') orderTimeHhmi,
+                 to_char(O.CREATION_TIME, 'YYYY/MM/DD') orderTimeYmd,
+                 to_char(T.ARRIVE_TIME, 'YYYY/MM/DD') arriveTime,
+                 PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(T.PLAN_CODE, T.ARRIVE_PRODUCT_SEQNO) arriveProductSeqno
+            FROM MM_JIT_LABEL T
+            LEFT JOIN MM_JIT_ORDER O ON O.ORDER_NO = T.ORDER_NO 
+	      WHERE T.ORDER_NO IN
+	      <foreach collection="list" item="item" index="index" open="(" separator="," close=")">
+	     	 #{item.orderNo}
+	     </foreach>
+		 ORDER BY T.ORDER_NO, T.LABEL_ROWNO
+	</select>
+	
+	<!-- 查询标签打印信息明细(model) -->
+	<select id="queryJitOrderPrintLabelList_model" parameterType="com.hanthink.jit.model.JitLabelModel"
+			resultType="com.hanthink.jit.model.JitLabelModel">
+		SELECT T.PART_SHORT_NO partShortNo,
+                <!-- 拣货地址 -->
+				T.STORAGE storage,
+                <!-- 拣货工程 -->
+                T.PREPARE_PERSON preparePerson,
+                T.Distri_Person distriPerson,
+                T.PART_NO partNo,
+                to_char(T.PREPARE_TIME, 'MM/DD') || '  ' || 
+                	PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(T.PLAN_CODE, T.PREPARE_PRODUCT_SEQNO) prepareProductSeqno,
+                T.STANDARD_PACKAGE requireNum,  <!-- 收容数 (收容数) -->
+                T.LOCATION         location,
+                O.PURCHASE_ORDERNO purchaseOrderno,
+                T.ORDER_NO         orderNo,
+                DE.ORDER_ROWNO 	   orderRowNo,
+                T.STANDARD_PACKAGE standardPackage,
+                <!-- 看板张数 kbzs (1/10) -->
+                PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(T.PLAN_CODE, T.DISTRI_PRODUCT_SEQNO) distriProductSeqno,
+                T.UNLOAD_PORT unloadPort,
+                T.SUPPLIER_NAME supplierName,
+                T.SUPPLIER_NO supplierNo,
+                to_char(O.CREATION_TIME, 'hh24:mi') orderTimeHhmi,
+                to_char(O.CREATION_TIME, 'YYYY/MM/DD') orderTimeYmd,
+                to_char(T.ARRIVE_TIME, 'YYYY/MM/DD') arriveTime,
+                PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(T.PLAN_CODE, T.ARRIVE_PRODUCT_SEQNO) arriveProductSeqno
+           FROM MM_JIT_LABEL T
+           INNER JOIN MM_JIT_ORDER O ON O.ORDER_NO = T.ORDER_NO
+           LEFT JOIN MM_JIT_ORDER_DETAIL DE ON DE.ORDER_NO = O.ORDER_NO AND DE.PART_NO = T.PART_NO 		
+		   WHERE T.ORDER_NO = #{orderNo}
+		   ORDER BY T.ORDER_NO, T.LABEL_ROWNO
+	</select>
+	
+	<!-- 更新拉动订单打印信息 (List)-->
+	<update id="updatePrintInfo" parameterType="java.util.List">
+		<foreach collection="list" item="item" index="index" open="" close="" separator=";">
+			UPDATE MM_JIT_ORDER T 
+				<set>
+					 T.PRINT_STATUS = 1,
+				     T.PRINT_TIME = SYSDATE,
+				     T.PRINT_USER = #{item.printUser}
+				</set> 
+				<where>
+					T.ORDER_NO = #{item.orderNo} AND T.PRINT_STATUS = 0
+				</where>
+		</foreach>
+	</update>
+
+	<!-- 更新拉动订单打印状态(jitOrderModel) -->
+	<update id="updatePrintState" parameterType="com.hanthink.jit.model.JitOrderModel">
+		UPDATE MM_JIT_ORDER T SET
+			T.PRINT_STATUS = 1,
+	     	T.PRINT_TIME = SYSDATE,
+	     	T.PRINT_USER = #{printUser, jdbcType=VARCHAR}
+	     	<!-- ,
+	     	T.PRINT_USER_IP = #{printUserIp, jdbcType=VARCHAR}  -->
+		WHERE T.ORDER_NO = #{orderNo} AND T.PRINT_STATUS = 0
+	</update>
+
+	<!-- 通过订单号查询配送单号 -->
+	<select id="queryInsNoByOrderNoArr" resultType="com.hanthink.jit.model.JitInsModel">
+		SELECT 
+		       T.INS_NO insNo    
+		FROM MM_JIT_INS T
+		WHERE T.ORDER_NO IN 
+		<foreach collection="array" item="orderNo" index="index" open="(" close=")" separator=",">
+			#{orderNo}
+		</foreach>
+	</select>
+	
+	<!-- 拉动订单-托盘标签打印 (DISTINCT去重)-->
+	<select id="jitOrderPrintTpLabel" parameterType="com.hanthink.jit.model.JitOrderModel"
+			resultType="com.hanthink.jit.model.JitOrderModel">
+		SELECT DISTINCT
+			   T.ORDER_NO orderNo,
+		       T.SUPPLIER_NO supplierNo,
+		       T.SUPPLIER_NAME supplierName,
+		       O.UNLOAD_PORT unloadPort,
+		       PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(T.PLAN_CODE,
+		                                            O.DISTRI_PRODUCT_SEQNO) distriProductSeqno,
+		       T.PURCHASE_ORDERNO purchaseOrderno
+		  FROM MM_JIT_ORDER T
+		 INNER JOIN MM_JIT_LABEL O
+		    ON O.ORDER_NO = T.ORDER_NO
+		 WHERE O.ORDER_NO = #{orderNo}
+	</select>
+	
+	<!-- 查询订单打印明细(订单打印) -->
+	<select id="queryJitOrderPrintDetailList" parameterType="com.hanthink.jit.model.JitOrderModel"
+		resultType="com.hanthink.pub.model.PubPrintOrderModel">
+		SELECT 
+			O.SHIP_DEPOT_TYPE shipDepotType,
+			T.PURCHASE_ORDERNO purchaseOrderno,
+			T.ORDER_NO orderNo,
+			to_char(O.ARRIVE_TIME,'yyyy-mm-dd hh24:mi') arriveTime,
+			PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(O.PLAN_CODE, O.ARRIVE_PRODUCT_SEQNO) arriveBatch,
+			O.SUPPLIER_NAME supplierName,
+			O.SUPPLIER_NO supplierNo,
+			T.PART_NO partNo,
+			T.PART_NAME partName,
+			T.PART_SHORT_NO partShortNo,
+			ceil(T.REQUIRE_NUM/T.STANDARD_PACKAGE) xs,
+			T.STANDARD_PACKAGE standardPackage,
+			T.REQUIRE_NUM requireNum,
+			(SELECT COUNT(1) FROM MM_JIT_LABEL L WHERE L.ORDER_NO = #{orderNo})  labelPageNum 
+		FROM MM_JIT_ORDER_DETAIL T
+		LEFT JOIN MM_JIT_ORDER O ON O.ORDER_NO = T.ORDER_NO
+		WHERE T.ORDER_NO = #{orderNo}
+			ORDER BY T.ORDER_ROWNO
+	</select>
+	
+	<!-- 拉动订单查询页面更新标签打印信息 -->
+	<update id="updatePrintStatus" parameterType="java.util.List">
+		UPDATE MM_JIT_LABEL T
+		   SET T.PRINT_STATUS = 1,
+		       T.PRINT_TIME = SYSDATE
+		 WHERE T.PRINT_STATUS = 0	AND T.ORDER_NO IN
+		<foreach collection="list" item="item" index="index" open="(" close=")" separator=",">
+			#{item.orderNo}
+		</foreach>
+	</update>
+	
+	<!-- 拉动订单查询页面更新标签打印信息model -->
+	<update id="updatePrintStatusModel" parameterType="com.hanthink.jit.model.JitLabelModel">
+		UPDATE MM_JIT_LABEL T
+			SET T.PRINT_STATUS = 1,
+		       T.PRINT_TIME = SYSDATE
+		 WHERE T.PRINT_STATUS = 0 AND T.ORDER_NO = #{orderNo, jdbcType=VARCHAR}
+	</update>
+	
+</mapper>

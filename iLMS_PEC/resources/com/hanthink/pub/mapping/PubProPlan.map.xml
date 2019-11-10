@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.pub.model.PubProPlanModel">
+
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="queryPubProPlanForPage" parameterType="com.hanthink.pub.model.PubProPlanModel"
+		resultType="com.hanthink.pub.model.PubProPlanModel">
+			SELECT A.FACTORY_CODE factoryCode,
+		       A.ORDER_NO orderNo,
+		       A.ORDER_TYPE orderType,
+		       B.CODE_VALUE_NAME orderTypeStr,
+		       TO_CHAR(A.WEON_TIME, 'YYYY-MM-DD HH24:MI:SS') weOnTimeStr,
+		       TO_CHAR(A.AFOFF_TIME, 'YYYY-MM-DD HH24:MI:SS') afOffTimeStr,
+		       A.SORT_ID sortId,
+		       A.MTOC mtoc,
+		       A.MODEL_CODE modelCode,
+		       A.PHASE phase,
+		       C.CODE_VALUE_NAME phaseStr,
+		       TO_CHAR(G.PASS_TIME, 'YYYY-MM-DD HH24:MI:SS') passTime,
+		       G.STATION_CODE stationCode,
+		       A.DMS_ORDER_NO saleNo,
+		       D.VIN vin,
+		       A.DMS_ORDER_ROW_NO saleRowNo,
+		       CASE
+		         WHEN D.ID IS NULL THEN
+		          0
+		         WHEN D.ID IS NOT NULL AND D.ORDER_STATUS = '30' THEN
+		          2
+		         WHEN D.ID IS NOT NULL AND D.ORDER_STATUS = '20' THEN
+		          3
+		         WHEN D.ID IS NOT NULL AND D.ORDER_STATUS = '0' THEN
+		          4
+		         ELSE
+		          1
+		       END carStatus,
+		       H.CODE_VALUE_NAME carStatusStr
+		  FROM MM_PUB_PRO_PLAN A
+		  LEFT JOIN MM_PUB_DATA_DICT B
+		    ON B.CODE_TYPE = 'PUB_VECHILE_TYPE'
+		   AND A.ORDER_TYPE = B.CODE_VALUE
+		   AND A.FACTORY_CODE = B.FACTORY_CODE
+		  LEFT JOIN MM_PUB_DATA_DICT C
+		    ON C.CODE_TYPE = 'PUB_PHASE'
+		   AND A.PHASE = C.CODE_VALUE
+		   AND A.FACTORY_CODE = C.FACTORY_CODE
+		  LEFT JOIN IF_VEH_LOCK_PLAN D
+		    ON A.ORDER_NO = D.ERP_ORDER_NO
+		   AND A.FACTORY_CODE = D.FACTORY_CODE
+		  LEFT JOIN MM_PUB_DATA_DICT H
+		    ON H.CODE_TYPE = 'PUB_CAR_STATUS'
+		   AND H.CODE_VALUE = CASE
+		         WHEN D.ID IS NULL THEN
+		          0
+		         WHEN D.ID IS NOT NULL AND D.ORDER_STATUS = '30' THEN
+		          2
+		         WHEN D.ID IS NOT NULL AND D.ORDER_STATUS = '20' THEN
+		          3
+		         WHEN D.ID IS NOT NULL AND D.ORDER_STATUS = '0' THEN
+		          4
+		         ELSE
+		          1
+		       END
+		   AND A.FACTORY_CODE = H.FACTORY_CODE
+		  LEFT JOIN (SELECT F.ERP_ORDER_NO,
+		                    F.STATION_CODE,
+		                    F.LINE_NO,
+		                    F.PASS_TIME,
+		                    F.FACTORY_CODE
+		               FROM (SELECT E.ERP_ORDER_NO,
+		                            E.STATION_CODE,
+		                            ROW_NUMBER() OVER(PARTITION BY E.ERP_ORDER_NO ORDER BY E.PASS_TIME DESC) LINE_NO,
+		                            E.PASS_TIME,
+		                            E.FACTORY_CODE
+		                       FROM MM_PUB_VEH_PASS E
+		                      WHERE 1 = 1
+		                      	<if test="factoryCode!=null and factoryCode!='' ">
+									AND E.FACTORY_CODE = #{factoryCode}
+								</if>
+								<if test="stationCode!=null and stationCode!='' ">
+									AND E.STATION_CODE = #{stationCode}
+								</if>
+								<if test="afoffTimeStartStr!=null and afoffTimeStartStr!='' ">
+									AND E.PASS_TIME &gt;= TO_DATE(#{afoffTimeStartStr}, 'YYYY-MM-DD') - 30
+								</if>
+								<if test="afoffTimeEndStr!=null and afoffTimeEndStr!='' ">
+									AND E.PASS_TIME &lt;= TO_DATE(#{afoffTimeEndStr}, 'YYYY-MM-DD')
+								</if>) F
+		              WHERE F.LINE_NO = 1) G
+		    ON A.ORDER_NO = G.ERP_ORDER_NO
+		   AND A.FACTORY_CODE = G.FACTORY_CODE
+		   LEFT JOIN MM_PUB_DATA_DICT I
+		    ON I.CODE_TYPE = 'MON_KB_STATION'
+		   AND G.STATION_CODE = I.CODE_VALUE
+		   AND A.FACTORY_CODE = I.FACTORY_CODE
+		 WHERE 1 = 1 
+		<if test="factoryCode!=null and factoryCode!='' ">
+			AND A.FACTORY_CODE = #{factoryCode}
+		</if>
+		<if test="vin!=null and vin!='' ">
+			AND D.VIN LIKE CONCAT(CONCAT('%', #{vin}), '%')
+		</if>
+		<if test="orderType!=null and orderType!='' ">
+			AND A.ORDER_TYPE = #{orderType}
+		</if>
+		<if test="orderNo!=null and orderNo!='' ">
+			AND A.ORDER_NO = #{orderNo}
+		</if>
+		<if test="modelCode!=null and modelCode!='' ">
+			AND A.MODEL_CODE = #{modelCode}
+		</if>
+		<if test="phase!=null and phase!='' ">
+			AND A.PHASE = #{phase}
+		</if>
+		<if test="stationCode!=null and stationCode!='' ">
+			AND G.STATION_CODE = #{stationCode}
+		</if>
+		<if test="startPassTime!=null and startPassTime!='' ">
+			AND A.WEON_TIME &gt;= TO_DATE(#{startPassTime}, 'YYYY-MM-DD HH24:MI:SS')
+		</if>
+		<if test="endPassTime!=null and endPassTime!='' ">
+			AND A.WEON_TIME &lt;= TO_DATE(#{endPassTime}, 'YYYY-MM-DD HH24:MI:SS')
+		</if>
+		<if test="afoffTimeStartStr!=null and afoffTimeStartStr!='' ">
+			AND A.AFOFF_TIME &gt;= TO_DATE(#{afoffTimeStartStr}, 'YYYY-MM-DD')
+		</if>
+		<if test="afoffTimeEndStr!=null and afoffTimeEndStr!='' ">
+			AND A.AFOFF_TIME &lt;= TO_DATE(#{afoffTimeEndStr}, 'YYYY-MM-DD')
+		</if>
+		<if test="carStatus != null and carStatus!='' ">
+			AND #{carStatus} =  CASE WHEN D.ID IS NULL THEN 
+				0
+			WHEN D.ID IS NOT NULL AND D.ORDER_STATUS = '30' THEN
+				2
+			WHEN D.ID IS NOT NULL AND D.ORDER_STATUS = '20' THEN
+				3
+			WHEN D.ID IS NOT NULL AND D.ORDER_STATUS = '0' THEN
+				4
+			ELSE
+		        1
+		    END
+		</if>
+		ORDER BY H.SORT_NO, G.STATION_CODE, A.WEON_TIME
+	</select>
+
+</mapper>

@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.bpmx.persistence.model.BpmInstForm">
+	<resultMap id="BpmInstForm" type="com.hotent.bpmx.persistence.model.BpmInstForm">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="defId" column="def_id_" jdbcType="VARCHAR"/>
+		<result property="instId" column="inst_id_" jdbcType="VARCHAR"/>
+		<result property="formValue" column="form_value_" jdbcType="VARCHAR"/>
+		<result property="nodeId" column="node_id_" jdbcType="VARCHAR"/>
+		<result property="formType" column="form_type_" jdbcType="VARCHAR"/>
+		<result property="formCategory" column="form_category_" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.bpmx.persistence.model.BpmInstForm">
+		INSERT INTO bpm_inst_form
+		(id_,def_id_,inst_id_,form_value_,node_id_,form_type_,form_category_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{defId,jdbcType=VARCHAR}, #{instId,jdbcType=VARCHAR}, #{formValue,jdbcType=VARCHAR}, #{nodeId,jdbcType=VARCHAR}, #{formType,jdbcType=VARCHAR}, #{formCategory,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="BpmInstForm">
+		SELECT * FROM bpm_inst_form 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="BpmInstForm">
+		SELECT * FROM bpm_inst_form
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<select id="getNodeForm" parameterType="java.util.Map" resultMap="BpmInstForm">
+		SELECT * FROM bpm_inst_form 
+		<where>
+			<if test="@Ognl@isNotEmpty(instId)">
+				inst_id_ = #{instId}
+			</if>
+			<if test="@Ognl@isNotEmpty(defId)">
+				and def_id_ = #{defId}
+			</if>
+			<if test="@Ognl@isNotEmpty(nodeId)">
+				and node_id_ = #{nodeId}
+			</if>
+			<if test="@Ognl@isNotEmpty(formType)">
+				and  form_type_ = #{formType} or form_type_ is null
+			</if>
+		</where>
+		
+	</select>
+	
+	<select id="getGlobalForm" parameterType="java.util.Map" resultMap="BpmInstForm">
+		SELECT * FROM bpm_inst_form 
+		<where>
+				node_id_ is null
+			<if test="@Ognl@isNotEmpty(instId)">
+				and inst_id_ = #{instId}
+			</if>
+			<if test="@Ognl@isNotEmpty(formType)">
+				and form_type_ = #{formType}
+			</if>
+		</where>
+	</select>
+	
+	<select id="getInstForm" parameterType="java.util.Map" resultMap="BpmInstForm">
+		SELECT * FROM bpm_inst_form 
+		<where>
+			<if test="@Ognl@isNotEmpty(instId)">
+				inst_id_ = #{instId} and node_id_ = #{instId}
+			</if>
+			<if test="@Ognl@isNotEmpty(formType)">
+				and form_type_ = #{formType}
+			</if>
+		</where>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.bpmx.persistence.model.BpmInstForm">
+		UPDATE bpm_inst_form SET
+		def_id_=#{defId,jdbcType=VARCHAR},
+		inst_id_=#{instId,jdbcType=VARCHAR},
+		form_value_=#{formValue,jdbcType=VARCHAR},
+		node_id_=#{nodeId,jdbcType=VARCHAR},
+		form_type_=#{formType,jdbcType=VARCHAR},
+		form_category_=#{formCategory,jdbcType=VARCHAR}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM bpm_inst_form 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	<delete id="removeDataByDefId" parameterType="java.lang.String">
+		DELETE FROM bpm_inst_form 
+		WHERE
+		def_id_=#{defId}
+	</delete>
+	
+	<delete id="removeDataByInstId" parameterType="java.lang.String">
+		DELETE FROM bpm_inst_form 
+		WHERE
+		inst_id_=#{instId}
+	</delete>
+	
+	
+</mapper>

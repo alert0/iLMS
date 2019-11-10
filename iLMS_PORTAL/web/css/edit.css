@@ -1,0 +1,98 @@
+/* table-form css*/
+.table-form .required{
+	color: red
+}
+.table-form {
+	width: 99.6%;
+ 	font-size: 12px;
+ 	margin:2px auto;
+ }
+.table-form thead {
+	height: 32px;
+}
+.table-form  tr {
+	height: 25px;
+}
+.table-form thead th {
+	background: #F0F2F9;
+	height: 32px;
+	text-align: center;
+}
+.table-form tr th {
+	width: 20%;
+	height: 32px;
+	background: #FBFBFF;
+	color:#282831;
+	padding: 0px 5px;
+	text-align: right;
+	border:1px solid #EBECEF;
+	font-weight: normal;
+}
+.table-form td {
+	font-weight: normal;
+	padding: 5px 5px;
+	border:1px solid #EBECEF;
+}
+
+
+
+.inputText {
+	display: inline-block;
+	width: 160px;
+	padding: 3px 6px;
+	font-size: 12px;
+	font-family:宋体;
+	line-height: 1.5;
+	vertical-align: middle;
+	background-color: #ffffff;
+	border: 1px solid #cccccc;
+	border-radius: 2px;
+	-webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+	box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+	-webkit-transition: border-color ease-in-out .15s, box-shadow
+		ease-in-out .15s;
+	transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s;
+}
+.inputText:focus {
+	border-color: #66afe9;
+	outline: 0;
+	-webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075), 0 0 8px
+		rgba(102, 175, 233, 0.6);
+	box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075), 0 0 8px
+		rgba(102, 175, 233, 0.6);
+}
+.inputText[disabled], .inputText[readonly], fieldset[disabled]{
+    background-color: #eeeeee;
+}
+input.ng-valid, textarea.ng-valid, select.ng-valid{
+	border-color:#dadada;
+}
+/**时间控件样式*/
+.date,.datetime,.dateformat{
+	background: url(image/datePicker.gif) no-repeat scroll right
+		center #FFFFFF;
+	background-image: url(image/datePicker.gif) !important;
+}
+/** 对话框背景色*/
+.window {
+    /* background: #219CDA !important; */
+    border-radius: inherit;
+}
+
+/**16-09-22修改*/
+.toolbar-search{height:auto;}
+.toolbar-body{ margin-top:15px;}
+.toolbar-head{border-bottom:1px solid #DDE1EC; padding:5px;}
+.toolbar-form{width:300px; float:left;}
+
+/**17-07-11添加*/
+.radio-inline{line-height:20px; padding-right:6px;}
+.checkbox-inline{line-height:20px; padding-right:6px;}
+.table-form .checkbox-inline{line-height:20px; padding-right:6px; margin-left:0; margin-right:10px;}
+/**.checkbox input[type=checkbox], .checkbox-inline input[type=checkbox], .radio input[type=radio], .radio-inline input[type=radio]{margin-left:-18px;}*/
+/**17-08-18修复单选复选框错位*/
+.checkbox input[type=checkbox], .checkbox-inline input[type=checkbox], .radio input[type=radio], .radio-inline input[type=radio]{position: static;margin-left:-18px;}
+		
+
+
+

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.mp.model.MpAdjPlanModel">
+		
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="queryMpAdjPlanForPage" parameterType="com.hanthink.mp.model.MpAdjPlanModel" resultType="com.hanthink.mp.model.MpAdjPlanModel">
+		SELECT 
+		a.ID   pkid,
+		a.CAR_TYPE  carType,
+		a.DIFF_NUM  diffNum,
+		TO_CHAR(a.ADJ_DATE, 'YYYY-MM-DD HH24:MI:SS')  adjDateStr
+		FROM MM_MP_ADJ_PLAN a
+		WHERE 1=1 
+		<if test="carType!=null and carType!='' ">
+		AND	a.CAR_TYPE = #{carType}
+		</if>
+		<if test="adjDateStrStart != null and adjDateStrStart != ''">
+		<![CDATA[ AND a.ADJ_DATE >= TO_DATE(#{adjDateStrStart},'yyyy-MM-dd hh24:mi:ss') ]]>
+		</if>
+        <if test="adjDateStrEnd != null and adjDateStrEnd != ''">
+        <![CDATA[ AND a.ADJ_DATE <= TO_DATE(#{adjDateStrEnd},'yyyy-MM-dd hh24:mi:ss') ]]>
+        </if>
+        AND a.FACTORY_CODE = #{factoryCode}
+        ORDER BY a.CAR_TYPE,a.ADJ_DATE
+	</select>
+		
+	<!-- 获取调整计划 -->
+	<parameterMap type="map" id="getAdjPlanMap">  
+		<parameter property="in_arr_factory" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="in_start_date" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="in_end_date" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="outCode" jdbcType="INTEGER" mode="OUT"/> 
+	</parameterMap> 
+	<select id="getAdjPlan" parameterMap="getAdjPlanMap" statementType="CALLABLE">
+		{CALL PKG_MP_MAIN.USP_MP_GET_ADJ_PLAN( ?, ?, ?, ?)}
+	</select>
+</mapper>

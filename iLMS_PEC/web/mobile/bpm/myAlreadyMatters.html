@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html ng-app="mobileDirective">
+<head>
+<title>X5手机平台</title>
+<meta charset="utf-8">
+<script src="../assets/js/importJs.js"></script>
+<script type="text/javascript">
+mobileDirective.controller("myAlreadyCtrl",["$scope",function($scope){
+	$scope.getProcessRun =function(runId){
+		window.location.href = "getProcessRun.html?runId="+runId;
+	}
+}]);
+</script>
+</head>
+<body list-load="/mobile/bpm/getAlreadyMattersList" ng-controller="myAlreadyCtrl" >
+<div class="page">
+<header class="hkm-red-header bar bar-nav">
+		  <a class="icon icon-left pull-left back" href="workbench.html" external></a>
+		  <span class='title'>待办 / 已办</span>
+</header>
+  <div class="content pull-to-refresh-content infinite-scroll">
+  	 <div class="pull-to-refresh-layer">
+        <div class="preloader"></div>
+        <div class="pull-to-refresh-arrow"></div>
+    </div>
+  	<div class="daiban-page mydaiban">
+	      <div class="myDaibanTab buttons-tab">
+		    <a href="myWaitMatters.html" class="button" external>待办事项</a>
+		    <a href="#" class="tab-link active button">已办事项</a>
+		  </div>
+		  <div class="content-block">
+		    <div class="tabs">
+		    	<!--待办页start-->
+		      <div id="tab1" class="tab active">
+		        <div class="content-block">
+		        	<div class="list-block media-list" ng-repeat="instance in dataList">
+					    <ul>
+					      <li>
+					        <div class="item-content">
+					          <!-- <div class="item-media"><img src="http://gqianniu.alicdn.com/bao/uploaded/i4//tfscom/i3/TB10LfcHFXXXXXKXpXXXXXXXXXX_!!0-item_pic.jpg_250x250q60.jpg" style='width: 2.2rem;'></div> -->
+					          <div class="item-inner">
+					            <div class="item-title-row">
+					              <div class="item-title">{{instance.creator}}-{{instance.procDefName}}</div>
+					            </div>
+					            <div class="item-subtitle"><a class="item-title myitem-text
+" ng-bind-html="instance.subject"  ng-click="getProcessRun(instance.id)" external></a>{{instance.createTime |countDate}}</div>
+					          </div>
+					          <div class="item-media"><a href="#" class="mybutton-danger button button-round" ><div flow-status="instance.status"></div></a></div>
+					        </div>
+					      </li>
+					    </ul>
+					</div>
+		        </div>
+		      </div>
+		   </div>
+		 </div>
+	</div>
+       
+       <div ng-if="dataList.length==0" class="content-block-title">未查到任何数据 </div>
+  </div>
+  <nav class="hkm-bottom-nav bar bar-tab">
+			 <a class="tab-item" href="../index.html" external>
+			   <span class="icon icon-home"></span>
+			   <span class="tab-label">首页</span>
+			 </a>
+			 <a class="tab-item active" href="##" external>
+			   <span class="icon icon-app"></span>
+			   <span class="tab-label">工作台</span>
+			 </a>
+			 <a class="tab-item" href="contacts.html" external>
+			   <span class="icon icon-friends"></span>
+			   <span class="tab-label">联系人</span>
+			 </a>
+			 <a class="tab-item" href="myCenter.html" external>
+			   <span class="icon icon-me"></span>
+			   <span class="tab-label">我的</span>
+			 </a>
+			 
+		 </nav>
+		  <div class="hot_foot clearfix">
+			<a href="../index.html" class="hot_foot_cell" external><span class="iconfont hot_foot_icon">&#xe601;</span><span class="hot_foot_word">首页</span></a>
+			<a href="##" class="hot_foot_cell current"><span class="iconfont hot_foot_icon">&#xe66b;</span><span class="hot_foot_word">工作台</span></a>
+<!-- 			<a href="../im/session.html" class="hot_foot_cell" external><span class="iconfont hot_foot_icon">&#xe61c;</span><span class="hot_foot_word">消息</span></a>
+ -->			
+ 			<a href="contacts.html" class="hot_foot_cell" external><span class="iconfont hot_foot_icon">&#xe612;</span><span class="hot_foot_word">通讯录</span></a>
+			<a href="myCenter.html" class="hot_foot_cell" external><span class="iconfont hot_foot_icon">&#xe630;</span><span class="hot_foot_word">我的</span></a>
+		</div>
+	
+	</div>
+</body>
+</html>

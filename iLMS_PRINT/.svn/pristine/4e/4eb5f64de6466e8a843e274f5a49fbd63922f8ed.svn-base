@@ -1,0 +1,10 @@
+declare
+jobno number;
+begin dbms_job.submit(
+      jobno,--定时器ID，系统自动获得
+      'PRO_JOB_QUEUE_BAK;', --what执行的过程名
+      sysdate,--next_date,定时器开始执行的时间，这样写表示立即执行
+      'sysdate + 60/1440'--interval,设置定时器执行的频率，这样写每隔一小时执行一次
+);
+commit; 
+end;

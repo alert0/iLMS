@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.bpmx.persistence.model.BpmTaskRead">
+	<resultMap id="BpmTaskRead" type="com.hotent.bpmx.persistence.model.BpmTaskRead">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="procDefId" column="proc_def_id" jdbcType="VARCHAR"/>
+		<result property="procInstId" column="proc_inst_id_" jdbcType="VARCHAR"/>
+		<result property="taskId" column="task_id_" jdbcType="VARCHAR"/>
+		<result property="nodeId" column="node_id_" jdbcType="VARCHAR"/>
+		<result property="readTime" column="read_time_" jdbcType="TIMESTAMP"/>
+		<result property="userId" column="user_id_" jdbcType="VARCHAR"/>
+		<result property="userName" column="user_name_" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.bpmx.persistence.model.BpmTaskRead">
+		INSERT INTO bpm_task_read
+		(id_,proc_def_id,proc_inst_id_,task_id_,node_id_,read_time_,user_id_,user_name_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{procDefId,jdbcType=VARCHAR}, #{procInstId,jdbcType=VARCHAR}, #{taskId,jdbcType=VARCHAR}, #{nodeId,jdbcType=VARCHAR}, #{readTime,jdbcType=TIMESTAMP}, #{userId,jdbcType=VARCHAR}, #{userName,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="BpmTaskRead">
+		SELECT * FROM bpm_task_read 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="BpmTaskRead">
+		SELECT * FROM bpm_task_read
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.bpmx.persistence.model.BpmTaskRead">
+		UPDATE bpm_task_read SET
+		proc_def_id=#{procDefId,jdbcType=VARCHAR},
+		proc_inst_id_=#{procInstId,jdbcType=VARCHAR},
+		task_id_=#{taskId,jdbcType=VARCHAR},
+		node_id_=#{nodeId,jdbcType=VARCHAR},
+		read_time_=#{readTime,jdbcType=TIMESTAMP},
+		user_id_=#{userId,jdbcType=VARCHAR},
+		user_name_=#{userName,jdbcType=VARCHAR}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM bpm_task_read 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	<delete id="delByInstList" >
+		DELETE FROM  bpm_task_read where proc_inst_id_ in 
+			<foreach collection="list" index="index" item="instId" open="(" separator="," close=")"> 
+            #{instId} 
+        	</foreach> 
+	</delete>
+	
+	
+	
+</mapper>

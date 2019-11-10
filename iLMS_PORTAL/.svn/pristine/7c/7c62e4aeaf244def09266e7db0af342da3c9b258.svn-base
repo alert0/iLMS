@@ -1,0 +1,439 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hanthink.sw.model.SwVentureOrderModel">
+	<select id="queryVentureOrderForPage" parameterType="com.hanthink.sw.model.SwVentureOrderModel" resultType="com.hanthink.sw.model.SwVentureOrderModel">
+		SELECT A.ORDER_NO orderNo,
+	         A.FACTORY_CODE factoryCode,
+	         A.PURCHASE_NO purchseNo,
+	         B.PURCHASE_ROWNO rowNo,
+	         A.ORDER_TYPE orderType,
+	         A.JV_PLACE jvPlace,
+	         A.SUPPLIER_NO supplierNo,
+	         E.SUPPLIER_NAME supplierName,
+	         A.SUP_FACTORY supFactory,
+	         A.ORDER_DATE orderDate,
+	         A.ARRIVE_DATE arriveDate,
+	         A.RECEIVE_COUNT receiveCount,
+	         A.RECEIVE_DATE receiveDate,
+	         A.CHECK_USER checkUser,
+	         A.CHECK_TIME checkTime,
+	         A.CREATION_USER creationUser,
+	         A.CREATION_TIME creationTime,
+	         A.LAST_MODIFIED_USER lastModifiedUser,
+	         A.LAST_MODIFIED_TIME lastModifiedTime,
+	         B.PART_NO partNo,
+	         C.PART_NAME_CN partName,
+         	 D.PART_SHORT_NO partShortNo,
+	         B.ORDER_QTY orderQty,
+	         B.UNLOAD_PORT unloadPort,
+	         B.STORAGE storage,
+	         B.LOCATION location,
+	         B.ARRIVAL_BATCH arriveBatch,
+	         B.SUP_SHIP_TIME supShipTime,
+	         B.SUP_ARRIVE_TIME supArriveTime,
+	         B.SUP_ROUTE_NAME supRouteName,
+	         B.SUP_CAR_BATCH supCarBatch,
+	         B.GBL_SHIP_TIME gblShipTime,
+	         B.GBL_ARRIVE_TIME gblArriveTime,
+	         B.GBL_ROUTE_NAME gblRouteName,
+	         B.GBL_CAR_BATCH gblCarBatch,
+	         B.STANDARD_PACKAGE standardPackage,
+	         CEIL(B.ORDER_QTY/NVL(B.STANDARD_PACKAGE,1)) orderBox,
+	         F.CODE_VALUE_NAME excelOrderType
+	     FROM MM_SW_ORDER_JV_DETAIL B
+	     LEFT JOIN MM_SW_ORDER_JV A
+	       ON A.ORDER_NO = B.ORDER_NO
+		 LEFT JOIN MM_PUB_PART C
+		   ON C.PART_NO = B.PART_NO
+	       AND C.FACTORY_CODE = A.FACTORY_CODE
+	     LEFT JOIN MM_PUB_PART_UDA D
+	       ON D.PART_NO = B.PART_NO
+	       AND D.FACTORY_CODE = A.FACTORY_CODE
+	     LEFT JOIN MM_PUB_SUPPLIER E
+           ON E.SUPPLIER_NO = A.SUPPLIER_NO
+         LEFT JOIN MM_PUB_DATA_DICT F
+           ON F.CODE_TYPE = 'SW_ORDER_TYPE'
+          AND F.FACTORY_CODE = A.FACTORY_CODE
+          AND F.CODE_VALUE = A.ORDER_TYPE
+	     WHERE A.FACTORY_CODE = #{factoryCode}
+		 <if test="null != userType and '' != userType and userType == '6'">
+			<if test="null != userId and ''!= userId">
+		       AND A.JV_PLACE IN (SELECT V.VALUE_CODE FROM VIEW_SYS_USER_DATA_PERM V 
+		        WHERE V.USER_ID = #{userId} AND V.TYPE_CODE = 'JV_FORE_PLACE')
+		    </if>
+		</if>
+		<if test="null != creationTimeStart and '' != creationTimeStart">
+			AND TO_CHAR(A.CREATION_TIME,'YYYY-MM-DD') &gt;= #{creationTimeStart}
+		</if>
+		<if test="null != creationTimeEnd and '' != creationTimeEnd">
+			AND TO_CHAR(A.CREATION_TIME,'YYYY-MM-DD') &lt;= #{creationTimeEnd}
+		</if>
+		<if test="null != orderNo and '' != orderNo">
+			AND A.ORDER_NO = #{orderNo}
+		</if>
+		<if test="null != partNo and '' != partNo">
+			AND B.PART_NO LIKE CONCAT('%',CONCAT(#{partNo},'%'))
+		</if>
+		<if test="null != partShortNo and '' != partShortNo">
+			AND D.PART_SHORT_NO = #{partShortNo}
+		</if>
+		<if test="null != partName and '' != partName">
+			AND C.PART_NAME_CN LIKE CONCAT('%',CONCAT(#{partName},'%'))
+		</if>
+		<if test="null != supplierNo and '' != supplierNo">
+			AND A.SUPPLIER_NO = #{supplierNo}
+		</if>
+	</select>	
+	
+	<!--**导入开始****************************************************  -->
+	<!--  根据UUID删除临时表数据-->
+	<delete id="deleteImportTempDataByUUID" parameterType="java.lang.String">
+		DELETE MM_SW_ORDER_JV_IMP WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR}
+	</delete>
+	
+	<!-- 批量导入数据写入到临时表 -->
+	<insert id="insertImportTempData" parameterType="java.util.List">
+		INSERT INTO MM_SW_ORDER_JV_IMP
+			(ID,
+             JV_PLACE,
+             ORDER_TYPE,
+             UNLOAD_PORT,
+             SUPPLIER_NO,
+             SUP_FACTORY,
+             SUPPLIER_NAME,
+             ORDER_NO,
+             TP_COUNT,
+             PART_NO,
+             FACTORY_CODE,
+             PURCHASE_NO,
+             PART_SHORT_NO,
+             STANDARD_PACKAGE,
+             ORDER_BOX,
+             ORDER_QTY,
+             STORAGE,
+             LOCATION,
+             ARRIVE_BATCH,
+             ORDER_DATE,
+             SUP_SHIP_TIME,
+             SUP_ROUTE_NAME,
+             SUP_ARRIVE_TIME,
+             SUP_CAR_BATCH,
+             GBL_SHIP_TIME,
+             GBL_ARRIVE_TIME,
+             GBL_ROUTE_NAME,
+             GBL_CAR_BATCH,
+             ARRIVE_DATE,
+             RECEIVE_DATE,
+             DEPOT_NO,
+             DEMANDER,
+             CON_NUMBER,
+             DISTRI_PERSON,
+             IMP_IP,
+             CREATION_USER,
+             CREATION_TIME,
+             IMP_UUID,
+             CHECK_RESULT,
+             CHECK_INFO,
+             IMPORT_STATUS)
+		<foreach collection="list" item="item" index="index" separator=" UNION ALL ">
+			SELECT 
+			 PKG_PUB.USF_GET_SEQUENCE('SEQ_SW_ORDER_JV_IMP'),
+			 #{item.jvPlace,jdbcType=VARCHAR},
+			 #{item.orderType,jdbcType=VARCHAR},
+			 #{item.unloadPort,jdbcType=VARCHAR},
+			 #{item.supplierNo,jdbcType=VARCHAR},
+			 #{item.supFactory,jdbcType=VARCHAR},
+			 #{item.supplierName,jdbcType=VARCHAR},
+			 #{item.orderNo,jdbcType=VARCHAR},
+			 #{item.tpCount,jdbcType=VARCHAR},
+			 #{item.partNo,jdbcType=VARCHAR},
+			 #{item.factoryCode,jdbcType=VARCHAR},
+			 #{item.purchseNo,jdbcType=VARCHAR},
+			 #{item.partShortNo,jdbcType=VARCHAR},
+			 #{item.standardPackage,jdbcType=VARCHAR},
+			 #{item.orderBox,jdbcType=VARCHAR},
+			 #{item.orderQty,jdbcType=VARCHAR},
+			 #{item.storage,jdbcType=VARCHAR},
+			 #{item.location,jdbcType=VARCHAR},
+			 #{item.arriveBatch,jdbcType=VARCHAR},
+			 #{item.orderDate,jdbcType=VARCHAR},
+			 #{item.supShipTime,jdbcType=VARCHAR},
+			 #{item.supRouteName,jdbcType=VARCHAR},
+			 #{item.supArriveTime,jdbcType=VARCHAR},
+			 #{item.supCarBatch,jdbcType=VARCHAR},
+			 #{item.gblShipTime,jdbcType=VARCHAR},
+			 #{item.gblArriveTime,jdbcType=VARCHAR},
+			 #{item.gblRouteName,jdbcType=VARCHAR},
+			 #{item.gblCarBatch,jdbcType=VARCHAR},
+			 #{item.arriveDate,jdbcType=VARCHAR},
+			 #{item.receiveDate,jdbcType=VARCHAR},
+			 #{item.depotNo,jdbcType=VARCHAR},
+			 #{item.demander,jdbcType=VARCHAR},
+			 #{item.conNumber,jdbcType=VARCHAR},
+			 #{item.distriPerson,jdbcType=VARCHAR},
+			 #{item.impIp,jdbcType=VARCHAR},
+			 #{item.creationUser,jdbcType=VARCHAR},
+			 SYSDATE,
+			 #{item.uuid,jdbcType=VARCHAR}, 
+			 #{item.checkResult,jdbcType=VARCHAR}, 
+			 #{item.checkInfo,jdbcType=VARCHAR}, 
+			 #{item.importStatus,jdbcType=VARCHAR}
+			FROM DUAL 
+    	</foreach>
+	</insert>
+	
+	<!-- 检查导入临时表数据 -->
+	<parameterMap type="map" id="impCkParamMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="userName" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<select id="checkImportData" parameterMap="impCkParamMap" statementType="CALLABLE">
+		{CALL PKG_PUB_CHECK.USP_ORDER_IMPORT_CHECK(?, ?, ?,  ?,?)}
+	</select>
+	
+	<!-- 查询临时表中的数据是否可以导入 -->
+	<select id="queryIsImportFlag" parameterType="java.lang.String" resultType="java.lang.String">
+		WITH TEMPA AS
+		 (SELECT COUNT(1) s
+		    FROM MM_SW_ORDER_JV_IMP A
+		   WHERE A.CHECK_RESULT = 0
+		     AND A.IMP_UUID = #{VALUE}),
+		TEMPB AS
+		 (SELECT COUNT(1) S
+		    FROM MM_SW_ORDER_JV_IMP B
+		   WHERE B.IMP_UUID = #{VALUE})
+		SELECT CASE
+		         WHEN A.S >= B.S THEN
+		          0
+		         ELSE
+		          1
+		       END AS FLAG
+		  FROM TEMPA A, TEMPB B
+	</select>
+	
+	<!-- 查询导入的临时数据 -->
+	<select id="queryImportTempData" parameterType="java.util.Map" resultType="com.hanthink.sw.model.SwVentureOrderModel">
+			SELECT A.ID                id,
+               A.JV_PLACE          jvPlace,
+               A.ORDER_TYPE        orderType,
+               A.UNLOAD_PORT       unloadPort,
+               A.SUPPLIER_NO       supplierNo,
+               A.SUP_FACTORY       supFactory,
+               A.SUPPLIER_NAME     supplierName,
+               A.ORDER_NO          orderNo,
+               TP_COUNT          tpCount,
+               PART_NO           partNo,
+               A.FACTORY_CODE      factoryCode,
+               A.PURCHASE_NO       purchaseNo,
+               A.PART_SHORT_NO     partShortNo,
+               A.STANDARD_PACKAGE  standardPackage,
+               A.ORDER_BOX         orderBox,
+               A.ORDER_QTY         orderQty,
+               A.STORAGE           storage,
+               A.LOCATION          location,
+               A.ARRIVE_BATCH      arriveBatch,
+               A.ORDER_DATE        orderDate,
+               A.SUP_SHIP_TIME     supShipTime,
+               A.SUP_ROUTE_NAME    supRouteName,
+               A.SUP_ARRIVE_TIME   supArriveTime,
+               A.SUP_CAR_BATCH     supCarBatch,
+               A.GBL_SHIP_TIME     gblShipTime,
+               A.GBL_ARRIVE_TIME   gblArriveTime,
+               A.GBL_ROUTE_NAME    gblRouteName,
+               A.GBL_CAR_BATCH     gblCarBatch,
+               A.ARRIVE_DATE       arriveDate,
+               A.RECEIVE_DATE      receiveDate,
+               A.DEPOT_NO          depotNo,
+               A.DEMANDER          demander,
+               A.CON_NUMBER        conNumber,
+               A.DISTRI_PERSON     distriPerson,
+               A.IMP_IP            impIp,
+               A.CHECK_RESULT    checkResult,
+               A.CHECK_INFO      checkInfo,
+               A.IMPORT_STATUS   importStatus,
+               H.CODE_VALUE_NAME checkResultStr,
+               G.CODE_VALUE_NAME importStatusStr
+          FROM MM_SW_ORDER_JV_IMP A
+          LEFT JOIN MM_PUB_SUPPLIER B
+            ON A.SUPPLIER_NO = B.SUPPLIER_NO
+          LEFT JOIN MM_PUB_DATA_DICT H
+            ON A.CHECK_RESULT = H.CODE_VALUE
+           AND H.CODE_TYPE = 'PUB_IMP_CK_RESULT'
+           AND H.FACTORY_CODE = A.FACTORY_CODE
+          LEFT JOIN MM_PUB_DATA_DICT G
+            ON A.IMPORT_STATUS = G.CODE_VALUE
+           AND G.CODE_TYPE = 'PUB_IMP_STATUS'
+           AND G.FACTORY_CODE = A.FACTORY_CODE
+		 WHERE A.IMP_UUID = #{uuid}
+		 ORDER BY A.CHECK_RESULT, A.CHECK_INFO, A.PART_NO
+	</select>
+	
+	
+	<!-- 查询可导入数据 -->
+	<select id="queryForInsertList" parameterType="java.util.Map" 
+		resultType="com.hanthink.sw.model.SwVentureOrderModel">
+	   SELECT A.id
+		  FROM MM_SW_ORDER_JV_IMP A
+		 WHERE A.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		   AND A.IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+		   AND A.CHECK_RESULT = #{checkResult, jdbcType = VARCHAR}
+	</select>
+	
+	<!-- 导入临时数据写入到订单头表 -->
+	<insert id="insertImportData" parameterType="java.util.Map" >
+		INSERT INTO MM_SW_ORDER_JV
+			  (ORDER_NO,
+			   FACTORY_CODE,
+			   PURCHASE_NO,
+			   ORDER_TYPE,
+			   JV_PLACE,
+			   SUPPLIER_NO,
+			   SUP_FACTORY,
+			   ORDER_DATE,
+			   ARRIVE_DATE,
+			   CREATION_USER)
+			  SELECT DISTINCT
+			  		 A.ORDER_NO,
+			         A.FACTORY_CODE,
+			         '',
+			         (SELECT B.CODE_VALUE
+                     FROM MM_PUB_DATA_DICT B
+                    WHERE B.FACTORY_CODE = A.FACTORY_CODE
+                      AND B.CODE_TYPE = 'SW_ORDER_TYPE'
+                      AND A.ORDER_TYPE = B.CODE_VALUE_NAME),
+			         A.JV_PLACE,
+			         A.SUPPLIER_NO,
+			         A.SUP_FACTORY,
+			         TO_DATE(A.ORDER_DATE,'YYYY-MM-DD'),
+                  	 TO_DATE(A.ARRIVE_DATE,'YYYY-MM-DD'),
+			         #{creationUser,jdbcType=VARCHAR}
+			    FROM MM_SW_ORDER_JV_IMP A
+		    WHERE IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		      AND CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		      AND IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+		      AND OPE_TYPE = 'I'
+	</insert>
+	
+	<!--  导入临时数据写入到订单明细表-->
+	<insert id="insertVersion" parameterType="java.util.Map" >
+		INSERT INTO MM_SW_ORDER_JV_DETAIL
+	          (ORDER_NO,
+	           DEPOT_NO,
+	           ORDER_QTY,
+	           PART_NO,
+	           STANDARD_PACKAGE,
+	           DEMANDER,
+	           CON_NUMBER,
+	           ORDER_BOX,
+	           UNLOAD_PORT,
+	           STORAGE,
+	           DISTRI_PERSON,
+	           LOCATION,
+	           ARRIVAL_BATCH,
+	           ORDER_DATE,
+	           RECEIVE_DATE,
+	           SUP_SHIP_TIME,
+	           SUP_ARRIVE_TIME,
+	           SUP_ROUTE_NAME,
+	           SUP_CAR_BATCH,
+	           GBL_SHIP_TIME,
+	           GBL_ARRIVE_TIME,
+	           GBL_ROUTE_NAME,
+	           GBL_CAR_BATCH)
+	        SELECT A.ORDER_NO,
+	               A.DEPOT_NO,
+	               A.ORDER_QTY,
+	               A.PART_NO,
+	               A.STANDARD_PACKAGE,
+	               A.DEMANDER,
+	               A.CON_NUMBER,
+	               A.ORDER_BOX,
+	               A.UNLOAD_PORT,
+	               A.STORAGE,
+	               A.DISTRI_PERSON,
+	               A.LOCATION,
+	               A.ARRIVE_BATCH,
+	               TO_DATE(A.ORDER_DATE,'YYYY-MM-DD'),
+	               A.RECEIVE_DATE,
+	               TO_DATE(A.SUP_SHIP_TIME,'YYYY-MM-DD HH24:MI'),
+	               TO_DATE(A.SUP_ARRIVE_TIME,'YYYY-MM-DD HH24:MI'),
+	               A.SUP_ROUTE_NAME,
+	               A.SUP_CAR_BATCH,
+	               TO_DATE(A.GBL_SHIP_TIME,'YYYY-MM-DD HH24:MI'),
+	               TO_DATE(A.GBL_ARRIVE_TIME,'YYYY-MM-DD HH24:MI'),
+	               A.GBL_ROUTE_NAME,
+	               A.GBL_CAR_BATCH
+	         FROM MM_SW_ORDER_JV_IMP A 
+			  WHERE IMP_UUID = #{uuid, jdbcType = VARCHAR}
+	      AND CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+	      AND IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+	      AND OPE_TYPE = 'I'
+	</insert>
+	
+	<!-- 更新临时表数据导入状态 -->
+	<update id="updateVentureOrderImportDataImpStatus" parameterType="java.util.Map">
+		UPDATE MM_SW_ORDER_JV_IMP
+		   SET IMPORT_STATUS = #{IMPORT_STATUS_YES, jdbcType = VARCHAR}
+		 WHERE IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		   AND CHECK_RESULT = #{checkResult, jdbcType = VARCHAR}
+		   AND IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+	</update>
+	<!--****导入结束***********************************************************  -->
+	
+	<!-- 查询删除的数据 -->
+	<select id="queryForPuchaeIsNull" parameterType="java.util.Map" resultType="com.hanthink.sw.model.SwVentureOrderModel">
+		SELECT A.ORDER_NO orderNo,A.JV_PLACE jvPlace,A.FACTORY_CODE factoryCode FROM MM_SW_ORDER_JV A WHERE A.PURCHASE_NO IS NULL AND A.FACTORY_CODE = #{factoryCode}
+		<if test="null != userType and '' != userType and userType == '6'">
+			<if test="null != userId and ''!= userId">
+		       AND A.JV_PLACE IN (SELECT V.VALUE_CODE FROM VIEW_SYS_USER_DATA_PERM V 
+		        WHERE V.USER_ID = #{userId} AND V.TYPE_CODE = 'JV_FORE_PLACE')
+		    </if>
+		</if>
+	</select>
+	
+	<!-- 删除订单头 -->
+	<delete id="deleteAllHeader">
+		DELETE FROM MM_SW_ORDER_JV A
+		 WHERE A.PURCHASE_NO IS NULL
+		   AND A.ORDER_NO IN
+		   <foreach collection="list" index="index" item="instId" open="(" separator="," close=")"> 
+	            #{instId.orderNo}
+	        </foreach>
+	       AND A.JV_PLACE IN
+	       	<foreach collection="list" index="index" item="instId" open="(" separator="," close=")"> 
+	            #{instId.jvPlace}
+	        </foreach>
+	       AND A.FACTORY_CODE IN 
+	       <foreach collection="list" index="index" item="instId" open="(" separator="," close=")"> 
+	            #{instId.factoryCode}
+	        </foreach>
+	</delete>
+	
+	<!-- 删除订单明细 -->
+	<delete id="deleteAllBody" parameterType="java.util.List">
+		<foreach collection="list" index="index" item="instId" open="BEGIN" separator=";" close=";END;"> 
+	            DELETE FROM MM_SW_ORDER_JV_DETAIL A
+	             WHERE A.PURCHASE_NO IS NULL
+	               AND A.ORDER_NO = #{instId.orderNo}
+	               AND NOT EXISTS (
+	               	SELECT 1 FROM MM_SW_ORDER_JV B
+	               	  WHERE A.ORDER_NO = B.ORDER_NO
+	               	    AND B.JV_PLACE = #{instId.jvPlace}
+	               	    AND B.FACTORY_CODE = #{instId.factoryCode}
+	               )
+	        </foreach>
+	</delete>
+	<!-- 订单发布 -->
+	<parameterMap type="map" id="releaseMap">  
+		<parameter property="factoryCode" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="checkUser" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="flag" jdbcType="VARCHAR" mode="OUT"/>
+	</parameterMap> 
+	<select id="orederRelease" parameterMap="releaseMap" statementType="CALLABLE">
+		{CALL PKG_PUB_CHECK.USP_ORDER_RELEASE_MAIN(?, ?, ?)}
+	</select>
+</mapper>

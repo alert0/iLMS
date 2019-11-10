@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.sys.persistence.model.SysServiceParam">
+	<resultMap id="SysServiceParam" type="com.hotent.sys.persistence.model.SysServiceParam">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="setId" column="set_id_" jdbcType="VARCHAR"/>
+		<result property="name" column="name_" jdbcType="VARCHAR"/>
+		<result property="type" column="type_" jdbcType="VARCHAR"/>
+		<result property="desc" column="desc_" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.sys.persistence.model.SysServiceParam">
+		INSERT INTO sys_service_param
+		(id_,set_id_,name_,type_,desc_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{setId,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR}, #{type,jdbcType=VARCHAR}, #{desc,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="SysServiceParam">
+		SELECT * FROM sys_service_param 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="SysServiceParam">
+		SELECT * FROM sys_service_param
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.sys.persistence.model.SysServiceParam">
+		UPDATE sys_service_param SET
+		set_id_=#{setId,jdbcType=VARCHAR},
+		name_=#{name,jdbcType=VARCHAR},
+		type_=#{type,jdbcType=VARCHAR},
+		desc_=#{desc,jdbcType=VARCHAR}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_service_param 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	<delete id="delByMainId">
+	    DELETE FROM sys_service_param
+	    WHERE
+	    set_id_=#{setId}
+	</delete>    
+	
+	<select id="getSysServiceParamList" resultMap="SysServiceParam">
+	    SELECT *
+	    FROM sys_service_param 
+	    WHERE set_id_=#{setId}
+	</select>
+	
+</mapper>

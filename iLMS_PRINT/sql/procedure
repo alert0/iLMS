@@ -1,0 +1,18 @@
+create or replace procedure pro_job_queue_bak
+as
+  cursor cur is
+  select job_no, business, job_name, print_type, job_type, classes, status, serial_number, atrow_key,
+  parameters, creation_time, last_modified_time, last_modified_user, last_modified_ip
+  from mes_pr_job_queue where status='PRINTED' and creation_time <sysdate-7 order by job_no; --保留最近7天数据
+begin
+  for raw_row in cur
+    loop
+    insert into mm_pr_job_queue_bak(job_no, business, job_name, print_type, job_type, classes, status, serial_number, atrow_key,
+    parameters, creation_time, last_modified_time, last_modified_user, last_modified_ip)
+    values(raw_row.job_no, raw_row.business, raw_row.job_name, raw_row.print_type, raw_row.job_type, raw_row.classes,
+    raw_row.status, raw_row.serial_number, raw_row.atrow_key,
+    raw_row.parameters, raw_row.creation_time, raw_row.last_modified_time, raw_row.last_modified_user, raw_row.last_modified_ip);
+    delete from mm_pr_job_queue where job_no=raw_row.job_no;
+    end loop;
+commit;
+end pro_job_queue_bak;

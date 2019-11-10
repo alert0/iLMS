@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.sys.persistence.model.SysDataSourceDef">
+	<resultMap id="SysDataSourceDef" type="com.hotent.sys.persistence.model.SysDataSourceDef">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="name" column="name_" jdbcType="VARCHAR"/>
+		<result property="classPath" column="class_path_" jdbcType="VARCHAR"/>
+		<result property="settingJson" column="setting_json_" jdbcType="CLOB"/>
+		<result property="initMethod" column="init_method_" jdbcType="VARCHAR"/>
+		<result property="closeMethod" column="close_method_" jdbcType="VARCHAR"/>
+		<result property="isSystem" column="is_system_" jdbcType="NUMERIC"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.sys.persistence.model.SysDataSourceDef">
+		INSERT INTO sys_datasource_def
+		(id_,name_,class_path_,setting_json_,init_method_,close_method_,is_system_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR}, #{classPath,jdbcType=VARCHAR}, #{settingJson,jdbcType=CLOB}, #{initMethod,jdbcType=VARCHAR}, #{closeMethod,jdbcType=VARCHAR}, #{isSystem,jdbcType=NUMERIC,javaType=Boolean})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="SysDataSourceDef">
+		SELECT * FROM sys_datasource_def 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="getAll" resultMap="SysDataSourceDef">
+		SELECT * FROM sys_datasource_def
+		WHERE 1=1
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="SysDataSourceDef">
+		SELECT * FROM sys_datasource_def
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.sys.persistence.model.SysDataSourceDef">
+		UPDATE sys_datasource_def SET
+		name_=#{name,jdbcType=VARCHAR},
+		class_path_=#{classPath,jdbcType=VARCHAR},
+		setting_json_=#{settingJson,jdbcType=CLOB},
+		init_method_=#{initMethod,jdbcType=VARCHAR},
+		close_method_=#{closeMethod,jdbcType=VARCHAR},
+		is_system_=#{isSystem,jdbcType=NUMERIC,javaType=Boolean}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_datasource_def 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	
+</mapper>

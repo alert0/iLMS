@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.sys.persistence.model.SysDataGridField">
+
+	<resultMap id="SysDataGridFieldInfo" type="com.hotent.sys.persistence.model.SysDataGridFieldInfo">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<id property="gridid" column="gridId_" jdbcType="VARCHAR"/>
+		<result property="gridName" column="grid_name_" jdbcType="VARCHAR"/>
+		<result property="dataSourceType" column="data_source_type_" jdbcType="VARCHAR"/>
+		<result property="dataSource" column="data_source_" jdbcType="VARCHAR"/>
+		<result property="physicsTable" column="physics_table_" jdbcType="VARCHAR"/>
+		<result property="remark" column="remark_" jdbcType="VARCHAR"/>
+	    <result property="isFieldPower" column="is_field_power_" jdbcType="BOOLEAN"/>
+	    <result property="isDefaultLoadData" column="is_default_load_data_" jdbcType="BOOLEAN"/>
+		<result property="condition" column="condition_" jdbcType="VARCHAR"/>
+		<result property="isEnableCondition" column="is_enable_condition_" jdbcType="BOOLEAN"/>
+		
+		<result property="rightId" column="right_id_" jdbcType="VARCHAR"/>
+		<result property="fieldId" column="field_id_" jdbcType="VARCHAR"/>
+		<result property="permission" column="permission_" jdbcType="VARCHAR"/>
+		<result property="rightRemark" column="right_remark_" jdbcType="VARCHAR"/>
+		
+		
+		
+		<result property="field" column="field_" jdbcType="VARCHAR"/>
+		<result property="dbfield" column="dbfield_" jdbcType="VARCHAR"/>
+		<result property="title" column="title_" jdbcType="VARCHAR"/>
+		<result property="hidden" column="hidden_" jdbcType="BOOLEAN"/>
+		<result property="orderNum" column="order_num_" jdbcType="NUMERIC"/>
+		<result property="width" column="width_" jdbcType="NUMERIC"/>
+		<result property="align" column="align_" jdbcType="VARCHAR"/>
+		<result property="sortable" column="sortable_" jdbcType="BOOLEAN"/>
+		<result property="resizable" column="resizable_" jdbcType="BOOLEAN"/>
+		<result property="formatter" column="formatter_" jdbcType="VARCHAR"/>
+		<result property="styler" column="styler_" jdbcType="VARCHAR"/>
+		<result property="editor" column="editor_" jdbcType="VARCHAR"/>
+		<result property="editorType" column="editor_type_" jdbcType="VARCHAR"/>
+		<result property="rowspan" column="rowspan_" jdbcType="NUMERIC"/>
+		<result property="colspan" column="colspan_" jdbcType="NUMERIC"/>
+		<result property="search" column="search_" jdbcType="BOOLEAN"/>
+		<result property="searchParamter" column="search_paramter_" jdbcType="VARCHAR"/>
+		<result property="searchCombobox" column="search_combobox_" jdbcType="VARCHAR"/>
+		<result property="datatype" column="datatype_" jdbcType="VARCHAR"/>
+		<result property="required" column="required_" jdbcType="BOOLEAN"/>
+		<result property="frozen" column="frozen_" jdbcType="BOOLEAN"/>
+		<result property="edit" column="edit_" jdbcType="BOOLEAN"/>
+		<result property="mergeIndexed" column="merge_indexed_" jdbcType="NUMERIC"/>
+		<result property="ispk" column="ispk_" jdbcType="BOOLEAN"/>
+		<result property="isunique" column="isunique_" jdbcType="BOOLEAN"/>
+		<result property="isphysicsField" column="isphysics_field_" jdbcType="BOOLEAN"/>
+		<result property="creator" column="creator_" jdbcType="VARCHAR"/>
+		<result property="createdTime" column="created_time_" jdbcType="TIMESTAMP"/>
+		<result property="isHiddenInput" column="is_hidden_input_" jdbcType="BOOLEAN"/>
+	</resultMap>
+
+	<select id="getInfo"   parameterType="java.lang.String" resultMap="SysDataGridFieldInfo">
+	   SELECT main.grid_name_,main.data_source_,main.data_source_type_,main.physics_table_,main.remark_,main.is_field_power_,main.is_enable_condition_,main.condition_,main.is_default_load_data_,
+item.*,rights.right_id_,rights.field_id_,rights.permission_,rights.right_remark_ FROM sys_datagrid_field item inner join sys_datagrid main on 
+item.gridId_=main.gridId_ LEFT JOIN sys_datagrid_field_right rights on item.id_=rights.field_id_
+		WHERE 
+		id_=#{id}
+	</select>
+	
+		<select id="queryListInfo" parameterType="java.util.Map" resultMap="SysDataGridFieldInfo">
+	   SELECT main.grid_name_,main.data_source_,main.data_source_type_,main.physics_table_,main.remark_,main.is_field_power_,main.is_enable_condition_,main.condition_,main.is_default_load_data_,
+item.*,rights.right_id_,rights.field_id_,rights.permission_,rights.right_remark_ FROM sys_datagrid_field item inner join sys_datagrid main on 
+item.gridId_=main.gridId_ LEFT JOIN sys_datagrid_field_right rights on item.id_=rights.field_id_
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY order_num_ ASC
+		</if>
+	</select>
+	
+</mapper>

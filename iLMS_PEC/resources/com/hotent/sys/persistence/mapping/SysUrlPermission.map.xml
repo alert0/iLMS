@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.sys.persistence.model.SysUrlPermission">
+	<resultMap id="SysUrlPermission" type="com.hotent.sys.persistence.model.SysUrlPermission">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="descp" column="descp_" jdbcType="VARCHAR"/>
+		<result property="url" column="url_" jdbcType="VARCHAR"/>
+		<result property="params" column="params_" jdbcType="VARCHAR"/>
+		<result property="enable" column="enable_" jdbcType="NUMERIC"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.sys.persistence.model.SysUrlPermission">
+		INSERT INTO sys_url_permission
+		(id_,descp_,url_,params_,enable_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{descp,jdbcType=VARCHAR}, #{url,jdbcType=VARCHAR}, #{params,jdbcType=VARCHAR}, #{enable,jdbcType=NUMERIC})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="SysUrlPermission">
+		SELECT * FROM sys_url_permission 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="SysUrlPermission">
+		SELECT * FROM sys_url_permission
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.sys.persistence.model.SysUrlPermission">
+		UPDATE sys_url_permission SET
+		descp_=#{descp,jdbcType=VARCHAR},
+		url_=#{url,jdbcType=VARCHAR},
+		params_=#{params,jdbcType=VARCHAR},
+		enable_=#{enable,jdbcType=NUMERIC}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_url_permission 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	<select id="getAllByEnable"  resultMap="SysUrlPermission">
+		SELECT * FROM sys_url_permission 
+		WHERE 
+		enable_=#{enable}
+	</select>
+	
+	
+</mapper>

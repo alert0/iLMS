@@ -1,0 +1,797 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.mp.model.MpDemandForecastModel">
+	
+	
+	<!-- 预测数据查询 -->
+	<select id="queryDemandForeCastForPage" parameterType="com.hanthink.mp.model.MpDemandForecastModel" resultType="com.hanthink.mp.model.MpDemandForecastModel">
+		     SELECT A.ID id,
+		            A.FACTORY_CODE factoryCode,
+		            A.FORE_TYPE foreType,
+		            A.VERSION version,
+		            TO_CHAR(A.PLAN_DELIVERY, 'YYYY-MM-DD') planDelivery,
+		            TO_CHAR(A.START_DATE, 'YYYY-MM-DD') startDate,
+		            TO_CHAR(A.END_DATE, 'YYYY-MM-DD') endDate,
+		            A.PHASE phase,
+		            D.CODE_VALUE_NAME phaseStr,
+		            A.UNLOAD_PORT unloadPort,
+		            A.PART_NO partNo,
+		            E.PART_SHORT_NO partShortNo,
+		            A.PART_UNIT partUnit,
+		            A.ORDER_QTY orderQty,
+		            A.SUPPLIER_NO supplierNo,
+		            B.SUPPLIER_NAME supplierName,
+		            E.SUP_FACTORY supFactory,
+		            A.MODEL_CODE modelCode,
+		            A.LOGISTICS_MODE logisticsMode,
+		            F.CODE_VALUE_NAME logisticsModeStr,
+		            A.RELEASE_STATUS releaseStatus,
+		            C.CODE_VALUE_NAME releaseStatusStr,
+		            A.PUBLISH_MONTH publishMonth,
+		            A.OBJ_MONTH objMonth,
+		            A.PUBLISH_WEEK publishWeek,
+		            A.OBJ_WEEK objWeek,
+		            A.P_SUPPLIER psupplier,
+		            A.PARTF_ID partfId,
+		            A.PARTF_ORDER_QTY partfOrderQty,
+		            A.ADVANCE_TIME    advanceTime
+		       FROM MM_SW_DEMAND_FORECAST_SUPPORT A
+		       LEFT JOIN MM_PUB_SUPPLIER B
+		         ON A.SUPPLIER_NO = B.SUPPLIER_NO
+		       LEFT JOIN MM_PUB_DATA_DICT C
+		         ON A.RELEASE_STATUS = C.CODE_VALUE
+		        AND C.CODE_TYPE = 'SW_RELEASE_STATUS'
+		        AND A.FACTORY_CODE = C.FACTORY_CODE
+		       LEFT JOIN MM_PUB_DATA_DICT D
+		         ON A.PHASE = D.CODE_VALUE
+		        AND D.CODE_TYPE = 'SW_PHASE'
+		        AND A.FACTORY_CODE = D.FACTORY_CODE
+		       LEFT JOIN MM_PUB_PART_UDA E
+		         ON A.PART_NO = E.PART_NO
+		        AND A.FACTORY_CODE = E.FACTORY_CODE
+		       LEFT JOIN MM_PUB_DATA_DICT F
+		         ON A.LOGISTICS_MODE = F.CODE_VALUE
+		        AND F.CODE_TYPE = 'PUB_MM_MODEL'
+		        <!-- i-LMS2019053001 mod by 赵明健 -->
+		        AND A.FACTORY_CODE = F.FACTORY_CODE
+		      WHERE A.FORE_TYPE = #{foreType}
+		        AND A.VERSION = #{version}
+		        AND A.FACTORY_CODE = #{factoryCode}
+		<if test="partNo!=null and partNo!=''  ">
+			AND	A.PART_NO LIKE CONCAT(#{partNo}, '%')
+		</if>
+		<if test="id!=null and id!=''  ">
+			AND	A.ID = #{id}
+		</if>
+		<if test="partShortNo!=null and partShortNo!=''  ">
+			AND	E.PART_SHORT_NO = #{partShortNo}
+		</if>
+		<if test="publishMonth!=null and publishMonth!=''  ">
+			AND	A.PUBLISH_MONTH = #{publishMonth}
+		</if>
+		<if test="releaseStatus!=null and releaseStatus!=''  ">
+			AND	A.RELEASE_STATUS = #{releaseStatus}
+		</if>
+		<if test="phase !=null and phase !='' ">
+		    AND A.PHASE  = #{phase}
+		</if>
+		<if test="supplierNo !=null and supplierNo !='' ">
+		    AND A.SUPPLIER_NO  = #{supplierNo}
+		</if>
+		<if test="supFactory !=null and supFactory !='' ">
+		    AND A.SUP_FACTORY  = #{supFactory}
+		</if>
+		
+	</select>
+	
+	<!-- 需求计算  -->
+	<parameterMap type="map" id="genMonthDemandForcastMap">  
+		<parameter property="factoryCode" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="account" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="version" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="foreType" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="outCode" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<select id="genMonthDemandForcast" parameterMap="genMonthDemandForcastMap" statementType="CALLABLE">
+		{CALL PKG_MP_MAIN.USP_MP_DEMAND_FORECAST_GEN(?, ?, ?, ?, ?)}
+	</select>
+	
+	<!-- 查询月预测发布版本号下拉框值 -->
+	<select id="getVersion" parameterType="java.util.Map" resultType="com.hanthink.mp.model.MpDemandForecastModel">
+		SELECT DISTINCT A.VERSION value, A.VERSION label
+		  FROM MM_SW_DEMAND_FORECAST A
+		 WHERE A.FACTORY_CODE = #{factoryCode,jdbcType=VARCHAR}
+		   AND A.FORE_TYPE = #{foreType,jdbcType = VARCHAR}
+		   AND A.VERSION IS NOT NULL
+		 ORDER BY A.VERSION DESC
+	</select>
+	
+	<!-- 批量删除需求预测数据 -->
+	<delete id="batchRemoveDemandForcast" parameterType="java.lang.String">
+		DELETE FROM MM_SW_DEMAND_FORECAST_SUPPORT A
+ 			WHERE A.ID = #{value}
+	</delete>
+	
+	<!-- 修改预测数据 -->
+	<update id="updateDemandForcast" parameterType="com.hanthink.mp.model.MpDemandForecastModel">
+		 UPDATE MM_SW_DEMAND_FORECAST_SUPPORT A SET A.ORDER_QTY = #{orderQty}
+			 WHERE A.ID = #{id}
+			   AND A.FACTORY_CODE = #{factoryCode}
+	</update>
+	
+	<!-- 修改预测数据 -->
+	<delete id="deleteImportTempDataByUUID" parameterType="java.lang.String">
+		 DELETE FROM MM_SW_DEMAND_FORECAST_SUPPIMP A WHERE A.IMP_UUID = #{value}
+	</delete>
+	
+	<!-- 给发布版本号下拉框默认值 -->
+	<select id="getDefaultVersion" parameterType="java.util.Map" resultType="com.hanthink.mp.model.MpDemandForecastModel">
+		SELECT DISTINCT MAX(A.VERSION) value, MAX(A.VERSION) label
+	      FROM MM_SW_DEMAND_FORECAST A
+	     WHERE A.FACTORY_CODE = #{factoryCode,jdbcType=VARCHAR} 
+	     AND A.FORE_TYPE = #{foreType,jdbcType = VARCHAR}
+	      ORDER BY A.VERSION DESC
+	</select>
+	
+	<!-- 修改预测数据 -->
+	<delete id="clearDemandForecast" parameterType="com.hanthink.mp.model.MpDemandForecastModel">
+		 DELETE FROM MM_SW_DEMAND_FORECAST_SUPPORT A
+			 WHERE A.FACTORY_CODE = #{factoryCode}
+			   AND A.FORE_TYPE = #{foreType}
+			   AND A.VERSION = #{version}
+	</delete>
+	
+	<!-- 批量导入数据写入到临时表 -->
+	<insert id="insertImportMonthTempData" parameterType="java.util.List">
+		INSERT INTO MM_SW_DEMAND_FORECAST_SUPPIMP
+		  (ID,
+		   FACTORY_CODE,
+		   FORE_TYPE,
+		   VERSION,
+		   PLAN_DELIVERY,
+		   START_DATE,
+		   END_DATE,
+		   PHASE,
+		   UNLOAD_PORT,
+		   PART_NO,
+		   PART_UNIT,
+		   ORDER_QTY,
+		   SUPPLIER_NO,
+		   MODEL_CODE,
+		   LOGISTICS_MODE,
+		   CREATION_USER,
+		   CREATION_TIME,
+		   PUBLISH_MONTH,
+		   OBJ_MONTH,
+		   PUBLISH_WEEK,
+		   OBJ_WEEK,
+		   P_SUPPLIER,
+		   PARTF_ID,
+		   PARTF_ORDER_QTY,
+		   ADVANCE_TIME,
+		   IMP_UUID,
+		   CHECK_RESULT,
+		   CHECK_INFO,
+		   IMPORT_STATUS)
+		<foreach collection="list" item="item" index="index" separator=" UNION ALL ">
+			SELECT 
+			 #{item.id,jdbcType=VARCHAR},
+			 #{item.factoryCode,jdbcType=VARCHAR},
+			 #{item.foreType,jdbcType=VARCHAR},
+			 #{item.version,jdbcType=VARCHAR},
+			 TO_DATE(#{item.planDelivery,jdbcType=VARCHAR}, 'YYYY-MM-DD'), 
+			 TO_DATE(#{item.startDate,jdbcType=VARCHAR}, 'YYYY-MM-DD'), 
+			 TO_DATE(#{item.endDate,jdbcType=VARCHAR}, 'YYYY-MM-DD'), 
+			 #{item.phase,jdbcType=VARCHAR},
+			 #{item.unloadPort,jdbcType=VARCHAR},
+			 #{item.partNo,jdbcType=VARCHAR},
+			 #{item.partUnit,jdbcType=VARCHAR},
+			 #{item.orderQty,jdbcType=VARCHAR},
+			 #{item.supplierNo,jdbcType=VARCHAR},
+			 #{item.modelCode,jdbcType=VARCHAR},
+			 #{item.logisticsMode,jdbcType=VARCHAR},
+			 #{item.creationUser,jdbcType=VARCHAR},
+			 SYSDATE,
+			 #{item.publishMonth,jdbcType=VARCHAR},
+			 #{item.objMonth,jdbcType=VARCHAR},
+			 #{item.publishWeek,jdbcType=VARCHAR},
+			 #{item.objWeek,jdbcType=VARCHAR},
+			 NULL,
+			 #{item.partfId,jdbcType=VARCHAR},
+			 #{item.partfOrderQty,jdbcType=VARCHAR},
+			 #{item.advanceTime,jdbcType=VARCHAR},
+			 #{item.uuid,jdbcType=VARCHAR}, 
+			 #{item.checkResult,jdbcType=VARCHAR}, 
+			 #{item.checkInfo,jdbcType=VARCHAR}, 
+			 #{item.importStatus,jdbcType=VARCHAR}
+			FROM DUAL 
+    	</foreach>
+	</insert>
+	
+	<!-- 检查导入临时表数据 -->
+	<parameterMap type="map" id="impCkParamMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="userName" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<select id="checkImportMonthData" parameterMap="impCkParamMap" statementType="CALLABLE">
+		{CALL PKG_MP_CHECK.USP_MP_DEMANDFORCAST_CHECK(?, ?, ?,  ?,?)}
+	</select>
+	
+	<!-- 查询临时表中的数据是否可以导入 -->
+	<select id="queryIsImportFlag" parameterType="java.lang.String" resultType="java.lang.String">
+		WITH TEMPA AS
+		 (SELECT COUNT(1) s
+		    FROM MM_SW_DEMAND_FORECAST_SUPPIMP A
+		   WHERE A.CHECK_RESULT = 0
+		     AND A.IMP_UUID = #{VALUE}),
+		TEMPB AS
+		 (SELECT COUNT(1) S
+		    FROM MM_SW_DEMAND_FORECAST_SUPPIMP B
+		   WHERE B.IMP_UUID = #{VALUE})
+		SELECT CASE
+		         WHEN A.S >= B.S THEN
+		          0
+		         ELSE
+		          1
+		       END AS FLAG
+		  FROM TEMPA A, TEMPB B
+	</select>
+	
+	<!-- 查询导入的临时数据 -->
+	<select id="queryImportTempData" parameterType="java.util.Map" resultType="com.hanthink.mp.model.MpDemandForecastModel">
+			SELECT A.ID id,
+		       A.FACTORY_CODE factoryCode,
+		       A.FORE_TYPE foreType,
+		       A.VERSION version,
+		       TO_CHAR(A.PLAN_DELIVERY, 'YYYY-MM-DD') planDelivery,
+		       TO_CHAR(A.START_DATE, 'YYYY-MM-DD') startDate,
+		       TO_CHAR(A.END_DATE, 'YYYY-MM-DD') endDate,
+		       A.PHASE phase,
+		       D.CODE_VALUE_NAME phaseStr,
+		       A.UNLOAD_PORT unloadPort,
+		       A.PART_NO partNo,
+		       E.PART_SHORT_NO partShortNo,
+		       A.PART_UNIT partUnit,
+		       A.ORDER_QTY orderQty,
+		       A.SUPPLIER_NO supplierNo,
+		       B.SUPPLIER_NAME supplierName,
+		       E.SUP_FACTORY supFactory,
+		       A.MODEL_CODE modelCode,
+		       A.LOGISTICS_MODE logisticsMode,
+		       F.CODE_VALUE_NAME logisticsModeStr,
+		       A.RELEASE_STATUS releaseStatus,
+		       C.CODE_VALUE_NAME releaseStatusStr,
+		       A.PUBLISH_MONTH publishMonth,
+		       A.OBJ_MONTH objMonth,
+		       A.PUBLISH_WEEK publishWeek,
+		       A.OBJ_WEEK objWeek,
+		       A.P_SUPPLIER psupplier,
+		       A.PARTF_ID partfId,
+		       A.PARTF_ORDER_QTY partfOrderQty,
+		       A.CHECK_RESULT checkResult,
+		       A.CHECK_INFO checkInfo,
+		       A.IMPORT_STATUS importStatus,
+		       H.CODE_VALUE_NAME checkResultStr,
+		       G.CODE_VALUE_NAME importStatusStr,
+		       A.ADVANCE_TIME		advanceTime
+		  FROM MM_SW_DEMAND_FORECAST_SUPPIMP A
+		  LEFT JOIN MM_PUB_SUPPLIER B
+		    ON A.SUPPLIER_NO = B.SUPPLIER_NO
+		  LEFT JOIN MM_PUB_DATA_DICT C
+		    ON A.RELEASE_STATUS = C.CODE_VALUE
+		   AND C.CODE_TYPE = 'SW_RELEASE_STATUS'
+		   AND C.FACTORY_CODE = A.FACTORY_CODE
+		  LEFT JOIN MM_PUB_DATA_DICT D
+		    ON A.PHASE = D.CODE_VALUE
+		   AND D.CODE_TYPE = 'SW_PHASE'
+		   AND D.FACTORY_CODE = A.FACTORY_CODE
+		  LEFT JOIN MM_PUB_PART_UDA E
+		    ON A.PART_NO = E.PART_NO
+		   AND A.FACTORY_CODE = E.FACTORY_CODE
+		  LEFT JOIN MM_PUB_DATA_DICT F
+		    ON A.LOGISTICS_MODE = F.CODE_VALUE
+		   AND F.CODE_TYPE = 'PUB_MM_MODEL'
+		   <!-- i-LMS2019053001 mod by 赵明健 -->
+		   AND F.FACTORY_CODE = A.FACTORY_CODE
+		  LEFT JOIN MM_PUB_DATA_DICT H
+		    ON A.CHECK_RESULT = H.CODE_VALUE
+		   AND H.CODE_TYPE = 'PUB_IMP_CK_RESULT'
+		   AND H.FACTORY_CODE = A.FACTORY_CODE
+		  LEFT JOIN MM_PUB_DATA_DICT G
+		    ON A.IMPORT_STATUS = G.CODE_VALUE
+		   AND G.CODE_TYPE = 'PUB_IMP_STATUS'
+		   AND G.FACTORY_CODE = A.FACTORY_CODE
+		 WHERE A.IMP_UUID = #{uuid}
+		 AND A.FORE_TYPE = #{foreType}
+		 ORDER BY A.CHECK_RESULT, A.CHECK_INFO, A.PART_NO
+	</select>
+	
+	<!-- 查询临时表数据 -->
+	<select id="queryMonthTempDataForExport" parameterType="java.util.Map" resultType="com.hanthink.mp.model.MpDemandForecastModel">
+		  SELECT A.ID id,
+		       A.FACTORY_CODE factoryCode,
+		       A.FORE_TYPE foreType,
+		       A.VERSION version,
+		       TO_CHAR(A.PLAN_DELIVERY, 'YYYY-MM-DD') planDelivery,
+		       TO_CHAR(A.START_DATE, 'YYYY-MM-DD') startDate,
+		       TO_CHAR(A.END_DATE, 'YYYY-MM-DD') endDate,
+		       A.PHASE phase,
+		       D.CODE_VALUE_NAME phaseStr,
+		       A.UNLOAD_PORT unloadPort,
+		       A.PART_NO partNo,
+		       E.PART_SHORT_NO partShortNo,
+		       A.PART_UNIT partUnit,
+		       A.ORDER_QTY orderQty,
+		       A.SUPPLIER_NO supplierNo,
+		       B.SUPPLIER_NAME supplierName,
+		       E.SUP_FACTORY supFactory,
+		       A.MODEL_CODE modelCode,
+		       A.LOGISTICS_MODE logisticsMode,
+		       F.CODE_VALUE_NAME logisticsModeStr,
+		       A.RELEASE_STATUS releaseStatus,
+		       C.CODE_VALUE_NAME releaseStatusStr,
+		       A.PUBLISH_MONTH publishMonth,
+		       A.OBJ_MONTH objMonth,
+		       A.PUBLISH_WEEK publishWeek,
+		       A.OBJ_WEEK objWeek,
+		       A.P_SUPPLIER psupplier,
+		       A.PARTF_ID partfId,
+		       A.PARTF_ORDER_QTY partfOrderQty,
+		       A.CHECK_RESULT checkResult,
+		       A.CHECK_INFO checkInfo,
+		       A.IMPORT_STATUS importStatus,
+		       H.CODE_VALUE_NAME checkResultStr,
+		       G.CODE_VALUE_NAME importStatusStr,
+		       A.ADVANCE_TIME		advanceTime
+		  FROM MM_SW_DEMAND_FORECAST_SUPPIMP A
+		  LEFT JOIN MM_PUB_SUPPLIER B
+		    ON A.SUPPLIER_NO = B.SUPPLIER_NO
+		  LEFT JOIN MM_PUB_DATA_DICT C
+		    ON A.RELEASE_STATUS = C.CODE_VALUE
+		   AND C.CODE_TYPE = 'SW_RELEASE_STATUS'
+		   AND C.FACTORY_CODE = A.FACTORY_CODE
+		  LEFT JOIN MM_PUB_DATA_DICT D
+		    ON A.PHASE = D.CODE_VALUE
+		   AND D.CODE_TYPE = 'SW_PHASE'
+		   AND D.FACTORY_CODE = A.FACTORY_CODE
+		  LEFT JOIN MM_PUB_PART_UDA E
+		    ON A.PART_NO = E.PART_NO
+		   AND A.FACTORY_CODE = E.FACTORY_CODE
+		  LEFT JOIN MM_PUB_DATA_DICT F
+		    ON A.LOGISTICS_MODE = F.CODE_VALUE
+		   AND F.CODE_TYPE = 'PUB_MM_MODEL'
+		   <!-- i-LMS2019053001 mod by 赵明健 -->
+		   AND F.FACTORY_CODE = A.FACTORY_CODE
+		  LEFT JOIN MM_PUB_DATA_DICT H
+		    ON A.CHECK_RESULT = H.CODE_VALUE
+		   AND H.CODE_TYPE = 'PUB_IMP_CK_RESULT'
+		   AND H.FACTORY_CODE = A.FACTORY_CODE
+		  LEFT JOIN MM_PUB_DATA_DICT G
+		    ON A.IMPORT_STATUS = G.CODE_VALUE
+		   AND G.CODE_TYPE = 'PUB_IMP_STATUS'
+		   AND G.FACTORY_CODE = A.FACTORY_CODE
+		 WHERE A.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		 ORDER BY A.CHECK_RESULT, A.CHECK_INFO, A.PART_NO
+	</select>
+	
+	<!-- 查询可导入数据 -->
+	<select id="queryForInsertMonthList" parameterType="java.util.Map" resultType="com.hanthink.mp.model.MpDemandForecastModel">
+	   SELECT A.id
+		  FROM MM_SW_DEMAND_FORECAST_SUPPIMP A
+		 WHERE A.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		   AND A.IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+		   AND A.CHECK_RESULT = #{checkResult, jdbcType = VARCHAR}
+	</select>
+	
+	<!-- 拿出ID,查询哪些数据需要修改 -->
+	<select id="queryUpdateDataFromMonthImp" parameterType="java.util.Map" resultType="java.lang.String">
+		SELECT A.ID id
+		  FROM MM_SW_DEMAND_FORECAST_SUPPIMP A
+		 WHERE A.OPE_TYPE = 'U'
+		   AND A.IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR} 
+		   AND A.IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		   AND A.CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+	</select>
+	
+	<!-- 更新导入的方法 -->
+	<update id="updateMonthImportData" parameterType="java.util.Map" >
+		  UPDATE MM_SW_DEMAND_FORECAST_SUPPORT A
+		   SET (A.ORDER_QTY, A.LAST_MODIFIED_USER, A.LAST_MODIFIED_TIME) =
+		       (SELECT B.ORDER_QTY, B.CREATION_USER, SYSDATE
+		          FROM MM_SW_DEMAND_FORECAST_SUPPIMP B
+		         WHERE B.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		           AND B.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		           AND B.IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+		           AND B.OPE_TYPE = 'U'
+		           AND A.ID = B.ID)
+		 WHERE EXISTS
+		 (SELECT 1
+		          FROM MM_SW_DEMAND_FORECAST_SUPPIMP C
+		         WHERE C.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		           AND C.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		           AND C.IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+		           AND C.OPE_TYPE = 'U'
+		           AND A.ID = C.ID)
+	</update>
+	
+	<!-- 导入临时数据写入到正式表 -->
+	<insert id="insertMonthImportData" parameterType="java.util.Map" >
+		INSERT INTO MM_SW_DEMAND_FORECAST_SUPPORT
+		  (ID,
+		   FACTORY_CODE,
+		   FORE_TYPE,
+		   VERSION,
+		   PLAN_DELIVERY,
+		   START_DATE,
+		   END_DATE,
+		   PHASE,
+		   UNLOAD_PORT,
+		   PART_NO,
+		   ORDER_QTY,
+		   SUPPLIER_NO,
+		   MODEL_CODE,
+		   LOGISTICS_MODE,
+		   PUBLISH_MONTH,
+		   OBJ_MONTH,
+		   P_SUPPLIER,
+		   PARTF_ID,
+		   PARTF_ORDER_QTY,
+		   OBJ_WEEK,
+		   PUBLISH_WEEK,
+		   CREATION_USER,
+		   CREATION_TIME,
+		   ADVANCE_TIME)
+		  (SELECT PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_SW_DEMAND_FORETEMP'),
+		          A.FACTORY_CODE,
+		          A.FORE_TYPE,
+		          A.VERSION,
+		          A.PLAN_DELIVERY,
+		          A.START_DATE,
+		          A.END_DATE,
+		          A.PHASE,
+		          A.UNLOAD_PORT,
+		          A.PART_NO,
+		          A.ORDER_QTY,
+		          A.SUPPLIER_NO,
+		          A.MODEL_CODE,
+		          A.LOGISTICS_MODE,
+		          A.PUBLISH_MONTH,
+		          A.OBJ_MONTH,
+		          B.NEXT_PLACEMENT,
+		          A.PARTF_ID,
+		          A.PARTF_ORDER_QTY,
+		          A.OBJ_WEEK,
+		          A.PUBLISH_WEEK,
+		          A.CREATION_USER,
+		          SYSDATE,
+		          A.ADVANCE_TIME
+		     FROM MM_SW_DEMAND_FORECAST_SUPPIMP A
+		     LEFT JOIN MM_PUB_SUPPORTING_PART B
+		       ON A.PART_NO = B.PART_NO
+		      AND A.PARTF_ID = B.PARTF_ID
+		      AND A.FACTORY_CODE = B.FACTORY_CODE
+		    WHERE IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		      AND CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		      AND IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+		      AND OPE_TYPE = 'I')
+	</insert>
+	
+	<!-- 更新临时表数据导入状态 -->
+	<update id="updateDemandForecastImportDataImpStatus" parameterType="java.util.Map">
+		UPDATE MM_SW_DEMAND_FORECAST_SUPPIMP
+		   SET IMPORT_STATUS = #{IMPORT_STATUS_YES, jdbcType = VARCHAR}
+		 WHERE IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		   AND CHECK_RESULT = #{checkResult, jdbcType = VARCHAR}
+		   AND IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+	</update>
+	
+	<!-- 需求计算  -->
+	<parameterMap type="map" id="releaseMonthDemandForcastMap">  
+		<parameter property="factoryCode" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="account" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="version" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="foreType" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="outCode" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<select id="releaseDemandForcast" parameterMap="releaseMonthDemandForcastMap" statementType="CALLABLE">
+		{CALL PKG_MP_MAIN.USP_MP_DEMAND_FORECAST_RELEASE(?, ?, ?, ?, ?)}
+	</select>
+	
+	<!-- 判断是否已发布 -->
+	<select id="queryIsRelease" parameterType="com.hanthink.mp.model.MpDemandForecastModel" resultType="java.lang.Integer">
+		SELECT COUNT(1) count
+		  FROM MM_SW_DEMAND_FORECAST A
+		 WHERE A.FORE_TYPE = #{foreType}
+		   AND A.VERSION = #{version}
+		   AND A.FACTORY_CODE = #{factoryCode}
+		   AND A.P_SUPPLIER IS NOT NULL
+	</select>
+	
+	<!-- 判断是否已发布 -->
+	<select id="queryIsReleaseById" parameterType="java.util.List" resultType="java.lang.Integer">
+		SELECT COUNT(1) count
+		  FROM MM_SW_DEMAND_FORECAST A
+		 WHERE A.P_SUPPLIER IS NOT NULL
+		   AND EXISTS (SELECT 1
+		          FROM MM_SW_DEMAND_FORECAST_SUPPORT B
+		         WHERE A.FORE_TYPE = B.FORE_TYPE
+		           AND A.VERSION = B.VERSION
+		           AND A.FACTORY_CODE = B.FACTORY_CODE
+		           <if test="list!=null">
+				      AND B.ID IN 
+				      <foreach collection="list" item="item" index="index"
+				               open="(" close=")" separator=",">
+				        #{item}
+				      </foreach>
+				    </if>)
+	</select>
+	
+	
+	<!--  生成一级件周预测****************************************************************************************************-->
+	
+	<!-- 一级件预测计算  -->
+	<parameterMap type="map" id="genDemandPartIfap">  
+		<parameter property="factoryCode" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="account" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="foreType" jdbcType="VARCHAR" mode="IN"/> 
+		<parameter property="startDate" jdbcType="VARCHAR" mode="IN"/> 
+		<parameter property="endDate" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="outCode" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<select id="genDemandPartIf" parameterMap="genDemandPartIfap" statementType="CALLABLE">
+		{CALL PKG_MP_MAIN.USP_MP_DEMAND_PARTIF_GEN(?, ?, ?, ?, ?, ?)}
+	</select>
+	
+	<!-- 分页查询一级件周度预测数据 -->
+	<select id="queryDemandWeekForePage" parameterType="com.hanthink.mp.model.MpDemandForecastModel" resultType="com.hanthink.mp.model.MpDemandForecastModel">
+		    SELECT A.ID               id,
+			       A.FACTORY_CODE     factoryCode,
+			       A.FORE_TYPE        foreType,
+			       A.VERSION          version,
+			       TO_CHAR(A.PLAN_DELIVERY, 'YYYY-MM-DD HH24:MI:SS') planDelivery,
+			       TO_CHAR(A.START_DATE, 'YYYY-MM-DD') startDate,
+			       TO_CHAR(A.END_DATE, 'YYYY-MM-DD') endDate,
+			       A.PHASE             phase,
+			       D.CODE_VALUE_NAME   phaseStr,
+			       A.UNLOAD_PORT       unloadPort,
+			       A.PART_NO           partNo,
+			       E.PART_SHORT_NO     partShortNo,
+			       A.PART_UNIT         partUnit,
+			       A.ORDER_QTY         orderQty,
+			       A.SUPPLIER_NO       supplierNo,
+			       B.SUPPLIER_NAME     supplierName,
+			       E.SUP_FACTORY       supFactory,
+			       A.MODEL_CODE        modelCode,
+			       A.LOGISTICS_MODE    logisticsMode,
+			       F.CODE_VALUE_NAME   logisticsModeStr,
+			       A.RELEASE_STATUS    releaseStatus,
+			       C.CODE_VALUE_NAME   releaseStatusStr,
+
+			       A.PUBLISH_WEEK      publishWeek,
+			       A.OBJ_WEEK          objWeek,
+			       A.PART_NO           partfId,
+			       A.ORDER_QTY         partfOrderQty,
+			       A.ADVANCE_TIME      advanceTime
+			  FROM MM_SW_DEMAND_FORECAST_IMP A
+			  LEFT JOIN MM_PUB_SUPPLIER B
+			    ON A.SUPPLIER_NO = B.SUPPLIER_NO
+			  LEFT JOIN MM_PUB_DATA_DICT C
+			    ON A.RELEASE_STATUS = C.CODE_VALUE
+			   AND C.CODE_TYPE = 'SW_RELEASE_STATUS'
+			   AND A.FACTORY_CODE = C.FACTORY_CODE
+			  LEFT JOIN MM_PUB_DATA_DICT D
+			    ON A.PHASE = D.CODE_VALUE
+			   AND D.CODE_TYPE = 'SW_PHASE'
+			   AND A.FACTORY_CODE = D.FACTORY_CODE
+			  LEFT JOIN MM_PUB_PART_UDA E
+			    ON A.PART_NO = E.PART_NO
+			   AND A.FACTORY_CODE = E.FACTORY_CODE
+			  LEFT JOIN MM_PUB_DATA_DICT F
+			    ON A.LOGISTICS_MODE = F.CODE_VALUE
+			   AND F.CODE_TYPE = 'PUB_MM_MODEL'
+			   AND A.FACTORY_CODE = F.FACTORY_CODE
+			 WHERE A.FORE_TYPE = #{foreType}
+			   AND A.FACTORY_CODE = #{factoryCode}
+	    <if test="version != null and '' != version">
+	    	AND A.VERSION = #{version}
+	    </if>
+		<if test="partNo!=null and partNo!=''  ">
+			AND	A.PART_NO LIKE CONCAT(#{partNo}, '%')
+		</if>
+		<if test="id!=null and id!=''  ">
+			AND	A.ID = #{id}
+		</if>
+		<if test="partShortNo!=null and partShortNo!=''  ">
+			AND	E.PART_SHORT_NO = #{partShortNo}
+		</if>
+		<if test="publishMonth!=null and publishMonth!=''  ">
+			AND	A.PUBLISH_MONTH = #{publishMonth}
+		</if>
+		<if test="releaseStatus!=null and releaseStatus!=''  ">
+			AND	A.RELEASE_STATUS = #{releaseStatus}
+		</if>
+		<if test="phase !=null and phase !='' ">
+		    AND A.PHASE  = #{phase}
+		</if>
+		<if test="supplierNo !=null and supplierNo !='' ">
+		    AND A.SUPPLIER_NO  = #{supplierNo}
+		</if>
+		<if test="supFactory !=null and supFactory !='' ">
+		    AND A.SUP_FACTORY  = #{supFactory}
+		</if>
+		<if test="id !=null and id !='' ">
+		    AND A.ID  = #{id}
+		</if>
+		ORDER BY A.SUPPLIER_NO,A.PART_NO ,A.PLAN_DELIVERY
+	</select>
+	
+	<!--  导入临时表和周预测一样-->
+	<!-- 检查导入临时表数据 -->
+	<parameterMap type="map" id="impCkParamMapFore">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="userName" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<select id="checkImportMonthDataFore" parameterMap="impCkParamMapFore" statementType="CALLABLE">
+		{CALL PKG_MP_CHECK.USP_MP_DEMANDPARTIF_CHECK(?, ?, ?,  ?,?)}
+	</select>
+	
+	<!-- 更新导入的方法 -->
+	<update id="updateWeekForecastImportData" parameterType="java.util.Map" >
+		  UPDATE MM_SW_DEMAND_FORECAST_IMP A
+		   SET (A.VERSION,
+		        A.PLAN_DELIVERY,
+		        A.START_DATE,
+		        A.END_DATE,
+		        A.PHASE,
+		        A.UNLOAD_PORT,
+		        A.PART_NO,
+		        A.PART_UNIT,
+		        A.ORDER_QTY,
+		        A.SUPPLIER_NO,
+		        A.MODEL_CODE,
+		        A.LOGISTICS_MODE,
+		        
+		        A.LAST_MODIFIED_USER,
+		        A.LAST_MODIFIED_TIME,
+		        
+		        A.OBJ_WEEK,
+		        A.PUBLISH_WEEK,
+		        A.ADVANCE_TIME) =
+       (SELECT B.VERSION,
+               B.PLAN_DELIVERY,
+               B.START_DATE,
+               B.END_DATE,
+               B.PHASE,
+               B.UNLOAD_PORT,
+               B.PART_NO,
+               B.PART_UNIT,
+               B.ORDER_QTY,
+               B.SUPPLIER_NO,
+               B.MODEL_CODE,
+               B.LOGISTICS_MODE,
+               B.LAST_MODIFIED_USER,
+               SYSDATE,
+               B.OBJ_WEEK,
+               B.PUBLISH_WEEK,
+               B.ADVANCE_TIME
+          FROM MM_SW_DEMAND_FORECAST_SUPPIMP B
+		         WHERE B.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		           AND B.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		           AND B.IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+		           AND B.OPE_TYPE = 'U'
+		           AND A.ID = B.ID)
+		 WHERE EXISTS
+		 (SELECT 1
+		          FROM MM_SW_DEMAND_FORECAST_SUPPIMP C
+		         WHERE C.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		           AND C.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		           AND C.IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+		           AND C.OPE_TYPE = 'U'
+		           AND A.ID = C.ID)
+	</update>
+	
+	<!-- 修改生成的一级件周预测数据版本为导入的版本 -->
+	<update id="updateWeekForecastVersion" parameterType="java.util.Map">
+	UPDATE MM_SW_DEMAND_FORECAST_IMP A SET 
+		A.VERSION = (SELECT MAX(B.VERSION) FROM MM_SW_DEMAND_FORECAST_SUPPIMP B WHERE B.IMP_UUID = #{uuid}) where A.VERSION IS NULL
+	</update>
+	
+	<!-- 导入临时数据写入到正式表 -->
+	<insert id="insertWeekForecastImportData" parameterType="java.util.Map" >
+		INSERT INTO MM_SW_DEMAND_FORECAST_IMP
+		  (ID,
+		   FACTORY_CODE,
+		   FORE_TYPE,
+		   VERSION,
+		   PLAN_DELIVERY,
+		   START_DATE,
+		   END_DATE,
+		   PHASE,
+		   UNLOAD_PORT,
+		   PART_NO,
+		   
+		   SUPPLIER_NO,
+		   MODEL_CODE,
+		   LOGISTICS_MODE,
+		  
+		   ORDER_QTY,
+		   OBJ_WEEK,
+		   PUBLISH_WEEK,
+		   CREATION_USER,
+		   CREATION_TIME,
+		   ADVANCE_TIME)
+		  (SELECT PKG_PUB.USF_GET_SEQUENCE('seq_mm_sw_demand_fore'),
+		          A.FACTORY_CODE,
+		          A.FORE_TYPE,
+		          A.VERSION,
+		          A.PLAN_DELIVERY,
+		          A.START_DATE,
+		          A.END_DATE,
+		          A.PHASE,
+		          A.UNLOAD_PORT,
+		          A.PART_NO,
+		     
+		          A.SUPPLIER_NO,
+		          A.MODEL_CODE,
+		          A.LOGISTICS_MODE,
+		
+		          A.PARTF_ORDER_QTY,
+		          A.OBJ_WEEK,
+		          A.PUBLISH_WEEK,
+		          A.CREATION_USER,
+		          SYSDATE,
+		          A.ADVANCE_TIME
+		     FROM MM_SW_DEMAND_FORECAST_SUPPIMP A
+		    WHERE IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		      AND CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		      AND IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+		      AND OPE_TYPE = 'I')
+	</insert>
+	
+	<!-- 判断该版本是否已经在业务表存在 -->
+	<select id="isEffectVersion"  parameterType="com.hanthink.mp.model.MpDemandForecastModel" resultType="java.lang.Integer">
+	select count(1) count from mm_sw_demand_forecast a 
+	where a.version = 
+	(SELECT MAX(B.VERSION) FROM MM_SW_DEMAND_FORECAST_IMP B
+	WHERE B.FACTORY_CODE = #{factoryCode})
+	</select>
+	<!-- 生效使用在物流系统中生成的周预测数据 -->
+	<parameterMap type="map" id="effectDemandap">  
+		<parameter property="factoryCode" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="account" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="foreType" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="outCode" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<select id="effectDemand" parameterMap="effectDemandap" statementType="CALLABLE">
+		{CALL PKG_MP_MAIN.USP_MP_DEMAND_EFFECT(?, ?, ?, ?)}
+	</select>
+	
+		<!-- 查询月预测发布版本号下拉框值 -->
+	<select id="getForeVersion" parameterType="java.util.Map" resultType="com.hanthink.mp.model.MpDemandForecastModel">
+		SELECT DISTINCT A.VERSION value, A.VERSION label
+		  FROM MM_SW_DEMAND_FORECAST_IMP A
+		 WHERE A.FACTORY_CODE = #{factoryCode,jdbcType=VARCHAR}
+		   AND A.FORE_TYPE = #{foreType,jdbcType = VARCHAR}
+		   AND A.VERSION IS NOT NULL
+		 ORDER BY A.VERSION DESC
+	</select>
+	
+	<!-- 判断用户自定义的版本号是否已存在 -->
+	<select id="validateVersionExists" parameterType="com.hanthink.mp.model.MpDemandForecastModel" resultType="java.lang.Integer">
+	select count(1) i from mm_sw_demand_forecast a where a.version = #{version}
+	</select>
+	
+	<!-- 修改版本号 -->
+	<update id="submitVersion" parameterType="com.hanthink.mp.model.MpDemandForecastModel">
+	update mm_sw_demand_forecast_imp a set a.version = #{version}
+	</update>
+	
+	
+	
+</mapper>

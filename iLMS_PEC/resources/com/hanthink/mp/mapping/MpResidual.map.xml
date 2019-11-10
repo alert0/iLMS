@@ -1,0 +1,297 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.mp.model.MpResidualModel">
+
+	<insert id="create" parameterType="com.hanthink.mp.model.MpResidualModel">
+		INSERT INTO MM_MP_RESIDUAL
+		(ID,
+		FACTORY_CODE,
+		PART_NO,
+		SUPPLIER_NO,
+		SUP_FACTORY,
+		UNLOAD_PORT,
+		MANU_RESIDUAL,
+		CREATION_USER,CREATION_TIME,LAST_MODIFIED_USER,LAST_MODIFIED_TIME)
+		VALUES 
+		(SEQ_MM_MP_RESIDUAL.NEXTVAL,
+		#{factoryCode,jdbcType=VARCHAR},
+		#{partNo,jdbcType=VARCHAR}, 
+		#{supplierNo,jdbcType=VARCHAR}, 
+		#{supFactory,jdbcType=VARCHAR}, 
+		#{unloadPort,jdbcType=VARCHAR}, 
+		#{manuResidual,jdbcType=NUMERIC}, 
+		#{creationUser,jdbcType=VARCHAR},sysdate, 
+		#{lastModifiedUser,jdbcType=VARCHAR}, sysdate)
+	</insert>
+	
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="queryMpResidualForPage" parameterType="com.hanthink.mp.model.MpResidualModelImport" resultType="com.hanthink.mp.model.MpResidualModelImport">
+		SELECT a.ID id,
+		a.FACTORY_CODE factoryCode,
+		a.PART_NO partNo,
+		b.PART_SHORT_NO partShortNo,
+		b.PART_NAME_CN partNameCn,
+		a.SUPPLIER_NO supplierNo,
+		a.SUP_FACTORY supFactory,
+		b.SUPPLIER_NAME supplierName,
+		a.UNLOAD_PORT unloadPort,
+		a.ORDER_NUM orderNum,
+		a.NECESSARY_ORDER_NUM   necessaryOrderNum,
+		a.REAL_RESIDUAL_NUM  realResidualNum,
+		a.PRE_RESIDUAL_NUM  preResidualNum,
+		a.ADJ_DIFF_NUM  adjDiffNum,
+		a.SAFE_NUM   safeNum,
+		a.DEFECT_NUM defectNum,
+		a.MANU_RESIDUAL  manuResidual
+		FROM MM_MP_RESIDUAL a
+		LEFT JOIN  MM_PUB_PART_UDA b 
+		ON a.PART_NO = b.PART_NO
+		<!-- i-LMS2019053001 mod by 赵明健 -->
+		AND b.FACTORY_CODE = a.FACTORY_CODE
+		WHERE  1=1 
+		<if test="partNo!=null and partNo!='' ">
+		AND	a.PART_NO LIKE CONCAT(#{partNo}, '%')
+		</if>
+		<if test="supplierNo!=null and supplierNo!='' ">
+		AND	a.SUPPLIER_NO = #{supplierNo}
+		</if>
+		<if test="unloadPort!=null and unloadPort!='' ">
+		AND	a.UNLOAD_PORT = #{unloadPort}
+		</if>
+		<if test="partShortNo!=null and partShortNo!='' ">
+		AND	b.PART_SHORT_NO = #{partShortNo}
+		</if>
+		AND a.FACTORY_CODE = #{factoryCode}
+		ORDER BY a.SUPPLIER_NO,a.SUP_FACTORY,a.UNLOAD_PORT
+	</select>
+	
+	<!-- 获取计算队列 -->
+	<select id="getUnloadPort" parameterType="java.util.Map" resultType="com.hanthink.base.model.DictVO">
+		SELECT DISTINCT UNLOAD_PORT valueKey, UNLOAD_PORT valueName FROM MM_MP_PART 
+	</select>
+	
+	<!-- 修改方法 -->
+	<update id="update" parameterType="com.hanthink.mp.model.MpResidualModelImport">
+		UPDATE MM_MP_RESIDUAL SET
+		PART_NO=#{partNo,jdbcType=VARCHAR},
+		SUPPLIER_NO=#{supplierNo,jdbcType=VARCHAR},
+		SUP_FACTORY=#{supFactory,jdbcType=VARCHAR},
+		UNLOAD_PORT=#{unloadPort,jdbcType=VARCHAR},
+        MANU_RESIDUAL=#{manuResidual,jdbcType=NUMERIC},
+        LAST_MODIFIED_USER=#{lastModifiedUser,jdbcType=VARCHAR},
+        LAST_MODIFIED_TIME=sysdate
+		WHERE 1=1
+		AND ID=#{id}
+	</update>
+	
+	<!-- 单条/批量数据删除 -->
+	<delete id="deleteByIds" parameterType="java.lang.String">
+		DELETE FROM MM_MP_RESIDUAL
+		WHERE ID IN
+		<foreach item="aryIds" collection="array" open="(" separator="," close=")">
+			#{aryIds,jdbcType=VARCHAR}
+		</foreach>
+	</delete>
+	
+	<!-- 批量导入数据写入到临时表 -->
+	<insert id="insertMpResidualImportTempData" parameterType="java.util.List">
+		INSERT INTO  MM_MP_RESIDUAL_IMP
+		(FACTORY_CODE,PART_NO,SUPPLIER_NO,SUP_FACTORY,
+		UNLOAD_PORT,ADJ_RESIDUAL,IMP_UUID,CHECK_RESULT,CHECK_INFO,IMPORT_STATUS,PK_ID)
+		<foreach collection="list" item="item" index="index" separator=" UNION ALL ">
+			SELECT 
+			 #{item.factoryCode,jdbcType=VARCHAR},
+			 #{item.partNo,jdbcType=VARCHAR},
+			 #{item.supplierNo,jdbcType=VARCHAR},
+			 #{item.supFactory,jdbcType=VARCHAR}, 
+			 #{item.unloadPort,jdbcType=VARCHAR},
+			 #{item.manuResidual,jdbcType=NUMERIC},
+			 #{item.uuid,jdbcType=VARCHAR}, 
+			 #{item.checkResult,jdbcType=VARCHAR}, 
+			 #{item.checkInfo,jdbcType=VARCHAR}, 
+			 #{item.importStatus,jdbcType=VARCHAR} ,
+			 PKG_PUB.USF_GET_SEQUENCE('SEQ_IMPORT_DATA_TEMP')
+			FROM DUAL 
+    	</foreach>
+	</insert>
+	
+	<!-- 检查导入临时表数据 -->
+	<parameterMap type="map" id="impCkParamMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="userName" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<select id="checkMpResidualImportData" parameterMap="impCkParamMap" statementType="CALLABLE">
+		{CALL PKG_MP_CHECK.USP_MP_RESIDUAL_CHECK(?, ?, ?,  ?,?)}
+	</select>
+	
+	<!-- 查询临时表数据 -->
+	<select id="queryMpResidualImportTempData" parameterType="java.util.Map" resultType="com.hanthink.mp.model.MpResidualModelImport">
+			  SELECT A.BUSI_ID busiId, 
+				     A.FACTORY_CODE factoryCode, 
+				     A.PART_NO partNo, 
+				     A.SUPPLIER_NO supplierNo,
+				     A.SUP_FACTORY supFactory, 
+				     A.UNLOAD_PORT unloadPort,
+				     A.ADJ_RESIDUAL adjResidual,
+				     A.CREATION_USER creationUser,
+				     A.CREATION_TIME creationTime,
+				     A.IMP_UUID uuid, 
+				     A.CHECK_RESULT checkResult,
+				     A.CHECK_INFO checkInfo, 
+				     A.IMPORT_STATUS importStatus,
+				     B.CODE_VALUE_NAME codeValueNameB,
+		             C.CODE_VALUE_NAME codeValueNameC
+				     FROM MM_MP_RESIDUAL_IMP A
+				     LEFT JOIN MM_PUB_DATA_DICT B
+				     ON A.CHECK_RESULT = B.CODE_VALUE
+				     AND B.CODE_TYPE ='PUB_IMP_CK_RESULT'
+				     AND B.FACTORY_CODE = A.FACTORY_CODE
+				     LEFT JOIN MM_PUB_DATA_DICT C
+				     ON A.IMPORT_STATUS = C.CODE_VALUE
+				     AND C.CODE_TYPE ='PUB_IMP_STATUS'
+				     AND C.FACTORY_CODE = A.FACTORY_CODE
+					 WHERE A.IMP_UUID = #{uuid,jdbcType=VARCHAR}
+	</select>
+	
+	
+	<!-- 导入临时数据写入到正式表 -->
+	<insert id="insertMpResidualImportData" parameterType="java.util.Map" >
+		INSERT INTO MM_MP_RESIDUAL 
+		(ID,
+		FACTORY_CODE, 
+		PART_NO, 
+		SUPPLIER_NO, 
+		SUP_FACTORY, 
+		UNLOAD_PORT,
+		MANU_RESIDUAL,
+		CREATION_USER,
+		CREATION_TIME)
+		(SELECT  
+		PK_ID,
+		FACTORY_CODE, 
+		PART_NO, 
+		SUPPLIER_NO, 
+		SUP_FACTORY, 
+		UNLOAD_PORT,
+		ADJ_RESIDUAL,
+		CREATION_USER,
+		CREATION_TIME
+		FROM MM_MP_RESIDUAL_IMP
+		WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		  AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+		  AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR}
+		  AND OPE_TYPE = 'I')
+	</insert>
+	
+	<!-- 更新临时表数据导入状态 -->
+	<update id="updateMpResidualImportDataImpStatus" parameterType="java.util.Map">
+		UPDATE MM_MP_RESIDUAL_IMP SET IMPORT_STATUS = #{IMPORT_STATUS_YES,jdbcType=VARCHAR} 
+		WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		  AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+		  AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR} 
+	</update>
+	
+	<!-- 根据UUID删除导入的临时数据 -->
+	<delete id="deleteMpResidualImportTempDataByUUID" parameterType="java.lang.String">
+		DELETE FROM MM_MP_RESIDUAL_IMP WHERE IMP_UUID = #{value,jdbcType=VARCHAR}
+	</delete>
+	
+	<!-- 拿出ID,查询哪些数据需要修改 -->
+	<select id="queryUpdateDataFromMpResidualImp" parameterType="java.util.Map" resultType="java.lang.String">
+		SELECT A.BUSI_ID  busiId
+		  FROM MM_MP_RESIDUAL_IMP A
+		 WHERE A.OPE_TYPE = 'U'
+		   AND A.IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR} 
+		   AND A.IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		   AND A.CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+	</select>
+
+    <!-- 更新导入的方法 -->
+	<update id="updateMpResidualImportData" parameterType="java.util.Map" >
+		  UPDATE MM_MP_RESIDUAL A  SET 
+		  (A.MANU_RESIDUAL, 
+		  A.LAST_MODIFIED_USER, 
+		  A.LAST_MODIFIED_TIME) =
+		  (SELECT B.ADJ_RESIDUAL, 
+		  B.CREATION_USER, 
+		  sysdate
+		  FROM MM_MP_RESIDUAL_IMP B
+		  WHERE B.IMP_UUID = #{uuid,jdbcType = VARCHAR} 
+		  AND B.CHECK_RESULT =#{checkResult,jdbcType = VARCHAR}
+		  AND B.IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}
+		  AND B.OPE_TYPE = 'U'
+		  AND B.BUSI_ID = A.ID)
+		  WHERE EXISTS
+	      (SELECT 1
+	      FROM MM_MP_RESIDUAL_IMP B
+		  WHERE B.IMP_UUID = #{uuid,jdbcType = VARCHAR} 
+		  AND B.CHECK_RESULT =#{checkResult,jdbcType = VARCHAR}
+		  AND B.IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}
+		  AND B.OPE_TYPE = 'U'
+		  AND B.BUSI_ID = A.ID)
+	</update>
+	
+	<!-- 查询临时表中的数据是否可以导入 -->
+	<select id="queryMpResidualIsImportFlag" parameterType="java.lang.String" resultType="java.lang.String">
+		WITH TEMPA AS
+		 (SELECT COUNT(1) s
+		    FROM MM_MP_RESIDUAL_IMP A
+		   WHERE A.CHECK_RESULT = 0
+		     AND A.IMP_UUID = #{VALUE}),
+		TEMPB AS
+		 (SELECT COUNT(1) S
+		    FROM MM_MP_RESIDUAL_IMP B
+		   WHERE B.IMP_UUID = #{VALUE})
+		SELECT CASE
+		         WHEN A.S >= B.S THEN
+		          0
+		         ELSE
+		          1
+		       END AS FLAG
+		  FROM TEMPA A, TEMPB B
+	</select>
+	
+	<!-- 查询可导入数据 -->
+	<select id="queryForInsertList" parameterType="java.util.Map" resultType="com.hanthink.mp.model.MpResidualModelImport">
+	   SELECT A.BUSI_ID    busiId,
+              A.FACTORY_CODE   factoryCode,
+              A.PART_NO   partNo,
+              A.SUPPLIER_NO  supplierNo,
+              A.SUP_FACTORY  supFactory,
+              A.UNLOAD_PORT  unloadPort,
+              A.ADJ_RESIDUAL  adjResidual,
+              A.CREATION_USER  creationUser,
+              TO_CHAR(A.CREATION_TIME,'yyyy-MM-dd HH:mi:ss')  creationTimeStr,
+              A.IMP_UUID  impUuid,
+              A.CHECK_RESULT  checkResult,
+              A.CHECK_INFO  checkInfo,
+              A.IMPORT_STATUS  importStatus,
+              A.OPE_TYPE opeType,
+              A.PK_ID  pkId
+         FROM MM_MP_RESIDUAL_IMP A
+		WHERE A.IMP_UUID = #{uuid,jdbcType = VARCHAR}
+		  AND A.IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}
+		  AND A.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+	</select>
+	
+	<!-- 判断主键冲突 -->
+	<select id="selectPrimaryKey" parameterType="com.hanthink.mp.model.MpResidualModelImport" resultType="java.lang.Integer">
+      SELECT COUNT(*)
+		FROM MM_MP_RESIDUAL A
+	   WHERE A.PART_NO = #{partNo,jdbcType = VARCHAR}
+		 AND A.SUPPLIER_NO = #{supplierNo,jdbcType = VARCHAR}
+	     AND A.SUP_FACTORY = #{supFactory,jdbcType = VARCHAR} 
+	     AND A.UNLOAD_PORT = #{unloadPort,jdbcType = VARCHAR}
+	</select>
+	
+	<!-- 判断计算队列 -->
+	<select id="selectUnloadPort" parameterType="com.hanthink.mp.model.MpResidualModelImport" resultType="java.lang.Integer">
+      SELECT COUNT(*)
+		FROM MM_MP_PART A
+	   WHERE 1=1 AND A.UNLOAD_PORT = #{unloadPort,jdbcType = VARCHAR}
+	</select>
+	
+</mapper>

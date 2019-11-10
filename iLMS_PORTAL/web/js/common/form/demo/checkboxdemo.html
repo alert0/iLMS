@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html ng-app="myApp" >
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+<script type="text/javascript" src="../../../lib/angular/angular.min.js"></script>
+<script type="text/javascript" src="../../../lib/jquery/jquery.min.js"></script>
+<script type="text/javascript" src="../../service/BaseService.js"></script>
+
+<script type="text/javascript" src="../FormDirective.js"></script>
+</head>
+<body ng-controller="ctrl">
+<div >
+        <input type="checkbox" ht-checkbox ng-model="data.users"  value="1" />红
+		<input type="checkbox" ht-checkbox ng-model="data.users"   value="2" />绿
+		<input type="checkbox" ht-checkbox ng-model="data.users"   value="3" />蓝
+		<span>{{data.users}}</span>
+		<input type="button" ng-click="getData()" value="getData">
+   </div>
+   <script>
+       var app=angular.module("myApp",["formDirective"]);
+		app.controller('ctrl', ['$scope',function($scope){
+			$scope.data={users:"1,2"};
+			$scope.getData=function(){
+				console.info($scope.data.users)
+			}
+		}])
+    </script>
+
+</body>
+</html>

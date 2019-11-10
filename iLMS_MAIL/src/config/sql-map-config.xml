@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?> 
+<!DOCTYPE sqlMapConfig PUBLIC "-//ibatis.apache.org//DTD SQL Map Config 2.0//EN" 
+    "http://ibatis.apache.org/dtd/sql-map-config-2.dtd"> 
+<sqlMapConfig> 
+  <settings cacheModelsEnabled = "true" useStatementNamespaces="true" />
+  <sqlMap resource = "sql/pub_sql.xml" />
+  <sqlMap resource = "sql/comm_sql.xml" />
+  <sqlMap resource = "sql/mail_sql.xml" />
+  <sqlMap resource = "sql/email_sql.xml"/>
+  <sqlMap resource = "sql/system_sql.xml"/>
+  
+  
+  <sqlMap resource = "sql/jis_sql.xml"/>
+  <sqlMap resource = "sql/jit_sql.xml"/>
+  <sqlMap resource = "sql/gacne_sw_sql.xml"/>
+  <sqlMap resource = "sql/dpm_sql.xml"/>
+  <sqlMap resource = "sql/pkg_sql.xml"/>
+  <sqlMap resource = "sql/gacne_pub_sql.xml"/>
+  <sqlMap resource = "sql/portal_sql.xml"/>
+  <sqlMap resource = "sql/pec_non_sql.xml"/>
+  <sqlMap resource = "sql/gacne_db_sql.xml"/>
+  
+</sqlMapConfig>

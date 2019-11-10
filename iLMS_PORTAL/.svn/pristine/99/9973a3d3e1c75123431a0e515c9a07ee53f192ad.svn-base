@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html ng-app="myApp">
+<head>
+<title>X5手机平台</title>
+<meta charset="utf-8">
+<script src="../assets/js/importJs.js"></script>
+
+<script type="text/javascript">
+	importCss([ "/mobile/assets/css/email.css" ]);
+	var myApp = angular.module("myApp", [ 'base', 'mobileDirective' ]);
+	myApp.controller("myTaskCtrl", [ '$scope', 'baseService', '$sce',function(scope, baseService, $sce) {
+		var url = __ctx + "/mail/mail/mail/getDefaultEmail";
+		baseService.get(url).then(
+				function(data){
+					if(data != null){
+						scope.mailSetId = data.id;
+					}
+				}
+		)
+		scope.syncEmail = function($event){
+			 var obj = $event.target;
+			 $.showPreloader('同步邮件中·······');
+			 if(obj.checked){
+				 baseService.postForm(__ctx+"/mail/mail/mail/sync",{id:scope.mailSetId}).then(
+					function(data){
+						$.hidePreloader();
+						$.alert(data.message, function () {
+							obj.checked = false;
+					    });
+				})
+			 }
+			 
+		}
+	} ]);
+	$(function() {
+
+	})
+</script>
+<style type="text/css">
+</style>
+</head>
+<body ng-controller="myTaskCtrl">
+	<div class="page email-list-page" id='page-swipeout-demo'>
+		<header class="hkm-red-header bar bar-nav">
+			<a class="icon icon-left pull-left back"
+				href="javascript:history.go(-1);" external></a> <span class='title'>邮箱菜单</span>
+		</header>
+		<div class="content pull-to-refresh-content infinite-scroll">
+			<div class="pull-to-refresh-layer">
+				<div class="preloader"></div>
+				<div class="pull-to-refresh-arrow"></div>
+			</div>
+			<div class="email-setting-page" style="position: relative;">
+				<div class="content-block">
+					<div class="list-block media-list">
+						<ul>
+							<li>
+								<div class="item-content">
+									<div class="item-media">
+										<img ng-src="{{userMsg.user.photo}}">
+									</div>
+									<div class="item-inner">
+										<div class="item-title-row">
+											<div class="item-title email-setting-title-font">{{userMsg.user.fullname}}</div>
+										</div>
+										<div class="item-subtitle email-setting-little-font">{{userMsg.org.name}}-{{userMsg.orgUserRel.relName}}</div>
+									</div>
+								</div>
+							</li>
+						</ul>
+					</div>
+					<!---->
+					<div class="list-block setting-list">
+						<ul>
+							<li class="item-content item-link">
+								<div class="item-inner">
+									<div class="item-title setting-font">收件箱</div>
+								</div>
+							</li>
+							<li class="item-content item-link">
+								<div class="item-inner">
+									<div class="item-title setting-font">写邮件</div>
+								</div>
+							</li>
+							<li class="item-content item-link">
+								<div class="item-inner">
+									<div class="item-title setting-font">草稿箱</div>
+								</div>
+							</li>
+							<li class="item-content item-link">
+								<div class="item-inner">
+									<div class="item-title setting-font">垃圾桶</div>
+								</div>
+							</li>
+							<li class="item-content item-link">
+								<div class="item-inner">
+									<div class="item-title setting-font">绑定邮箱</div>
+								</div>
+							</li>
+							<li class="item-content">
+								<div class="item-inner">
+									<div class="item-title label setting-font">邮件同步</div>
+									<div class="item-input">
+										<label class="label-switch"> <input type="checkbox" ng-click="syncEmail($event)">
+											<div class="checkbox"></div>
+										</label>
+									</div>
+								</div>
+							</li>
+						</ul>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div index-page></div>
+</body>
+</html>

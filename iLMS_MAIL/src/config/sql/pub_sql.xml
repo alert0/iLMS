@@ -1,0 +1,1729 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="pub">
+	<typeAlias alias="SeqVO" type="com.hanthink.gps.pub.vo.SeqVO" />
+	<typeAlias alias="UserVO" type="com.hanthink.gps.pub.vo.UserVO" />
+	<typeAlias alias="MMenuVO" type="com.hanthink.gps.pub.vo.MMenuVO" />
+	<typeAlias alias="pageAuthVO" type="com.hanthink.gps.pub.vo.PageAuthVO" />
+	<typeAlias alias="PrivilegeVO" type="com.hanthink.gps.pub.vo.PrivilegeVO" />
+	<typeAlias alias="FactoryVO" type="com.hanthink.gps.pub.vo.FactoryVO" />
+	<typeAlias alias="LogCompanyVO" type="com.hanthink.gps.pub.vo.LogCompanyVO" />
+	<typeAlias alias="SupplierVO" type="com.hanthink.gps.pub.vo.SupplierVO" />
+	<typeAlias alias="SysMessageInfoVO" type="com.hanthink.gps.pub.vo.MessageInfoVO" />
+	<typeAlias alias="pubInfoConfigVO" type="com.hanthink.gps.pub.vo.InfoConfigVO" />
+	<typeAlias alias="OpeLogVO" type="com.hanthink.gps.pub.vo.OpeLogVO" />
+	<typeAlias alias="OpeTableVO" type="com.hanthink.gps.pub.vo.OpeTableVO" />
+	
+	<typeAlias alias="RoleVO" type="com.hanthink.gps.pub.vo.RoleVO" />
+	<typeAlias alias="RolePrivilegeVO" type="com.hanthink.gps.pub.vo.RolePrivilegeVO" />
+	<typeAlias alias="DataDictVO" type="com.hanthink.gps.pub.vo.DataDictVO" />
+	<typeAlias alias="SystemParamVO" type="com.hanthink.gps.pub.vo.SystemParamVO" />
+	<typeAlias alias="SuppGroupVO" type="com.hanthink.gps.pub.vo.SuppGroupVO" />
+	
+	<typeAlias alias="PrinterVO" type="com.hanthink.gps.pub.vo.PrinterVO" />
+	<typeAlias alias="orderIndexInfoVO" type="com.hanthink.gps.pub.vo.OrderInfoVO"/>
+	<resultMap id="RolePrivTreeResult" class="RolePrivilegeVO">
+	    <result column="privilegeCode" property= "privilegeCode"/>
+	    <result column="parentCode" property= "parentCode"/>
+	    <result column="menuName" property= "menuName"/>
+	    <result column="checked" property= "checked"/>
+	    <result column="root" property= "root"/>
+	    <result column="level" property= "level"/>   
+	</resultMap>
+	
+	
+	<!-- 根据用户名查询系统用户信息 -->
+	<select id="select_sys_user_by_userName" parameterClass="java.lang.String" resultClass="UserVO">
+	SELECT U.USER_NAME AS userName, 
+	  U.USER_CNAME AS name, U.PWD AS userPwd,
+	  U.USER_TYPE AS userType, U.STATUS AS userStatus, NVL(U.LOGIN_NUM, 0) AS loginNum,
+	  U.LOGIN_IP AS loginIp, 
+	  TO_CHAR(U.LOGIN_TIME, 'YYYY-MM-DD HH24:MI:SS') AS loginTime
+	FROM MM_PUB_SYS_USER U
+	WHERE U.USER_NAME = #value#
+	</select>
+	
+	<!-- 更新用户登录信息  -->
+	<update id="update_updateSysUserLoginInfo" parameterClass="UserVO">
+	UPDATE MM_PUB_SYS_USER U SET
+	  U.LOGIN_NUM = (NVL(U.LOGIN_NUM, 0) + 1),
+	  U.LOGIN_IP = #loginIp#,
+	  U.LOGIN_TIME = SYSDATE
+	WHERE U.USER_NAME = #userName#
+	</update>
+	
+	<!-- 查询所有菜单信息 -->
+	<select id="select_queryAllMenuList" parameterClass="java.lang.String" resultClass="MMenuVO">
+	  SELECT DISTINCT PM.MODULE_LEVEL AS menuLevel, PM.MODULE_CODE AS menuId, PM.MODULE_NAME AS menuName,
+	    'modulefirst' || NVL(PM.PARENT_CODE, '') || PM.MODULE_CODE AS url, PM.PARENT_CODE AS parentId,
+	    PM.SORT AS SORTNO
+	  FROM MM_PUB_MODULE PM
+	  WHERE PM.MODULE_LEVEL = '1'
+	    AND PM.MODULE_CODE IN (
+	    SELECT DISTINCT PM.PARENT_CODE FROM MM_PUB_MODULE PM
+	    WHERE PM.MODULE_CODE IN (
+	      SELECT DISTINCT PR.PARENT_CODE FROM MM_PUB_PRIVILEGES PR
+	      WHERE PR.PRIVILEGES_TYPE = '1'
+		  )
+		) 
+		UNION
+		SELECT DISTINCT PM.MODULE_LEVEL AS menuLevel, PM.MODULE_CODE AS menuId, PM.MODULE_NAME AS menuName,
+		  'modulesecond' || NVL(PM.PARENT_CODE, '') || PM.MODULE_CODE AS url, PM.PARENT_CODE AS parentId,
+		  PM.SORT AS SORTNO
+		FROM MM_PUB_MODULE PM
+		WHERE PM.MODULE_LEVEL = '2'
+	    AND PM.MODULE_CODE IN ( SELECT DISTINCT PR.PARENT_CODE
+		  FROM MM_PUB_PRIVILEGES PR
+		  WHERE PR.PRIVILEGES_TYPE = '1'
+		) 
+		UNION
+		SELECT DISTINCT '3' AS menuLevel, PR.PRIVILEGES_CODE AS menuId, PR.MENU_NAME AS menuName,
+		  PR.MENU_URL AS url, PR.PARENT_CODE AS parentId, PR.SORT AS SORTNO
+		FROM MM_PUB_PRIVILEGES PR
+		WHERE PR.PRIVILEGES_TYPE = '1'
+		ORDER BY menuLevel, SORTNO
+	</select>
+	
+	<!-- 根据用户名查询菜单信息  -->
+	<select id="select_queryMenuListByUserName" parameterClass="java.lang.String" resultClass="MMenuVO">
+	SELECT DISTINCT PM.MODULE_LEVEL AS menuLevel, PM.MODULE_CODE AS menuId, PM.MODULE_NAME AS menuName,
+	  'modulefirst' || NVL(PM.PARENT_CODE, '') || PM.MODULE_CODE AS url, PM.PARENT_CODE AS parentId,
+	  PM.SORT AS SORTNO
+	FROM MM_PUB_MODULE PM
+	WHERE PM.MODULE_LEVEL = '1'
+	  AND PM.MODULE_CODE IN (
+	  SELECT DISTINCT PM.PARENT_CODE
+	  FROM MM_PUB_MODULE PM
+	  WHERE PM.MODULE_CODE IN (
+	    SELECT DISTINCT PR.PARENT_CODE
+	    FROM MM_PUB_USER_ROLE UR, MM_PUB_ROLE_PRIVILEGES RP, MM_PUB_PRIVILEGES PR
+	    WHERE UR.ROLE_ID = RP.ROLE_ID
+	      AND RP.RPIVILEGES_CODE = PR.PRIVILEGES_CODE
+	      AND UR.USER_NAME = #value#
+	  )
+	) 
+	UNION
+	SELECT DISTINCT PM.MODULE_LEVEL AS menuLevel, PM.MODULE_CODE AS menuId, PM.MODULE_NAME AS menuName,
+	  'modulesecond' || NVL(PM.PARENT_CODE, '') || PM.MODULE_CODE AS url, PM.PARENT_CODE AS parentId,
+	  PM.SORT AS SORTNO
+	FROM MM_PUB_MODULE PM
+	WHERE PM.MODULE_LEVEL = '2'
+	  AND PM.MODULE_CODE IN (
+	  SELECT DISTINCT PR.PARENT_CODE
+	  FROM MM_PUB_USER_ROLE UR, MM_PUB_ROLE_PRIVILEGES RP, MM_PUB_PRIVILEGES PR
+	  WHERE UR.ROLE_ID = RP.ROLE_ID
+	    AND RP.RPIVILEGES_CODE = PR.PRIVILEGES_CODE
+	    AND UR.USER_NAME = #value#
+	) 
+	UNION
+	SELECT DISTINCT '3' AS menuLevel, PR.PRIVILEGES_CODE AS menuId, PR.MENU_NAME AS menuName,
+	  PR.MENU_URL AS url, PR.PARENT_CODE AS parentId, PR.SORT AS SORTNO
+	FROM MM_PUB_USER_ROLE UR, MM_PUB_ROLE_PRIVILEGES RP, 
+	  MM_PUB_PRIVILEGES PR
+	WHERE UR.ROLE_ID = RP.ROLE_ID
+	  AND PR.PRIVILEGES_TYPE = '1'
+	  AND RP.RPIVILEGES_CODE = PR.PRIVILEGES_CODE
+	  AND UR.USER_NAME = #value#
+	ORDER BY menuLevel, SORTNO
+	</select>
+	
+	<!-- 查询所有界面的按钮、数据权限 -->
+	<select id="select_queryAllPagesAuth" parameterClass="java.lang.String" resultClass="PageAuthVO">
+		SELECT PR.PRIVILEGES_CODE AS menuId, PR.PRIVILEGES_DESC,
+		  PRS.PRIVILEGES_CODE AS operId, PRS.PRIVILEGES_DESC
+		FROM MM_PUB_PRIVILEGES PR
+		  LEFT JOIN  MM_PUB_PRIVILEGES PRS ON PRS.PARENT_CODE = PR.PRIVILEGES_CODE AND PRS.PRIVILEGES_TYPE = '2'
+		WHERE PR.PRIVILEGES_TYPE = '1'
+	    AND PRS.PRIVILEGES_TYPE = '2'
+	    ORDER BY menuId
+	</select>
+	
+	<!-- 根据用户名查询界面按钮、数据权限 -->
+	<select id="select_queryPagesAuthUserName" parameterClass="java.lang.String" resultClass="PageAuthVO">
+	SELECT PR.PRIVILEGES_CODE AS menuId, PR.PRIVILEGES_DESC,
+	  PRS.PRIVILEGES_CODE AS operId, PRS.PRIVILEGES_DESC
+	FROM MM_PUB_PRIVILEGES PR
+	  LEFT JOIN  MM_PUB_PRIVILEGES PRS ON PRS.PARENT_CODE = PR.PRIVILEGES_CODE AND PRS.PRIVILEGES_TYPE = '2'
+	WHERE PR.PRIVILEGES_TYPE = '1'
+	  AND PRS.PRIVILEGES_CODE IN (
+	    SELECT DISTINCT PRIVILEGES_CODE 
+	    FROM MM_PUB_PRIVILEGES PR, MM_PUB_USER_ROLE UR, MM_PUB_ROLE_PRIVILEGES RP
+	    WHERE UR.ROLE_ID = RP.ROLE_ID AND RP.RPIVILEGES_CODE = PR.PRIVILEGES_CODE
+	      AND UR.USER_NAME = #value#
+	  )
+	ORDER BY menuId
+	</select>
+	
+	<!-- 根据一级模块查询顶级模块信息 -->
+	<select id="select_queryUserZeroMenuListByFirstMould" resultClass="MMenuVO">
+		SELECT MODULE_LEVEL AS menuLevel, 
+		  MODULE_CODE AS menuId, MODULE_NAME AS menuName
+		FROM MM_PUB_MODULE 
+		WHERE MODULE_CODE IN (
+		  SELECT DISTINCT PARENT_CODE
+		  FROM MM_PUB_MODULE WHERE MODULE_CODE IN 
+		    <iterate open="(" close=")" conjunction="," >#[]# </iterate>
+		)
+		AND MODULE_LEVEL = '0'
+		ORDER BY SORT
+	</select>
+	
+	<!-- 查询系统模块  -->
+	<select id="select_queryModuleForPage" parameterClass="MMenuVO" resultClass="MMenuVO">
+		SELECT PM.MODULE_LEVEL AS menuLevel, PM.MODULE_CODE AS menuId, 
+		  PM.PARENT_CODE AS parentId,
+		  PM.MODULE_NAME AS menuName, PM.SORT AS sort
+		FROM MM_PUB_MODULE PM 
+		WHERE 1=1
+		<isNotEmpty prepend="AND" property="menuLevel">
+			PM.MODULE_LEVEL = #menuLevel#
+		</isNotEmpty> 
+		<isNotEmpty prepend="AND" property="parentId">
+			PM.PARENT_CODE = #parentId#
+		</isNotEmpty>
+		<isNotEmpty prepend="AND" property="menuId">
+			PM.MODULE_CODE = #menuId#
+		</isNotEmpty>  
+		ORDER BY PM.SORT 
+	</select>
+	
+	<!-- 查询系统权限  -->
+	<select id="select_queryPrivilegesForPage" parameterClass="PrivilegeVO" resultClass="PrivilegeVO">
+		SELECT PR.PRIVILEGES_CODE AS privilegeCode, PR.PRIVILEGES_DESC AS privilegeDesc,
+		  PR.PRIVILEGES_TYPE AS privilegeType, PR.MENU_URL AS menuUrl, PR.PARENT_CODE AS parentCode,
+		  PR.MENU_NAME AS menuName, PR.SORT AS sort
+		FROM MM_PUB_PRIVILEGES PR
+		WHERE 1=1
+		  <isNotEmpty prepend="AND" property="privilegeType">
+			PR.PRIVILEGES_TYPE = #privilegeType#
+		  </isNotEmpty> 
+		  <isNotEmpty prepend="AND" property="parentCode">
+			PR.PARENT_CODE = #parentCode#
+		  </isNotEmpty> 
+		  <isNotEmpty prepend="AND" property="privilegeCode">
+			PR.PRIVILEGES_CODE = #privilegeCode#
+		  </isNotEmpty> 
+		ORDER BY PR.SORT 
+	</select>
+	
+	<!-- 新增系统模块 -->
+	<insert id="insert_insertSysModule" parameterClass="MMenuVO">
+		INSERT INTO MM_PUB_MODULE (MODULE_LEVEL, MODULE_CODE, MODULE_NAME, PARENT_CODE, SORT)
+		VALUES (#menuLevel#, #menuId#, #menuName#, #parentId#, #sort#)
+	</insert>
+	
+	<!-- 修改系统模块  -->
+	<update id="update_updateSysModule"  parameterClass="MMenuVO" >
+		UPDATE MM_PUB_MODULE PM SET PM.MODULE_NAME = #menuName#, PM.SORT = #sort#
+		  <isNotEmpty prepend="," property="parentId">
+			PM.PARENT_CODE = #parentId#
+		  </isNotEmpty> 
+		WHERE PM.MODULE_CODE = #menuId# AND PM.MODULE_LEVEL = #menuLevel#
+	</update>
+	
+	<!-- 删除系统模块 -->
+	<delete id="delete_deleteSysModule" parameterClass="MMenuVO">
+		DELETE FROM MM_PUB_MODULE PM 
+		WHERE 1=1 
+		<isNotEmpty prepend="AND" property="menuId">
+			PM.MODULE_CODE = #menuId#
+		</isNotEmpty> 
+		<isNotEmpty prepend="AND" property="menuLevel">
+			PM.MODULE_LEVEL = #menuLevel#
+		</isNotEmpty> 
+		<isNotEmpty prepend="AND" property="parentId">
+			PM.PARENT_CODE = #parentId#
+		</isNotEmpty> 
+	</delete>
+	
+	<!-- 新增系统菜单、权限 -->
+	<insert id="insert_insertSysMenuPrivilege" parameterClass="PrivilegeVO">
+		INSERT INTO MM_PUB_PRIVILEGES(PARENT_CODE, PRIVILEGES_CODE, PRIVILEGES_DESC, PRIVILEGES_TYPE,
+		  MENU_URL, MENU_NAME, SORT)VALUES(
+		  #parentCode#, #privilegeCode#, #privilegeDesc#, #privilegeType#, 
+		  #menuUrl#, #menuName#, #sort# )
+	</insert>
+	
+	<!-- 修改系统菜单、权限  -->
+	<update id="update_updateMenuPrivilege"  parameterClass="PrivilegeVO" >
+		UPDATE MM_PUB_PRIVILEGES PR SET
+		  PR.MENU_URL = #menuUrl#,
+		  PR.PRIVILEGES_DESC = #privilegeDesc#,
+		  PR.MENU_NAME = #menuName#,
+		  PR.SORT = #sort#
+		WHERE PR.PRIVILEGES_CODE = #privilegeCode#
+		  AND PR.PRIVILEGES_TYPE = #privilegeType#
+	</update>
+	
+	<!-- 删除系统菜单、权限 -->
+	<delete id="delete_deleteMenuPrivilege" parameterClass="PrivilegeVO">
+		DELETE FROM MM_PUB_PRIVILEGES PR 
+		WHERE PR.PRIVILEGES_TYPE = #privilegeType#
+		<isNotEmpty prepend="AND" property="privilegeCode">
+			PR.PRIVILEGES_CODE = #privilegeCode#
+		</isNotEmpty> 
+		<isNotEmpty prepend="AND" property="parentCode">
+			PR.PARENT_CODE = #parentCode#
+		</isNotEmpty> 
+	</delete>
+	
+	<!-- 根据用户名查询系统用户信息 -->
+	<select id="select_user_by_userName" parameterClass="java.lang.String" resultClass="UserVO">
+		SELECT PSU.USER_NAME AS userName, PSU.USER_CNAME AS name
+		FROM MM_PUB_SYS_USER PSU WHERE PSU.USER_NAME = #value#
+	</select>
+	
+	<!-- 根据用户名查询供应商信息 -->
+	<select id="select_querySupplierInfoByUserName" parameterClass="java.lang.String" resultClass="SupplierVO">
+		SELECT SUPU.COMPANY_NO AS supplierNo, SUP.SUPPLIER_NAME AS supplierName,
+		   SUP.STATUS AS status, NVL(SUP.ACT_STATUS,'0') AS activeStatus,
+		   SUP.PARENT_NO AS parentNo
+		FROM MM_PUB_SUPPLIER_USER SUPU 
+		  LEFT OUTER JOIN MM_SUPPLIER SUP ON SUP.SUPPLIER_NO = SUPU.COMPANY_NO
+		WHERE SUPU.SUP_ROLE_TYPE = '2'
+		  AND SUPU.USER_NAME = #value#
+	</select>
+	
+	<!-- 根据用户名查询物流公司信息 -->
+	<select id="select_queryLogCompanyInfoByUserName" parameterClass="java.lang.String" resultClass="LogCompanyVO">
+		SELECT SUPU.COMPANY_NO AS companyNo, PLC.COMPANY_NAME AS companyName,
+		   PLC.TYPE AS type, PLC.STATUS AS status
+		FROM MM_PUB_SUPPLIER_USER SUPU 
+		  LEFT OUTER JOIN MM_PUB_LOGISTICS_COMPANY PLC ON PLC.COMPANY_NO = SUPU.COMPANY_NO
+		WHERE SUPU.SUP_ROLE_TYPE IN ('3','4')
+		  AND SUPU.USER_NAME = #value#
+	</select>
+	
+	
+	<!-- 查询GAMC用户信息 -->
+	<select id="select_queryGAMCUserInfo" parameterClass="UserVO" resultClass="UserVO">
+		SELECT PGU.USER_NAME AS userName, PGU.USER_CNAME AS name,
+		  PGU.DEPARTMENT_ID AS departmentId, PDD.CODE_VALUE_NAME AS departmentName,
+		  PGU.TEL AS tel, PGU.MOBILE AS mobile, PGU.EMAIL AS email, PGU.FAX as fax,
+		  PSU.STATUS AS userStatus, PSU.LOGIN_NUM AS loginNum,
+		  A.factoryList as factoryList, B.roleList as roleList
+		FROM MM_PUB_GAMC_USER PGU
+		LEFT OUTER JOIN MM_PUB_SYS_USER PSU ON PSU.USER_NAME = PGU.USER_NAME
+		LEFT OUTER JOIN MM_PUB_DATA_DICT PDD ON PDD.CODE_TYPE = 'DEPARTMENT_CODE' AND PDD.CODE_VALUE = PGU.DEPARTMENT_ID
+		LEFT OUTER JOIN (
+		 SELECT WMSYS.WM_CONCAT(PUF.FACTORY_CODE) AS factoryList, PUF.USER_NAME FROM MM_PUB_USER_FACTORY PUF GROUP BY PUF.USER_NAME
+		) A ON A.USER_NAME = PGU.USER_NAME
+		LEFT OUTER JOIN (
+		 SELECT WMSYS.WM_CONCAT(PUR.ROLE_ID) AS roleList, PUR.USER_NAME FROM MM_PUB_USER_ROLE PUR GROUP BY PUR.USER_NAME
+		) B ON B.USER_NAME = PGU.USER_NAME
+		WHERE 1 = 1
+		  <isNotEmpty prepend="AND" property="userName">
+			  PGU.USER_NAME LIKE '%'|| #userName# ||'%'
+		  </isNotEmpty> 
+		  <isNotEmpty prepend="AND" property="name">
+			  PGU.USER_CNAME LIKE '%'|| #name# ||'%'
+		  </isNotEmpty> 
+	</select>
+	
+	<!-- 根据主键查询GAMC用户 -->
+	<select id="select_queryGAMCUserByPk" parameterClass="java.lang.String" resultClass="UserVO">
+		SELECT PGU.USER_NAME AS userName, PGU.USER_CNAME AS name,
+		  PGU.DEPARTMENT_ID AS departmentId, PDD.CODE_VALUE_NAME AS departmentName,
+		  PGU.TEL AS tel, PGU.MOBILE AS mobile, PGU.EMAIL AS email, 
+		  PSU.STATUS AS userStatus, PSU.LOGIN_NUM AS loginNum,
+		  A.factoryList as factoryList
+		FROM MM_PUB_GAMC_USER PGU
+		LEFT OUTER JOIN MM_PUB_SYS_USER PSU ON PSU.USER_NAME = PGU.USER_NAME
+		LEFT OUTER JOIN MM_PUB_DATA_DICT PDD ON PDD.CODE_TYPE = 'DEPARTMENT_CODE' AND PDD.CODE_VALUE = PGU.DEPARTMENT_ID
+		LEFT OUTER JOIN (
+		 SELECT WMSYS.WM_CONCAT(PUF.FACTORY_CODE) AS factoryList, PUF.USER_NAME FROM MM_PUB_USER_FACTORY PUF GROUP BY PUF.USER_NAME
+		) A ON A.USER_NAME = PGU.USER_NAME
+		WHERE PGU.USER_NAME = #value#
+	</select>
+	
+	<!-- 新增系统用户 -->
+	<insert id="insert_sys_user" parameterClass="UserVO">
+		INSERT INTO MM_PUB_SYS_USER (USER_NAME, PWD, USER_CNAME, USER_TYPE, 
+		  STATUS, LOGIN_NUM, PWD_ERROR_NUM)VALUES(
+		  #userName#, #userPwd#, #name#, #userType#,
+		  #userStatus#, 0, 0
+		)
+	</insert>
+	
+	<!-- 新增GAMC用户 -->
+	<insert id="insert_gamc_user" parameterClass="UserVO">
+		INSERT INTO MM_PUB_GAMC_USER (
+		  USER_NAME, USER_CNAME, DEPARTMENT_ID, TEL,
+		  MOBILE, EMAIL, FAX, CREATE_USER, CREATE_TIME,
+		  LAST_MODIFY_USER, LAST_MODIFY_TIME
+		)VALUES( #userName#, #name#, #departmentId#, #tel#,
+		  #mobile#, #email#, #fax#, #entryId#, SYSDATE,
+		  #entryId#, SYSDATE )
+	</insert>
+	
+	<!-- 新增供应商(物流公司)用户 -->
+	<insert id="insert_supplier_user" parameterClass="UserVO">
+		INSERT INTO MM_PUB_SUPPLIER_USER (
+		  USER_NAME, USER_CNAME, SUP_ROLE_TYPE, COMPANY_NO, TEL,
+		  MOBILE, EMAIL, FAX, CREATE_USER, CREATE_TIME,
+		  LAST_MODIFY_USER, LAST_MODIFY_TIME
+		)VALUES( #userName#, #name#, #roleType#, #supplierNo#, #tel#,
+		  #mobile#, #email#, #fax#, #entryId#, SYSDATE,
+		  #entryId#, SYSDATE )
+	</insert>
+	
+	<!-- 新增用户角色信息 -->
+	<insert id="insert_insertUserRole" parameterClass="UserVO">
+		INSERT INTO MM_PUB_USER_ROLE (
+		  USER_NAME, ROLE_ID, CREATE_USER, CREATE_TIME
+		)VALUES( 
+		  #userName#, #roleId#, #entryId#, SYSDATE )
+	</insert>
+	
+	<!-- 新增用户工厂信息 -->
+	<insert id="insert_insertUserFactory" parameterClass="UserVO">
+		INSERT INTO MM_PUB_USER_FACTORY (
+		  USER_NAME, FACTORY_CODE, CREATE_USER, CREATE_TIME
+		)VALUES( 
+		  #userName#, #curLoginFactory#, #entryId#, SYSDATE )
+	</insert>
+	
+	<!-- 删除用户工厂信息 -->
+	<delete id="delete_deleteUserFactory" parameterClass="UserVO">
+		DELETE FROM MM_PUB_USER_FACTORY PUF
+		WHERE PUF.USER_NAME = #userName#
+	</delete>
+	
+	<!-- 更新系统用户信息 -->
+	<update id="update_sys_user"  parameterClass="UserVO" >
+		UPDATE MM_PUB_SYS_USER SET
+		  USER_CNAME = #name#,
+		  STATUS = #userStatus#
+		  <isNotEmpty prepend="," property="userPwd">
+			  PWD = #userPwd#
+		  </isNotEmpty>
+		WHERE USER_NAME = #userName#
+	</update>
+	<!-- 修改用户密码 -->
+	<update id="update_sys_userpwd"  parameterClass="UserVO" >
+		UPDATE MM_PUB_SYS_USER SET PWD = #userPwd#
+		WHERE USER_NAME = #userName#
+	</update>
+	
+	<!-- 更新GAMC用户信息 -->
+	<update id="update_update_gamc_user"  parameterClass="UserVO" >
+		UPDATE MM_PUB_GAMC_USER SET
+		  USER_CNAME = #name#,
+		  DEPARTMENT_ID = #departmentId#,
+		  TEL = #tel#,
+		  MOBILE = #mobile#,
+		  EMAIL = #email#,
+		  FAX = #fax#,
+		  LAST_MODIFY_USER = #modifyId#,
+		  LAST_MODIFY_TIME = SYSDATE
+		WHERE USER_NAME = #userName#
+	</update>
+	
+	<!-- 更新供应商用户信息 -->
+	<update id="update_update_supplier_user"  parameterClass="UserVO" >
+		UPDATE MM_PUB_SUPPLIER_USER SET
+		  USER_CNAME = #name#,
+		  TEL = #tel#,
+		  MOBILE = #mobile#,
+		  EMAIL = #email#,
+		  FAX = #fax#,
+		  LAST_MODIFY_USER = #modifyId#,
+		  LAST_MODIFY_TIME = SYSDATE
+		WHERE USER_NAME = #userName#
+	</update>
+	
+	<!-- 根据用户名查询工厂信息 -->
+	<select id="select_queryFactoryInfoByUserName" parameterClass="java.lang.String" resultClass="FactoryVO">
+		SELECT PUF.FACTORY_CODE AS factoryCode, PF.FACTORY_NAME AS factoryName
+		FROM MM_PUB_USER_FACTORY PUF 
+		  LEFT OUTER JOIN MM_PUB_FACTORY PF ON PF.FACTORY_CODE = PUF.FACTORY_CODE
+		WHERE PUF.USER_NAME = #value#
+	</select>
+	<!-- 查询所有工厂信息 -->
+	<select id="select_queryFactoryInfoByAll" parameterClass="java.lang.String" resultClass="FactoryVO">
+		SELECT PF.FACTORY_CODE AS factoryCode, PF.FACTORY_NAME AS factoryName
+		FROM MM_PUB_FACTORY PF
+	</select>
+	
+	
+	<!-- 删除用户角色信息 -->
+	<delete id="delete_userRole" parameterClass="UserVO">
+		DELETE FROM MM_PUB_USER_ROLE WHERE USER_NAME = #userName#
+	</delete>
+	
+	<!-- 删除GAMC用户  -->
+	<delete id="delete_gamc_user" parameterClass="UserVO">
+		DELETE FROM MM_PUB_GAMC_USER WHERE USER_NAME = #userName#
+	</delete>
+	
+	<!-- 删除用户工厂 -->
+	<delete id="delete_user_factory" parameterClass="UserVO">
+		DELETE FROM MM_PUB_USER_FACTORY WHERE USER_NAME = #userName#
+	</delete>
+	
+	<!-- 删除供应商用户 -->
+	<delete id="delete_supplier_user" parameterClass="UserVO">
+		DELETE FROM MM_PUB_SUPPLIER_USER WHERE USER_NAME = #userName#
+	</delete>
+	
+	<!-- 删除系统用户 -->
+	<delete id="delete_sys_user" parameterClass="UserVO">
+		DELETE FROM MM_PUB_SYS_USER WHERE USER_NAME = #userName#
+	</delete>
+	
+	<!-- 条件查询供应商用户信息(物流公司) -->
+	<select id="select_queryLogSupplierUserList" parameterClass="UserVO" resultClass="UserVO">
+		SELECT SU.USER_NAME AS userName, SU.USER_CNAME AS name, SU.SUP_ROLE_TYPE AS roleType,
+	      SU.COMPANY_NO AS supplierNo, PLC.COMPANY_NAME AS supplierName,
+	      SU.TEL AS tel, SU.MOBILE AS mobile, SU.EMAIL AS email, SU.FAX AS fax,
+	      PSU.STATUS AS userStatus, PSU.LOGIN_NUM AS loginNum,
+	      B.roleList as roleList
+	    FROM MM_PUB_SUPPLIER_USER SU
+	    LEFT OUTER JOIN MM_PUB_SYS_USER PSU ON PSU.USER_NAME = SU.USER_NAME
+	    LEFT OUTER JOIN MM_PUB_LOGISTICS_COMPANY PLC ON PLC.COMPANY_NO = SU.COMPANY_NO
+	    LEFT OUTER JOIN (
+	     SELECT WMSYS.WM_CONCAT(PUR.ROLE_ID) AS roleList, PUR.USER_NAME FROM MM_PUB_USER_ROLE PUR GROUP BY PUR.USER_NAME
+	    ) B ON B.USER_NAME = SU.USER_NAME
+		WHERE 1 = 1
+		  <isNotEmpty prepend="AND" property="roleType">
+			  SU.SUP_ROLE_TYPE = #roleType# 
+		  </isNotEmpty>
+		  <isNotEmpty prepend="AND" property="userName">
+			  SU.USER_NAME LIKE '%'|| #userName# ||'%'
+		  </isNotEmpty> 
+		  <isNotEmpty prepend="AND" property="name">
+			  SU.USER_CNAME LIKE '%'|| #name# ||'%'
+		  </isNotEmpty> 
+		  <isNotEmpty prepend="AND" property="supplierNo">
+			  SU.COMPANY_NO LIKE '%'|| #supplierNo# ||'%'
+		  </isNotEmpty> 
+	</select>
+	<!-- 条件查询供应商用户信息(供应商) -->
+	<select id="select_querySupSupplierUserList" parameterClass="UserVO" resultClass="UserVO">
+		SELECT SU.USER_NAME AS userName, SU.USER_CNAME AS name, SU.SUP_ROLE_TYPE AS roleType,
+	      SU.COMPANY_NO AS supplierNo, SUP.SUPPLIER_NAME AS supplierName,
+	      SU.TEL AS tel, SU.MOBILE AS mobile, SU.EMAIL AS email, SU.FAX AS fax,
+	      PSU.STATUS AS userStatus, PSU.LOGIN_NUM AS loginNum,
+	      B.roleList as roleList
+	    FROM MM_PUB_SUPPLIER_USER SU
+	    LEFT OUTER JOIN MM_PUB_SYS_USER PSU ON PSU.USER_NAME = SU.USER_NAME
+	    LEFT OUTER JOIN MM_SUPPLIER SUP ON SUP.SUPPLIER_NO = SU.COMPANY_NO
+	    LEFT OUTER JOIN (
+	     SELECT WMSYS.WM_CONCAT(PUR.ROLE_ID) AS roleList, PUR.USER_NAME FROM MM_PUB_USER_ROLE PUR GROUP BY PUR.USER_NAME
+	    ) B ON B.USER_NAME = SU.USER_NAME
+		WHERE 1 = 1
+		  <isNotEmpty prepend="AND" property="roleType">
+			  SU.SUP_ROLE_TYPE = #roleType# 
+		  </isNotEmpty>
+		  <isNotEmpty prepend="AND" property="userName">
+			  SU.USER_NAME LIKE '%'|| #userName# ||'%'
+		  </isNotEmpty> 
+		  <isNotEmpty prepend="AND" property="name">
+			  SU.USER_CNAME LIKE '%'|| #name# ||'%'
+		  </isNotEmpty> 
+		  <isNotEmpty prepend="AND" property="supplierNo">
+			  SU.COMPANY_NO LIKE '%'|| #supplierNo# ||'%'
+		  </isNotEmpty> 
+	</select>
+	
+	<!-- 根据公司代码查询物流公司信息 -->
+	<select id="select_queryLogCompanyByCompanyNo" parameterClass="java.lang.String" resultClass="LogCompanyVO">
+		SELECT PLC.PK_ID AS pkId, PLC.STATUS AS status, PLC.TYPE AS type,
+		  PLC.COMPANY_NO AS companyNo, PLC.COMPANY_NAME AS companyName,
+		  PLC.COMPANY_ADDR AS companyAddr, PLC.ERP_CONTACT_USER AS erpContactUser,
+		  PLC.ERP_TEL AS erpTel, PLC.ERP_MOBILE AS erpMobile,
+		  PLC.ERP_EMAIL AS erpEmail, PLC.ERP_FAX AS erpFax
+		FROM MM_PUB_LOGISTICS_COMPANY PLC
+		WHERE PLC.COMPANY_NO = #value#  
+	</select>
+	
+	<!-- 新增物流公司信息 -->
+	<insert id="insert_insertLogCompany" parameterClass="LogCompanyVO">
+		INSERT INTO MM_PUB_LOGISTICS_COMPANY (
+		  PK_ID, STATUS, COMPANY_NO, COMPANY_NAME, TYPE, 
+		  COMPANY_ADDR, ERP_CONTACT_USER, ERP_TEL, ERP_MOBILE, ERP_EMAIL,
+		  ERP_FAX, CREATE_USER, CREATE_TIME
+		)VALUES( 
+		  SEQ_PUB_LOG_COMPANY_ID.NEXTVAL, #status#, #companyNo#, #companyName#, #type#,
+		  #companyAddr#, #erpContactUser#, #erpTel#, #erpMobile#, #erpEmail#,
+		  #erpFax#, #entryId#, SYSDATE )
+	</insert>
+	
+	<!-- 条件查询物流公司信息 -->
+	<select id="select_queryLogCompanyForList" parameterClass="LogCompanyVO" resultClass="LogCompanyVO">
+		SELECT PLC.PK_ID AS pkId, PLC.STATUS AS status, PLC.TYPE AS type,
+		  PLC.COMPANY_NO AS companyNo, PLC.COMPANY_NAME AS companyName,
+		  PLC.COMPANY_ADDR AS companyAddr, PLC.ERP_CONTACT_USER AS erpContactUser,
+		  PLC.ERP_TEL AS erpTel, PLC.ERP_MOBILE AS erpMobile,
+		  PLC.ERP_EMAIL AS erpEmail, PLC.ERP_FAX AS erpFax
+		FROM MM_PUB_LOGISTICS_COMPANY PLC
+		WHERE 1 =1 
+		<isNotEmpty prepend="AND" property="companyNo">
+			  PLC.COMPANY_NO LIKE '%'|| #companyNo# ||'%'
+		</isNotEmpty> 
+		<isNotEmpty prepend="AND" property="companyName">
+			  PLC.COMPANY_NAME LIKE '%'|| #companyName# ||'%'
+		</isNotEmpty> 
+		<isNotEmpty prepend="AND" property="status">
+			  PLC.STATUS = #status#
+		</isNotEmpty> 
+		<isNotEmpty prepend="AND" property="type">
+			  PLC.TYPE = #type#
+		</isNotEmpty> 
+	</select>
+	
+	<!-- 修改物流公司信息 -->
+	<update id="update_updateLogCompany"  parameterClass="LogCompanyVO" >
+		UPDATE MM_PUB_LOGISTICS_COMPANY SET
+		  COMPANY_NAME = #companyName#,
+		  COMPANY_ADDR = #companyAddr#,
+		  TYPE = #type#,
+		  STATUS = #status#,
+		  ERP_CONTACT_USER = #erpContactUser#,
+		  ERP_TEL = #erpTel#,
+		  ERP_MOBILE = #erpMobile#,
+		  ERP_EMAIL = #erpEmail#,
+		  ERP_FAX = #erpFax#,
+		  LAST_MODIFY_USER = #modifyId#,
+		  LAST_MODIFY_TIME = SYSDATE
+		WHERE PK_ID = #pkId#
+	</update>
+	
+	<!-- 删除物流公司信息 -->
+	<delete id="delete_deleteLogCompany" parameterClass="LogCompanyVO">
+		DELETE FROM MM_PUB_LOGISTICS_COMPANY WHERE PK_ID = #pkId#
+	</delete>
+	
+	<!-- 查询物流公司已配置的供应商信息 -->
+	<select id="select_queryLogConfigSupplierForPage" parameterClass="java.lang.String" resultClass="LogCompanyVO">
+		SELECT LS.SUPPLIER_NO AS supplierNo, LS.COMPANY_NO AS companyNo, SUP.SUPPLIER_NAME AS supplierName
+		FROM MM_PUB_LOG_SUPPLIER LS
+		  LEFT OUTER JOIN MM_SUPPLIER SUP ON SUP.SUPPLIER_NO = LS.SUPPLIER_NO
+		WHERE LS.COMPANY_NO = #value#
+		ORDER BY LS.SUPPLIER_NO
+	</select>
+	
+	<!-- 查询物流公司未配置的供应商信息 -->
+	<select id="select_queryLogNotConfigSupplierForPage" parameterClass="LogCompanyVO" resultClass="LogCompanyVO">
+		SELECT SUP.SUPPLIER_NO AS supplierNo, SUP.SUPPLIER_NAME AS supplierName
+		FROM MM_SUPPLIER SUP 
+		WHERE NOT EXISTS (SELECT 1 FROM MM_PUB_LOG_SUPPLIER LS 
+		  WHERE LS.SUPPLIER_NO = SUP.SUPPLIER_NO
+		  AND LS.COMPANY_NO = #companyNo# ) 
+		  <isNotEmpty prepend="AND" property="supplierNo">
+			  SUP.SUPPLIER_NO LIKE '%' || #supplierNo# || '%'
+		  </isNotEmpty> 
+		ORDER BY SUP.SUPPLIER_NO
+	</select>
+	
+	<!-- 新增物流公司的配置供应商 -->
+	<insert id="insert_addLogCompanyConfigSupplier"  parameterClass="LogCompanyVO">
+		INSERT INTO MM_PUB_LOG_SUPPLIER (
+		  COMPANY_NO, SUPPLIER_NO, CREATE_TIME, CREATE_USER
+		)VALUES( 
+		  #companyNo#, #supplierNo#, SYSDATE, #entryId# )
+	</insert>
+	
+	<!-- 删除物流公司的配置供应商 -->
+	<delete id="delete_deleteLogConfigSupplier" parameterClass="LogCompanyVO">
+		DELETE FROM MM_PUB_LOG_SUPPLIER 
+		WHERE COMPANY_NO = #companyNo# AND SUPPLIER_NO = #supplierNo#
+	</delete>
+	
+	
+	
+	<!-- **************************************************************** -->
+	<!-- 角色查询 --> 
+	<select id="select_role" parameterClass="RoleVO" resultClass="RoleVO">
+  select R.PK_ROLE_ID       roleId,
+       R.ROLE_NAME        roleName,
+       R.ROLE_DESCRIPTION roleDesc,
+       R.ROLE_TYPE roleType,
+       R.DEPARTMENT_ID departmentId,
+       PDD.Code_Value_Name departmentName,
+       R.STATUS roleStatus
+  from MM_PUB_ROLE R
+  LEFT OUTER JOIN MM_PUB_DATA_DICT PDD ON PDD.CODE_TYPE = 'DEPARTMENT_CODE' AND PDD.CODE_VALUE = R.DEPARTMENT_ID
+  where 1=1
+  <isNotEmpty property="roleId" prepend="and">
+  		pk_role_id = #roleId#
+  </isNotEmpty>
+  <isNotEmpty property="departmentId" prepend="and">
+  		department_id = #departmentId#
+  </isNotEmpty>
+  <isNotEmpty property="roleType" prepend="and">
+  		role_type = #roleType#
+  </isNotEmpty>
+ </select>
+	
+<!--根据角色ID,检索操作权限树-->
+ <select id="select_operPrivileges_by_roleId" parameterClass="java.lang.String" resultMap="RolePrivTreeResult">
+   select c.*, decode(d.rpivileges_code, null, 0, 1) checked
+  from (select LEVEL             "level",
+               m.menu_name       menuName,
+               m.menu_code       privilegeCode,
+               nvl(m.parent_code,'0')     parentCode,
+               CONNECT_BY_ROOT   M.MENU_CODE "root",
+               CONNECT_BY_ISLEAF "isLeaf"
+          from (select a.module_name menu_name,
+                       a.module_code menu_code,
+                       a.parent_code
+                  from mm_pub_module a
+                union
+                select b.privileges_desc,
+                       b.privileges_code menu_code,
+                       b.parent_code
+                  from mm_pub_privileges b) m
+         start with m.parent_code is null
+        connect by nocycle prior m.menu_code = m.parent_code) c
+  left join (select * from mm_pub_role_privileges where role_id =#value#) d
+    on c.privilegeCode = d.rpivileges_code
+
+    
+ </select>	
+	
+<!-- 新增角色--> 
+ <insert id="insert_role">
+	insert into mm_pub_role
+  (pk_role_id,
+   role_name,
+   role_description,
+   role_type,
+   department_id,
+   sort,
+   status,
+   create_user,
+   create_time,
+   last_modify_user,
+   last_modify_time)
+values
+  (#roleId#, #roleName#, #roleDesc#, #roleType#,#departmentId#,#roleId#,'1', #createUser#, sysdate, #createUser#, sysdate)
+ </insert>	
+
+<!-- 查询角色是否在使用 -->	
+<select id="select_in_use_roleId" parameterClass="RoleVO" resultClass="RoleVO">
+	select distinct ur.role_id from mm_pub_user_role ur where ur.role_id =#roleId#
+</select>
+
+<!-- 更新角色-->
+<update id="update_role" parameterClass="RoleVO">
+    update mm_pub_role
+    SET
+      last_modify_user=#createUser#
+     ,last_modify_time=sysdate
+     <dynamic>
+       <isNotNull  property="roleName">
+            ,role_name=#roleName#
+        </isNotNull>
+        <isNotNull  property="roleDesc">
+            ,role_description=#roleDesc#
+        </isNotNull>
+        <isNotNull  property="departmentId">
+            ,department_Id=#departmentId#
+        </isNotNull>
+        <isNotNull  property="roleStatus">
+            ,status=#roleStatus#
+        </isNotNull>
+        <isNotNull  property="roleType">
+            ,role_type=#roleType#
+        </isNotNull>
+    </dynamic>
+    WHERE pk_role_id = #roleId#
+</update>
+
+<!-- 删除原有权限 -->
+<delete id="delete_oldPrivilege" parameterClass="java.lang.String">
+    delete from MM_PUB_ROLE_PRIVILEGES where role_id=#value#
+</delete>
+
+<!-- 增加新权限 -->
+<insert id="insert_newPrivilege" parameterClass="RolePrivilegeVO">
+    insert into MM_PUB_ROLE_PRIVILEGES(role_id,rpivileges_code,rpivileges_type) 
+    VALUES (#roleId#,#privilegeId#,#privilegeType#)  
+</insert>		
+	
+   <!-- 查询工厂信息 -->
+   <select id="select_factory" resultClass="factoryVO">
+       select pf.factory_code factoryCode,
+       pf.factory_name factoryName,
+       pf.factory_addr factoryAddr
+  from mm_pub_factory pf
+  order by pf.factory_code asc
+   </select>
+   
+    <!-- 查询工厂用户信息 -->
+   <select id="select_userFactory" parameterClass="factoryVO" resultClass="factoryVO">
+		     select uf.user_name        userName,
+		       uf.factory_code     factoryCode,
+		       gu.user_cname       userCName,
+		       PDD.CODE_VALUE_NAME departmentName
+		  from mm_pub_user_factory uf
+		  left join mm_pub_gamc_user gu
+		    on uf.user_name = gu.user_name
+		  LEFT OUTER JOIN MM_PUB_DATA_DICT PDD
+		    ON PDD.CODE_TYPE = 'DEPARTMENT_CODE'
+		   AND PDD.CODE_VALUE = GU.DEPARTMENT_ID
+          where uf.factory_code = #factoryCode#
+          <isNotEmpty property="userName" prepend="and">
+		        gu.user_name like '%' || #userName# || '%'
+		      </isNotEmpty>
+		      <isNotEmpty property="userCName" prepend="and">
+		        gu.user_cname like '%' || #userCName# || '%'
+      		</isNotEmpty>
+          order by uf.user_name
+
+   </select>
+   
+     <!-- 查询不在该工厂用户信息 -->
+   <select id="select_userFactory0" parameterClass="factoryVO" resultClass="factoryVO">
+      select gu.user_name userName, null factoryCode, gu.user_cname userCName,PDD.CODE_VALUE_NAME departmentName
+   from mm_pub_gamc_user gu
+    LEFT OUTER JOIN MM_PUB_DATA_DICT PDD
+		    ON PDD.CODE_TYPE = 'DEPARTMENT_CODE'
+		   AND PDD.CODE_VALUE = gu.DEPARTMENT_ID
+  where gu.user_name not in
+        (select uf.user_name
+           from mm_pub_user_factory uf
+          where uf.factory_code = #factoryCode#)
+      <isNotEmpty property="userName" prepend="and">
+        gu.user_name like  '%'|| #userName#||'%' or gu.user_cname like  '%'|| #userName# || '%'
+      </isNotEmpty>
+   order by gu.user_name
+
+    
+   </select>
+   
+   <!-- 新增工厂信息 -->
+   <insert id="insert_factory" >
+       insert into mm_pub_factory(factory_code,factory_name,factory_addr)
+       values(#factoryCode#,#factoryName#,#factoryAddr#)
+   </insert>
+   
+   <!-- 新增用户工厂关系 -->
+   <insert id="insert_userFactory">
+       insert into MM_PUB_USER_FACTORY(user_name,factory_code,create_user,create_time)
+       values (#userName#,#factoryCode#,#opeName#,sysdate)
+   </insert>
+   
+   <!-- 删除用户工厂关系 -->
+   <delete id="delete_userFactory">
+       delete from MM_PUB_USER_FACTORY where factory_code =#factoryCode# and user_name=#userName#
+   </delete>
+   
+   <!-- 更新工厂信息 -->
+   <update id="update_factory" parameterClass="factoryVO">
+       update MM_PUB_FACTORY set factory_name=#factoryName#,factory_addr=#factoryAddr# where factory_code=#factoryCode#
+   </update>
+	
+	<!-- 查询用户信息 -->
+   <select id="select_userInfo" parameterClass="UserVO" resultClass="UserVO">
+       select gu.user_name userName,
+              gu.user_cname name, 
+              dep.department_name departmentName
+  from mm_pub_gamc_user gu
+  left join (select t.code_value      department_id,
+                    t.code_value_name department_name
+               from mm_pub_data_dict t
+              where code_type = 'DEPARTMENT_CODE') dep
+    on dep.department_id = gu.department_id
+ where 1 = 1
+   <isNotEmpty prepend="and" property="userName">
+       gu.user_name like '%'||#userName#||'%'
+   </isNotEmpty>
+   <isNotEmpty prepend="and" property="userCName">
+       gu.USER_CNAME like '%'||#userCName#||'%'
+   </isNotEmpty>
+   		
+   </select>
+   
+   <!-- 查询供应商信息 -->
+   <select id="select_supplyInfoDelete" parameterClass="UserVO" resultClass="UserVO">
+	       select us.user_name     userName,
+         su.supplier_no     supplierNo,
+         su.supplier_name    supplierName
+    from mm_pub_user_supplier us
+    left join mm_supplier su
+      on su.supplier_no = us.supplier_no
+   where us.user_name = #userName#
+     <isNotEmpty prepend="and" property="supplierNo">
+         su.supplier_no like  '%'||#supplierNo#||'%'
+     </isNotEmpty>
+     <isNotEmpty prepend="and" property="supplierName">
+         su.supplier_name like '%' || #supplierName# ||'%'
+     </isNotEmpty>
+     order by su.supplier_no
+   </select>
+   
+   <!-- 查询供应商信息 -->
+   <select id="select_supplyInfoAdd" parameterClass="UserVO" resultClass="UserVO">
+	       select su.supplier_no supplierNo, 
+            su.supplier_name supplierName
+       from mm_supplier su
+      where su.supplier_no not in
+            (select pus.supplier_no
+               from mm_pub_user_supplier pus
+              where pus.user_name = #userName#)
+	   <isNotEmpty prepend="and" property="supplierNo">
+	       su.supplier_no like '%'||#supplierNo#||'%' or su.supplier_name like '%'||#supplierNo#||'%'
+	   </isNotEmpty>
+	   order by su.supplier_no
+   </select>
+	
+	<delete id="deleteUserSup">
+		delete from mm_pub_user_supplier pus where pus.user_name=#userName# and pus.supplier_no=#supplierNo#
+	</delete>
+	
+	<insert id="insertUserSup">
+    	insert into mm_pub_user_supplier(user_name,supplier_no,create_time,create_user) 
+    	values(#userName#,#supplierNo#,sysdate,#opeUser#)	
+	</insert>
+	
+	
+
+<!-- ********************************数据字典相关SQL START***************************************** -->	
+	<!-- 查询数据字典 -->
+	<select id="select_queryDataDict" parameterClass="DataDictVO" resultClass="DataDictVO">
+		select distinct CODE_TYPE AS codeType, CODE_TYPE_NAME AS codeTypeName
+  from MM_PUB_DATA_DICT
+      WHERE 1 = 1
+		  <isNotEmpty prepend="AND" property="codeTypeName">
+			  CODE_TYPE_NAME LIKE '%'|| #codeTypeName# ||'%'
+		  </isNotEmpty> 
+		  <isNotEmpty prepend="AND" property="codeType">
+			  CODE_TYPE LIKE '%'|| #codeType# ||'%'
+		  </isNotEmpty> 
+		  ORDER BY CODE_TYPE
+	</select>
+	
+	<!-- 根据codeType查询数据字典信息 -->
+	<select id="select_queryDictMapByCodeTypeForList" parameterClass="java.lang.String" resultClass="DataDictVO">
+		SELECT CODE_TYPE AS codeType,
+		       CODE_TYPE_NAME AS codeTypeName,
+		       CODE_VALUE AS codeValue,
+		       CODE_VALUE_NAME AS codeValueName
+		 FROM MM_PUB_DATA_DICT
+		 WHERE CODE_TYPE = #value#
+		 ORDER BY SORT_NO
+	</select>
+    
+     <!-- 查询数据字典值-->	    
+       <select id="select_ValueForPage" parameterClass="java.lang.String" resultClass="DataDictVO">
+	  SELECT PK_ID AS pkId,
+	     CODE_TYPE AS codeType,
+		 CODE_TYPE_NAME AS codeTypeName,
+         OTHER_CODE_VALUE AS otherCodeValue,
+         REMARK AS remark,
+         SORT_NO sortNo,
+         IS_EDIT AS isEdit,
+		 CODE_VALUE AS codeValue,
+		 CODE_VALUE_NAME AS codeValueName
+		 FROM MM_PUB_DATA_DICT
+		 WHERE CODE_TYPE = #value#
+		 ORDER BY SORT_NO
+	   </select>
+	   
+    <!-- 删除数据字典 -->
+	<delete id="delete_deleteDataDict" parameterClass="DataDictVO">
+		DELETE FROM MM_PUB_DATA_DICT WHERE PK_ID = #pkId#
+	</delete>
+	
+	  
+          <!-- 删除数据字典 -->
+	<delete id="delete_deleteValue1" parameterClass="DataDictVO">
+		DELETE MM_PUB_DATA_DICT
+		WHERE CODE_TYPE = #codeType# AND CODE_VALUE = #codeValue#
+	</delete>
+	
+	<!-- 新增数据字典 -->
+   <insert id="insert-insertDataDict" parameterClass="DataDictVO">
+       INSERT INTO MM_PUB_DATA_DICT(PK_ID,CODE_TYPE,CODE_TYPE_NAME,CODE_VALUE,CODE_VALUE_NAME,
+         OTHER_CODE_VALUE, REMARK,
+         SORT_NO,IS_EDIT)
+       values (SEQ_PUB_DATA_DICT_PKID.NEXTVAL,#codeType#,#codeTypeName#,#codeValue#,#codeValueName#, 
+         #otherCodeValue#, #remark#,
+         #sortNo#,#isEdit#)
+   </insert>
+   
+    <!-- 新增值 -->
+   <insert id="insert_addValue" parameterClass="DataDictVO">
+       INSERT INTO MM_PUB_DATA_DICT(PK_ID,CODE_TYPE,CODE_VALUE,CODE_VALUE_NAME,SORT_NO,IS_EDIT)
+       values (SEQ_PUB_DATA_DICT_PKID.NEXTVAL,#codeType#,#codeValue#,#codeValueName#, #sortNo#,#isEdit#)
+   </insert>
+    
+    <!--修改数据字典 -->
+	
+	<update id="update-updateDataDict" parameterClass="DataDictVO">
+     update MM_PUB_DATA_DICT  SET
+      CODE_TYPE = #codeType#,
+      CODE_TYPE_NAME = #codeTypeName#,
+      CODE_VALUE = #codeValue#,
+      CODE_VALUE_NAME = #codeValueName#,
+      SORT_NO  = #sortNo#,
+      IS_EDIT  = #isEdit#
+      
+     <dynamic>
+        <isNotNull  property="remark">
+        ,REMARK = #remark#
+        </isNotNull>
+        <isNotNull  property="codeValueName">
+        ,OTHER_CODE_VALUE = #otherCodeValue#
+        </isNotNull>
+    </dynamic>
+    WHERE   PK_ID = #pkId#
+</update>
+<!-- ********************************数据字典相关SQL END***************************************** -->
+
+
+<!-- ********************************系统参数相关SQL START***************************************** -->
+	<!-- 根据参数类型查询系统参数值 -->
+	<select id="select_queryPubSysParamByCode" parameterClass="java.lang.String" resultClass="java.lang.String">
+		SELECT PARAM_VAL FROM MM_PUB_SYS_PARAM WHERE PARAM_CODE = #value#
+	</select>
+
+	<!-- 查询系统参数 -->
+	<select id="select_querySysParam" parameterClass="SystemParamVO" resultClass="SystemParamVO">
+		SELECT PARAM_CODE AS paramCode,
+		       PARAM_GROUP AS paramGroup,
+		       PARAM_NAME AS paramName,
+		       PARAM_VAL AS paramVal,
+		       IS_EDIT AS isEdit,
+		       PARAM_TYPE AS paramType,
+		       NOTE AS note,
+		       LAST_UPDATE_USERNAME AS lastUpdateUserName,
+		       LAST_UPDATE_TIME AS lastUpdateTime,
+		       CREATE_TIME AS createTime,
+		       UDA_1 AS uda1,
+		       UDA_2 AS uda2
+		  FROM MM_PUB_SYS_PARAM
+	</select>
+	
+<!-- 修改系统参数 值-->	
+	   <update id="update_updateSysUpdate" parameterClass="SystemParamVO">
+				   UPDATE MM_PUB_SYS_PARAM SET
+					      
+					      PARAM_VAL = #paramVal#
+					      
+					WHERE PARAM_CODE = #paramCode#
+       </update>
+<!-- ********************************系统参数相关SQL END***************************************** -->  
+
+<!-- ********************************供应商分组相关SQL START***************************************** -->
+	<!-- 查询供应商分组信息-->	    
+       <select id="select_SupplierGroupForPage" parameterClass="SuppGroupVO" resultClass="SuppGroupVO">
+		 SELECT GROUP_NAME AS groupName,
+		        GROUP_ID AS groupId
+
+		 FROM  MM_SW_SUPPLIER_GROUP 
+		 WHERE 1 = 1
+		  <isNotEmpty prepend="AND" property="groupName">
+			  GROUP_NAME LIKE '%'|| #groupName# ||'%'
+		  </isNotEmpty>  
+	</select>
+       
+       
+     <!-- 新增供应商分组信息-->	
+	   <insert id="insert_insertSuppGroup" parameterClass="SuppGroupVO">
+	   INSERT  INTO MM_SW_SUPPLIER_GROUP(GROUP_ID,GROUP_NAME)
+       values (SEQ_MM_SW_SUPPLIER_GROUP.NEXTVAL,#groupName#)
+       </insert>
+       
+       
+       <!-- 修改供应商分组-->	
+	   <update id="update_updateSuppGroup" parameterClass="SuppGroupVO">
+				   UPDATE MM_SW_SUPPLIER_GROUP SET
+					      
+					      GROUP_NAME = #groupName#
+					      
+					WHERE GROUP_ID = #groupId#
+       </update>
+       
+        <!-- 删除供应商 -->
+	<delete id="delete_deleteSuppGroup" parameterClass="SuppGroupVO">
+		DELETE FROM MM_SW_SUPPLIER_GROUP WHERE GROUP_ID = #groupId#
+	</delete>
+       
+       
+       <!-- 查询供应商信息-->	    
+       <select id="select_SupplierForPage" parameterClass="java.lang.String" resultClass="SuppGroupVO">
+		 SELECT s.SUPPLIER_NO AS supplierNo,
+		        s.SUPPLIER_NAME AS supplierName
+         FROM MM_SUPPLIER s left join mm_sw_supp_group_members gm on s.supplier_no=gm.supplier_no
+                                             join mm_sw_supplier_group sg on sg.group_id = gm.group_id
+		WHERE sg.GROUP_ID = #value#
+	   </select>
+	   
+	   
+	     <!-- 查询未配置供应商信息-->	    
+       <select id="select_queryNotSupplierForPage" parameterClass="SuppGroupVO" resultClass="SuppGroupVO">
+		SELECT s.SUPPLIER_NO AS supplierNo, s.SUPPLIER_NAME AS supplierName
+		FROM MM_SUPPLIER S 
+		WHERE NOT EXISTS (SELECT 1 FROM MM_SW_SUPPLIER_group sg,mm_sw_supp_group_members gm
+		  WHERE s.SUPPLIER_NO = gm.SUPPLIER_NO AND sg.GROUP_ID =#groupId# )
+		  <isNotEmpty prepend="AND" property="supplierNo">
+			  s.SUPPLIER_NO LIKE '%' || #supplierNo# || '%'
+		  </isNotEmpty> 
+		ORDER BY s.SUPPLIER_NO
+	   </select>
+	   
+	   
+       <!-- 新增配置供应商 -->
+	<insert id="insert_addConfigSupplier"  parameterClass="SuppGroupVO">
+		INSERT INTO MM_SW_SUPP_GROUP_MEMBERS (
+		  GROUP_ID, SUPPLIER_NO, CREATE_USER, CREATE_TIME
+		)VALUES( 
+		  #groupId#, #supplierNo#, #createUser#,SYSDATE)
+	</insert>
+       
+          <!-- 删除配置供应商 -->
+	<delete id="delete_deleteConfigSupplier" parameterClass="SuppGroupVO">
+		DELETE mm_sw_supp_group_members
+		WHERE GROUP_ID = #groupId# AND SUPPLIER_NO = #supplierNo#
+	</delete>
+<!-- ********************************供应商分组相关SQL END***************************************** -->      
+       
+   <!-- ********************************公告信息管理相关SQL START***************************************** -->
+   <!-- 查询首页公告信息(GAMC) -->
+   <select id="select_queryHomePageMessageListGamc" parameterClass="SysMessageInfoVO" resultClass="SysMessageInfoVO">
+		SELECT MI.INFO_ID AS infoId, MI.FACTORY AS factory, MI.INFO_TITLE AS infoTitle,
+		  MI.INFO_DETAILS AS infoDetails, MI.FILE_NAME AS fileName, MI.FILE_PATH AS filePath,
+		  MI.PUBLISH_USER AS publishUser, TO_CHAR(MI.PUBLISH_TIME, 'YYYY-MM-DD') AS publistDateStr,
+		  TO_CHAR(MI.START_DATE, 'YYYY-MM-DD') AS startDateStr, TO_CHAR(MI.END_DATE, 'YYYY-MM-DD') AS endDateStr,
+		  PSU.USER_CNAME AS publishUserCName,
+		  CASE WHEN MI.FILE_PATH IS NULL THEN '0'
+		    ELSE '1' END AS isFile,
+		  '0' AS isSupplier
+		FROM MM_SW_MESSAGE_INFO MI
+		LEFT OUTER JOIN MM_PUB_SYS_USER PSU ON PSU.USER_NAME = MI.PUBLISH_USER
+		WHERE 1 = 1
+		  AND TRUNC(SYSDATE) BETWEEN TRUNC(MI.START_DATE) AND TRUNC(MI.END_DATE)
+		ORDER BY MI.PUBLISH_TIME DESC
+	</select>
+   
+   <!-- 查询首页公告信息(供应商) -->
+   <select id="select_queryHomePageMessageListSup" parameterClass="SysMessageInfoVO" resultClass="SysMessageInfoVO">
+		SELECT A.*, 
+		  NVL(MSV.VIEW_STATUS, '0') AS viewStatus,
+		  CASE WHEN filePath IS NULL THEN '0'
+		    ELSE '1' END AS isFile,
+		  '1' AS isSupplier
+		FROM (
+		SELECT MI.INFO_ID AS infoId, MI.FACTORY AS factory, MI.INFO_TITLE AS infoTitle,
+		  MI.INFO_DETAILS AS infoDetails, MI.FILE_NAME AS fileName, MI.FILE_PATH AS filePath,
+		  MI.PUBLISH_USER AS publishUser, TO_CHAR(MI.PUBLISH_TIME, 'YYYY-MM-DD') AS publistDateStr,
+		  TO_CHAR(MI.START_DATE, 'YYYY-MM-DD') AS startDateStr, TO_CHAR(MI.END_DATE, 'YYYY-MM-DD') AS endDateStr,
+		  PSU.USER_CNAME AS publishUserCName
+		FROM MM_SW_MESSAGE_INFO MI
+		LEFT OUTER JOIN MM_PUB_SYS_USER PSU ON PSU.USER_NAME = MI.PUBLISH_USER
+		WHERE 1 = 1
+		  AND TRUNC(SYSDATE) BETWEEN TRUNC(MI.START_DATE) AND TRUNC(MI.END_DATE)
+		  AND EXISTS (SELECT 1 FROM (
+		    SELECT DISTINCT INFO_ID
+		    FROM MM_SW_MESSAGE_SUPGROUPID SMS
+		    WHERE SMS.GROUP_ID IN (
+		      SELECT DISTINCT GROUP_ID
+		      FROM MM_SW_SUPP_GROUP_MEMBERS SUGM
+		      WHERE SUGM.SUPPLIER_NO = #loginSupplierNo#
+		    )
+		  ) A WHERE A.INFO_ID = MI.INFO_ID )
+		) A LEFT OUTER JOIN MM_SW_MESSAGE_SUPPLIER_VIEW MSV 
+		     ON MSV.INFO_ID = A.infoId AND MSV.SUPPLIER_NO = #loginSupplierNo#
+		ORDER BY publistDateStr DESC
+	</select>
+   
+   <!-- 查询公告信息(公告信息管理) -->
+   	<select id="select_querySystemMessageInfo" parameterClass="SysMessageInfoVO" resultClass="SysMessageInfoVO">
+		SELECT MI.INFO_ID AS infoId, MI.FACTORY AS factory, MI.INFO_TITLE AS infoTitle,
+		  MI.INFO_DETAILS AS infoDetails, MI.FILE_NAME AS fileName, MI.FILE_PATH AS filePath,
+		  MI.PUBLISH_USER AS publishUser, TO_CHAR(MI.PUBLISH_TIME, 'YYYY-MM-DD') AS publistDateStr,
+		  TO_CHAR(MI.START_DATE, 'YYYY-MM-DD') AS startDateStr, TO_CHAR(MI.END_DATE, 'YYYY-MM-DD') AS endDateStr,
+		  PSU.USER_CNAME AS publishUserCName,
+		  B.GROUPIDS AS supGroupIdList,
+		  CASE WHEN TRUNC(MI.START_DATE) &lt;= TRUNC(SYSDATE) AND TRUNC(MI.END_DATE) &gt;= TRUNC(SYSDATE)
+		    THEN '1'
+		  ELSE '0' END AS effStatus
+		FROM MM_SW_MESSAGE_INFO MI
+		LEFT OUTER JOIN MM_PUB_SYS_USER PSU ON PSU.USER_NAME = MI.PUBLISH_USER
+		LEFT OUTER JOIN (
+		 SELECT WMSYS.WM_CONCAT(GROUP_ID) AS GROUPIDS, INFO_ID FROM MM_SW_MESSAGE_SUPGROUPID GROUP BY INFO_ID
+		) B ON B.INFO_ID = MI.INFO_ID
+		  WHERE 1 = 1
+		    <isNotEmpty prepend="AND" property="infoTitle">
+			  MI.INFO_TITLE LIKE '%'|| #infoTitle# ||'%'
+		    </isNotEmpty>
+		    <isNotEmpty prepend="AND" property="queryDateStartStr">
+			  MI.PUBLISH_TIME &gt;= TO_DATE(#queryDateStartStr#,'YYYY-MM-DD')
+		    </isNotEmpty>
+		    <isNotEmpty prepend="AND" property="queryDateEndStr">
+			  MI.PUBLISH_TIME &lt; TO_DATE(#queryDateEndStr#,'YYYY-MM-DD')+1
+		    </isNotEmpty> 
+		ORDER BY MI.PUBLISH_TIME DESC
+	</select>
+	
+	<!-- 新增公告信息 -->
+	<insert id="insert_insertSysMessageInfo" parameterClass="SysMessageInfoVO">
+       INSERT INTO MM_SW_MESSAGE_INFO( INFO_ID,
+         FACTORY, INFO_TITLE, INFO_DETAILS, FILE_NAME, FILE_PATH, 
+         PUBLISH_USER, PUBLISH_TIME, START_DATE, END_DATE, 
+         CREATE_USER, CREATE_TIME)
+       values (#infoId#,
+         #factory#,#infoTitle#,#infoDetails#,#fileName#,#filePath#,
+         #publishUser#,SYSDATE,TO_DATE(#startDateStr#, 'YYYY-MM-DD'), TO_DATE(#endDateStr#, 'YYYY-MM-DD'),
+         #createUser#, SYSDATE)
+    </insert>
+    
+    <!-- 新增公告供应商组关系 -->
+    <insert id="insert_insertMessageInfoSupGroupId" parameterClass="SuppGroupVO">
+       INSERT INTO MM_SW_MESSAGE_SUPGROUPID( INFO_ID, GROUP_ID )
+       values (#infoId#, #groupId#)
+    </insert>
+    
+    <!-- 根据公告ID查询公告信息 -->
+    <select id="select_queryMessageInfoByInfoId" parameterClass="java.lang.String" resultClass="SysMessageInfoVO">
+		SELECT MI.INFO_ID AS infoId, MI.FACTORY AS factory, MI.INFO_TITLE AS infoTitle,
+		  MI.INFO_DETAILS AS infoDetails, MI.FILE_NAME AS fileName, MI.FILE_PATH AS filePath,
+		  MI.PUBLISH_USER AS publishUser, TO_CHAR(MI.PUBLISH_TIME, 'YYYY-MM-DD') AS publistDateStr,
+		  TO_CHAR(MI.START_DATE, 'YYYY-MM-DD') AS startDateStr, TO_CHAR(MI.END_DATE, 'YYYY-MM-DD') AS endDateStr,
+		  PSU.USER_CNAME AS publishUserCName,
+		  CASE WHEN TRUNC(MI.START_DATE) &lt;= TRUNC(SYSDATE) AND TRUNC(MI.END_DATE) &gt;= TRUNC(SYSDATE)
+		    THEN '1'
+		  ELSE '0' END AS effStatus
+		FROM MM_SW_MESSAGE_INFO MI
+		LEFT OUTER JOIN MM_PUB_SYS_USER PSU ON PSU.USER_NAME = MI.PUBLISH_USER
+		WHERE MI.INFO_ID = #value#
+	</select>
+	
+	<!-- 根据公告ID删除该公告的供应商组信息 -->
+	<delete id="delete_deleteMessageInfoSupGroupIdByInfoId" parameterClass="java.lang.String">
+		DELETE FROM MM_SW_MESSAGE_SUPGROUPID WHERE INFO_ID = #value#
+	</delete>
+	
+	<!-- 修改公告信息 -->
+	<update id="update_updateMessageInfo" parameterClass="SysMessageInfoVO">
+		UPDATE MM_SW_MESSAGE_INFO SET
+			INFO_TITLE = #infoTitle#,
+			INFO_DETAILS = #infoDetails#,
+			<isNotEmpty prepend="" property="fileName">
+			  FILE_NAME = #fileName#, 
+		    </isNotEmpty> 
+		    <isNotEmpty prepend="" property="filePath">
+			  FILE_PATH = #filePath#, 
+		    </isNotEmpty> 
+         	START_DATE = TO_DATE(#startDateStr#, 'YYYY-MM-DD'), 
+         	END_DATE = TO_DATE(#endDateStr#, 'YYYY-MM-DD'), 
+            LAST_MODIFY_USER = #lastModifyUser#, 
+            LAST_MODIFY_TIME = SYSDATE
+		WHERE INFO_ID = #infoId#
+    </update>
+    
+    <!-- 删除公告信息 -->
+    <delete id="delete_deleteMessageInfo" parameterClass="SysMessageInfoVO">
+		DELETE FROM MM_SW_MESSAGE_INFO WHERE INFO_ID = #infoId#
+	</delete>
+	
+	<!-- 更新供应商公告信息查看状态 -->
+	<insert id="update_updateSupplierMgsInfoViewStatus" parameterClass="SysMessageInfoVO">
+	   	MERGE INTO MM_SW_MESSAGE_SUPPLIER_VIEW a
+	   	  USING (
+          SELECT #infoId# AS INFO_ID, #loginSupplierNo# AS SUPPLIER_NO FROM DUAL
+	   	  ) b ON ( a.INFO_ID = b.INFO_ID AND a.SUPPLIER_NO = b.SUPPLIER_NO )
+	   	WHEN MATCHED THEN
+	   	  UPDATE SET VIEW_STATUS = '1',
+          VIEW_TIME = SYSDATE
+	   	WHEN NOT MATCHED THEN
+	   	  INSERT(INFO_ID, SUPPLIER_NO, VIEW_STATUS, VIEW_TIME)
+	   	  VALUES(#infoId#, #loginSupplierNo#, '1', SYSDATE)
+	</insert>
+	
+	<!-- 更新供应商公告下载状态 -->
+	<insert id="update_updateSupplierMgsInfoDownloadStatus" parameterClass="SysMessageInfoVO">
+	   	MERGE INTO MM_SW_MESSAGE_SUPPLIER_VIEW a
+	   	  USING (
+          SELECT #infoId# AS INFO_ID, #loginSupplierNo# AS SUPPLIER_NO FROM DUAL
+	   	  ) b ON ( a.INFO_ID = b.INFO_ID AND a.SUPPLIER_NO = b.SUPPLIER_NO )
+	   	WHEN MATCHED THEN
+	   	  UPDATE SET DOWNLOAD_STATUS = '1',
+          DOWNLOAD_TIME = SYSDATE
+	   	WHEN NOT MATCHED THEN
+	   	  INSERT(INFO_ID, SUPPLIER_NO, DOWNLOAD_STATUS, DOWNLOAD_TIME)
+	   	  VALUES(#infoId#, #loginSupplierNo#, '1', SYSDATE)
+	</insert>
+	
+	<!-- 查询公告供应商查看记录 -->
+	<select id="select_queryHomePageMsgQueryStatusList" parameterClass="java.lang.String" resultClass="pubInfoConfigVO">
+		SELECT A.SUPPLIER_NO AS supplierNo,
+		  SUP.SUPPLIER_NAME AS supplierName,
+		  NVL(MSV.VIEW_STATUS, '0') AS viewStatus,
+		  NVL(MSV.NOTICE_STATUS, '0') AS noticeStatus,
+		  NVL(MSV.DOWNLOAD_STATUS, '0') AS downloadStatus
+		FROM (
+		  SELECT DISTINCT SGM.SUPPLIER_NO
+		  FROM MM_SW_SUPP_GROUP_MEMBERS SGM 
+		  WHERE SGM.GROUP_ID IN (
+		    SELECT GROUP_ID FROM MM_SW_MESSAGE_SUPGROUPID WHERE INFO_ID = #value#
+		  )
+		) A 
+		  LEFT OUTER JOIN MM_SUPPLIER SUP ON SUP.SUPPLIER_NO = A.SUPPLIER_NO
+		  LEFT OUTER JOIN MM_SW_MESSAGE_SUPPLIER_VIEW MSV ON MSV.SUPPLIER_NO = A.SUPPLIER_NO 
+		     AND MSV.INFO_ID = #value#
+	</select>
+   
+   <!-- ********************************公告信息管理相关SQL END ***************************************** -->
+   <!--*********************************操作日志SQL START***************************************** -->    
+   <select id="select_queryOpeLog_forPage" parameterClass="OpeLogVO" resultClass="OpeLogVO">
+		select  TO_CHAR(o.TRX_TIME, 'YYYY-MM-DD HH24:MI:SS') trxTimeStr ,
+			o.USER_ID userName,
+			o.TABLE_NAME tableName,
+			o.FORM_NAME fromName,
+			o.TRX_TYPE trxType,
+			o.COLUMNS columns,
+			o.OLD_VALUE oldValue,
+			o.LOCAL_IP loclIp,
+			RECORD_KEY recordKey from mm_pub_ope_log o
+			 where  1=1
+		  <isNotEmpty prepend="AND" property="tableName">
+			 UPPER (o.TABLE_NAME) LIKE '%'|| UPPER(#tableName#) ||'%'
+		  </isNotEmpty> 
+		  <isNotEmpty prepend="AND" property="trxType">
+			  o.TRX_TYPE =#trxType#
+		  </isNotEmpty> 
+		     <isNotEmpty prepend="AND" property="trxTimeStartStr">
+        <isNotEmpty property="trxTimeEndStr">
+          TO_CHAR(o.TRX_TIME,'YYYY-MM-DD') BETWEEN
+          #trxTimeStartStr# AND #trxTimeEndStr#
+        </isNotEmpty>
+        <isEmpty property="trxTimeEndStr">
+          TO_CHAR(o.TRX_TIME,'YYYY-MM-DD')
+          &gt;= #trxTimeStartStr#
+        </isEmpty>
+      </isNotEmpty>
+      <isEmpty property="trxTimeStartStr">
+        <isNotEmpty prepend="AND" property="trxTimeEndStr">
+          TO_CHAR(o.TRX_TIME,'YYYY-MM-DD') &lt;= #trxTimeEndStr#
+        </isNotEmpty>
+        </isEmpty>
+		  ORDER BY o.TABLE_NAME
+	</select>
+	
+	<!-- 被修改 之前的值 -->
+	<select id="select_OpeLogValue" parameterClass="java.util.HashMap" resultClass="java.util.HashMap" >  
+　　	　SELECT  
+ 　　	$col1$  
+　　		FROM  
+	$tablePrefix$  
+　		WHERE  
+  	$col2$ = #ID#  
+ </select>
+ 
+ <!-- 插入日志 -->
+	<insert id="insert_OpeLog" parameterClass="OpeLogVO">
+	   insert into mm_pub_ope_log l
+		  (ID,TRX_TIME,USER_ID,TABLE_NAME,FORM_NAME,
+		   TRX_TYPE,OLD_VALUE,LOCAL_IP,RECORD_KEY,
+		   ID_COLUMN)
+		values
+		  (#id#,sysdate,#userName#,#tableName#, #fromName#,
+		   #trxType#,#oldValue#,#loclIp#,#recordKey#,
+		   #idColumn#)
+
+	</insert>
+	
+	 <!-- 插入事件 -->
+	<insert id="insert_EventLog" parameterClass="OpeLogVO">
+	   insert into mm_pub_ope_log l
+		  (ID,TRX_TIME,USER_ID,TABLE_NAME,FORM_NAME,
+		   TRX_TYPE,OLD_VALUE,LOCAL_IP)
+		values
+		  (#id#,sysdate,#userName#,#tableName#, #fromName#,
+		   #trxType#,#oldValue#,#loclIp#)
+
+	</insert>
+ 
+ 	<!-- 被修改表的列和类型 -->
+	<select id="select_OpeLogTableColumn" parameterClass="OpeTableVO" resultClass="OpeTableVO" >  
+　　	　select column_name ColumnName, data_type DataType
+ 	 	from user_tab_columns
+	 where table_name = upper(#Opetable#)
+ 	</select>  
+   <!--*********************************操作日志SQL END***************************************** -->    
+   
+   <!--*********************************打印机配置信息SQL START***************************************** -->
+	<!-- 打印机配置信息查询  -->
+	<select id="select_queryPrinterForPage" parameterClass="PrinterVO" resultClass="PrinterVO">
+		SELECT MJP.FACTORY AS factory,MPF.FACTORY_NAME AS factoryName, 
+				MJP.PRINTER_GROUP AS printerGroup,PGDIC.CODE_VALUE_NAME printerGroupDesc,
+       			MJP.BILL_TYPE AS billType,BTDIC.CODE_VALUE_NAME billTypeDesc, 
+       			MJP.PRINTER_NAME AS printerName,MJP.PRINTER_DESC AS printerDesc,
+       			MJP.NOTE AS note,MJP.ID id
+		FROM MM_PUB_PRINTER MJP
+         LEFT JOIN MM_PUB_FACTORY MPF ON MJP.FACTORY = MPF.FACTORY_CODE
+         LEFT JOIN MM_PUB_DATA_DICT PGDIC ON MJP.PRINTER_GROUP = PGDIC.CODE_VALUE
+         			AND PGDIC.CODE_TYPE = 'PUB_PRINTER_GROUP'
+     	 LEFT JOIN MM_PUB_DATA_DICT BTDIC ON MJP.BILL_TYPE = BTDIC.CODE_VALUE
+     				AND BTDIC.CODE_TYPE = 'PUB_BILL_TYPE'
+       WHERE 1=1
+		<isNotEmpty prepend="AND" property="factory">
+			MJP.FACTORY = #factory#
+		</isNotEmpty> 
+		<isNotEmpty prepend="AND" property="printerGroup">
+			MJP.PRINTER_GROUP = #printerGroup# 
+		</isNotEmpty> 
+		<isNotEmpty prepend="AND" property="printerName">
+			MJP.PRINTER_NAME = #printerName# 
+		</isNotEmpty> 
+		ORDER BY MJP.FACTORY, MJP.PRINTER_NAME
+	</select>
+	
+	<!-- 新增打印机配置信息 -->
+	<insert id="insert_insertPrinter" parameterClass="PrinterVO">
+		INSERT INTO MM_PUB_PRINTER (ID, FACTORY, PRINTER_NAME, PRINTER_DESC, BILL_TYPE,PRINTER_GROUP,NOTE,
+					CREATION_TIME,CREATION_USER,LAST_MODIFIED_USER,LAST_MODIFIED_TIME,LAST_MODIFIED_IP)
+		VALUES (#id#,#factory#,#printerName#, #printerDesc#, #billType#,#printerGroup#,#note#,
+				SYSDATE,#creationUser#, #lastModifiedUser#,SYSDATE,#lastModifiedIp#)
+	</insert>
+	
+	<!-- 删除打印机配置信息 -->
+	<delete id="delete_deletePrinter" parameterClass="PrinterVO">
+		DELETE FROM MM_PUB_PRINTER MJP WHERE MJP.ID = #id#
+	</delete>
+	
+	<!-- 更新打印机配置信息 -->
+	<update id="update_updatePrinter" parameterClass="PrinterVO">
+		UPDATE MM_PUB_PRINTER MJP SET MJP.FACTORY = #factory#, MJP.PRINTER_NAME = #printerName#,
+			MJP.PRINTER_DESC = #printerDesc#,MJP.BILL_TYPE = #billType#,MJP.PRINTER_GROUP = #printerGroup#,
+			MJP.NOTE = #note#,MJP.LAST_MODIFIED_USER = #lastModifiedUser#,MJP.LAST_MODIFIED_TIME = SYSDATE,
+		  MJP.LAST_MODIFIED_IP = #lastModifiedIp#
+		WHERE MJP.ID = #id#
+	</update> 
+   <!--*********************************打印机配置信息SQL END***************************************** --> 
+   
+   <!-- ********************************供应商数据管理相关SQL 开始************************************* -->
+   <!-- 查询供应商数据 -->
+   	<select id="select_querySupplierDataForList" parameterClass="SupplierVO" resultClass="SupplierVO">
+		SELECT SUP.SUPPLIER_NO AS supplierNo,
+		  SUP.SUPPLIER_NAME AS supplierName,
+		  SUP.STATUS AS status,
+		  NVL(SUP.ACT_STATUS,'0') AS activeStatus,
+		  SUP.PARENT_NO AS parentNo,
+		  SUP.DETAIL_ADDR AS detailAddr,
+		  SUP.YZBM AS youZhengBianMa,
+		  SUP.XQ_PERSON AS xuqiuLianxiren,
+		  SUP.XQ_MOBILE AS xuqiuMobile,
+		  SUP.XQ_TEL AS xuqiuLianxiTel,
+		  SUP.XQ_EMAIL AS xuqiuEmail,
+		  SUP.XQ_FAX AS xuqiuFax,
+		  SUP.ERP_LXR AS erpLianxiren,
+		  SUP.ERP_MOBILE AS erpMobile,
+		  SUP.ERP_TEL AS erpTel,
+		  SUP.ERP_EMAIL AS erpEMail,
+		  SUP.ERP_FAX AS erpFax,
+		  SUP.WL_PERSON AS wuliuLianxiren,
+		  SUP.WL_MOBILE AS wuliuMobile,
+		  SUP.WL_TEL AS wuliuLianxiTel,
+		  SUP.WL_EMAIL AS wuliuEmail,
+		  SUP.WL_FAX AS wuliuFax,
+		  SUP.FH_PERSON AS fahuoLianxiren,
+		  SUP.FH_MOBILE AS fahuoMobile,
+		  SUP.FH_TEL AS fahuoLianxiTel,
+		  SUP.FH_EMAIL AS fahuoEmail,
+		  SUP.FH_FAX AS fahuoFax,
+		  SUP.FH_ID AS fahuofangId,
+		  SUP.FH_ADDR AS fahuofangAddr,
+		  SUP.WULIU_TIME AS wuliuTime,
+		  SUP.BEILIAO_TIME AS beiliaoTime
+		FROM MM_SUPPLIER SUP
+		WHERE 1 = 1
+		  <isNotEmpty prepend="AND" property="supplierNo">
+		    SUP.SUPPLIER_NO LIKE '%' || #supplierNo# || '%'
+		  </isNotEmpty> 
+		  <isNotEmpty prepend="AND" property="parentNo">
+		    SUP.PARENT_NO LIKE '%' || #parentNo# || '%'
+		  </isNotEmpty> 
+		  <isNotEmpty prepend="AND" property="supplierName">
+		    SUP.SUPPLIER_NAME LIKE '%' || #supplierName# || '%'
+		  </isNotEmpty> 
+		  <isNotEmpty prepend="AND" property="activeStatus">
+		    NVL(SUP.ACT_STATUS,'0') = #activeStatus#
+		  </isNotEmpty> 
+		  ORDER BY SUP.SUPPLIER_NO
+	</select>
+	
+	<!-- 根据供应商代码查询供应商信息 -->
+	<select id="select_querySupplierInfoBySupplierNo" parameterClass="java.lang.String" resultClass="SupplierVO">
+		SELECT SUP.SUPPLIER_NO AS supplierNo,
+		  SUP.SUPPLIER_NAME AS supplierName,
+		  SUP.STATUS AS status,
+		  NVL(SUP.ACT_STATUS,'0') AS activeStatus,
+		  SUP.PARENT_NO AS parentNo,
+		  SUP.DETAIL_ADDR AS detailAddr,
+		  SUP.YZBM AS youZhengBianMa,
+		  SUP.XQ_PERSON AS xuqiuLianxiren,
+		  SUP.XQ_MOBILE AS xuqiuMobile,
+		  SUP.XQ_TEL AS xuqiuLianxiTel,
+		  SUP.XQ_EMAIL AS xuqiuEmail,
+		  SUP.XQ_FAX AS xuqiuFax,
+		  SUP.ERP_LXR AS erpLianxiren,
+		  SUP.ERP_MOBILE AS erpMobile,
+		  SUP.ERP_TEL AS erpTel,
+		  SUP.ERP_EMAIL AS erpEMail,
+		  SUP.ERP_FAX AS erpFax,
+		  SUP.WL_PERSON AS wuliuLianxiren,
+		  SUP.WL_MOBILE AS wuliuMobile,
+		  SUP.WL_TEL AS wuliuLianxiTel,
+		  SUP.WL_EMAIL AS wuliuEmail,
+		  SUP.WL_FAX AS wuliuFax,
+		  SUP.FH_PERSON AS fahuoLianxiren,
+		  SUP.FH_MOBILE AS fahuoMobile,
+		  SUP.FH_TEL AS fahuoLianxiTel,
+		  SUP.FH_EMAIL AS fahuoEmail,
+		  SUP.FH_FAX AS fahuoFax,
+		  SUP.FH_ID AS fahuofangId,
+		  SUP.FH_ADDR AS fahuofangAddr,
+		  SUP.WULIU_TIME AS wuliuTime,
+		  SUP.BEILIAO_TIME AS beiliaoTime
+		FROM MM_SUPPLIER SUP
+		WHERE SUP.SUPPLIER_NO = #value#
+	</select>
+	
+	<!--  更新供应商激活状态 -->
+	<update id="update_updateSupplierActiveStatus" parameterClass="SupplierVO">
+		UPDATE MM_SUPPLIER SUP SET
+		  SUP.ACT_STATUS = #activeStatus#
+		WHERE SUP.SUPPLIER_NO = #supplierNo#
+	</update> 
+	
+	<!-- 根据供应商代码更新供应商信息 -->
+	<update id="update_updateSupplierInfoBySupplierNo" parameterClass="SupplierVO">
+		UPDATE MM_SUPPLIER SET SUPPLIER_NO = #supplierNo#
+		  <isNotEmpty prepend="," property="erpEMail">
+		    ERP_EMAIL = #erpEMail#
+		  </isNotEmpty> 
+		  <isNotEmpty prepend="," property="wuliuTime">
+		    WULIU_TIME = #wuliuTime#
+		  </isNotEmpty> 
+		  <isNotEmpty prepend="," property="beiliaoTime">
+		    BEILIAO_TIME = #beiliaoTime#
+		  </isNotEmpty> 
+		  
+		  <isNotEmpty prepend="," property="activeStatus">
+		    ACT_STATUS = #activeStatus# 
+		  </isNotEmpty> 
+		  <isNotEmpty prepend="," property="supplierName">
+		    SUPPLIER_NAME = #supplierName#
+		  </isNotEmpty> 
+		  <isNotEmpty prepend="," property="youZhengBianMa">
+		    YZBM= #youZhengBianMa#
+		  </isNotEmpty> 
+		  <isNotEmpty prepend="," property="detailAddr">
+		    DETAIL_ADDR = #detailAddr#
+		  </isNotEmpty> 
+		  <isNotEmpty prepend="," property="fahuofangAddr">
+		    FH_ADDR = #fahuofangAddr#
+		  </isNotEmpty> 
+		  
+		  <isNotEmpty prepend="," property="xuqiuLianxiren">
+		    XQ_PERSON = #xuqiuLianxiren#
+		  </isNotEmpty> 
+		  <isNotEmpty prepend="," property="xuqiuMobile">
+		    XQ_MOBILE = #xuqiuMobile#
+		  </isNotEmpty> 
+		  <isNotEmpty prepend="," property="xuqiuLianxiTel">
+		    XQ_TEL = #xuqiuLianxiTel#
+		  </isNotEmpty> 
+		  <isNotEmpty prepend="," property="xuqiuEmail">
+		    XQ_EMAIL = #xuqiuEmail#
+		  </isNotEmpty> 
+		  <isNotEmpty prepend="," property="xuqiuFax">
+		    XQ_FAX = #xuqiuFax#
+		  </isNotEmpty> 
+		  
+		  <isNotEmpty prepend="," property="fahuoLianxiren">
+		   FH_PERSON = #fahuoLianxiren#
+		  </isNotEmpty> 
+		  <isNotEmpty prepend="," property="fahuoLianxiTel">
+		    FH_TEL = #fahuoLianxiTel#
+		  </isNotEmpty> 
+		  <isNotEmpty prepend="," property="fahuoMobile">
+		    FH_MOBILE = #fahuoMobile#
+		  </isNotEmpty> 
+		  <isNotEmpty prepend="," property="fahuoEmail">
+		    FH_EMAIL = #fahuoEmail#
+		  </isNotEmpty> 
+          <isNotEmpty prepend="," property="fahuoFax">
+		    FH_FAX = #fahuoFax#
+		  </isNotEmpty> 
+		  
+		  <isNotEmpty prepend="," property="wuliuLianxiren">
+		    WL_PERSON = #wuliuLianxiren#
+		  </isNotEmpty> 
+		  <isNotEmpty prepend="," property="wuliuLianxiTel">
+		    WL_TEL = #wuliuLianxiTel#
+		  </isNotEmpty> 
+		  <isNotEmpty prepend="," property="wuliuEmail">
+		    WL_EMAIL = #wuliuEmail#
+		  </isNotEmpty> 
+		  <isNotEmpty prepend="," property="wuliuFax">
+		    WL_FAX = #wuliuFax#
+		  </isNotEmpty> 
+		  <isNotEmpty prepend="," property="wuliuMobile">
+		    WL_MOBILE = #wuliuMobile#
+		  </isNotEmpty> 
+		  
+		WHERE SUPPLIER_NO = #supplierNo#
+	</update> 
+   
+   <!-- ********************************供应商数据管理相关SQL 结束************************************* -->
+     <!-- 查询订单信息 -->
+     <select id="queryOrderInfoIndex" parameterClass="orderIndexInfoVO" resultClass="orderIndexInfoVO">
+     
+     select t.orderType      orderType,
+       t.orderTypeName  orderTypeName,
+       t.totalNum       totalNum,
+       t.unDownLoadNum  unDownLoadNum,
+       t.unPrintNum     unPrintNum,
+       t.printNum       printNum,
+       t.sendNum        sendNum,
+       t.unsendNum      unsendNum,
+       t.sendPartNum    sendPartNum,
+       t.unreceiveNum   unreceiveNum,
+       t.receiveNum     receiveNum,
+       t.partreceiveNum partreceiveNum
+  from (
+     select '07' as orderType,
+       '拉动订单' as orderTypeName,
+       nvl(count(s.order_no),0) as totalNum,
+       0 as unDownLoadNum,
+       nvl(sum(decode(nvl(s.state, 0), 0, 1, 0)),0) as unPrintNum,
+       nvl(sum(decode(nvl(s.state, 0), 1, 1, 0)),0) as printNum,
+       0 as sendNum,
+       0 as unsendNum,
+       0 as sendPartNum,
+       nvl(sum(decode(nvl(s.receive_status, 0), 0, 1, 0)),0) as unreceiveNum,
+       nvl(sum(decode(nvl(s.receive_status, 0), 2, 1, 0)),0) as receiveNum,
+       nvl(sum(decode(nvl(s.receive_status, 0), 1, 1, 0)),0) as partreceiveNum
+  from MM_JIT_SUP_ORDER s where 1=1
+          <!--供应商权限-->
+		<isEqual property="userType" compareValue="0" prepend="AND"> 
+	    	s.supplier_no = #curSupplierNo#
+	    </isEqual>
+	    <!--gamc用户权限-->
+		<isEqual property="userType" compareValue="1" prepend="AND">
+	    	s.supplier_no in (select us.supplier_no from mm_pub_user_supplier us where us.user_name=#curSupplierNo#)
+	    </isEqual>
+	    <!--物流公司权限-->
+	    <isEqual property="userType" compareValue="2" prepend="AND">
+	    	s.supplier_no in (select supplier_no
+						  from mm_pub_log_supplier ls
+						 WHERE ls.company_no =#curSupplierNo#)
+	    </isEqual>
+		<isNotEmpty property="factory" prepend="AND">
+		     s.arr_factory =#factory#
+		</isNotEmpty> 
+        union
+        select '08' as orderType,
+               '同步订单' as orderTypeName,
+               nvl(count(p.po_number),0) as totalNum,
+               0 as unDownLoadNum,
+               nvl(sum(decode(nvl(p.printstatus, 0), 0, 1, 0)),0) as unPrintNum,
+               nvl(sum(decode(nvl(p.printstatus, 0), 1, 1, 0)),0) as printNum,
+               0 as sendNum,
+               0 as unsendNum,
+               0 as sendPartNum,
+               nvl(sum(decode(nvl(p.receive_status, 0), 0, 1, 0)),0) as unreceiveNum,
+               nvl(sum(decode(nvl(p.receive_status, 0), 2, 1, 0)),0) as receiveNum,
+               nvl(sum(decode(nvl(p.receive_status, 0), 1, 1, 0)),0) as partreceiveNum
+          from MM_JISO_PO_HEAD p where 1=1
+          <!--供应商权限-->
+		<isEqual property="userType" compareValue="0" prepend="AND"> 
+	    	p.supplierno = #curSupplierNo#
+	    </isEqual>
+	    <!--gamc用户权限-->
+		<isEqual property="userType" compareValue="1" prepend="AND">
+	    	p.supplierno in (select us.supplier_no from mm_pub_user_supplier us where us.user_name=#curSupplierNo#)
+	    </isEqual>
+	    <!--物流公司权限-->
+	    <isEqual property="userType" compareValue="2" prepend="AND">
+	    	p.supplierno in (select supplier_no
+						  from mm_pub_log_supplier ls
+						 WHERE ls.company_no =#curSupplierNo#)
+	    </isEqual>
+		<isNotEmpty property="factory" prepend="AND">
+		     p.factoryid =#factory#
+		</isNotEmpty> 
+        union
+        select a.order_type as orderType,
+               c.code_value_name as orderTypeName,
+               nvl( count(a.order_no),0) as totalNum,
+               nvl(sum(decode(nvl(a.download_status, '0'), '0', 1, 0)),0) as unDownLoadNum,
+               nvl(sum(decode(nvl(a.print_status, '0'), '0', 1, 0)),0) as unPrintNum,
+               nvl(sum(decode(nvl(a.print_status, '0'), '1', 1, 0)),0) as printNum,
+               nvl(sum(decode(nvl(b.delivery_status, '0'), '1', 1, 0)),0) as sendNum,
+               nvl(sum(decode(nvl(b.delivery_status, '0'), '0', 1, 0)),0) as unsendNum,
+               nvl(sum(decode(nvl(b.delivery_status, '0'), '2', 1, 0)),0) as sendPartNum,
+               nvl(sum(decode(nvl(b.receive_status, '0'), '0', 1, 0)),0) as unreceiveNum,
+               nvl(sum(decode(nvl(b.receive_status, '0'), '2', 1, 0)),0) as receiveNum,
+               nvl(sum(decode(nvl(b.receive_status, '0'), '1', 1, 0)),0) as partreceiveNum
+          from mm_sw_order a
+          left join mm_mon_order_logistics b
+            on a.order_id = b.order_id
+          left join (select pdd.code_value, pdd.code_value_name
+                       from mm_pub_data_dict pdd
+                      where pdd.code_type = 'SW_ORDERR_TYPE') c
+            on a.order_type = c.code_value
+         where 1 = 1
+     <!--供应商权限-->
+		<isEqual property="userType" compareValue="0" prepend="AND"> 
+	    	a.supplier_no = #curSupplierNo#
+	    </isEqual>
+	    <!--gamc用户权限-->
+		<isEqual property="userType" compareValue="1" prepend="AND">
+	    	a.supplier_no in (select us.supplier_no from mm_pub_user_supplier us where us.user_name=#curSupplierNo#)
+	    </isEqual>
+	    <!--物流公司权限-->
+	    <isEqual property="userType" compareValue="2" prepend="AND">
+	    	a.supplier_no in (select supplier_no
+						  from mm_pub_log_supplier ls
+						 WHERE ls.company_no =#curSupplierNo#)
+	    </isEqual>
+		<isNotEmpty property="factory" prepend="AND">
+		     a.factory =#factory#
+		</isNotEmpty> 
+         group by a.order_type, c.code_value_name) t
+         order by t.orderType
+        
+	 </select> 
+	 
+	 <!-- 查询登录角色拥有的订单权限 -->
+	 <select id="queryRoleOrderType" parameterClass="orderIndexInfoVO" resultClass="java.lang.String">
+	  select distinct case
+           when inStr(m, '资材订单', 1) > 0 then
+            '资材订单'
+           when inStr(m, '备件订单', 1) > 0 then
+            '备件订单'
+           when inStr(m, '零件订单', 1) > 0 then
+            '零件订单'
+           when inStr(m, '例外订单', 1) > 0 then
+            '例外订单'
+           when inStr(m, '样件订单', 1) > 0 then
+            '样件订单'
+           when inStr(m, '售后订单', 1) > 0 then
+            '售后订单'
+           when inStr(m,'厂外同步订单',1) > 0 then
+             '同步订单'
+           when inStr(m,'厂外拉动订单',1) > 0 then
+             '拉动订单'  
+            else '其他订单'
+         end as privilege
+    from (select distinct pp.menu_name m
+            from mm_pub_role_privileges rp
+            left join MM_PUB_PRIVILEGES pp
+              on rp.rpivileges_code = pp.privileges_code
+             and rp.rpivileges_type = 1
+             and pp.privileges_type = 1
+             and rp.role_id in (select a.role_id
+                                  from mm_pub_user_role a
+                                 where a.user_name = #userId#))
+	 </select>  
+</sqlMap>
+
+

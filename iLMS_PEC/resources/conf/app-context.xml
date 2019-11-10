@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans  
+       http://www.springframework.org/schema/beans/spring-beans.xsd"
+	default-autowire="byType">
+
+	<import resource="app-bean.xml" />
+	<import resource="app-resources.xml" />
+	<import resource="x5-sys-core.xml" />
+	<!-- <import resource="x5-bo-core.xml" /> -->
+	<!-- <import resource="x5-org.xml" /> -->
+	<import resource="x5-org-api-impl.xml" />
+	<!-- <import resource="x5-bpmx-core.xml" /> -->
+	<!-- <import resource="x5-form-core.xml" /> -->
+	<!-- <import resource="x5-calendar-core.xml" /> -->
+	<import resource="x5-portal.xml" />
+	<!-- <import resource="classpath*:x5-service-resources.xml" /> -->
+	<!-- <import resource="x5-bpmx-service.xml"/> -->
+	<import resource="app-security.xml" />
+	<!-- <import resource="x5-mail.xml" /> -->
+	<!-- 集群部署session共享配置 -->
+<!-- 	<import resource="app-security-cluster.xml" /> -->
+	<!-- 使用cas单点登录 -->
+<!-- 	<import resource="app-security-cas.xml"/> -->
+	<!-- 使用oauth2.0授权登录 -->
+<!-- 	<import resource="app-security-oauth2.xml"/> -->
+</beans>

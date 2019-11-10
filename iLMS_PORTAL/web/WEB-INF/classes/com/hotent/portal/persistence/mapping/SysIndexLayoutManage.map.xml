@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.portal.persistence.model.SysIndexLayoutManage">
+	<resultMap id="SysIndexLayoutManage" type="com.hotent.portal.persistence.model.SysIndexLayoutManage">
+		<id property="id" column="ID" jdbcType="VARCHAR"/>
+		<result property="name" column="NAME" jdbcType="VARCHAR"/>
+		<result property="memo" column="MEMO" jdbcType="VARCHAR"/>
+		<result property="orgId" column="ORG_ID" jdbcType="VARCHAR"/>
+		<result property="templateHtml" column="TEMPLATE_HTML" jdbcType="CLOB"/>
+		<result property="designHtml" column="DESIGN_HTML" jdbcType="CLOB"/>
+		<result property="isDef" column="IS_DEF" jdbcType="NUMERIC"/>
+		<result property="orgName" column="org_name" jdbcType="VARCHAR"/>
+		<result property="layoutType" column="LAYOUT_TYPE" jdbcType="NUMERIC"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.portal.persistence.model.SysIndexLayoutManage">
+		INSERT INTO SYS_INDEX_LAYOUT_MANAGE
+		(ID,NAME,MEMO,ORG_ID,TEMPLATE_HTML,DESIGN_HTML,IS_DEF,LAYOUT_TYPE)
+		VALUES
+		(#{id,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR}, #{memo,jdbcType=VARCHAR}, #{orgId,jdbcType=VARCHAR}, #{templateHtml,jdbcType=CLOB}, #{designHtml,jdbcType=CLOB}, #{isDef,jdbcType=NUMERIC}, #{layoutType,jdbcType=NUMERIC})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="SysIndexLayoutManage">
+		SELECT * FROM SYS_INDEX_LAYOUT_MANAGE
+		WHERE
+		ID=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="SysIndexLayoutManage">
+		SELECT m.*,o.name_ as org_name FROM SYS_INDEX_LAYOUT_MANAGE m
+		inner join sys_org o on m.ORG_ID = o.ID_
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY ID DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.portal.persistence.model.SysIndexLayoutManage">
+		UPDATE SYS_INDEX_LAYOUT_MANAGE SET
+		NAME=#{name,jdbcType=VARCHAR},
+		MEMO=#{memo,jdbcType=VARCHAR},
+		ORG_ID=#{orgId,jdbcType=VARCHAR},
+		TEMPLATE_HTML=#{templateHtml,jdbcType=CLOB},
+		DESIGN_HTML=#{designHtml,jdbcType=CLOB},
+		IS_DEF=#{isDef,jdbcType=NUMERIC},
+		LAYOUT_TYPE=#{layoutType,jdbcType=NUMERIC}
+		WHERE
+		ID=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.Long">
+		DELETE FROM SYS_INDEX_LAYOUT_MANAGE 
+		WHERE
+		ID=#{id}
+	</delete>
+	
+	<select id="getByUserIdFilter" resultMap="SysIndexLayoutManage"  parameterType="java.util.Map" >
+		select * from SYS_INDEX_LAYOUT_MANAGE  where ID in(
+			select t.id from (
+				<foreach collection="relationMap" index="key"  item="ent" separator="union">
+					select r.id from SYS_INDEX_LAYOUT_MANAGE r,bpm_def_user defUser where defUser.OWNER_ID_=r.id and defUser.RIGHT_TYPE_=#{key}  and defUser.OBJ_TYPE_=#{objType}
+					<if test="@Ognl@notEquals(key,'everyone') and @Ognl@isNotEmpty(ent)">
+							and defUser.OWNER_ID_ in 
+							<foreach collection="ent"  item="id" separator="," open="(" close=")">
+								#{id}
+							</foreach>
+					</if>
+				</foreach>
+			) t
+		) 
+		<where>
+			<if test="@Ognl@isNotEmpty(name)"> AND NAME  LIKE #{name}  </if>
+			<if test="@Ognl@isNotEmpty(memo)"> AND MEMO  LIKE #{memo}  </if>
+		</where>
+		<if test="@Ognl@isNotEmpty(orderField)">
+		order by ${orderField} ${orderSeq}
+		</if>
+		<if test="@Ognl@isEmpty(orderField)">
+		order by IS_DEF DESC
+		</if>
+	</select>
+	
+	<select id="getManageLayout" resultMap="SysIndexLayoutManage">
+		SELECT *
+		FROM SYS_INDEX_LAYOUT_MANAGE   
+		<where>
+			<if test="@Ognl@isNotEmpty(orgIds)"> AND ORG_ID in (${orgIds}) </if>
+			<if test="@Ognl@isNotEmpty(isDef)"> AND IS_DEF  =${isDef} </if>
+			<if test="@Ognl@isNotEmpty(isNullOrg)"> AND ORG_ID IS NULL </if>
+			
+		</where>
+		<if test="@Ognl@isNotEmpty(orderField)">
+		order by ${orderField} ${orderSeq}
+		</if>
+		<if test="@Ognl@isEmpty(orderField)">
+		order by ORG_ID
+		</if>
+	</select>
+	
+	<update id="updateIsDef" parameterType="java.lang.String">
+			UPDATE SYS_INDEX_LAYOUT_MANAGE SET 
+			IS_DEF=0
+			WHERE 
+			<if test="@Ognl@isNotEmpty(orgId)">
+				ORG_ID = #{orgId}
+			</if>
+			<if test="@Ognl@isEmpty(orgId)">
+				ORG_ID is null or org_id = ''
+			</if>
+	</update>
+	
+	<select id="getByOrgId"  parameterType="java.lang.String" resultMap="SysIndexLayoutManage">
+		SELECT *
+		FROM SYS_INDEX_LAYOUT_MANAGE 
+		WHERE IS_DEF = 1 AND ORG_ID = #{orgId}
+	</select>
+	<select id="getByOrgIdAndLayoutType"  parameterType="java.util.Map" resultMap="SysIndexLayoutManage">
+		SELECT *
+		FROM SYS_INDEX_LAYOUT_MANAGE 
+		WHERE IS_DEF = 1 AND ORG_ID = #{orgId} AND LAYOUT_TYPE = #{layoutType}
+	</select>
+	<select id="getByName"  parameterType="java.lang.String" resultType="Integer">
+		SELECT count(*) as amount FROM SYS_INDEX_LAYOUT_MANAGE where name=#{name}
+	</select>
+	
+	<update id="cancelOrgIsDef" parameterType="java.util.Map" >
+	<![CDATA[
+	  update SYS_INDEX_LAYOUT_MANAGE set IS_DEF=0 where ORG_ID = #{orgId} AND LAYOUT_TYPE = #{layoutType}
+	]]>
+	</update>
+	
+	<select id="getByOrgIdAndLayoutTypeAndLayoutId"  parameterType="java.util.Map" resultMap="SysIndexLayoutManage">
+		SELECT *
+		FROM SYS_INDEX_LAYOUT_MANAGE 
+		WHERE ORG_ID = #{orgId} AND LAYOUT_TYPE = #{layoutType} AND ID = #{layoutId}
+	</select>
+	<select id="getByIdAndType"  parameterType="java.util.Map" resultMap="SysIndexLayoutManage">
+		SELECT *
+		FROM SYS_INDEX_LAYOUT_MANAGE 
+		WHERE ID = #{id} AND  LAYOUT_TYPE = #{type}
+	</select>
+</mapper>

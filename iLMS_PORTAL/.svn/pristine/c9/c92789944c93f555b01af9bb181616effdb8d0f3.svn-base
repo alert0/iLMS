@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns="http://www.jee-soft.cn/bpm/plugins/execution/webService"
+	xmlns:base="http://www.jee-soft.cn/bpm/plugins/userCalc/base"
+    targetNamespace="http://www.jee-soft.cn/bpm/plugins/execution/webService" elementFormDefault="qualified">
+    <xs:element name="webService" >
+        <xs:annotation>
+            <xs:documentation>webService节点插件</xs:documentation>
+        </xs:annotation> 
+        <xs:complexType>
+        	<xs:choice minOccurs="1" maxOccurs="2">
+        		<xs:element name="params" type="xs:string" >
+        		</xs:element>
+        		<xs:element name="outPutScript" type="xs:string">
+        		</xs:element>
+        	</xs:choice>
+        	<xs:attribute name="name" type="xs:string"></xs:attribute>
+        	<xs:attribute name="alias" type="xs:string"></xs:attribute>
+        </xs:complexType>
+        
+    </xs:element>
+   
+</xs:schema>    

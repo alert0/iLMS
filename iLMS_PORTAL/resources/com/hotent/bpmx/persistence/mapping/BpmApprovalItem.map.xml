@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.bpmx.persistence.model.BpmApprovalItem">
+	<resultMap id="BpmApprovalItem" type="com.hotent.bpmx.persistence.model.BpmApprovalItem">
+		<id property="id" column="ID_" jdbcType="VARCHAR"/>
+		<result property="userId" column="USER_ID_" jdbcType="VARCHAR"/>
+		<result property="defKey" column="DEF_KEY_" jdbcType="VARCHAR"/>
+		<result property="defName" column="DEF_NAME_" jdbcType="VARCHAR"/>
+		<result property="typeId" column="TYPE_ID_" jdbcType="VARCHAR"/>
+		<result property="type" column="TYPE_" jdbcType="NUMERIC"/>
+		<result property="expression" column="EXPRESSION_" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.bpmx.persistence.model.BpmApprovalItem">
+		INSERT INTO bpm_approval_item
+		(ID_,USER_ID_,DEF_KEY_,DEF_NAME_,TYPE_ID_,TYPE_,EXPRESSION_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{userId,jdbcType=VARCHAR}, #{defKey,jdbcType=VARCHAR},#{defName,jdbcType=VARCHAR}, #{typeId,jdbcType=VARCHAR}, #{type,jdbcType=NUMERIC}, #{expression,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="BpmApprovalItem">
+		SELECT * FROM bpm_approval_item 
+		WHERE 
+		ID_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="BpmApprovalItem">
+		SELECT * FROM bpm_approval_item
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+			<if test="isadmin==1">
+				OR USER_ID_ = 1
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY ID_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.bpmx.persistence.model.BpmApprovalItem">
+		UPDATE bpm_approval_item SET
+		USER_ID_=#{userId,jdbcType=VARCHAR},
+		DEF_KEY_=#{defKey,jdbcType=VARCHAR},
+		DEF_NAME_=#{defName,jdbcType=VARCHAR},
+		TYPE_ID_=#{typeId,jdbcType=VARCHAR},
+		TYPE_=#{type,jdbcType=NUMERIC},
+		EXPRESSION_=#{expression,jdbcType=VARCHAR}
+		WHERE
+		ID_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM bpm_approval_item 
+		WHERE
+		ID_=#{id}
+	</delete>
+	
+	<select id="getByDefKeyAndUserAndSys"   resultMap="BpmApprovalItem">
+		SELECT * FROM bpm_approval_item 
+		WHERE 
+		(USER_ID_=#{curUserId} and TYPE_ = 4) OR DEF_KEY_= #{defKey} OR TYPE_=1
+	</select>
+	
+	<select id="getItemByType"   resultMap="BpmApprovalItem">
+		SELECT * FROM bpm_approval_item 
+		WHERE 
+		TYPE_= #{type}
+	</select>
+	
+</mapper>

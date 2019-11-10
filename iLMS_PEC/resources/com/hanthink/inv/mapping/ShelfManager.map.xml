@@ -1,0 +1,350 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.inv.model.ShelfManager">
+
+	<!-- 分页查询显示列表信息 -->
+	<select id="queryShelfManagerForPage" parameterType="com.hanthink.inv.model.ShelfManager"
+		resultType="com.hanthink.inv.model.ShelfManager">
+		SELECT A.ID id,
+		A.PART_NO partNo,
+		B.PART_NAME_CN partName,
+		B.PART_SHORT_NO partShortNo,
+		A.SUPPLIER_NO supplierNo,
+		C.SUPPLIER_NAME supplierName,
+		A.SHELVES_ADDR shelvesAddr,
+		A.STANDARD_PACK standardPack,
+		A.SAFE_STOCK safeStock,
+		A.CAR_TYPE carType,
+		A.STACK_LAYERS stackLayers,
+		CASE A.LAST_MODIFIED_TIME
+		WHEN null then
+		TO_CHAR(A.LAST_MODIFIED_TIME,
+		'YYYY-MM-DD HH24:MI:SS')
+		ELSE
+		TO_CHAR(A.CREATION_TIME, 'YYYY-MM-DD
+		HH24:MI:SS')
+		END modifiedTime
+		FROM MM_INV_SHELVES_LABEL A
+		LEFT JOIN
+		MM_PUB_PART B
+		ON A.PART_NO = B.PART_NO
+		<!-- i-LMS2019053001 mod by 赵明健 -->
+		AND B.FACTORY_CODE = A.FACTORY_CODE
+		LEFT JOIN MM_PUB_SUPPLIER C
+		ON
+		A.SUPPLIER_NO = C.SUPPLIER_NO
+		WHERE A.FACTORY_CODE = #{factoryCode}
+		<if test="partNo!=null and '' != partNo">
+			AND A.PART_NO LIKE CONCAT(#{partNo}, '%')
+		</if>
+		<if test="partShortNo!=null and ''!= partShortNo">
+			AND B.PART_SHORT_NO LIKE CONCAT(#{partShortNo}, '%')
+		</if>
+		<if test="partName!=null and ''!= partName">
+			AND B.PART_NAME_CN LIKE CONCAT(#{partName}, '%')
+		</if>
+		<if test="carType!=null and ''!= carType">
+			AND A.CAR_TYPE LIKE CONCAT(#{carType}, '%')
+		</if>
+	</select>
+
+
+	<select id="queryPartNo" parameterType="com.hanthink.inv.model.ShelfManager"
+		resultType="com.hanthink.inv.model.ShelfManager">
+		SELECT T.PART_NO partNo FROM MM_PUB_PART T WHERE T.FACTORY_CODE = #{factoryCode}
+	</select>
+
+
+	<select id="querySupplierNoByPartNo" parameterType="com.hanthink.inv.model.ShelfManager"
+		resultType="com.hanthink.inv.model.ShelfManager">
+		SELECT T.SUPPLIER_NO sipplierNo FROM MM_PUB_PART_SUPPLIER T 
+		<!-- i-LMS2019053001 mod by 赵明健 -->
+		WHERE T.FACTORY_CODE = #{factoryCode}
+		<if test="partNo!=null and ''!= partNo">
+			AND T.PART_NO = #{partNo}
+		</if>
+
+	</select>
+
+	<!-- 分页查询导入临时数据 -->
+	<select id="queryShelfManagerForPageTemp" parameterType="com.hanthink.inv.model.ShelfManager"
+		resultType="com.hanthink.inv.model.ShelfManager">
+		SELECT A.ID id,
+		A.PART_NO partNo,
+		A.PART_NAME partName,
+		A.PART_SHORT_NO partShortNo,
+		A.SUPPLIER_NO supplierNo,
+		A.SUPPLIER_NAME
+		supplierName,
+		A.SHELVES_ADDR shelvesAddr,
+		A.STANDARD_PACK standardPack,
+		A.SAFE_STOCK safeStock,
+		A.CAR_TYPE carType,
+		A.STACK_LAYERS stackLayers
+		FROM MM_INV_SHELVES_LABEL_TEMP A
+	
+	</select>
+
+	<!-- 查询货架数据作为导出 -->
+	<select id="queryShelfManagerxport" parameterType="com.hanthink.inv.model.ShelfManager"
+		resultType="com.hanthink.inv.model.ShelfManager">
+		SELECT A.PART_NO partNo,
+		B.PART_NAME_CN partName,
+		B.PART_SHORT_NO
+		partShortNo,
+		A.SUPPLIER_NO supplierNo,
+		C.SUPPLIER_NAME supplierName,
+		A.SHELVES_ADDR shelvesAddr,
+		A.STANDARD_PACK standardPack,
+		A.SAFE_STOCK
+		safeStock,
+		A.CAR_TYPE carType,
+		A.STACK_LAYERS stackLayers,
+		CASE
+		A.LAST_MODIFIED_TIME
+		WHEN null then
+		TO_CHAR(A.LAST_MODIFIED_TIME,
+		'YYYY-MM-DD HH24:MI:SS')
+		ELSE
+		TO_CHAR(A.CREATION_TIME, 'YYYY-MM-DD
+		HH24:MI:SS')
+		END modifiedTime
+		FROM MM_INV_SHELVES_LABEL A
+		LEFT JOIN
+		MM_PUB_PART B
+		ON A.PART_NO = B.PART_NO
+		<!-- i-LMS2019053001 mod by 赵明健 -->
+		AND B.FACTORY_CODE = A.FACTORY_CODE
+		LEFT JOIN MM_PUB_SUPPLIER C
+		ON
+		A.SUPPLIER_NO = C.SUPPLIER_NO
+		WHERE A.FACTORY_CODE = #{factoryCode}
+		<if test="id!=null and '' != id">
+			AND A.ID = #{id}
+		</if>
+		<if test="partNo!=null and '' != partNo">
+			AND A.PART_NO LIKE CONCAT(#{partNo}, '%')
+		</if>
+		<if test="partShortNo!=null and ''!= partShortNo">
+			AND A.PART_SHORT_NO LIKE CONCAT(#{partShortNo}, '%')
+		</if>
+		<if test="partName!=null and ''!= partName">
+			AND A.PART_NAME_CN LIKE CONCAT(#{partName}, '%')
+		</if>
+		<if test="carType!=null and ''!= carType">
+			AND A.CAR_TYPE LIKE CONCAT(#{carType}, '%')
+		</if>
+	</select>
+
+	<!-- 查询货架数据作为打印 -->
+	<select id="queryShelfManagerToPrint" parameterType="com.hanthink.inv.model.ShelfManager"
+		resultType="com.hanthink.inv.model.ShelfManager">
+		SELECT A.PART_NO partNo,
+		B.PART_NAME_CN partName,
+		B.PART_SHORT_NO partShortNo,
+		A.SUPPLIER_NO supplierNo,
+		C.SUPPLIER_NAME
+		supplierName,
+		A.SHELVES_ADDR shelvesAddr,
+		A.STANDARD_PACK standardPack,
+		A.SAFE_STOCK safeStock,
+		A.CAR_TYPE carType,
+		A.STACK_LAYERS stackLayers,
+		CASE A.LAST_MODIFIED_TIME
+		WHEN null then
+		TO_CHAR(A.LAST_MODIFIED_TIME,
+		'YYYY-MM-DD HH24:MI:SS')
+		ELSE
+		TO_CHAR(A.CREATION_TIME, 'YYYY-MM-DD
+		HH24:MI:SS')
+		END modifiedTime
+		FROM MM_INV_SHELVES_LABEL A
+		LEFT JOIN
+		MM_PUB_PART B
+		ON A.PART_NO = B.PART_NO
+		<!-- i-LMS2019053001 mod by 赵明健 -->
+		AND B.FACTORY_CODE = A.FACTORY_CODE
+		LEFT JOIN MM_PUB_SUPPLIER C
+		ON
+		A.SUPPLIER_NO = C.SUPPLIER_NO
+		WHERE 1 = 1
+		AND A.ID = #{id}
+	</select>
+
+	<!-- 货架数据新增 -->
+	<insert id="createShelves" parameterType="com.hanthink.inv.model.ShelfManager">
+		INSERT INTO
+		MM_INV_SHELVES_LABEL
+		(ID,
+		FACTORY_CODE,
+		PART_NO,
+		SUPPLIER_NO,
+		SHELVES_ADDR,
+		SAFE_STOCK,
+		CAR_TYPE,
+		STACK_LAYERS,
+		CREATION_USER,
+		CREATION_TIME,
+		STANDARD_PACK
+		)
+		VALUES
+		(SEQ_MM_INV_SHELVES.NEXTVAL,
+		#{factoryCode,jdbcType=VARCHAR},
+		#{partNo,jdbcType=VARCHAR},
+		#{supplierNo,jdbcType=VARCHAR},
+		#{shelvesAddr,jdbcType=VARCHAR},
+		#{safeStock,jdbcType=VARCHAR},
+		#{carType,jdbcType=VARCHAR},
+		#{stackLayers,jdbcType=VARCHAR},
+		#{creatBy,jdbcType=VARCHAR},
+		SYSDATE,
+		#{standardPack,jdbcType=VARCHAR}
+		)
+	</insert>
+
+	<!-- 货架数据修改 -->
+	<update id="updateShelves" parameterType="com.hanthink.inv.model.ShelfManager">
+		UPDATE
+		MM_INV_SHELVES_LABEL SET
+		PART_NO =
+		#{partNo,jdbcType=VARCHAR},
+		SUPPLIER_NO =
+		#{supplierNo,jdbcType=VARCHAR},
+		SHELVES_ADDR =
+		#{shelvesAddr,jdbcType=VARCHAR},
+		SAFE_STOCK =
+		#{safeStock,jdbcType=VARCHAR},
+		CAR_TYPE = #{carType,jdbcType=VARCHAR},
+		STACK_LAYERS = #{stackLayers,jdbcType=VARCHAR},
+		LAST_MODIFIED_USER =
+		#{creatBy,jdbcType=VARCHAR},
+		LAST_MODIFIED_TIME = SYSDATE
+		WHERE ID =
+		#{id}
+	</update>
+
+	<!-- 删除货架数据 -->
+	<delete id="removeShelves" parameterType="java.lang.String">
+		DELETE FROM
+		MM_INV_SHELVES_LABEL A WHERE A.ID = #{id}
+	</delete>
+
+	<!-- 新增标签数据到临时表 -->
+	<insert id="createShelvesTemp" parameterType="com.hanthink.inv.model.ShelfManager">
+		INSERT INTO
+		MM_INV_SHELVES_LABEL_TEMP
+		(ID,
+		PART_NO,
+		SUPPLIER_NO,
+		SHELVES_ADDR,
+		SAFE_STOCK,
+		CAR_TYPE,
+		STACK_LAYERS,
+		DEAL_FLAG,
+		CHECK_FLAG,
+		CHECK_RESULT,
+		PART_SHORT_NO,
+		PART_NAME,
+		SUPPLIER_NAME,
+		STANDARD_PACK
+		)
+		VALUES
+		(SEQ_MM_INV_SHELVES_TEMP.NEXTVAL,
+		#{partNo,jdbcType=VARCHAR},
+		#{supplierNo,jdbcType=VARCHAR},
+		#{shelvesAddr,jdbcType=VARCHAR},
+		#{safeStock,jdbcType=VARCHAR},
+		#{carType,jdbcType=VARCHAR},
+		#{stackLayers,jdbcType=VARCHAR},
+		'0',
+		#{checkFlag,jdbcType=VARCHAR},
+		#{checkResult,jdbcType=VARCHAR},
+		#{partShortNo,jdbcType=VARCHAR},
+		#{partName,jdbcType=VARCHAR},
+		#{supplierName,jdbcType=VARCHAR},
+		#{standardPack,jdbcType=VARCHAR}
+		)
+	</insert>
+
+	<!-- 查询是否存在未提交的导入数据 -->
+	<select id="queryPartMaintenanceTemp" parameterType="com.hanthink.inv.model.ShelfManager"
+		resultType="com.hanthink.inv.model.ShelfManager">
+		SELECT A.PART_NO partNo,
+		A.PART_NAME partName,
+		A.PART_SHORT_NO partShortNo,
+		A.SUPPLIER_NO supplierNo,
+		A.SUPPLIER_NAME
+		supplierName,
+		A.SHELVES_ADDR shelvesAddr,
+		A.STANDARD_PACK standardPack,
+		A.SAFE_STOCK safeStock,
+		A.CAR_TYPE carType,
+		A.STACK_LAYERS stackLayers,
+		A.DEAL_FLAG dealFlag,
+		A.CHECK_FLAG checkFlag,
+		A.CHECK_RESULT checkResult
+		FROM MM_INV_SHELVES_LABEL_TEMP A
+		WHERE A.DEAL_FLAG = '0'
+	</select>
+
+
+	<!-- 导出临时数据 -->
+	<select id="exportTempData" parameterType="com.hanthink.inv.model.ShelfManager"
+		resultType="com.hanthink.inv.model.ShelfManager">
+	SELECT A.PART_NO partNo,
+    A.PART_NAME partName,
+    A.PART_SHORT_NO partShortNo,
+    A.SUPPLIER_NO supplierNo,
+    A.SUPPLIER_NAME
+    supplierName,
+    A.SHELVES_ADDR shelvesAddr,
+    A.STANDARD_PACK standardPack,
+    A.SAFE_STOCK safeStock,
+    A.CAR_TYPE carType,
+    A.STACK_LAYERS stackLayers,
+    A.DEAL_FLAG dealFlag,
+    Decode(A.DEAL_FLAG,'0','未导入', '1','导入')dealFlag ,
+    Decode(A.CHECK_FLAG,'0','未通过','1','通过')checkFlag ,
+    A.CHECK_RESULT checkResult
+    FROM MM_INV_SHELVES_LABEL_TEMP A
+	</select>
+
+	<!-- 调用存储过程提交导入的临时数据 -->
+	<!-- <select id="importShelves" statementType="CALLABLE"
+		resultType="com.hanthink.inv.model.ShelfManagerReturn">
+     <![CDATA[
+    {call PKG_INV_CHECK.USP_MM_INV_SHELVES_IMPORT(#{ret,jdbcType=INTEGER,mode=OUT})}
+    ]]>
+	</select> -->
+	
+	<!--确定导入 -->
+	<parameterMap type="map" id="CkParamMap">
+		<parameter property="errorFlag" jdbcType="VARCHAR"
+			mode="OUT" />
+		<!-- <parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT" /> -->
+	</parameterMap>
+	<select id="importShelves" parameterMap="CkParamMap"
+		statementType="CALLABLE">
+		{CALL PKG_INV_CHECK.USP_MM_INV_SHELVES_IMPORT(?)}
+	</select>
+	
+	<!-- 查询新增的数据是否满足零件和供应商关系 -->
+	<select id="checkPartNoAndSupplierNoIsMaintain" parameterType="com.hanthink.inv.model.ShelfManager"
+		resultType="com.hanthink.inv.model.ShelfManager">
+		SELECT T.SUPPLIER_NO sipplierNo FROM MM_PUB_PART_SUPPLIER T
+		<!-- i-LMS2019053001 mod by 赵明健 -->
+		WHERE T.FACTORY_CODE = #{factoryCode}
+		AND T.PART_NO = #{partNo} AND T.SUPPLIER_NO = #{supplierNo}
+
+	</select>
+	
+	
+	<!-- 删除货架临时表数据 -->
+	<delete id="removeShelvesManagerTemp" >
+		DELETE FROM
+		MM_INV_SHELVES_LABEL_TEMP
+	</delete>
+	
+	
+
+</mapper>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.inv.model.InvEmptyModel">
+	<!-- 空容器分页查询 -->
+	<select id="queryEmptyForPage" parameterType="com.hanthink.inv.model.InvEmptyModel" resultType="com.hanthink.inv.model.InvEmptyModel">
+		SELECT MIE.ID id,
+			   MIE.SUPPLIER_NO supplierNo,
+			   MPDD.CODE_VALUE_NAME boxType,
+			   MIE.BOX_QTY boxQTY
+		FROM MM_INV_EC MIE
+			 LEFT JOIN MM_PUB_DATA_DICT MPDD
+			 ON MPDD.CODE_TYPE = 'INV_BOX_TYPE'
+			 AND MIE.BOX_TYPE = MPDD.CODE_VALUE
+			 <!-- i-LMS2019053001 mod by 赵明健 -->
+			 AND MPDD.FACTORY_CODE = MIE.FACTORY_CODE
+		WHERE MIE.FACTORY_CODE = #{factoryCode}
+		<if test="supplierNo != null and supplierNo != ''">
+			AND MIE.SUPPLIER_NO = #{supplierNo}
+		</if>
+		<if test="boxType != null and boxType != ''">
+			AND MIE.BOX_TYPE = #{boxType}
+		</if>
+	</select>
+	<!-- 修改空容器数量 -->
+	<update id="updateForEmpty" parameterType="com.hanthink.inv.model.InvEmptyModel">
+		UPDATE MM_INV_EC SET
+			   BOX_QTY = #{boxQTY}
+		WHERE ID = #{id}
+	</update>
+</mapper>

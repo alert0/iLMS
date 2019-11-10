@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.pub.model.PubWorkCalendarModel">
+		
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="queryPubWorkCalendarForPage" parameterType="com.hanthink.pub.model.PubWorkCalendarModel" resultType="com.hanthink.pub.model.PubWorkCalendarModel">
+	         SELECT a.ID  id,
+					a.FACTORY_CODE  factoryCode,
+					a.WORKCENTER  workCenter,
+					a.SHIFT_CODE   shiftCode,
+					TO_CHAR(a.WORK_DATE, 'YYYY-MM-DD')  workDateStr,
+					TO_CHAR(a.WORK_START_TIME, 'HH24:MI:SS')  workStartTimeStr,
+					TO_CHAR(a.WORK_END_TIME, 'HH24:MI:SS')   workEndTimeStr,
+					b.CODE_VALUE_NAME codeValueName
+					FROM MM_PUB_WORK_CALENDAR a
+					LEFT JOIN MM_PUB_DATA_DICT b
+                    ON b.CODE_TYPE = 'PUB_SHIFT_CODE'
+                    AND b.CODE_VALUE = a.SHIFT_CODE 
+					WHERE 1=1 
+					<if test="workCenter!=null and workCenter!='' ">
+					AND	a.WORKCENTER LIKE CONCAT(#{workCenter}, '%')
+					</if>
+					<if test="workDateStrStart != null and workDateStrStart != ''">
+					<![CDATA[ AND a.WORK_DATE >= TO_DATE(#{workDateStrStart},'yyyy-MM-dd') ]]>
+					</if>
+			        <if test="workDateStrEnd != null and workDateStrEnd != ''">
+			        <![CDATA[ AND a.WORK_DATE <= TO_DATE(#{workDateStrEnd},'yyyy-MM-dd') ]]>
+			        </if>
+					<if test="shiftCode!=null and shiftCode!='' ">
+					AND	a.SHIFT_CODE = #{shiftCode}
+					</if>
+					AND a.FACTORY_CODE = #{factoryCode}
+					ORDER BY a.WORK_DATE,a.WORKCENTER,a.SHIFT_CODE
+	</select>
+	
+	<!-- 右侧栏位显示查询结果 -->
+	<select id="getRowClick" parameterType="java.util.Map" resultType="com.hanthink.pub.model.PubWorkCalendarModel">
+		SELECT 
+		TO_CHAR(b.START_TIME, 'HH24:MI:SS')    startTimeStr,
+		TO_CHAR(b.END_TIME, 'HH24:MI:SS')     endTimeStr
+		FROM MM_PUB_WORK_CALENDAR a
+		LEFT JOIN MM_PUB_WORK_CALENDAR_DETAIL b ON 
+	    a.ID = b.WORK_CALENDAR_ID
+        WHERE 1=1
+		AND a.ID = #{id}
+		ORDER BY b.WORK_CALENDAR_ID DESC
+	</select>
+	
+	<!-- 查询某一天的工作时间 -->
+	<select id="queryWorkTime" parameterType="com.hanthink.pub.model.PubWorkCalendarModel"
+		resultType="com.hanthink.pub.model.PubWorkCalendarModel">
+		SELECT A.ID id,
+		       TO_CHAR(A.WORK_START_TIME, 'HH24:MI:SS') workStartTimeStr,
+		       TO_CHAR(A.WORK_END_TIME, 'HH24:MI:SS') workEndTimeStr,
+		       A.SHIFT_CODE shiftCode,
+		       B.CODE_VALUE_NAME codeValueName
+		  FROM MM_PUB_WORK_CALENDAR A
+		  LEFT JOIN MM_PUB_DATA_DICT B
+		    ON A.SHIFT_CODE = B.CODE_VALUE
+		   AND B.CODE_TYPE = 'PUB_SHIFT_CODE'
+		   AND B.FACTORY_CODE = A.FACTORY_CODE
+		 WHERE A.WORKCENTER = #{workCenter}
+		   AND TO_CHAR(A.WORK_DATE, 'YYYY-MM-DD') = #{time}
+		   AND A.FACTORY_CODE = #{factoryCode}
+		 ORDER BY A.SHIFT_CODE
+	</select>
+	
+	<!-- 查询某一天的休息时间 -->
+	<select id="queryRestTime" parameterType="com.hanthink.pub.model.PubWorkCalendarModel"
+		resultType="com.hanthink.pub.model.PubWorkCalendarModel">
+		SELECT TO_CHAR(A.START_TIME, 'HH24:MI:SS') startTimeStr,
+		       TO_CHAR(A.END_TIME, 'HH24:MI:SS') endTimeStr,
+		       ROW_NUMBER() OVER(ORDER BY A.START_TIME) sortId,
+		       A.TIME_TYPE timeType
+		  FROM MM_PUB_WORK_CALENDAR_DETAIL A
+		 WHERE A.WORK_CALENDAR_ID = #{id}
+		 ORDER BY A.START_TIME
+	</select>
+	
+	<!-- 查询是否工作日 -->
+	<select id="queryIsWorkDay" parameterType="com.hanthink.pub.model.PubWorkCalendarModel"
+		resultType="java.lang.Integer">
+		SELECT COUNT(1)
+		  FROM MM_PUB_WORK_CALENDAR A
+		 WHERE A.WORKCENTER = #{workCenter}
+		   AND A.FACTORY_CODE = #{factoryCode}
+		   AND A.WORK_DATE = TO_DATE(#{time}, 'YYYY-MM-DD')
+	</select>
+	
+	<!-- 查询是否工作日 -->
+	<select id="queryIsWorkDayForList" parameterType="java.util.List"
+		resultType="com.hanthink.pub.model.PubWorkCalendarModel">
+		<foreach collection="list" item="item" index="index" separator="UNION ALL">
+    	 	SELECT COUNT(1) isWorkDay,
+		       #{item.text,jdbcType=VARCHAR} text,
+		       #{item.value,jdbcType=VARCHAR} value,
+		       #{item.type,jdbcType=VARCHAR} type,
+		       #{item.dClass,jdbcType=VARCHAR} dClass,
+		       #{item.time,jdbcType=VARCHAR} time,
+		       #{item.workCenter,jdbcType=VARCHAR} workCenter
+		  FROM MM_PUB_WORK_CALENDAR A
+		 WHERE A.WORKCENTER = #{item.workCenter,jdbcType=VARCHAR}
+		   AND A.FACTORY_CODE = #{item.factoryCode,jdbcType=VARCHAR}
+		   AND A.WORK_DATE = TO_DATE(#{item.time,jdbcType=VARCHAR}, 'YYYY-MM-DD')
+	 	</foreach>
+	</select>
+	
+	
+</mapper>

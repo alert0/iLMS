@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.bpmx.persistence.model.BpmProBo">
+	<resultMap id="BpmProBo" type="com.hotent.bpmx.persistence.model.BpmProBo">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="processId" column="process_id_" jdbcType="VARCHAR"/>
+		<result property="processKey" column="process_key_" jdbcType="VARCHAR"/>
+		<result property="boCode" column="bo_code_" jdbcType="VARCHAR"/>
+		<result property="boName" column="bo_name_" jdbcType="VARCHAR"/>
+		<result property="creatorId" column="creator_id_" jdbcType="VARCHAR"/>
+		<result property="createTime" column="create_time_" jdbcType="TIMESTAMP"/>
+	</resultMap>
+	
+	<sql id="dynamicWhere">
+		<where>
+			<if test="id!=null"> AND ID_  =#{id} </if>
+			<if test="processId!=null"> AND process_id_  =#{processId} </if>
+			<if test="processKey!=null"> AND process_key_  =#{processKey} </if>
+			<if test="boCode!=null"> AND bo_code_  =#{boCode} </if>
+			<if test="boName!=null"> AND bo_name_  =#{boName} </if>
+		</where>
+	</sql>	
+	
+	<insert id="create" parameterType="com.hotent.bpmx.persistence.model.BpmProBo">
+		INSERT INTO bpm_pro_bo
+		(id_,process_id_,process_key_,bo_code_,bo_name_,creator_id_,create_time_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{processId,jdbcType=VARCHAR}, #{processKey,jdbcType=VARCHAR}, #{boCode,jdbcType=VARCHAR}, #{boName,jdbcType=VARCHAR}, #{creatorId,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="BpmProBo">
+		SELECT * FROM bpm_pro_bo 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="BpmProBo">
+		SELECT * FROM bpm_pro_bo
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.bpmx.persistence.model.BpmProBo">
+		UPDATE bpm_pro_bo SET
+		process_id_=#{processId,jdbcType=VARCHAR},
+		process_key_=#{processKey,jdbcType=VARCHAR},
+		bo_code_=#{boCode,jdbcType=VARCHAR},
+		bo_name_=#{boName,jdbcType=VARCHAR},
+		creator_id_=#{creatorId,jdbcType=VARCHAR},
+		
+		create_time_=#{createTime,jdbcType=TIMESTAMP}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM bpm_pro_bo 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	
+	<delete id="removeByProcess" parameterType="java.util.Map">
+		DELETE FROM bpm_pro_bo   <include refid="dynamicWhere" />
+	</delete>
+	
+	<delete id="removeByBoCode" parameterType="java.lang.String">
+		DELETE FROM bpm_pro_bo   
+		WHERE 
+		bo_code_=#{boCode}
+	</delete>
+	
+	<select id="getByProcess"  resultMap="BpmProBo" parameterType="java.util.Map">
+		SELECT * FROM bpm_pro_bo  <include refid="dynamicWhere" />
+	</select>
+	
+	
+	<select id="getByBoCode"    resultMap="BpmProBo" parameterType="java.lang.String">
+		SELECT * FROM bpm_pro_bo 
+		WHERE 
+		bo_code_=#{boCode}
+	</select>
+	
+</mapper>

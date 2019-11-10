@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.sys.persistence.model.DefaultFile">
+	<resultMap id="DefaultFile" type="com.hotent.sys.persistence.model.DefaultFile">
+		<id property="id" column="ID_" jdbcType="VARCHAR"/>
+		<result property="xbTypeId" column="XB_TYPE_ID_" jdbcType="VARCHAR"/>
+		<result property="fileName" column="FILE_NAME_" jdbcType="VARCHAR"/>
+		<result property="fileType" column="FILE_TYPE_" jdbcType="VARCHAR"/>
+		<result property="storeType" column="STORE_TYPE_" jdbcType="VARCHAR"/>
+		<result property="filePath" column="FILE_PATH_" jdbcType="VARCHAR"/>
+		<result property="bytes" column="BYTES_" jdbcType="BLOB"/>
+		<result property="byteCount" column="BYTE_COUNT_" jdbcType="NUMERIC"/>
+		<result property="ext" column="EXT_" jdbcType="VARCHAR"/>
+		<result property="note" column="NOTE_" jdbcType="VARCHAR"/>
+		<result property="creator" column="CREATOR_" jdbcType="VARCHAR"/>
+		<result property="creatorName" column="CREATOR_NAME_" jdbcType="VARCHAR"/>
+		<result property="createTime" column="CREATE_TIME_" jdbcType="TIMESTAMP"/>
+		<result property="isDel" column="IS_DEL_" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.sys.persistence.model.DefaultFile">
+		INSERT INTO sys_file
+		(ID_,XB_TYPE_ID_,FILE_NAME_,FILE_TYPE_,STORE_TYPE_,FILE_PATH_,BYTES_,BYTE_COUNT_,EXT_,NOTE_,CREATOR_,CREATOR_NAME_,CREATE_TIME_,IS_DEL_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{xbTypeId,jdbcType=VARCHAR}, #{fileName,jdbcType=VARCHAR}, #{fileType,jdbcType=VARCHAR}, #{storeType,jdbcType=VARCHAR}, #{filePath,jdbcType=VARCHAR}, #{bytes,jdbcType=BLOB}, #{byteCount,jdbcType=NUMERIC}, #{ext,jdbcType=VARCHAR}, #{note,jdbcType=VARCHAR}, #{creator,jdbcType=VARCHAR}, #{creatorName,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP}, #{isDel,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get" parameterType="java.lang.String" resultMap="DefaultFile">
+		SELECT * FROM sys_file 
+		WHERE 
+		ID_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="DefaultFile">
+		SELECT ID_,XB_TYPE_ID_,FILE_NAME_,FILE_TYPE_,STORE_TYPE_,FILE_PATH_,BYTE_COUNT_,EXT_,NOTE_,CREATOR_,CREATOR_NAME_,CREATE_TIME_,IS_DEL_ FROM sys_file
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY ID_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.sys.persistence.model.DefaultFile">
+		UPDATE sys_file SET
+		XB_TYPE_ID_=#{xbTypeId,jdbcType=VARCHAR},
+		FILE_NAME_=#{fileName,jdbcType=VARCHAR},
+		FILE_TYPE_=#{fileType,jdbcType=VARCHAR},
+		STORE_TYPE_=#{storeType,jdbcType=VARCHAR},
+		FILE_PATH_=#{filePath,jdbcType=VARCHAR},
+		BYTES_=#{bytes,jdbcType=BLOB},
+		BYTE_COUNT_=#{byteCount,jdbcType=NUMERIC},
+		EXT_=#{ext,jdbcType=VARCHAR},
+		NOTE_=#{note,jdbcType=VARCHAR},
+		CREATOR_=#{creator,jdbcType=VARCHAR},
+		CREATOR_NAME_=#{creatorName,jdbcType=VARCHAR},
+		CREATE_TIME_=#{createTime,jdbcType=TIMESTAMP},
+		IS_DEL_=#{isDel,jdbcType=VARCHAR}
+		WHERE
+		ID_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_file 
+		WHERE
+		ID_=#{id}
+	</delete>
+	
+	
+	<select id="getAllByExt" parameterType="java.util.Map"  resultMap="DefaultFile">
+		SELECT * FROM sys_file 
+		WHERE EXT_ in 
+		<foreach collection="allowFiles" index="index" item="ext" open="(" close=")" separator=",">
+			#{ext}
+		</foreach>
+	</select>
+	
+</mapper>

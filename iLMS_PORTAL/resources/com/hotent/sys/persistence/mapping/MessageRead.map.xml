@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.sys.persistence.model.MessageRead">
+	<resultMap id="MessageRead" type="com.hotent.sys.persistence.model.MessageRead">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="msgId" column="msg_id_" jdbcType="VARCHAR"/>
+		<result property="receiverId" column="receiver_id_" jdbcType="VARCHAR"/>
+		<result property="receiver" column="receiver_" jdbcType="VARCHAR"/>
+		<result property="receiverTime" column="receiver_time_" jdbcType="TIMESTAMP"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.sys.persistence.model.MessageRead">
+		INSERT INTO sys_msg_read
+		(id_,msg_id_,receiver_id_,receiver_,receiver_time_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{msgId,jdbcType=VARCHAR}, #{receiverId,jdbcType=VARCHAR}, #{receiver,jdbcType=VARCHAR}, #{receiverTime,jdbcType=TIMESTAMP})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="MessageRead">
+		SELECT * FROM sys_msg_read 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="MessageRead">
+		SELECT * FROM sys_msg_read
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.sys.persistence.model.MessageRead">
+		UPDATE sys_msg_read SET
+		msg_id_=#{msgId,jdbcType=VARCHAR},
+		receiver_id_=#{receiverId,jdbcType=VARCHAR},
+		receiver_=#{receiver,jdbcType=VARCHAR},
+		receiver_time_=#{receiverTime,jdbcType=TIMESTAMP}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<select id="getReadByUser" resultMap="MessageRead">
+		select * from sys_msg_read a 
+		where a.receiver_id_=#{userId}
+		and a.msg_id_=#{msgId}
+	</select>
+	
+	<select id="getByMessageId" resultMap="MessageRead">
+		select * from sys_msg_read a 
+		where a.msg_id_=#{messageId}
+	</select>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_msg_read 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	
+</mapper>

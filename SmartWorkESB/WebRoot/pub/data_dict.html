@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+<title>SmartWorkESB</title>
+<link href="../zui/css/zui.min.css?v=1.0" rel="stylesheet">
+<link href="../zui/lib/datagrid/zui.datagrid.min.css?v=1.0" rel="stylesheet">
+<link href="../zui/lib/uploader/zui.uploader.min.css?v=1.0" rel="stylesheet">
+<link href="../css/comm.css?v=1.0" rel="stylesheet">
+<style type="text/css">
+.my-query {
+    overflow: visible;
+    line-height: 25px;
+}
+
+.my-result {
+    
+}
+
+</style>
+
+</head>
+<body>
+
+  <!-- 查询条件 -->
+  <form class="form-inline my-top my-query my-query-datadict">
+    <div class="form-group">
+      <div class="input-control">
+        <input name="codeTypeName" type="text" class="form-control" placeholder="类型名称" />
+      </div>
+    </div>
+    <div class="form-group">
+      <div class="input-control">
+        <input name="codeValueName" type="text" class="form-control" placeholder="编码名称">
+      </div>
+    </div>
+    <button btnname="search" type="button" class="btn btn-default">
+      <i class="icon icon-search"></i><span>查询</span>
+    </button>
+    <button btnname="modify" type="button" class="btn btn-info">
+      <i class="icon icon-edit"></i><span>修改</span>
+    </button>
+    <div class="uploader">
+      <button btnname="import" type="button" class="btn btn-info uploader-btn-browse">
+        <i class="icon icon-upload-alt"></i><span>导入</span>
+      </button>
+    </div>
+    <button btnname="export" type="button" class="btn btn-info">
+      <i class="icon icon-download-alt"></i><span>导出</span>
+    </button>
+  </form>
+
+  <!-- 查询结果表格 -->
+  <div class="my-result-datadict datagrid datagrid-striped">
+    <div class="datagrid-container"></div>
+  </div>
+
+  <!-- 编辑数据字典 -->
+  <div class="modal fade" id="my-dialog-datadict">
+    <div class="modal-dialog my-form-dialog3">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title"></h4>
+        </div>
+        <div class="modal-body">
+          <form class="form-inline">
+            <input type="hidden" name="pkId">
+            <input type="hidden" name="isEdit">
+            <div class="form-group">
+              <div class="input-control has-label-left my-word2 onetwo-width">
+                <input name="codeType" type="text" class="form-control" id="id-codeType" readonly="readonly">
+                <label for="id-codeType" class="input-control-label-left">类型:</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="input-control has-label-left my-word4 onetwo-width">
+                <input name="codeTypeName" type="text" maxlength="80" required="required" class="form-control" id="id-codeTypeName">
+                <label for="id-codeTypeName" class="input-control-label-left">类型名称:</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="input-control has-label-left my-word2 onetwo-width">
+                <input name="codeValue" type="text" class="form-control" id="id-codeValue" readonly="readonly">
+                <label for="id-codeValue" class="input-control-label-left">编码:</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="input-control has-label-left my-word4 onetwo-width">
+                <input name="codeValueName" type="text" maxlength="255" required="required" class="form-control" id="id-codeValueName">
+                <label for="id-codeValueName" class="input-control-label-left">编码名称:</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="input-control has-label-left my-word5 three-width">
+                <input name="codeDesc" type="text" readonly="readonly" class="form-control" id="id-codeDesc">
+                <label for="id-codeDesc" class="input-control-label-left">扩展/备注:</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="input-control has-label-left has-icon-right my-tip-question my-word3">
+                <input name="sortNo" type="number"  min="0" max="999" regex="^[0-9]+$" required="required" class="form-control" id="id-sortNo">
+                <label for="id-sortNo" class="input-control-label-left">顺序号:</label>
+                <label class="input-control-label-right" my-tip-title="INT">?</label>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button btnname="ok" type="button" class="btn btn-primary">
+            <i class="icon icon-check"></i>保存
+          </button>
+          <button btnname="cancel" type="button" class="btn btn-default">
+            <i class="icon icon-times"></i>取消
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../zui/lib/jquery/jquery.js?v=1.0"></script>
+  <script src="../zui/lib/jquery/jquery.validate.min.js?v=1.0"></script>
+  <script src="../zui/lib/jquery/localization/messages_zh.min.js?v=1.0"></script>
+  <script src="../zui/js/zui.min.js?v=1.0"></script>
+  <script src="../zui/lib/datagrid/zui.datagrid.min.js?v=1.0"></script>
+  <script src="../zui/lib/uploader/zui.uploader.min.js?v=1.0"></script>
+  <script src="../js/extension.js?v=1.0"></script>
+  <script src="data_dict.js?v=1.0"></script>
+</body>
+</html>

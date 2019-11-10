@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.sps.model.SpsScanShelfUpModel">
+
+	<!--配送查询 -->
+	<select id="querySpsScanShelfUpPage" parameterType="com.hanthink.sps.model.SpsScanShelfUpModel"
+		resultType="com.hanthink.sps.model.SpsScanShelfUpModel">
+		WITH distri_temp AS
+			 (select case
+			           when min_product_seqno1 &lt; min_product_seqno2 then
+			            min_product_seqno2
+			           else
+			            min_product_seqno1
+			         end min_product_seqno,
+			         case
+			           when max_product_seqno1 &lt; max_product_seqno2 then
+			            max_product_seqno1
+			           else
+			            max_product_seqno2
+			         end max_product_seqno,
+			         case
+			           when min_product_seqno1 &lt; min_product_seqno2 then
+			            PKG_PUB.USF_GET_BATCHSEQ_BY_PRODSEQNO(kb_id, min_product_seqno2)
+			           else
+			            PKG_PUB.USF_GET_BATCHSEQ_BY_PRODSEQNO(kb_id, min_product_seqno1)
+			         end min_batch_seqno,
+			         case
+			           when max_product_seqno1 &lt; max_product_seqno2 then
+			            PKG_PUB.USF_GET_BATCHSEQ_BY_PRODSEQNO(kb_id, max_product_seqno1)
+			           else
+			            PKG_PUB.USF_GET_BATCHSEQ_BY_PRODSEQNO(kb_id, max_product_seqno2)
+			         end max_batch_seqno,
+			         PKG_PUB.USF_GET_BCYCLESEQ_BY_PRODSEQNO(kb_id, product_seqno) kb_batch_cycle_num,
+			         kb_id
+			    from (select  
+			                 <!-- 批次基准 -->                                                   
+			                 (kb.curr_batch_seqno + (#{distriBcycleSeqNoStart}) * kb.batch_cycle_num) * kb.process_cycle_num - kb.process_cycle_num + 1 
+			                   + ((#{distriBatchNoEnd}) - kb.curr_batch_no) * kb.process_cycle_num as min_product_seqno1,
+			                 (kb.curr_batch_seqno + (#{distriBcycleSeqNoEnd}) * kb.batch_cycle_num) * kb.process_cycle_num 
+			                   + ((#{distriBatchNoStart}) - kb.curr_batch_no) * kb.process_cycle_num as max_product_seqno1,
+			                 <!--  批次循环流水号 -->
+			                 ((#{batchDiffStart}) * kb.batch_cycle_num) * kb.process_cycle_num - kb.process_cycle_num + 1 
+			                   - (kb.batch_cycle_num - (#{distriBatchNoEnd})) * kb.process_cycle_num as min_product_seqno2,
+			                 ((#{batchDiffEnd}) * kb.batch_cycle_num) * kb.process_cycle_num
+			                   - (kb.batch_cycle_num - (#{distriBatchNoStart})) * kb.process_cycle_num as max_product_seqno2,
+			           kb.product_seqno,
+			           kb.id kb_id
+			            from mm_mon_kb kb
+			           where kb.factory_code = #{factoryCode}
+			             and kb.workcenter = #{workCenter}
+			             and kb.is_edit = 0))
+			select p.factory_code   factoryCode,
+			       d1.code_value_name   workCenter,
+			       p.distri_bcycle_seqno  distriBcycleSeqNo ,
+			       p.distri_batch_no   distriBatchNo,
+			       p.batch_diff   batchDiff,
+			       p.part_no   partNo,
+			       p.part_short_no   partShortNo,
+			       p.part_name   partName,
+			       p.prepare_person   preparePerson,
+			       p.distri_person  distriPerson,
+			       p.location   location,
+			       p.require_num    requireNum,
+			       p.box_num   boxNum,
+			       sum(cf_d.rec_qty)  distriNum,
+			       sum(cf_d.rec_qty)/CEIL(NVL(p.require_num/NVL(p.box_num,0),0))  distriBoxNum,
+			       p.supplier_no   supplierNo,
+			       p.supplier_name   supplierName,
+			       d2.code_value_name   planCodeType,
+			       p.unload_port   unloadPort
+			  from (select factory_code,
+			               workcenter,
+			               distri_bcycle_seqno,
+			               distri_batch_no,
+			               case
+			                 when distri_bcycle_seqno > kb_batch_cycle_num then
+			                  'D+' || to_char(distri_bcycle_seqno - kb_batch_cycle_num)
+			                 when distri_bcycle_seqno &lt; kb_batch_cycle_num then
+			                  'D' || to_char(distri_bcycle_seqno - kb_batch_cycle_num)
+			                 else
+			                  'D'
+			               end batch_diff,
+			               distri_batch_seqno,
+			               part_no,
+			               part_short_no,
+			               part_name,
+			               prepare_person,
+			               distri_person,
+			               location,
+			               sum(require_num) require_num,
+			               sum(box_num) box_num,
+			               supplier_no,
+			               supplier_name,
+			               plan_code_type,
+			               unload_port
+			          from (select b.factory_code,
+			                       b.workcenter,
+			                       b.plan_code_type,
+			                       a.prepare_person,
+			                       a.distri_person,
+			                       a.location,
+			                       a.part_no,
+			                       a.part_short_no,
+			                       a.part_name,
+			                       PKG_PUB.USF_GET_BCYCLESEQ_BY_PRODSEQNO(a.plan_code,
+			                                                              a.distri_product_seqno) distri_bcycle_seqno,
+			                       PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(a.plan_code,
+			                                                            a.distri_product_seqno) distri_batch_no,
+			                       PKG_PUB.USF_GET_BATCHSEQ_BY_PRODSEQNO(a.plan_code,
+			                                                             a.distri_product_seqno) distri_batch_seqno,
+			                       a.require_num,
+			                       ceil(a.require_num / a.standard_package) box_num,
+			                       a.supplier_no,
+			                       a.supplier_name,
+			                       a.unload_port,
+			                       c.kb_batch_cycle_num
+			                  from mm_jit_pkg_req a, mm_pub_plan_code b, distri_temp c
+			                 where b.plan_code = a.plan_code
+			                   and b.kb_id = c.kb_id
+			                   and not exists
+			                 (select 1
+			                          from mm_inv_part_location l, mm_inv_unload u
+			                         where l.factory_code = u.factory_code
+			                           and l.unload_port = u.unload_port
+			                           and u.inner_logistics_model = 'JITI'
+			                           and l.factory_code = b.factory_code
+			                           and l.workcenter = b.workcenter
+			                           and l.part_no = a.part_no
+			                           and b.plan_code_type = 'JITO')
+			                   and b.factory_code = #{factoryCode}
+			                      <!-- 车间 -->
+			                   and b.workcenter = #{workCenter}
+			                      <!-- 累计批次、批次基准、配送批次 -->
+			                   and a.distri_product_seqno >=
+			                       (select min_product_seqno from distri_temp)
+			                   and a.distri_product_seqno &lt;=
+			                       (select max_product_seqno from distri_temp)
+			                <!-- 配送工程 -->
+			                  <if test="distriPerson!=null and distriPerson!='' ">
+								and a.distri_person = #{distriPerson}
+							  </if>
+							<!-- 配送地址 -->
+			                  <if test="location!=null and location!='' ">
+								and a.location = #{location}
+							  </if>
+			                <!-- 零件号 -->
+			                  <if test="partNo!=null and partNo!='' ">
+								and a.part_no LIKE CONCAT(#{partNo}, '%')
+							  </if>
+			                <!-- 零件简号 -->
+			                  <if test="partShortNo!=null and partShortNo!='' ">
+								and a.part_short_no = #{partShortNo}
+							  </if>
+			                <!-- 物流模式 -->
+			                 <if test="planCodeType!=null and planCodeType!='' ">
+								and b.plan_code_type = #{planCodeType}
+							  </if>
+			                <!--  供应商代码 -->
+			                 <if test="supplierNo!=null and supplierNo!='' ">
+								and a.supplier_no = #{supplierNo}
+							  </if>     
+			                <!-- 供应商名称 -->
+			                 <if test="supplierName!=null and supplierName!='' ">
+								and a.supplier_name LIKE '%${supplierName}%' 
+							  </if>     
+			                )
+			         group by factory_code,
+			                  workcenter,
+			                  distri_bcycle_seqno,
+			                  distri_batch_no,
+			                  distri_batch_seqno,
+			                  part_no,
+			                  part_short_no,
+			                  part_name,
+			                  prepare_person,
+			                  distri_person,
+			                  location,
+			                  supplier_no,
+			                  supplier_name,
+			                  plan_code_type,
+			                  unload_port,
+			                  distri_bcycle_seqno,
+			                  kb_batch_cycle_num) p
+			  left join mm_inv_confirm cf
+			    on cf.factory_code = p.factory_code
+			   and cf.work_center = p.workcenter
+			   and cf.batch_seq = p.distri_batch_seqno
+			  left join mm_inv_confirm_detail cf_d
+			    on cf_d.confirm_no = cf.confirm_no
+			   and cf_d.part_no = p.part_no
+			   and (cf_d.location = p.location or
+			       (cf_d.location is null and p.location is null))
+			  left join mm_pub_data_dict d1
+			    on d1.factory_code = p.factory_code
+			   and d1.code_type = 'PUB_WORKCENTER'
+			   and d1.code_value = p.workcenter
+			  left join mm_pub_data_dict d2
+			    on d2.factory_code = p.factory_code
+			   and d2.code_type = 'PUB_PLAN_CODE_TYPE'
+			   and d2.code_value = p.plan_code_type
+			 group by p.factory_code,
+			          p.workcenter,
+			          d1.code_value_name,
+			          p.distri_bcycle_seqno,
+			          p.distri_batch_no,
+			          p.distri_batch_seqno,
+			          p.batch_diff,
+			          p.part_no,
+			          p.part_short_no,
+			          p.part_name,
+			          p.prepare_person,
+			          p.distri_person,
+			          p.location,
+			          p.require_num,
+			          p.box_num,
+			          p.supplier_no,
+			          p.supplier_name,
+			          p.plan_code_type,
+			          d2.code_value_name,
+			          p.unload_port
+			 order by p.factory_code,
+			          p.workcenter,
+			          p.distri_batch_seqno,
+			          p.distri_person,
+			          p.location
+	</select>
+
+    <!-- 查询默认值 -->
+	<select id="selectDefaultValueAC" parameterType="com.hanthink.sps.model.SpsScanShelfUpModel" resultType="com.hanthink.sps.model.SpsScanShelfUpModel">
+	   select CEIL(a.product_seqno/1080) batchDiff,
+	          a.curr_batch_no  distriBatchNo
+	     from mm_mon_kb a
+	    where a.factory_code = #{factoryCode}
+	      and a.kb_code = 'AF_KB'
+	      and a.station_code = 'AF-OFF'
+	</select>
+	
+	<!-- 查询默认值 -->
+	<select id="selectDefaultValueWC" parameterType="com.hanthink.sps.model.SpsScanShelfUpModel" resultType="com.hanthink.sps.model.SpsScanShelfUpModel">
+	   select CEIL(a.product_seqno/1080) batchDiff,
+	          a.curr_batch_no  distriBatchNo
+	     from mm_mon_kb a
+	    where a.factory_code = #{factoryCode}
+	      and a.kb_code = 'WE_KB'
+	      and a.station_code = 'WE-OFF'
+	</select>
+
+</mapper>

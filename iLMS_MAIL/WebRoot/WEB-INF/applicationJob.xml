@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns ="http://www.springframework.org/schema/beans" 
+	xmlns:xsi ="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation ="http://www.springframework.org/schema/beans
+	http://www.springframework.org/schema/beans/spring-beans-2.0.xsd
+	http://www.springframework.org/schema/aop
+	http://www.springframework.org/schema/aop/spring-aop-2.5.xsd" >   
+	
+	
+	
+	
+	
+
+	
+	<bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+		<property name="autoStartup">
+			<value>true</value>
+		</property> 
+		<property name="triggers"> 
+			<list> 
+				<ref bean="mainCronTrigger" /> 
+			</list> 
+		</property> 
+	</bean> 
+	
+	<bean id="mainCronTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean"> 
+		<!-- 每分钟一次 -->
+		<property name="jobDetail" ref="mainThreadJobTask" /> 
+		<property name="cronExpression" value="0 0/1 * * * ? " /> 
+	</bean>
+	
+		<bean name="mainThreadJobTask" class="org.springframework.scheduling.quartz.JobDetailBean">
+	    <property name="jobClass" value="com.hanthink.gps.mail.job.MainPoolJob" />
+	    <property name="applicationContextJobDataKey">
+	            <value>applicationContext</value>
+	    </property>
+	</bean>
+	
+</beans>

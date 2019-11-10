@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.bpmx.persistence.model.BpmExeStackRelation">
+	<resultMap id="BpmExeStackRelation" type="com.hotent.bpmx.persistence.model.BpmExeStackRelation">
+		<id property="relationId" column="relation_id_" jdbcType="VARCHAR"/>
+		<result property="procInstId" column="proc_inst_id_" jdbcType="VARCHAR"/>
+		<result property="fromStackId" column="from_stack_id_" jdbcType="VARCHAR"/>
+		<result property="toStackId" column="to_stack_id_" jdbcType="VARCHAR"/>
+		<result property="fromNodeId" column="from_node_id_" jdbcType="VARCHAR"/>
+		<result property="toNodeId" column="to_node_id_" jdbcType="VARCHAR"/>
+		<result property="relationState" column="relation_state_" jdbcType="NUMERIC"/>
+		<result property="fromNodeType" column="from_node_type_" jdbcType="VARCHAR"/>
+		<result property="toNodeType" column="to_node_type_" jdbcType="VARCHAR"/>
+		<result property="createdTime" column="created_time_" jdbcType="TIMESTAMP"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.bpmx.persistence.model.BpmExeStackRelation">
+		INSERT INTO bpm_exe_stack_relation
+		(relation_id_,proc_inst_id_,from_stack_id_,to_stack_id_,from_node_id_,to_node_id_,relation_state_,from_node_type_,to_node_type_,created_time_)
+		VALUES 
+		(#{relationId,jdbcType=VARCHAR}, #{procInstId,jdbcType=VARCHAR}, #{fromStackId,jdbcType=VARCHAR}, #{toStackId,jdbcType=VARCHAR}, #{fromNodeId,jdbcType=VARCHAR}, #{toNodeId,jdbcType=VARCHAR}, #{relationState,jdbcType=NUMERIC}, #{fromNodeType,jdbcType=VARCHAR}, #{toNodeType,jdbcType=VARCHAR}, #{createdTime,jdbcType=TIMESTAMP})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="BpmExeStackRelation">
+		SELECT * FROM bpm_exe_stack_relation 
+		WHERE 
+		relation_id_=#{relationId}
+	</select>
+	<select id="getByToStackId"   parameterType="java.lang.String" resultMap="BpmExeStackRelation">
+		SELECT * FROM bpm_exe_stack_relation 
+		WHERE 
+		to_stack_id_=#{stackId}
+	</select>
+		
+	<select id="getByFromStackId"   parameterType="java.lang.String" resultMap="BpmExeStackRelation">
+		SELECT * FROM bpm_exe_stack_relation 
+		WHERE 
+		from_stack_id_=#{stackId}
+	</select>
+	
+  <select id="getListByProcInstId"   parameterType="java.lang.String" resultMap="BpmExeStackRelation">
+		SELECT * FROM bpm_exe_stack_relation 
+		WHERE 
+		proc_inst_id_=#{procInstId} ORDER BY relation_id_ DESC
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="BpmExeStackRelation">
+		SELECT * FROM bpm_exe_stack_relation
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY relation_id_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.bpmx.persistence.model.BpmExeStackRelation">
+		UPDATE bpm_exe_stack_relation SET
+		proc_inst_id_=#{procInstId,jdbcType=VARCHAR},
+		from_stack_id_=#{fromStackId,jdbcType=VARCHAR},
+		to_stack_id_=#{toStackId,jdbcType=VARCHAR},
+		from_node_id_=#{fromNodeId,jdbcType=VARCHAR},
+		to_node_id_=#{toNodeId,jdbcType=VARCHAR},
+		relation_state_=#{relationState,jdbcType=NUMERIC},
+		from_node_type_=#{fromNodeType,jdbcType=VARCHAR},
+		to_node_type_=#{toNodeType,jdbcType=VARCHAR},
+		created_time_=#{createdTime,jdbcType=TIMESTAMP}
+		WHERE
+		relation_id_=#{relationId}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM bpm_exe_stack_relation 
+		WHERE
+		relation_id_=#{relationId}
+	</delete>
+	
+	
+</mapper>

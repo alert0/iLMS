@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.pup.model.PupManualOrderModel">
+	<!-- 分页数据查询 -->
+	<select id="queryManualOrderForPage" parameterType="com.hanthink.pup.model.PupManualOrderModel" 
+											resultType="com.hanthink.pup.model.PupManualOrderModel">
+		SELECT PURCHASE_NO purchaseNo,ORDER_NO orderNo,FACTORY_CODE factoryCode,PICKUP_FLAG pickupFlag,
+			   MERGE_NO mergeNo,AREA area,ORDER_DESC orderDesc,SUP_FACTORY supFactory,
+			   PICKUP_TYPE pickupType,CAR_TYPE carType,SUPPLIER_NO supplierNo,
+			   TO_CHAR(WORKDAY,'yyyy-MM-dd') workday,TO_CHAR(PICK_DATE,'yyyy-MM-dd') pickDate,
+			   TO_CHAR(PICK_DATE,'HH:mi:ss') pickTime,TO_CHAR(ARRIVE_DATE,'yyyy-MM-dd') arriveDate,
+			   TO_CHAR(ARRIVE_DATE,'hh24:mi:ss') arriveTime,TO_CHAR(ORDER_DATE,'yyyy-MM-dd') orderDate,
+			   ROUTE_CODE routeCode,TOTAL_NO totalNo,TODAY_NO todayNo,CREATION_USER creationUser,
+			   TO_CHAR(CREATION_TIME,'yyyy-MM-dd hh24:mi:ss')creationTime,LAST_MODIFIED_USER lastModifiedUser,
+			   TO_CHAR(LAST_MODIFIED_TIME,'yyyy-MM-dd hh24:mi:ss') lastModifiedTime
+		FROM MM_PUP_MANU_ORDER
+		WHERE FACTORY_CODE = #{factoryCode}
+		<if test="workdayStart != null and workdayStart != ''">
+			AND WORKDAY >= TO_DATE(#{workdayStart},'yyyy-MM-dd')
+		</if>
+		<if test="workdayEnd != null and workdayEnd != ''">
+			AND WORKDAY <![CDATA[<=]]> TO_DATE(#{workdayEnd},'yyyy-MM-dd')
+		</if>
+		<if test="routeCode != null and routeCode != ''">
+			AND ROUTE_CODE = #{routeCode}
+		</if>
+		<if test="carType != null and carType != ''">
+			   AND CAR_TYPE = #{carType}
+		</if>
+		<if test="orderNo != null and orderNo != ''">
+			   AND ORDER_NO LIKE CONCAT(#{orderNo}, '%')
+		</if>
+		ORDER BY PURCHASE_NO,WORKDAY
+	</select>
+	
+	<delete id="removeManualOders" parameterType="java.util.List">
+		DELETE FROM MM_PUP_MANU_ORDER
+		WHERE (FACTORY_CODE,PURCHASE_NO) IN
+		<foreach item="item" collection="list" open="(" separator="," close=")">
+			(#{item.factoryCode},#{item.purchaseNo})
+		</foreach>
+	</delete>
+	
+	<delete id="deleteTempManualOrderByUUID">
+		DELETE FROM MM_PUP_MANU_ORDER_IMP
+		WHERE 
+		IMP_UUID = #{uuid}
+	</delete>
+	
+	<insert id="insertManualOrderToTempTable" parameterType="java.util.List">
+		INSERT INTO MM_PUP_MANU_ORDER_IMP
+		(ID,ORDER_NO,PURCHASE_NO,FACTORY_CODE,PICKUP_FLAG,MERGE_NO,AREA,ORDER_DESC,
+		SUP_FACTORY,PICKUP_TYPE,CAR_TYPE,WORKDAY,PICK_DATE,ARRIVE_DATE,ORDER_DATE,ROUTE_CODE,
+		TODAY_NO,TOTAL_NO,IMP_UUID,CHECK_RESULT,
+		CHECK_INFO,IMPORT_STATUS,OPE_TYPE,CREATION_USER,CREATION_TIME,SUPPLIER_NO)
+		 <foreach  collection="list" item="item" index="index" separator=" UNION ALL" >
+			 SELECT #{item.id,jdbcType=VARCHAR},#{item.orderNo,jdbcType=VARCHAR},#{item.purchaseNo,jdbcType=VARCHAR},
+		 			#{item.factoryCode,jdbcType=VARCHAR},#{item.pickupFlag,jdbcType=VARCHAR},#{item.mergeNo,jdbcType=VARCHAR},
+		 			#{item.area,jdbcType=VARCHAR},#{item.orderDesc,jdbcType=VARCHAR},#{item.supFactory,jdbcType=VARCHAR},
+		 			#{item.pickupType,jdbcType=VARCHAR},#{item.carType,jdbcType=VARCHAR},TO_DATE(#{item.workday,jdbcType=VARCHAR},'yyyy-MM-dd'),
+		 			TO_DATE(#{item.pickTime,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss'),
+		 			TO_DATE(#{item.arriveTime,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss'),
+		 			TO_DATE(#{item.orderDate,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss'),
+		 			#{item.routeCode,jdbcType=VARCHAR},#{item.todayNo,jdbcType=VARCHAR},#{item.totalNo,jdbcType=VARCHAR},
+		 			#{item.uuid,jdbcType=VARCHAR},#{item.checkResult,jdbcType=VARCHAR},
+		 			#{item.checkInfo,jdbcType=VARCHAR},#{item.importStatus,jdbcType=VARCHAR},#{item.opeType,jdbcType=VARCHAR},#{item.creationUser,jdbcType=VARCHAR},
+		 			TO_DATE(#{item.creationTime,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss'),#{item.supplierNo,jdbcType=VARCHAR}
+		 	FROM DUAL
+		 </foreach>
+	</insert>
+	
+	<parameterMap type="map" id="checkResultMap">  
+		<parameter property="uuid"  mode="IN"/>  
+		<parameter property="userName"  mode="IN"/>  
+		<parameter property="opeIp"  mode="IN"/>
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<select id="checkImportManualOrder" parameterMap="checkResultMap" statementType="CALLABLE">
+		{CALL PKG_PUP_CHECK.PUP_MANUAL_ORDER_CHECK(?, ?, ?,  ?,?)}
+	</select>
+	
+	<select id="queryImportFlag" parameterType="java.lang.String" resultType="java.lang.String">
+		WITH TEMPA AS
+		 (SELECT COUNT(1) s
+		    FROM MM_PUP_MANU_ORDER_IMP A
+		   WHERE A.CHECK_RESULT = 0
+		     AND A.IMP_UUID = #{uuid}),
+		TEMPB AS
+		 (SELECT COUNT(1) S
+		    FROM MM_PUP_MANU_ORDER_IMP B
+		   WHERE B.IMP_UUID = #{uuid})
+		SELECT CASE
+		         WHEN A.S >= B.S THEN
+		          0
+		         ELSE
+		          1
+		       END AS FLAG
+		  FROM TEMPA A, TEMPB B
+	</select>
+	
+	<select id="queryImportManualOrderForPage" parameterType="java.util.Map" resultType="com.hanthink.pup.model.PupManualOrderModel">
+		SELECT MPM.ID id,
+			   MPM.ORDER_NO orderNo,
+			   MPM.PURCHASE_NO purchaseNo,
+			   MPM.FACTORY_CODE factoryCode,
+			   MPM.PICKUP_FLAG pickupFlag,
+			   CASE MPM.PICKUP_FLAG WHEN 0 THEN '不取货'
+			   						WHEN 1 THEN '取货'
+			   END excelPickupFlag,
+			   MPM.MERGE_NO mergeNo,
+			   MPM.AREA area,
+			   MPM.ORDER_DESC orderDesc,
+			   MPM.SUP_FACTORY supFactory,
+			   MPM.SUPPLIER_NO supplierNo,
+			   MPM.PICKUP_TYPE pickupType,
+			   MPM.CAR_TYPE carType,
+			   TO_CHAR(MPM.WORKDAY,'yyyy-MM-dd') workday,			    
+			   TO_CHAR(MPM.PICK_DATE,'yyyy-MM-dd') pickDate,
+			   TO_CHAR(MPM.PICK_DATE,'hh24:mi:ss') pickTime,
+			   TO_CHAR(MPM.ARRIVE_DATE,'yyyy-MM-dd') arriveDate,
+			   TO_CHAR(MPM.ARRIVE_DATE,'hh24:mi:ss') arriveTime,
+			   TO_CHAR(MPM.ORDER_DATE,'yyyy-MM-dd') orderDate,
+			   MPM.ROUTE_CODE routeCode,TOTAL_NO totalNo,
+			   MPM.TODAY_NO todayNo,
+			   MPM.IMP_UUID impUUID,
+			   MPM.CHECK_RESULT checkResult,
+			   MPM.CHECK_INFO checkInfo,
+			   MPM.IMPORT_STATUS importStatus,
+			   MPM.OPE_TYPE opeType,
+			   MPM.CREATION_USER creationUser,
+			   TO_CHAR(MPM.CREATION_TIME,'yyyy-MM-dd hh24:mi:ss') creationTime,
+			   MPD.CODE_VALUE_NAME excelImportStatus,
+	           MPDP.CODE_VALUE_NAME excelCheckResult
+		FROM MM_PUP_MANU_ORDER_IMP MPM
+			 LEFT JOIN MM_PUB_DATA_DICT MPD
+		     ON MPD.CODE_TYPE  = 'PUB_IMP_STATUS'
+		     AND MPD.CODE_VALUE = MPM.IMPORT_STATUS
+		     AND MPD.FACTORY_CODE = #{factoryCode}
+		     LEFT JOIN MM_PUB_DATA_DICT MPDP
+		     ON MPDP.CODE_TYPE  = 'PUB_IMP_CK_RESULT'
+		     AND MPM.CHECK_RESULT = MPDP.CODE_VALUE
+		     AND MPDP.FACTORY_CODE = #{factoryCode}
+		WHERE MPM.IMP_UUID = #{uuid}
+	</select>
+	
+	<!-- 查询需要修改的数据的ID -->
+	<select id="queryUpdateManualFromTemp" parameterType="java.util.Map" resultType="java.lang.String">
+		SELECT A.ID
+		  FROM MM_PUP_MANU_ORDER_IMP A
+		 WHERE A.OPE_TYPE = 'U'
+		   AND A.IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR} 
+		   AND A.IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		   AND A.CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+	</select>
+	
+	<!-- 修改导入的数据 -->
+	<update id="updateManualOrderImportData">
+		UPDATE MM_PUP_MANU_ORDER A  SET 
+		   (A.ORDER_NO,A.PICKUP_FLAG,A.MERGE_NO,A.AREA,A.ORDER_DESC,A.SUP_FACTORY,A.PICKUP_TYPE,A.CAR_TYPE,A.TOTAL_NO,A.SUPPLIER_NO,
+		   A.WORKDAY,A.PICK_DATE,A.ARRIVE_DATE,A.ORDER_DATE,A.ROUTE_CODE,A.TODAY_NO,A.LAST_MODIFIED_USER, A.LAST_MODIFIED_TIME) =
+		   (SELECT B.ORDER_NO,B.PICKUP_FLAG,B.MERGE_NO,B.AREA,B.ORDER_DESC,B.SUP_FACTORY,B.PICKUP_TYPE,B.CAR_TYPE,B.TOTAL_NO,B.SUPPLIER_NO,
+		   B.WORKDAY,B.PICK_DATE,B.ARRIVE_DATE,B.ORDER_DATE,B.ROUTE_CODE,B.TODAY_NO,B.CREATION_USER, sysdate
+		   FROM MM_PUP_MANU_ORDER_IMP B
+		WHERE B.IMP_UUID = #{uuid,jdbcType = VARCHAR} 
+		   AND B.CHECK_RESULT =#{checkResult,jdbcType = VARCHAR}
+		   AND B.IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}
+		   AND B.OPE_TYPE = 'U'
+		   AND B.PURCHASE_NO = A.PURCHASE_NO)
+		WHERE EXISTS
+		(SELECT 1 
+				FROM MM_PUP_MANU_ORDER_IMP B
+				WHERE B.IMP_UUID = #{uuid,jdbcType = VARCHAR} 
+			    AND B.CHECK_RESULT =#{checkResult,jdbcType = VARCHAR}
+			    AND B.IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}
+			    AND B.OPE_TYPE = 'U'
+			    AND B.PURCHASE_NO = A.PURCHASE_NO
+		)
+	</update>
+	<!-- 获取临时数据表数据的正确条数 -->
+	<select id="getCountManualForImport" parameterType="java.util.Map" resultType="java.lang.Integer">
+		SELECT COUNT(*) FROM MM_PUP_MANU_ORDER_IMP
+		WHERE IMP_UUID = #{uuid,jdbcType = VARCHAR} 
+		   AND CHECK_RESULT =#{checkResult,jdbcType = VARCHAR}
+		   AND IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}
+	</select>
+	<!-- 获取临时表需要更新导入的数据条数 -->
+	<select id="getCouuntForUpdate" parameterType="java.util.Map" resultType="java.lang.Integer">
+		SELECT COUNT(*) FROM MM_PUP_MANU_ORDER_IMP
+		WHERE IMP_UUID = #{uuid,jdbcType = VARCHAR} 
+		   AND CHECK_RESULT =#{checkResult,jdbcType = VARCHAR}
+		   AND IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}
+		   AND OPE_TYPE = 'U'
+	</select>
+	<select id="queryManualUpdateList" parameterType="java.util.Map" resultType="java.lang.String">
+		SELECT PURCHASE_NO
+		FROM MM_PUP_MANU_ORDER_IMP
+		WHERE IMP_UUID = #{uuid,jdbcType = VARCHAR} 
+		   AND CHECK_RESULT =#{checkResult,jdbcType = VARCHAR}
+		   AND IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}
+		   AND OPE_TYPE = 'U'
+	</select>
+	<!-- 将临时表数据写到正式表 -->
+	<insert id="insertManualOrderToRegula">
+		INSERT INTO MM_PUP_MANU_ORDER 
+		(PURCHASE_NO, ORDER_NO, FACTORY_CODE, PICKUP_FLAG,MERGE_NO,AREA,ORDER_DESC,SUPPLIER_NO,
+			SUP_FACTORY,PICKUP_TYPE,CAR_TYPE,WORKDAY,PICK_DATE,ARRIVE_DATE,ORDER_DATE,
+			ROUTE_CODE,TOTAL_NO,TODAY_NO,CREATION_USER,CREATION_TIME,LAST_MODIFIED_USER,LAST_MODIFIED_TIME)
+		(SELECT PURCHASE_NO, ORDER_NO, FACTORY_CODE, PICKUP_FLAG,MERGE_NO,AREA,ORDER_DESC,SUPPLIER_NO,
+			SUP_FACTORY,PICKUP_TYPE,CAR_TYPE,WORKDAY,PICK_DATE,ARRIVE_DATE,ORDER_DATE,
+			ROUTE_CODE,TOTAL_NO,TODAY_NO,CREATION_USER,CREATION_TIME,CREATION_USER,CREATION_TIME
+		FROM MM_PUP_MANU_ORDER_IMP
+		WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		  AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+		  AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR}
+		  AND OPE_TYPE = 'I')
+	</insert>
+	<!-- 修改导入数据的状态 -->
+	<update id="updateManualOrderImportDataImpStatus">
+		UPDATE MM_PUP_MANU_ORDER_IMP SET 
+			IMPORT_STATUS = #{IMPORT_STATUS_YES,jdbcType=VARCHAR} 
+		WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		  AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+		  AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR} 
+	</update>
+</mapper>

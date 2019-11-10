@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.portal.persistence.model.SysIndexTools">
+	<resultMap id="SysIndexTools" type="com.hotent.portal.persistence.model.SysIndexTools">
+		<id property="id" column="ID_" jdbcType="VARCHAR"/>
+		<result property="name" column="NAME_" jdbcType="VARCHAR"/>
+		<result property="icon" column="ICON_" jdbcType="VARCHAR"/>
+		<result property="url" column="URL_" jdbcType="VARCHAR"/>
+		<result property="type" column="TYPE_" jdbcType="VARCHAR"/>
+		<result property="countMode" column="COUNT_MODE" jdbcType="NUMERIC"/>
+		<result property="counting" column="COUNTING" jdbcType="VARCHAR"/>
+		<result property="countParam" column="COUNT_PARAM" jdbcType="VARCHAR"/>
+		<result property="createBy" column="CREATE_BY" jdbcType="VARCHAR"/>
+		<result property="createTime" column="CREATE_TIME" jdbcType="TIMESTAMP"/>
+		<result property="fontStyle" column="FONT_STYLE" jdbcType="VARCHAR"/>
+		<result property="numberStyle" column="NUMBER_STYLE" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.portal.persistence.model.SysIndexTools">
+		INSERT INTO sys_index_tools
+		(ID_,NAME_,ICON_,URL_,TYPE_,COUNT_MODE,COUNTING,COUNT_PARAM,CREATE_BY,CREATE_TIME,FONT_STYLE,NUMBER_STYLE)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR}, #{icon,jdbcType=VARCHAR}, #{url,jdbcType=VARCHAR}, #{type,jdbcType=VARCHAR}, #{countMode,jdbcType=NUMERIC}, #{counting,jdbcType=VARCHAR}, #{countParam,jdbcType=VARCHAR}, #{createBy,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP},#{fontStyle,jdbcType=VARCHAR},#{numberStyle,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="SysIndexTools">
+		SELECT * FROM sys_index_tools 
+		WHERE 
+		ID_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="SysIndexTools">
+		SELECT * FROM sys_index_tools
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY ID_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.portal.persistence.model.SysIndexTools">
+		UPDATE sys_index_tools SET
+		NAME_=#{name,jdbcType=VARCHAR},
+		ICON_=#{icon,jdbcType=VARCHAR},
+		URL_=#{url,jdbcType=VARCHAR},
+		TYPE_=#{type,jdbcType=VARCHAR},
+		COUNT_MODE=#{countMode,jdbcType=NUMERIC},
+		COUNTING=#{counting,jdbcType=VARCHAR},
+		COUNT_PARAM=#{countParam,jdbcType=VARCHAR},
+		CREATE_BY=#{createBy,jdbcType=VARCHAR},
+		CREATE_TIME=#{createTime,jdbcType=TIMESTAMP},
+		FONT_STYLE=#{fontStyle,jdbcType=VARCHAR},
+		NUMBER_STYLE=#{numberStyle,jdbcType=VARCHAR}
+		WHERE
+		ID_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_index_tools 
+		WHERE
+		ID_=#{id}
+	</delete>
+	
+	
+</mapper>

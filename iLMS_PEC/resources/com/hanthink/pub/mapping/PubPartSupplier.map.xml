@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.pub.model.PubPartSupplierModel">
+		
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="queryPubPartSupplierForPage" parameterType="com.hanthink.pub.model.PubPartSupplierModel" resultType="com.hanthink.pub.model.PubPartSupplierModel">		
+				SELECT A.FACTORY_CODE   factoryCode,
+		               A.SUPPLIER_NO   supplierNo,
+		               A.SUP_FACTORY   supFactory,
+		               A.PART_NO    partNo,
+		               A.MIN_ORDER_NUM   minOrderNum,
+		               A.STANDARD_PACKAGE   standardPackage,
+		               A.IN_PLAN_FORWARD_TIME   inPlanForwardTime,
+		               TO_CHAR(A.EFF_START, 'YYYY-MM-DD')   effStartStr,
+		               TO_CHAR(A.EFF_END, 'YYYY-MM-DD')   effEndStr,
+		               D.PART_SHORT_NO  partShortNo,
+		               D.PART_NAME_CN   partNameCn,
+		               C.SUPPLIER_NAME  supplierName
+		          FROM MM_PUB_PART_SUPPLIER_HIS A
+		          LEFT JOIN MM_PUB_SUPPLIER C
+		          ON A.SUPPLIER_NO = C.SUPPLIER_NO
+		          LEFT JOIN MM_PUB_PART_UDA D
+		          ON A.PART_NO = D.PART_NO AND D.FACTORY_CODE = A.FACTORY_CODE
+		          WHERE 1=1 
+				  <if test="supplierNo!=null and supplierNo!='' ">
+				  AND	A.SUPPLIER_NO = #{supplierNo}
+				  </if>
+				  <if test="partNo!=null and partNo!='' ">
+				  AND	A.PART_NO LIKE CONCAT(#{partNo}, '%')
+				  </if>
+				  <if test="partShortNo!=null and partShortNo!='' ">
+				  AND	D.PART_SHORT_NO = #{partShortNo}
+				  </if>
+				  AND   A.FACTORY_CODE = #{factoryCode}
+				  ORDER BY A.SUPPLIER_NO,A.SUP_FACTORY,A.PART_NO
+	</select>
+	
+</mapper>

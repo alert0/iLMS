@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html ng-app="myApp">
+<head>
+<title>X5手机平台</title>
+<meta charset="utf-8">
+<script src="../assets/js/importJs.js"></script>
+
+<script type="text/javascript">
+var myApp = angular.module("myApp", ['base','mobileDirective']);
+myApp.controller("myTaskCtrl",['$scope','baseService','$sce','$q', function(scope,baseService,$sce,$q) {
+	scope.meetingTime = new Date();
+	var isLoading = false;
+	scope.listParam ={page:1,rows:10}; // 页面提交数据的参数，
+
+	//加载数据
+	scope.loadData = function(callBack,isAppend){
+		scope.listParam.meetingTime = scope.meetingTime.format("yyyy-MM-dd");
+		if(isLoading)return;
+		else isLoading = true;
+		$.showIndicator()//$.showPreloader();
+		//如果是无限下拉page ++,其他page = 1;
+		if(isAppend){
+			scope.listParam.page++;
+		}else{
+			// 如果加载完毕后又刷新，则恢复无限加载
+			if(scope.pageResult&&!scope.pageResult.hasNextPage){
+				$.attachInfiniteScroll(".infinite-scroll");
+			}
+			scope.listParam.page=1
+			
+		}
+		
+		baseService.postForm(__ctx+"/business/meetingAppoint/meetingAppoint/meetingRoomMobileList",scope.listParam).then(function(data){
+			$.hideIndicator()//$.hidePreloader();
+			isLoading = false;
+			
+			if(data.result==2) return;
+			
+			if(isAppend){
+				for(var i=0,item;item=data.rows[i++];){
+					scope.dataList.push(item); 
+				}
+			}else{
+				scope.dataList = data.rows;
+				$.each(scope.dataList,function(){
+					this.supportService = this.supportService.substring(0, this.supportService.lastIndexOf('|')).replace(/\|/g,"、");
+				});
+			}
+			// task.subject to trust
+			$.each(data.rows,function(i,row){
+				if(row.subject)row.subject = $sce.trustAsHtml(row.subject); //任务的html类型字段，特殊处理
+				if(row.taskSubject)row.taskSubject = $sce.trustAsHtml(row.taskSubject); // 我的转办代理
+			});
+			
+			scope.pageResult = data.pageResult;
+			
+			if(callBack)callBack();
+		},function(){
+			$.hideIndicator()//$.hidePreloader();
+			isLoading = false;
+			if(callBack)callBack();
+			$.toast("加载失败");
+		});
+	}
+	
+	// 下拉刷新
+	$.initPullToRefresh(".pull-to-refresh-content");
+	$(document).on('refresh', '.pull-to-refresh-content',function(e) {
+		scope.loadData(function(){
+			 $.pullToRefreshDone('.pull-to-refresh-content');
+			$.toast("刷新成功");
+		});
+	});
+	
+	// 无线加载
+	$.attachInfiniteScroll(".infinite-scroll");
+	 $(document).on('infinite', '.infinite-scroll',function(){
+		 scope.loadData(function(){
+			 if(!scope.pageResult.hasNextPage){
+				 $.toast("已经加载所有数据");
+				 $.detachInfiniteScroll($('.infinite-scroll'));
+	             $('.infinite-scroll-preloader').remove();
+			 }
+		},true);
+	 });
+	 scope.loadData();
+	/*  scope.meetingTimeChange = function(timeAction){
+		 if(timeAction == "add"){
+			 scope.meetingTime.setDate(scope.meetingTime.getDate()+1);//设置天数 +1 天  
+		 }else{
+			 scope.meetingTime.setDate(scope.meetingTime.getDate()-1);//设置天数 -1 天  
+		 }
+		 scope.loadData();
+	 } */
+	 scope.meetingDetail = function(item){
+		 location.href = "meetingRoomDetail.html?meetingId="+item.id+"&meetingTime="+scope.meetingTime;
+	 }
+	 $("#my-input").calendar({
+			dateFormat: "mm月dd日 DD",
+			dayNames:['星期日','星期一','星期二','星期三','星期四','星期五','星期六'],
+			dayNamesShort:['星期日','星期一','星期二','星期三','星期四','星期五','星期六'],
+			monthNames:['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'],
+			value:new Date(),
+			onChange:function (p, values, displayValues){
+				scope.meetingTime = new Date(values[0]);
+				scope.loadData();
+			}
+	});
+}]);
+
+</script>
+</head>
+<body  ng-controller="myTaskCtrl">
+<div class="page email-list-page" id='page-swipeout-demo'>
+		<header class="hkm-red-header bar bar-nav">
+		  <a class="icon icon-left pull-left back" href="javascript:history.go(-1);" external></a>
+		  <span class='title'>会议管理</span>
+		</header>
+		<div class="content pull-to-refresh-content infinite-scroll">
+		  	<div class="pull-to-refresh-layer">
+		        <div class="preloader"></div>
+		        <div class="pull-to-refresh-arrow"></div>
+		    </div>
+			<div class="huiyiguanli-page" style="position: relative;">
+					  <div class="content-block">
+					    	<div class="date-div">
+					    		<div class="date-select">
+					    			<!-- <i class="date-btn iconfont icon-back pull-left" ng-click="meetingTimeChange('reduce')">&lt;</i> -->
+					    			<input style="width: 80%;text-align:center;border: none;" type="text" data-toggle='date' id="my-input" value="{{meetingTime |meetingTimes}}"/>
+					    			<!-- <i class="date-btn iconfont pull-right" ng-click="meetingTimeChange('add')">&gt;</i> -->
+					    		</div>
+					    	</div>	
+							<div class="meeting-room-div">
+								<div class="card" ng-repeat="item in dataList" ng-click="meetingDetail(item)">
+								    <div class="card-header">容纳{{item.capacity}}人</div>
+								    <div class="card-content">
+								      <div class="card-content-inner">
+								      	<div class="meet-message">
+								      		<span class="louchen">2F</span>
+								      		<p>{{item.name}}</p>
+								      	</div>
+								      </div>
+								    </div>
+								    <div class="card-footer">
+								    	{{item.supportService}}
+								        <div class="spr">
+								        	审批人 - <span>{{item.pendingUserName}}</span>
+								        </div>
+								    </div>
+								  </div>
+							</div>   
+					  </div>
+			</div>
+		      
+		</div>
+	</div>
+</body>
+</html>

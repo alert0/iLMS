@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.oa.persistence.model.DemoUser">
+	<resultMap id="DemoUser" type="com.hotent.oa.persistence.model.DemoUser">
+		<id property="id" column="id" jdbcType="VARCHAR"/>
+		<result property="userName" column="userName" jdbcType="VARCHAR"/>
+		<result property="address" column="address" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.oa.persistence.model.DemoUser">
+		INSERT INTO DemoUser
+		(id,userName,address)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{userName,jdbcType=VARCHAR}, #{address,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="DemoUser">
+		SELECT * FROM DemoUser 
+		WHERE 
+		id=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="DemoUser">
+		SELECT * FROM DemoUser
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.oa.persistence.model.DemoUser">
+		UPDATE DemoUser SET
+		userName=#{userName,jdbcType=VARCHAR},
+		address=#{address,jdbcType=VARCHAR}
+		WHERE
+		id=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM DemoUser 
+		WHERE
+		id=#{id}
+	</delete>
+	
+	
+</mapper>

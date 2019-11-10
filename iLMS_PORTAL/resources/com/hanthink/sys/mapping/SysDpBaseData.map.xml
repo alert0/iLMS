@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.sys.model.SysDpBaseDataModel">
+	
+	<insert id="create" parameterType="com.hanthink.sys.model.SysDpBaseDataModel">
+		INSERT INTO SYS_DP_BASE_DATA
+		(DP_BASE_ID, TYPE_CODE, VALUE_CODE, VALUE_DESC, SORT_NUM, CREATE_USER, CREATE_TIME, LAST_MODIFY_USER, LAST_MODIFY_TIME)
+		VALUES 
+		(#{dpBaseId,jdbcType=VARCHAR}, #{typeCode,jdbcType=VARCHAR}, #{valueCode,jdbcType=VARCHAR}, #{valueDesc,jdbcType=VARCHAR}, #{sortNum,jdbcType=NUMERIC}, #{createBy,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP}, #{updateBy,jdbcType=VARCHAR}, #{updateTime,jdbcType=TIMESTAMP})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultType="com.hanthink.sys.model.SysDpBaseDataModel">
+		SELECT DP_BASE_ID dpBaseId,
+		  TYPE_CODE typeCode,
+		  VALUE_CODE valueCode,
+		  VALUE_DESC valueDesc,
+		  SORT_NUM sortNum
+		FROM SYS_DP_BASE_DATA WHERE DP_BASE_ID = #{id}
+	</select>
+	
+	<update id="update" parameterType="com.hanthink.sys.model.SysDpBaseDataModel">
+		UPDATE SYS_DP_BASE_DATA SET
+		TYPE_CODE=#{typeCode,jdbcType=VARCHAR},
+		VALUE_CODE=#{valueCode,jdbcType=VARCHAR},
+		VALUE_DESC=#{valueDesc,jdbcType=VARCHAR},
+		SORT_NUM=#{sortNum,jdbcType=NUMERIC},
+		LAST_MODIFY_USER=#{updateBy,jdbcType=VARCHAR},
+		LAST_MODIFY_TIME=#{updateTime,jdbcType=TIMESTAMP}
+		WHERE DP_BASE_ID = #{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM SYS_DP_BASE_DATA WHERE DP_BASE_ID=#{id}
+	</delete>
+		
+	<!-- 查询数据权限基础数据的分类信息数据 -->
+	<select id="queryDpBaseDataType" parameterType="com.hanthink.sys.model.SysDpBaseDataModel" resultType="com.hanthink.sys.model.SysDpBaseDataModel">
+        SELECT  A.TYPE_KEY_  typeKey,
+        A.NAME_ name,
+        A.SN_ sortNum
+        FROM SYS_TYPE A
+		WHERE A.TYPE_GROUP_KEY_  = 'SYS_DP_BASE_TYPE'
+		<if test="typeKey!=null and typeKey!='' ">
+		  AND (A.TYPE_KEY_ LIKE '%' || #{typeKey} || '%' OR A.NAME_ LIKE '%' || #{typeKey} || '%')
+		</if>
+		ORDER BY A.SN_, A.TYPE_KEY_
+	</select>
+	
+	<!-- 根据分类编码查询数据权限基础数据信息 -->
+	<select id="queryDpBaseDataByType" parameterType="com.hanthink.sys.model.SysDpBaseDataModel" resultType="com.hanthink.sys.model.SysDpBaseDataModel">
+		           SELECT A.DP_BASE_ID dpBaseId, 
+		           		  A.TYPE_CODE  typeCode, 
+						  T.NAME_  name, 
+						  A.VALUE_CODE  valueCode, 
+						  A.VALUE_DESC  valueDesc,
+						  A.SORT_NUM sortNum  
+					 FROM SYS_DP_BASE_DATA A
+				LEFT JOIN SYS_TYPE T 
+					   ON T.TYPE_GROUP_KEY_ = 'SYS_DP_BASE_TYPE' 
+					  AND T.TYPE_KEY_ = A.TYPE_CODE
+					WHERE 1=1 
+					<if test="typeCode!=null and typeCode!='' ">
+					  AND A.TYPE_CODE = #{typeCode}
+					</if>
+					<if test="valueCode!=null and valueCode!='' ">
+					  AND A.VALUE_CODE LIKE '%' || #{valueCode} || '%'
+					</if>
+					<if test="valueDesc!=null and valueDesc!='' ">
+					  AND A.VALUE_DESC LIKE '%' || #{valueDesc} || '%'
+					</if>
+				ORDER BY A.TYPE_CODE, A.SORT_NUM, A.VALUE_CODE 
+	</select>
+	
+	<!-- 根据业务主键数据判断数据是否已存在 -->
+	<select id="isKeyExist" resultType="java.lang.Integer">
+		SELECT count(*) FROM SYS_DP_BASE_DATA where TYPE_CODE = #{typeCode,jdbcType=VARCHAR} and VALUE_CODE=#{valueCode,jdbcType=VARCHAR}
+		<if test="id!=null"> AND DP_BASE_ID &lt;>#{id}</if>
+	</select>
+	
+	<!-- 删除基础数据权限相关的数据角色与基础数据关系数据 -->
+	<delete id="deleteDpRoleData" parameterType="java.lang.String">
+		DELETE FROM SYS_DP_ROLE_DATA WHERE DP_BASE_ID=#{id}
+	</delete>
+	
+</mapper>

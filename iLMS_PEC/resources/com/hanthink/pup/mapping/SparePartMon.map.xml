@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.pup.model.SparePartMonModel">
+	<select id="querySparePartForPage"
+		parameterType="com.hanthink.pup.model.SparePartMonModel"
+		resultType="com.hanthink.pup.model.SparePartMonModel">
+		SELECT D.PART_SHORT_NO partShortNo,
+		D.LOCATION delPlace,
+		D.REQUIRE_NUM requierNum,
+		NVL(E.PREPARE_NUM,0) delNum,
+		CASE
+		WHEN
+		D.REQUIRE_NUM - E.PREPARE_NUM > 0 AND
+		D.REQUIRE_NUM - E.PREPARE_NUM !=
+		0 THEN
+		'部分配送'
+		WHEN D.REQUIRE_NUM - E.PREPARE_NUM = 0 THEN
+		'全部配送'
+		ELSE
+		'未配送'
+		END delStatus
+		FROM MM_JIT_INS_DETAIL D
+		LEFT JOIN (SELECT A.PART_NO,
+		C.LOCATION, SUM(A.QTY) PREPARE_NUM
+		FROM MM_PDA_LABEL_SCAN_LOG A
+		LEFT
+		JOIN MM_INV_PART_LOCATION C
+		ON C.SHELF_NO = A.SHELVE_ID
+		WHERE A.TYPE IN
+		('3', '4')
+		AND EXISTS (select 1
+		from mm_pda_label_scan_log B
+		where
+		B.INS_NO = '10000001'
+		and B.type = '2'
+		AND B.BAR_UUID = A.BAR_UUID)
+		GROUP BY A.PART_NO, C.LOCATION) E
+		ON D.PART_NO = E.PART_NO
+		AND
+		E.LOCATION = D.LOCATION
+		WHERE D.INS_NO = '10000001'
+		ORDER BY delStatus
+	</select>
+
+	<!-- 零件验收看板 -->
+	<select id="queryPartCheck" parameterType="java.util.Map"
+		resultType="com.hanthink.pup.model.SparePartMonModel">
+		WITH TEMP_SW_PARTS AS
+		 (SELECT DISTINCT MJOD.PURCHASE_NO,
+		                  MJOD.PART_NO,
+		                  MJO.SUPPLIER_NO,
+		                  EMP.BOX_TYPE
+		    FROM MM_SW_ORDER_DETAIL MJOD
+		    LEFT JOIN MM_SW_ORDER MJO
+		      ON MJO.ORDER_NO = MJOD.ORDER_NO
+		    LEFT JOIN (SELECT DISTINCT B.BOX_TYPE, B.PART_NO, B.SUPPLIER_NO
+		                FROM MM_PKG_PROPOSAL B
+		                LEFT JOIN MM_PKG_PROPOSAL_DETAIL C
+		                  ON B.ID = C.PROPOSAL_ID
+		               WHERE B.EFF_START &lt;= SYSDATE
+		                 AND B.EFF_END &lt;= SYSDATE
+		                 AND B.PROPOSAL_STATUS = 5) EMP
+		      ON MJOD.PART_NO = EMP.PART_NO
+		     AND MJO.SUPPLIER_NO = EMP.SUPPLIER_NO) ， TEM_JIT_PARTS AS
+		 (SELECT DISTINCT MJO.ORDER_NO, MJOD.PART_NO, MJO.SUPPLIER_NO, EMP.BOX_TYPE
+		    FROM MM_JIT_ORDER_DETAIL MJOD
+		    LEFT JOIN MM_JIT_ORDER MJO
+		      ON MJO.ORDER_NO = MJOD.ORDER_NO
+		    LEFT JOIN (SELECT DISTINCT B.BOX_TYPE, B.PART_NO, B.SUPPLIER_NO
+		                FROM MM_PKG_PROPOSAL B
+		                LEFT JOIN MM_PKG_PROPOSAL_DETAIL C
+		                  ON B.ID = C.PROPOSAL_ID
+		               WHERE B.EFF_START &lt;= SYSDATE
+		                 AND B.EFF_END &lt;= SYSDATE
+		                 AND B.PROPOSAL_STATUS = 5) EMP
+		      ON MJOD.PART_NO = EMP.PART_NO
+		     AND MJO.SUPPLIER_NO = EMP.SUPPLIER_NO),
+		TEMP_UNLOAD AS
+		 (SELECT DISTINCT B.FACTORY_CODE, B.WARE_CODE FROM MM_INV_UNLOAD B
+		   <if test="null != workCenter and '' != workCenter">
+					WHERE B.WORK_CENTER = #{workCenter}
+			 </if>
+		 )
+		SELECT T.*
+		  FROM (SELECT RES_DCS_PLAN.RET_EMPTY_PLATFORM station,
+		               MIN(RES_DCS_PLAN.PLAN_SHEET_NO) planSheetNo,
+		               MIN(RES_DCS_PLAN.PLATE_NUM) carCard,
+		               MIN(TO_CHAR(RES_DCS_PLAN.ARRIVE_DATE, 'hh24:mi')) unloadStart,
+		               MIN(TO_CHAR(RES_DCS_PLAN.ARRIVE_DATE +
+		                           RES_DCS_PLAN.UNLOAD_TIME,
+		                           'hh24:mi')) unloadEnd,
+		               MIN(TO_CHAR(RES_DCS_PLAN.ARRIVE_DATE +
+		                           RES_DCS_PLAN.UNLOAD_TIME,
+		                           'hh24:mi')) checkStart,
+		               MIN(TO_CHAR(RES_DCS_PLAN.ARRIVE_DATE +
+		                           RES_DCS_PLAN.UNLOAD_TIME +
+		                           RES_DCS_PLAN.CHECK_TIME,
+		                           'hh24:mi')) checkEnd,
+		               CASE
+		                 WHEN SYSDATE BETWEEN MIN(RES_DCS_PLAN.ARRIVE_DATE) AND
+		                      MIN(RES_DCS_PLAN.ARRIVE_DATE + RES_DCS_PLAN.UNLOAD_TIME) THEN
+		                  2
+		                 WHEN SYSDATE BETWEEN
+		                      MIN(RES_DCS_PLAN.ARRIVE_DATE + RES_DCS_PLAN.UNLOAD_TIME) AND
+		                      MIN(RES_DCS_PLAN.ARRIVE_DATE + RES_DCS_PLAN.UNLOAD_TIME +
+		                          RES_DCS_PLAN.CHECK_TIME) THEN
+		                  3
+		                 WHEN SYSDATE >
+		                      MIN(RES_DCS_PLAN.ARRIVE_DATE + RES_DCS_PLAN.UNLOAD_TIME +
+		                          RES_DCS_PLAN.CHECK_TIME) THEN
+		                  1
+		                 ELSE
+		                  0
+		               END unloadStatus,
+		               CASE
+		                 WHEN SYSDATE BETWEEN
+		                      MIN(RES_DCS_PLAN.ARRIVE_DATE + RES_DCS_PLAN.UNLOAD_TIME) AND
+		                      MIN(RES_DCS_PLAN.ARRIVE_DATE + RES_DCS_PLAN.UNLOAD_TIME +
+		                          RES_DCS_PLAN.CHECK_TIME) THEN
+		                  2
+		                 WHEN SYSDATE >
+		                      MIN(RES_DCS_PLAN.ARRIVE_DATE + RES_DCS_PLAN.UNLOAD_TIME +
+		                          RES_DCS_PLAN.CHECK_TIME) THEN
+		                  1
+		                 ELSE
+		                  0
+		               END checkStatus
+		          FROM (SELECT MIN(TEMP_DCS_PLAN.RET_EMPTY_PLATFORM) RET_EMPTY_PLATFORM,
+		                       TEMP_DCS_PLAN.PLAN_SHEET_NO PLAN_SHEET_NO,
+		                       MIN(TEMP_DCS_PLAN.PLATE_NUM) PLATE_NUM,
+		                       MIN(TEMP_DCS_PLAN.ARRIVE_DATE) ARRIVE_DATE,
+		                       SUM(TEMP_DCS_PLAN.UNLOAD_TIME) UNLOAD_TIME,
+		                       SUM(TEMP_DCS_PLAN.CHECK_TIME) CHECK_TIME
+		                  FROM (SELECT MPDP.PLAN_SHEET_NO,
+		                               MPD.PLATE_NUM,
+		                               MPD.RET_EMPTY_PLATFORM,
+		                               MPD.PLAN_ARRIVE_TIME ARRIVE_DATE,
+		                               CASE TSP.BOX_TYPE
+		                                 WHEN 0 THEN
+		                                  MSOD.ORDER_QTY / 800 / 1200 / 1100 *
+		                                  MPS.PARAM_VAL / 24 / 60
+		                                 ELSE
+		                                  MSOD.ORDER_QTY / MSOD.STANDARD_PACKAGE *
+		                                  MPS.PARAM_VAL / 24 / 60
+		                               END AS UNLOAD_TIME,
+		                               NVL(MSOD.ORDER_QTY, 0) /
+		                               NVL(MSOD.STANDARD_PACKAGE, 1) * MPSP.PARAM_VAL / 24 / 60 CHECK_TIME
+		                          FROM MM_PUP_DCS_PICK_PLAN MPD
+		                          LEFT JOIN MM_PUP_DCS_PICK_PLAN_DETAIL MPDP
+		                            ON MPD.PLAN_SHEET_NO = MPDP.PLAN_SHEET_NO
+		                          LEFT JOIN TEMP_UNLOAD
+		                            ON MPD.FACTORY_CODE = TEMP_UNLOAD.FACTORY_CODE
+		                           AND MPDP.ORDER_DEPOT = TEMP_UNLOAD.WARE_CODE
+		                          LEFT JOIN MM_SW_ORDER MSO
+		                            ON MSO.PURCHASE_NO = MPDP.PURCHASE_NO
+		                          LEFT JOIN MM_SW_ORDER_DETAIL MSOD
+		                            ON MSOD.PURCHASE_NO = MSO.PURCHASE_NO
+		                          LEFT JOIN MM_SW_PICKUP_PLAN MSP
+		                            ON MSP.PURCHASE_NO = MSO.PURCHASE_NO
+		                          LEFT JOIN TEMP_SW_PARTS TSP
+		                            ON TSP.PURCHASE_NO = MSOD.PURCHASE_NO
+		                           AND TSP.PART_NO = MSOD.PART_NO
+		                          LEFT JOIN MM_PUB_SYS_PARAM MPS
+		                            ON MPS.PARAM_CODE = 'UNLOAD_TIME'
+		                           AND MPD.FACTORY_CODE = MSO.FACTORY_CODE
+		                          LEFT JOIN MM_PUB_SYS_PARAM MPSP
+		                            ON MPSP.PARAM_CODE = 'CHECK_TIME'
+		                           AND MPSP.FACTORY_CODE = MPD.FACTORY_CODE
+		                         WHERE MSOD.RECEIVE_STATUS IN (0, 1)
+		                           AND MPDP.ORDER_DEPOT IN TEMP_UNLOAD.WARE_CODE
+		                           AND TRUNC(MPD.PLAN_ARRIVE_TIME) = TRUNC(SYSDATE)) TEMP_DCS_PLAN
+		                 GROUP BY TEMP_DCS_PLAN.PLAN_SHEET_NO) RES_DCS_PLAN
+		         WHERE ROWNUM &lt;= 8
+		         GROUP BY RES_DCS_PLAN.RET_EMPTY_PLATFORM
+		        
+		        UNION ALL
+		        SELECT RES_DCS_PLAN.RET_EMPTY_PLATFORM station,
+		               MIN(RES_DCS_PLAN.PLAN_SHEET_NO) planSheetNo,
+		               MIN(RES_DCS_PLAN.PLATE_NUM) carCard,
+		               MIN(TO_CHAR(RES_DCS_PLAN.ARRIVE_DATE, 'hh24:mi')) unloadStart,
+		               MIN(TO_CHAR(RES_DCS_PLAN.ARRIVE_DATE +
+		                           RES_DCS_PLAN.UNLOAD_TIME,
+		                           'hh24:mi')) unloadEnd,
+		               MIN(TO_CHAR(RES_DCS_PLAN.ARRIVE_DATE +
+		                           RES_DCS_PLAN.UNLOAD_TIME,
+		                           'hh24:mi')) checkStart,
+		               MIN(TO_CHAR(RES_DCS_PLAN.ARRIVE_DATE +
+		                           RES_DCS_PLAN.UNLOAD_TIME +
+		                           RES_DCS_PLAN.CHECK_TIME,
+		                           'hh24:mi')) checkEnd,
+		               CASE
+		                 WHEN SYSDATE BETWEEN MIN(RES_DCS_PLAN.ARRIVE_DATE) AND
+		                      MIN(RES_DCS_PLAN.ARRIVE_DATE + RES_DCS_PLAN.UNLOAD_TIME) THEN
+		                  2
+		                 WHEN SYSDATE BETWEEN
+		                      MIN(RES_DCS_PLAN.ARRIVE_DATE + RES_DCS_PLAN.UNLOAD_TIME) AND
+		                      MIN(RES_DCS_PLAN.ARRIVE_DATE + RES_DCS_PLAN.UNLOAD_TIME +
+		                          RES_DCS_PLAN.CHECK_TIME) THEN
+		                  3
+		                 WHEN SYSDATE >
+		                      MIN(RES_DCS_PLAN.ARRIVE_DATE + RES_DCS_PLAN.UNLOAD_TIME +
+		                          RES_DCS_PLAN.CHECK_TIME) THEN
+		                  1
+		                 ELSE
+		                  0
+		               END unloadStatus,
+		               CASE
+		                 WHEN SYSDATE BETWEEN
+		                      MIN(RES_DCS_PLAN.ARRIVE_DATE + RES_DCS_PLAN.UNLOAD_TIME) AND
+		                      MIN(RES_DCS_PLAN.ARRIVE_DATE + RES_DCS_PLAN.UNLOAD_TIME +
+		                          RES_DCS_PLAN.CHECK_TIME) THEN
+		                  2
+		                 WHEN SYSDATE >
+		                      MIN(RES_DCS_PLAN.ARRIVE_DATE + RES_DCS_PLAN.UNLOAD_TIME +
+		                          RES_DCS_PLAN.CHECK_TIME) THEN
+		                  1
+		                 ELSE
+		                  0
+		               END checkStatus
+		          FROM (SELECT MIN(TEMP_DCS_PLAN.RET_EMPTY_PLATFORM) RET_EMPTY_PLATFORM,
+		                       TEMP_DCS_PLAN.PLAN_SHEET_NO PLAN_SHEET_NO,
+		                       MIN(TEMP_DCS_PLAN.PLATE_NUM) PLATE_NUM,
+		                       MIN(TEMP_DCS_PLAN.ARRIVE_DATE) ARRIVE_DATE,
+		                       SUM(TEMP_DCS_PLAN.UNLOAD_TIME) UNLOAD_TIME,
+		                       SUM(TEMP_DCS_PLAN.CHECK_TIME) CHECK_TIME
+		                  FROM (SELECT MPDP.PLAN_SHEET_NO,
+		                               MPD.PLATE_NUM,
+		                               MPD.RET_EMPTY_PLATFORM,
+		                               MPD.PLAN_ARRIVE_TIME ARRIVE_DATE,
+		                               CASE TSP.BOX_TYPE
+		                                 WHEN 0 THEN
+		                                  MSOD.ORDER_QTY / 800 / 1200 / 1100 *
+		                                  MPS.PARAM_VAL / 24 / 60
+		                                 ELSE
+		                                  MSOD.ORDER_QTY / MSOD.STANDARD_PACKAGE *
+		                                  MPS.PARAM_VAL / 24 / 60
+		                               END AS UNLOAD_TIME,
+		                               NVL(MSOD.ORDER_QTY, 0) /
+		                               NVL(MSOD.STANDARD_PACKAGE, 1) * MPSP.PARAM_VAL / 24 / 60 CHECK_TIME
+		                          FROM MM_PUP_DCS_PICK_PLAN MPD
+		                          LEFT JOIN MM_PUP_DCS_PICK_PLAN_DETAIL MPDP
+		                            ON MPD.PLAN_SHEET_NO = MPDP.PLAN_SHEET_NO
+		                          LEFT JOIN TEMP_UNLOAD
+		                            ON TEMP_UNLOAD.FACTORY_CODE = MPD.FACTORY_CODE
+		                           AND TEMP_UNLOAD.WARE_CODE = MPDP.ORDER_DEPOT
+		                          LEFT JOIN MM_JIT_ORDER MSO
+		                            ON MSO.ORDER_NO = MPDP.ORDER_NO
+		                          LEFT JOIN MM_SW_ORDER_DETAIL MSOD
+		                            ON MSOD.ORDER_NO = MSO.ORDER_NO
+		                          LEFT JOIN TEM_JIT_PARTS TSP
+		                            ON TSP.ORDER_NO = MSOD.ORDER_NO
+		                           AND TSP.PART_NO = MSOD.PART_NO
+		                          LEFT JOIN MM_PUB_SYS_PARAM MPS
+		                            ON MPS.PARAM_CODE = 'UNLOAD_TIME'
+		                           AND MPD.FACTORY_CODE = #{factoryCode}
+		                          LEFT JOIN MM_PUB_SYS_PARAM MPSP
+		                            ON MPSP.PARAM_CODE = 'CHECK_TIME'
+		                           AND MPSP.FACTORY_CODE = #{factoryCode}
+		                         WHERE MSOD.RECEIVE_STATUS IN (0, 1)
+		                           AND MPDP.ORDER_DEPOT IN TEMP_UNLOAD.WARE_CODE
+		                           AND TRUNC(MPD.PLAN_ARRIVE_TIME) = TRUNC(SYSDATE)) TEMP_DCS_PLAN
+		                 GROUP BY TEMP_DCS_PLAN.PLAN_SHEET_NO) RES_DCS_PLAN
+		         WHERE TRUNC(RES_DCS_PLAN.ARRIVE_DATE) = TRUNC(SYSDATE)
+		           AND ROWNUM &lt;= 8
+		         GROUP BY RES_DCS_PLAN.RET_EMPTY_PLATFORM) T
+		 ORDER BY T.unloadStart
+	</select>
+</mapper>

@@ -1,0 +1,298 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.sw.model.SwSupplierGroupModel">
+
+      <!-- 分页查询供分组信息 -->
+      <select id="queryJisoGroupPage" parameterType="com.hanthink.sw.model.SwSupplierGroupModel" resultType="com.hanthink.sw.model.SwSupplierGroupModel">
+          	SELECT DISTINCT A.GROUP_ID groupId, 
+       		       A.GROUP_NAME groupName
+  			FROM MM_SW_SUPPLIER_GROUP A
+  			LEFT JOIN MM_SW_SUP_GROUP_MEMBERS M ON M.GROUP_ID = A.GROUP_ID
+        	LEFT JOIN MM_PUB_SUPPLIER S ON S.SUPPLIER_NO = M.SUPPLIER_NO
+  			WHERE 1=1 
+  			<if test="groupName !=null">
+				AND A.GROUP_NAME like CONCAT(#{groupName}, '%')
+			</if>
+			<if test="null != supplierNo and ''!= supplierNo">
+				AND M.SUPPLIER_NO = #{supplierNo}
+			</if>
+			<if test="null != supplierName and ''!= supplierName">
+				AND S.SUPPLIER_NAME LIKE '%' || #{supplierName} || '%'
+			</if>
+			ORDER BY A.GROUP_ID DESC
+      </select>
+      
+      <!-- 分页查询供应商信息 -->
+      <select id="queryJisoSupplierPage" parameterType="com.hanthink.sw.model.SwSupplierGroupModel" resultType="com.hanthink.sw.model.SwSupplierGroupModel">
+		      SELECT A.SUPPLIER_NO supplierNo,
+		       		 B.SUPPLIER_NAME supplierName
+			  FROM MM_SW_SUP_GROUP_MEMBERS A
+			  LEFT JOIN MM_PUB_SUPPLIER B
+			    	 ON A.SUPPLIER_NO = B.SUPPLIER_NO
+			 WHERE A.GROUP_ID = #{groupId}
+      </select>
+      
+      <!-- 分页查询未分组供应商信息 -->
+      <select id="getSupplierListUnGroup" parameterType="com.hanthink.sw.model.SwSupplierGroupModel" resultType="com.hanthink.sw.model.SwSupplierGroupModel">
+              SELECT A.SUPPLIER_NO supplierNo,
+           			 A.SUPPLIER_NAME supplierName,
+           			 A.DETAIL_ADDR detailAddr
+			FROM MM_PUB_SUPPLIER A
+			WHERE A.SUPPLIER_NO NOT IN (SELECT B.SUPPLIER_NO
+                               FROM MM_SW_SUP_GROUP_MEMBERS B
+                              WHERE B.GROUP_ID =#{groupId})
+            <if test="supplierNo !=null and supplierNo != ''">
+				AND A.SUPPLIER_NO like CONCAT(#{supplierNo}, '%')
+			</if>
+      </select>
+      
+      <!-- 获取供应商分组明细 -->
+      <select id="curdGetGroup" parameterType="java.lang.String" resultType="com.hanthink.sw.model.SwSupplierGroupModel">
+             SELECT A.GROUP_ID groupId, 
+       		       A.GROUP_NAME groupName
+  			FROM MM_SW_SUPPLIER_GROUP A
+  			WHERE A.GROUP_ID = #{groupId}
+      </select>
+      
+      <!-- 检查分组名称是否存在 -->
+      <select id="getByGroupName" parameterType="java.lang.String" resultType="com.hanthink.sw.model.SwSupplierGroupModel">
+             SELECT A.GROUP_ID groupId, 
+       		       A.GROUP_NAME groupName
+  			FROM MM_SW_SUPPLIER_GROUP A
+  			WHERE A.GROUP_NAME = #{groupName}
+      </select>
+      
+      <!-- 新增分组名称 -->
+      <insert id="insertGroup" parameterType="com.hanthink.sw.model.SwSupplierGroupModel" useGeneratedKeys="true" keyProperty="groupId" keyColumn="GROUP_ID">
+            INSERT INTO MM_SW_SUPPLIER_GROUP(GROUP_ID,
+                            GROUP_NAME,
+                            CREATION_USER,
+                            CREATION_TIME) 
+                      VALUES(SEQ_MM_SW_SUP_GROUP.NEXTVAL,
+                             #{groupName,jdbcType=VARCHAR},
+                             #{creationUser,jdbcType=VARCHAR},
+                             SYSDATE)
+      </insert>
+      
+      <!-- 在供应商新增界面将分组id和供应代码插入MM_SW_SUP_GROUP_MEMBERS -->
+      <insert id="insertGroupIdAndSupplier" parameterType="com.hanthink.sw.model.SwSupplierGroupModel">
+		      INSERT INTO MM_SW_SUP_GROUP_MEMBERS
+		                  (GROUP_ID, 
+		                  SUPPLIER_NO,
+		                  CREATION_USER, 
+		                  CREATION_TIME)
+		           VALUES(#{groupId,jdbcType=VARCHAR},
+		                  #{supplierNo,jdbcType=VARCHAR},
+		                  #{creationUser,jdbcType=VARCHAR},
+		                  SYSDATE)
+      </insert>
+      
+      <!-- 修改分组名称 -->
+      <update id="updateGroup" parameterType="com.hanthink.sw.model.SwSupplierGroupModel">
+           UPDATE MM_SW_SUPPLIER_GROUP SET GROUP_NAME =#{groupName,jdbcType=VARCHAR} 
+           WHERE GROUP_ID = #{groupId,jdbcType=VARCHAR}
+      </update>
+      
+      <!-- 根据分组id删除分组 -->
+      <delete id="removeByGroupIds" parameterType="java.lang.String">
+           DELETE  FROM MM_SW_SUPPLIER_GROUP WHERE GROUP_ID=#{groupId}
+           
+      </delete>
+      <delete id="removeByGroupIdsFromMembers" parameterType="java.lang.String">
+      	   DELETE FROM MM_SW_SUP_GROUP_MEMBERS WHERE GROUP_ID=#{groupId}
+      </delete>
+      
+      <!-- 根据供应商代码和分组id删除供应商信息 -->
+      <delete id="removeSupplierByGroupIds" parameterType="java.util.Map">
+           DELETE FROM MM_SW_SUP_GROUP_MEMBERS
+        	WHERE GROUP_ID = #{groupId,jdbcType = VARCHAR}
+          AND SUPPLIER_NO = #{supplierNo ,jdbcType = VARCHAR}
+      </delete>
+      
+      
+      
+      <!-- 查询出需要导出的数据 -->
+      <select id="querySwSupplierGroupByKey" parameterType="com.hanthink.sw.model.SwSupplierGroupModel" resultType="com.hanthink.sw.model.SwSupplierGroupModel">
+	           SELECT  A.GROUP_ID      groupId,
+				       A.GROUP_NAME    groupName,
+				       B.SUPPLIER_NO   supplierNo,
+				       C.SUPPLIER_NAME supplierName
+			  FROM MM_SW_SUPPLIER_GROUP A
+			  LEFT JOIN MM_SW_SUP_GROUP_MEMBERS B
+			    ON A.GROUP_ID = B.GROUP_ID
+			  LEFT JOIN MM_PUB_SUPPLIER C
+			    ON B.SUPPLIER_NO = C.SUPPLIER_NO
+			    WHERE 1=1 
+  			<if test="groupName !=null and groupName != ''">
+				AND A.GROUP_NAME like CONCAT(#{groupName}, '%')
+			</if>
+			ORDER BY A.GROUP_NAME DESC
+      </select>
+      
+      <!-- 根据IMP_UUID删除导入的临时供应商分组维护数据 -->
+	<delete id="deleteImportTempDataByUUID" parameterType="java.lang.String">
+		DELETE FROM MM_SW_SUPPLIER_GROUP_IMP A WHERE A.IMP_UUID = #{VALUE}
+	</delete>
+      
+      <!-- 将EXCEL数据导入到供应商分组维护临时表 -->
+	<insert id="insertImportTempData" parameterType="java.util.List">
+		INSERT INTO MM_SW_SUPPLIER_GROUP_IMP
+		(  ID,
+		   GROUP_NAME,
+		   SUPPLIER_NO,
+		   FACTORY_CODE,
+		   IMP_UUID,
+		   CHECK_RESULT,
+		   CHECK_INFO,
+		   CREATION_USER,
+		   CREATION_TIME,
+		   IMPORT_STATUS
+		   ) 
+		<foreach collection="list" item="item" index="index" separator=" UNION ALL ">
+			SELECT
+			PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_SW_SUP_GROUP_IMP'),
+		   #{item.groupName,jdbcType=VARCHAR}, 
+		   #{item.supplierNo,jdbcType=VARCHAR},
+		   #{item.factoryCode,jdbcType=VARCHAR},
+		   #{item.uuid,jdbcType=VARCHAR},
+		   #{item.checkResult,jdbcType=VARCHAR},
+		   #{item.checkInfo,jdbcType=VARCHAR},
+		   #{item.creationUser,jdbcType=VARCHAR},
+		   SYSDATE,
+		   #{item.importStatus,jdbcType=VARCHAR}
+			FROM DUAL 
+    	</foreach>
+	</insert>
+	
+	<!-- 检查导入临时表数据 -->
+	<parameterMap type="map" id="impCkParamMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="userName" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<!-- 导入供应商分组维护校验 -->
+	<select id="checkImportSupplierGroupData" parameterMap="impCkParamMap" statementType="CALLABLE">
+		{CALL PKG_SW_CHECK.USP_SW_SUPPLIER_GROUP_CHECK(?, ?, ?,  ?,?)}
+	</select>
+	
+	<!-- 查询导入的供应商分组维护数据 -->
+	<select id="queryImportTempData" parameterType="java.util.Map" resultType="com.hanthink.sw.model.SwSupplierGroupModelImport">
+			SELECT A.GROUP_NAME groupName,
+				   A.SUPPLIER_NO supplierNo,
+		           A.FACTORY_CODE factoryCode,
+		           A.CHECK_RESULT checkResult,
+		           A.CHECK_INFO checkInfo,
+		           A.IMPORT_STATUS importStatus,
+		           A.OPE_TYPE opeType,
+		           B.CODE_VALUE_NAME codeValueNameB,
+		           C.CODE_VALUE_NAME codeValueNameC
+		        FROM MM_SW_SUPPLIER_GROUP_IMP A
+		        LEFT JOIN MM_PUB_DATA_DICT B
+			    ON A.CHECK_RESULT = B.CODE_VALUE
+			    AND B.CODE_TYPE ='PUB_IMP_CK_RESULT'
+			    LEFT JOIN MM_PUB_DATA_DICT C
+			    ON A.IMPORT_STATUS = C.CODE_VALUE
+			    AND C.CODE_TYPE ='PUB_IMP_STATUS'
+		      WHERE A.IMP_UUID = #{uuid,jdbcType=VARCHAR}
+	</select>
+	
+
+	<!-- 查询临时表中的数据是否可以导入 -->
+	<select id="querySupplierGroupIsImportFlag" parameterType="java.lang.String" resultType="java.lang.String">
+		WITH TEMPA AS
+		 (SELECT COUNT(1) s
+		    FROM MM_SW_SUPPLIER_GROUP_IMP A
+		   WHERE A.CHECK_RESULT = 0
+		     AND A.IMP_UUID = #{VALUE}),
+		TEMPB AS
+		 (SELECT COUNT(1) S
+		    FROM MM_SW_SUPPLIER_GROUP_IMP B
+		   WHERE B.IMP_UUID = #{VALUE})
+		SELECT CASE
+		         WHEN A.S >= B.S THEN
+		          0
+		         ELSE
+		          1
+		       END AS FLAG
+		  FROM TEMPA A, TEMPB B
+	</select>
+
+	<!-- 导入成功更新导入状态 -->
+	<update id="updateSupplierGroupImportDataImpStatus">
+		UPDATE MM_SW_SUPPLIER_GROUP_IMP A
+		   SET A.IMPORT_STATUS = #{IMPORT_STATUS_YES, jdbcType = VARCHAR}
+		 WHERE A.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		   AND A.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		   AND A.IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+	</update>
+	
+	<!-- 将临时供应商分组数据导入正式表 -->
+	<insert id="insertSupplierGroupImportData" parameterType="java.util.Map" >
+		INSERT INTO MM_SW_SUPPLIER_GROUP
+		  (GROUP_ID,
+		   GROUP_NAME,
+		   CREATION_USER,
+		   CREATION_TIME)
+		  (SELECT SEQ_MM_SW_SUP_GROUP.NEXTVAL, AA.* FROM (
+		   	SELECT distinct
+		         A.GROUP_NAME,
+		         A.CREATION_USER,
+		         SYSDATE
+		    FROM MM_SW_SUPPLIER_GROUP_IMP A ,MM_SW_SUPPLIER_GROUP SG
+		   WHERE A.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		     AND A.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		     AND A.IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+		     AND A.OPE_TYPE = 'I'
+		     AND A.GROUP_NAME NOT IN(SELECT SG.GROUP_NAME FROM MM_SW_SUPPLIER_GROUP SG)
+		     ) AA)
+	</insert>
+	
+	<!-- 将临时供应商分组数据导入正式表 -->
+	<insert id="insertGroupMembersImportData" parameterType="java.util.Map" >
+		INSERT INTO MM_SW_SUP_GROUP_MEMBERS
+		  (GROUP_ID,
+		   SUPPLIER_NO,
+		   CREATION_USER,
+		   CREATION_TIME)
+		  (SELECT B.GROUP_ID groupId,
+		         A.SUPPLIER_NO,
+		         A.CREATION_USER,
+		         SYSDATE
+		    FROM MM_SW_SUPPLIER_GROUP_IMP A
+		         LEFT JOIN MM_SW_SUPPLIER_GROUP B
+		         ON A.GROUP_NAME=B.GROUP_NAME
+		   WHERE A.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		     AND A.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		     AND A.IMPORT_STATUS = #{importStatus, jdbcType = VARCHAR}
+		     AND A.OPE_TYPE = 'I')
+	</insert>
+	
+	<!-- 查询临时导出数据 -->
+	<select id="queryImportInformationForPage" parameterType="java.util.Map" resultType="com.hanthink.sw.model.SwSupplierGroupModelImport">
+			SELECT SG.GROUP_NAME    groupName,
+		       SG.SUPPLIER_NO   	supplierNo，
+		       SG.FACTORY_CODE  	factoryCode,
+		       SG.CHECK_INFO    	checkInfo
+		 FROM MM_SW_SUPPLIER_GROUP_IMP SG
+		 WHERE SG.IMP_UUID = #{uuid}
+	</select>
+	
+	<!-- 公告发布管理新增界面，供应商分组弹窗 -->
+	<select id="getSupplierGroupList" parameterType="com.hanthink.sw.model.SwSupplierGroupModel" resultType="com.hanthink.sw.model.SwSupplierGroupModel">
+		SELECT A.GROUP_ID value, A.GROUP_NAME label FROM MM_SW_SUPPLIER_GROUP A
+		WHERE A.GROUP_ID IS NOT NULL AND A.GROUP_NAME IS NOT NULL
+		<!-- 供应商分组为空,发布公告下拉框不显示 -->
+		AND EXISTS (SELECT 1 FROM MM_SW_SUP_GROUP_MEMBERS M WHERE M.GROUP_ID = A.GROUP_ID)
+	</select> 
+	
+	<!-- 查询导入校验结果是否包含不通过 -->
+	<select id="queryIsExistsCheckResultFalse" parameterType="java.lang.String"
+		resultType="java.lang.Object">
+		SELECT COUNT(*)
+				FROM MM_SW_SUPPLIER_GROUP_IMP T
+			WHERE T.IMP_UUID = #{uuid, jdbcType=VARCHAR} AND T.CHECK_RESULT = 0		
+	</select>
+	
+</mapper>

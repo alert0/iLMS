@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.inv.model.InvWareHouseModel">
+	<!-- 仓库信息分页查询 -->
+	<select id="queryWareHouseForPage" parameterType="com.hanthink.inv.model.InvWareHouseModel" resultType="com.hanthink.inv.model.InvWareHouseModel">
+		SELECT MIW.ID id,
+		       MIW.FACTORY_CODE factoryCode,
+		       MIW.WARE_CODE wareCode,
+		       MIW.ERP_WARE_CODE erpWareCode,
+		       MIW.WARE_ADDR wareAddr,
+		       MIW.WARE_NAME wareName,
+		       MIW.WARE_TYPE wareType,
+		       (SELECT SUM(MIS.STOCK)
+		          FROM MM_INV_STOCK MIS
+		         WHERE MIS.WARE_CODE = MIW.WARE_CODE
+		           AND MIS.FACTORY_CODE = MIW.FACTORY_CODE
+		         GROUP BY MIS.WARE_CODE) stock,
+		       MIW.CREATION_USER creationUser,
+		       TO_CHAR(MIW.CREATION_TIME, 'yyyy-MM-dd hh24:mi:ss') creationTime,
+		       MIW.LAST_MODIFIED_USER lastModifiedUser,
+		       TO_CHAR(MIW.LAST_MODIFIED_TIME, 'yyyy-MM-dd hh24:mi:ss') lastModifiedTime
+		FROM MM_INV_WAREHOUSE MIW
+		WHERE MIW.FACTORY_CODE = #{factoryCode,jdbcType=VARCHAR}
+			AND MIW.WARE_TYPE IN (
+	             SELECT A.PARAM_VAL
+	               FROM MM_PUB_SYS_PARAM A
+	              WHERE A.PARAM_GROUP = 'INV_STOCK_WARE_TYPE'
+	              		AND A.FACTORY_CODE = MIW.FACTORY_CODE
+	         ) 
+		<if test="wareCode != null and wareCode != ''">
+			AND MIW.WARE_CODE = #{wareCode,jdbcType=VARCHAR}
+		</if>
+		<if test="wareName != null and wareName != ''">
+			AND MIW.WARE_NAME LIKE CONCAT(CONCAT('%',#{wareName,jdbcType=VARCHAR}),'%')
+		</if>
+		ORDER BY MIW.ID DESC
+	</select>
+	<!-- 数据字典加载仓库类型 -->
+	<select id="getWareType" parameterType="java.util.Map" resultType="com.hanthink.base.model.DictVO">
+		SELECT DISTINCT CODE_VALUE valueKey, CODE_VALUE_NAME valueName FROM MM_PUB_DATA_DICT 
+		WHERE
+		CODE_TYPE = 'INV_WAREHOUSE_TYPE'
+	</select>
+	<!-- 根据id加载仓库详情 -->
+	<select id="getWareHouseById" parameterType="java.lang.String" resultType="com.hanthink.inv.model.InvWareHouseModel">
+		SELECT MIW.FACTORY_CODE factoryCode,
+			   MIW.WARE_CODE wareCode,
+			   MIW.ERP_WARE_CODE erpWareCode,
+			   MIW.WARE_ADDR wareAddr,
+			   MIW.WARE_NAME wareName,
+			   MIW.WARE_TYPE wareType,
+			   MIW.CREATION_USER creationUser,
+			   TO_CHAR(MIW.CREATION_TIME,'yyyy-MM-dd hh24:mi:ss') creationTime,
+			   MIW.LAST_MODIFIED_USER lastModifiedUser,
+			   TO_CHAR(MIW.LAST_MODIFIED_TIME,'yyyy-MM-dd hh24:mi:ss') lastModifiedTime
+		FROM MM_INV_WAREHOUSE MIW
+		WHERE MIW.ID = #{id,jdbcType=VARCHAR}
+	</select>
+	<!-- 创建仓库数据信息 -->
+	<insert id="createWareHouse" parameterType="com.hanthink.inv.model.InvWareHouseModel">
+		INSERT INTO MM_INV_WAREHOUSE
+		(ID,FACTORY_CODE,WARE_CODE,ERP_WARE_CODE,WARE_ADDR,WARE_NAME,
+		 WARE_TYPE,CREATION_USER,CREATION_TIME,LAST_MODIFIED_USER,LAST_MODIFIED_TIME)
+		VALUES
+		(PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_INV_WARE'),#{factoryCode,jdbcType=VARCHAR},#{wareCode,jdbcType=VARCHAR},
+		#{erpWareCode,jdbcType=VARCHAR},#{wareAddr,jdbcType=VARCHAR},#{wareName,jdbcType=VARCHAR},#{wareType,jdbcType=VARCHAR},
+		#{creationUser,jdbcType=VARCHAR},sysdate,#{lastModifiedUser,jdbcType=VARCHAR},sysdate)
+	</insert>
+	<!-- 查看仓库代码是否已存在 -->
+	<select id="queryWareHouseByWareCode" parameterType="com.hanthink.inv.model.InvWareHouseModel" resultType="com.hanthink.inv.model.InvWareHouseModel">
+		SELECT MIW.FACTORY_CODE factoryCode,
+			   MIW.WARE_CODE wareCode,
+			   MIW.ERP_WARE_CODE erpWareCode,
+			   MIW.WARE_ADDR wareAddr,
+			   MIW.WARE_NAME wareName,
+			   MIW.WARE_TYPE wareType,
+			   MIW.CREATION_USER creationUser,
+			   TO_CHAR(MIW.CREATION_TIME,'yyyy-MM-dd hh24:mi:ss') creationTime,
+			   MIW.LAST_MODIFIED_USER lastModifiedUser,
+			   TO_CHAR(MIW.LAST_MODIFIED_TIME,'yyyy-MM-dd hh24:mi:ss') lastModifiedTime
+		FROM MM_INV_WAREHOUSE MIW
+		WHERE MIW.WARE_CODE = #{wareCode,jdbcType=VARCHAR}
+	</select>
+	<select id="queryWareHosueName" parameterType="com.hanthink.inv.model.InvWareHouseModel" resultType="com.hanthink.inv.model.InvWareHouseModel">
+		SELECT MIW.FACTORY_CODE factoryCode,
+			   MIW.WARE_CODE wareCode,
+			   MIW.ERP_WARE_CODE erpWareCode,
+			   MIW.WARE_ADDR wareAddr,
+			   MIW.WARE_NAME wareName,
+			   MIW.WARE_TYPE wareType,
+			   MIW.CREATION_USER creationUser,
+			   TO_CHAR(MIW.CREATION_TIME,'yyyy-MM-dd hh24:mi:ss') creationTime,
+			   MIW.LAST_MODIFIED_USER lastModifiedUser,
+			   TO_CHAR(MIW.LAST_MODIFIED_TIME,'yyyy-MM-dd hh24:mi:ss') lastModifiedTime
+		FROM MM_INV_WAREHOUSE MIW
+		WHERE MIW.WARE_NAME = #{wareName,jdbcType=VARCHAR}
+	</select>
+	<!-- 修改仓库信息 -->
+	<update id="updateWareHouse" parameterType="com.hanthink.inv.model.InvWareHouseModel">
+		UPDATE MM_INV_WAREHOUSE SET
+			FACTORY_CODE = #{factoryCode,jdbcType=VARCHAR},
+			WARE_CODE = #{wareCode,jdbcType=VARCHAR},
+			ERP_WARE_CODE = #{erpWareCode,jdbcType=VARCHAR},
+			WARE_NAME = #{wareName,jdbcType=VARCHAR},
+			WARE_TYPE = #{wareType,jdbcType=VARCHAR},
+			WARE_ADDR = #{wareAddr,jdbcType=VARCHAR},
+			LAST_MODIFIED_USER = #{lastModifiedUser,jdbcType=VARCHAR},
+			LAST_MODIFIED_TIME = sysdate
+		WHERE ID = #{id}
+	</update>
+	<!-- 单条/批量数据删除 -->
+	<delete id="deleteWareHouseByIds" parameterType="java.lang.String">
+		DELETE FROM MM_INV_WAREHOUSE
+		WHERE ID IN
+		<foreach item="ids" collection="array" open="(" separator="," close=")">
+			#{ids,jdbcType=VARCHAR}
+		</foreach>
+	</delete>
+	<!-- 获取ERP仓库代码 -->
+	<select id="queryERPWareCode" parameterType="java.lang.String" resultType="com.hanthink.inv.model.InvWareHouseModel">
+		SELECT MPW.WAREHOUSE_ID value,
+			MPW.WAREHOUSE_NAME label 
+		FROM MM_PUB_WAREHOUSE MPW
+		WHERE MPW.FACTORY_CODE = #{factoryCode}
+	</select>
+	<!-- 获取仓库类型下拉框 -->
+	<select id="queryWareType" parameterType="java.lang.String" resultType="com.hanthink.inv.model.InvWareHouseModel">
+		SELECT MPD.CODE_VALUE value,
+	      MPD.CODE_VALUE_NAME label 
+	    FROM MM_PUB_DATA_DICT MPD
+			WHERE MPD.CODE_TYPE = 'INV_WAREHOUSE_TYPE'
+	    AND MPD.FACTORY_CODE = #{factoryCode}
+	</select>
+</mapper>

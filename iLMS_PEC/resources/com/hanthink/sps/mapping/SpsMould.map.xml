@@ -1,0 +1,335 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.sps.model.SpsMouldModel">
+	
+	<!-- 模板列表查询 -->
+	<select id="querySpsMouldPage" parameterType="com.hanthink.sps.model.SpsMouldModel"
+		resultType="com.hanthink.sps.model.SpsMouldModel">
+		SELECT T.ID id,
+	           T.MOULD_CODE mouldCode,
+	           T.VERSION version,
+	           T.MOULD_NAME mouldName,
+	           T.MODEL_CODE modelCode,
+	           T.PLAN_CODE planCode,
+	           C.PLAN_CODE_DESC planCodeDesc,
+	           T.PRINTER_ID printerId,
+	           P.PRINTER_NAME printerIdDesc,
+	           T.IS_ENABLE isEnable,
+	           D.CODE_VALUE_NAME isEnableDesc,
+	           T.IS_AUTO_PRINT isAutoPrint,
+	           DD.CODE_VALUE_NAME isAutoPrintDesc,
+	           T.ASSEMBLY_INS assemblyIns
+	      FROM MM_SPS_MOULD T
+	      INNER JOIN MM_PUB_PLAN_CODE C ON C.PLAN_CODE = T.PLAN_CODE
+	      LEFT JOIN MM_PUB_DATA_DICT D ON D.CODE_VALUE = T.IS_ENABLE AND 
+	           D.CODE_TYPE = 'PUB_IS_ENABLE' AND D.FACTORY_CODE = C.FACTORY_CODE
+	      LEFT JOIN MM_PUB_DATA_DICT DD ON DD.CODE_VALUE = T.IS_AUTO_PRINT AND
+	           DD.CODE_TYPE = 'PUB_IS_AUTO_PRINT' AND DD.FACTORY_CODE = C.FACTORY_CODE
+	      LEFT JOIN MM_PR_PRINTER P ON P.ID = T.PRINTER_ID
+	      WHERE 1=1 AND C.FACTORY_CODE = #{factoryCode}
+		  <if test="null != mouldName and ''!=mouldName ">
+		   AND T.MOULD_NAME = #{mouldName}
+		  </if>
+		ORDER BY T.MOULD_CODE, T.VERSION
+	</select>
+	
+	<!-- 修改SPS模板 -->
+	<update id="updateSpsMould" parameterType="com.hanthink.sps.model.SpsMouldModel">
+		UPDATE MM_SPS_MOULD T
+		   SET 
+		       T.MOULD_NAME         = #{mouldName, jdbcType=VARCHAR},
+		       T.MODEL_CODE         = #{modelCode, jdbcType=VARCHAR},
+		       T.PLAN_CODE          = #{planCode, jdbcType=VARCHAR},
+		       T.PRINTER_ID         = #{printerId, jdbcType=VARCHAR},
+		       T.IS_ENABLE          = #{isEnable, jdbcType=VARCHAR},
+		       T.IS_AUTO_PRINT      = #{isAutoPrint, jdbcType=VARCHAR},
+		       T.ASSEMBLY_INS       = #{assemblyIns, jdbcType=VARCHAR},
+		       T.LAST_MODIFIED_USER = #{lastModifiedUser, jdbcType=VARCHAR},
+		       T.LAST_MODIFIED_IP   = #{lastModifiedIp, jdbcType=VARCHAR},
+		       T.LAST_MODIFIED_TIME = SYSDATE
+		 WHERE ID = #{id}
+	</update>
+	
+	<!-- 配置列表查询 -->
+	<select id="querySpsMouldConfigPage" parameterType="com.hanthink.sps.model.SpsMouldConfigModel"
+		resultType="com.hanthink.sps.model.SpsMouldConfigModel">
+		SELECT 
+		    T.ID id,
+		    T.MOULD_PLACE mouldPlace,
+		    T.CONFIG_CODE configCode,
+		    T.CONFIG_SHOW configShow,
+		    D.CODE_VALUE_NAME configShowDesc,
+		    CASE WHEN T.IMAGE_ID IS NOT NULL THEN '是'
+		           ELSE '否' END isUploadImage,
+		         T.IMAGE_ID imageId   
+		FROM MM_SPS_MOULD_CONFIG T
+		LEFT JOIN MM_PUB_DATA_DICT D ON D.CODE_VALUE = T.CONFIG_SHOW
+		        AND D.CODE_TYPE = 'SPS_CONFIG_SHOW' AND D.FACTORY_CODE = #{factoryCode}
+		   WHERE 1=1
+		  AND T.MOULD_ID = #{mouldId}
+		    ORDER BY T.MOULD_PLACE
+	</select>
+	
+	<!-- 修改配置列表信息 -->
+	<update id="updateSpsMouldConfig" parameterType="com.hanthink.sps.model.SpsMouldConfigModel">
+		UPDATE MM_SPS_MOULD_CONFIG T
+		    <set>
+		    	T.CONFIG_CODE = #{configCode, jdbcType=VARCHAR},
+		    	T.CONFIG_SHOW = #{configShow, jdbcType=VARCHAR},
+		       T.LAST_MODIFIED_USER = #{lastModifiedUser, jdbcType=VARCHAR}, 
+		       T.LAST_MODIFIED_IP   = #{lastModifiedIp, jdbcType=VARCHAR},
+		       T.LAST_MODIFIED_TIME = SYSDATE
+		    </set>
+		 WHERE ID = #{id}
+	</update>
+	
+	<!-- SPS上传图片 -->
+	<update id="updateSpsMouldConfigFileId" parameterType="com.hanthink.sps.model.SpsMouldConfigModel">
+		UPDATE MM_SPS_MOULD_CONFIG T
+		    <set>
+		    	<if test="'' != imageId and null != imageId">
+		    		T.IMAGE_ID = #{imageId, jdbcType=VARCHAR},
+		    	</if>
+		       T.LAST_MODIFIED_USER = #{lastModifiedUser, jdbcType=VARCHAR}, 
+		       T.LAST_MODIFIED_IP   = #{lastModifiedIp, jdbcType=VARCHAR},
+		       T.LAST_MODIFIED_TIME = SYSDATE
+		    </set>
+		 WHERE ID = #{id}
+	</update>
+	
+	<!-- SPS票据模板管理导入到临时表 -->
+	<insert id="insertSpsMouldConfigTempData" parameterType="java.util.List">
+		INSERT INTO MM_SPS_MOULD_CONFIG_IMP
+		  (ID,
+		   MOULD_ID,
+		   MOULD_PLACE,
+		   CONFIG_CODE,
+		   CONFIG_SHOW,
+		   IMP_UUID,
+		   CHECK_RESULT,
+		   CHECK_INFO,
+		   IMPORT_STATUS) 
+		<foreach collection="list" item="item" index="index" separator=" UNION ALL ">
+			SELECT PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_SPS_MOULD_CONFIG_IMP'),
+				   #{item.mouldId, jdbcType=VARCHAR},
+				   #{item.mouldPlace, jdbcType=VARCHAR},
+				   #{item.configCode, jdbcType=VARCHAR},
+				   #{item.configShow, jdbcType=VARCHAR},
+				   #{item.uuid, jdbcType=VARCHAR},
+				   #{item.checkResult, jdbcType=VARCHAR},
+				   #{item.checkInfo, jdbcType=VARCHAR},
+				   #{item.importStatus, jdbcType=VARCHAR}
+			FROM DUAL
+		</foreach>
+	</insert>
+	
+	<!-- 检查导入临时表数据 -->
+	<parameterMap type="map" id="impCkParamMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="userName" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<!-- 调用存储过程校验SPS票据模板配置列表 -->
+	<select id="checkImportData" parameterMap="impCkParamMap" statementType="CALLABLE">
+		{CALL PKG_PUB_CHECK.USP_MM_SPS_MOULD_CONFIG_CHECK(?, ?, ?, ?, ?)}
+	</select>
+	
+	<!-- SPS票据模板配置临时表数据写入正式表,有则更新,无则新增 -->
+	<update id="insertImportData" parameterType="java.util.Map">
+		INSERT INTO MM_SPS_MOULD_CONFIG
+		(ID,
+		   MOULD_ID,
+		   MOULD_PLACE,
+		   CONFIG_CODE,
+		   CONFIG_SHOW,
+		   CREATION_USER,
+		   CREATION_TIME
+		)
+		SELECT PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_SPS_MOULD_CONFIG'),
+	       T.MOULD_ID,
+	       T.MOULD_PLACE,
+	       T.CONFIG_CODE,
+	       T.CONFIG_SHOW,
+	       #{lastModifiedUser, jdbcType = VARCHAR},
+	       SYSDATE
+	FROM MM_SPS_MOULD_CONFIG_IMP T 
+	WHERE T.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+	AND T.IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}
+	AND T.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+	<!-- 
+		MERGE INTO MM_SPS_MOULD_CONFIG A
+			USING (SELECT * FROM MM_SPS_MOULD_CONFIG_IMP B
+				WHERE B.IMP_UUID = #{uuid, jdbcType = VARCHAR}
+		          AND B.CHECK_RESULT = #{checkResult,jdbcType = VARCHAR}
+		          AND B.IMPORT_STATUS = #{importStatus,jdbcType = VARCHAR}) C
+		    ON (A.MOULD_ID = C.MOULD_ID AND A.MOULD_PLACE = C.MOULD_PLACE)   
+		    WHEN MATCHED THEN 
+		    	UPDATE SET
+		    		CONFIG_CODE   = C.CONFIG_CODE,   
+		    		CONFIG_SHOW = C.CONFIG_SHOW,
+		    		LAST_MODIFIED_USER = #{lastModifiedUser, jdbcType = VARCHAR},
+			        LAST_MODIFIED_IP = #{lastModifiedIp, jdbcType = VARCHAR},
+			        LAST_MODIFIED_TIME = SYSDATE
+		    WHEN NOT MATCHED THEN	
+				INSERT
+				  (ID,
+				   MOULD_ID,
+				   MOULD_PLACE,
+				   CONFIG_CODE,
+				   CONFIG_SHOW,
+				   CREATION_USER,
+				   CREATION_TIME,
+				   LAST_MODIFIED_USER,
+			       LAST_MODIFIED_IP,
+			       LAST_MODIFIED_TIME
+				   ) VALUES
+				   (PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_SPS_MOULD_CONFIG'),
+			       C.MOULD_ID,
+			       C.MOULD_PLACE,
+			       C.CONFIG_CODE,
+			       C.CONFIG_SHOW,
+			       #{lastModifiedUser, jdbcType = VARCHAR},
+				   SYSDATE,
+				   #{lastModifiedUser, jdbcType = VARCHAR},
+				   #{lastModifiedIp, jdbcType = VARCHAR},
+				   SYSDATE)  -->
+	</update>
+	
+	<!-- 查询临时表数据 -->
+	<select id="queryImportTempPage" parameterType="com.hanthink.sps.model.SpsMouldConfigModel" 
+		resultType="com.hanthink.sps.model.SpsMouldConfigModel">
+		SELECT 
+	             T.MOULD_ID mouldId,
+	             T.MOULD_PLACE mouldPlace,
+	             T.CONFIG_CODE configCode,
+	             T.CONFIG_SHOW configShow,
+	             D.CODE_VALUE_NAME configShowDesc,
+	             DDD.CODE_VALUE_NAME checkResult,
+	             T.CHECK_INFO checkInfo,
+	             DD.CODE_VALUE_NAME importStatus
+	      FROM 
+	      MM_SPS_MOULD_CONFIG_IMP T
+	       LEFT JOIN MM_PUB_DATA_DICT D ON D.CODE_VALUE = T.CONFIG_SHOW AND D.CODE_TYPE = 'SPS_CONFIG_SHOW'
+	             AND D.FACTORY_CODE = #{factoryCode}
+	       LEFT JOIN MM_PUB_DATA_DICT DD ON DD.CODE_VALUE = T.IMPORT_STATUS AND DD.CODE_TYPE = 'PUB_IMP_STATUS'
+	             AND DD.FACTORY_CODE = #{factoryCode}
+	       LEFT JOIN MM_PUB_DATA_DICT DDD ON DDD.CODE_VALUE = T.CHECK_RESULT AND DDD.CODE_TYPE = 'PUB_IMP_CK_RESULT'
+	            AND DDD.FACTORY_CODE = #{factoryCode}
+		  WHERE T.IMP_UUID = #{uuid}
+	</select>
+	
+	<!-- 更新临时表数据导入状态 -->
+	<update id="updateImportDataImpStatus">
+		UPDATE MM_SPS_MOULD_CONFIG_IMP SET 
+			IMPORT_STATUS = #{IMPORT_STATUS_YES,jdbcType=VARCHAR} 
+		WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		  AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR} 
+		  AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR}
+	</update>
+	
+	<!-- 根据uuid删除临时表数据 -->
+	<delete id="deleteImportTempDataByUUID" parameterType="java.lang.String">
+		 DELETE FROM MM_SPS_MOULD_CONFIG_IMP T WHERE T.IMP_UUID = #{uuid}
+	</delete>
+	
+	<!-- 配置项列表导入(SPS配置项代码与ID转换) -->
+	<select id="querySpsConfigList" parameterType="com.hanthink.sps.model.SpsConfigModel"
+		resultType="com.hanthink.sps.model.SpsConfigModel">
+		SELECT T.CONFIG_CODE id, 
+		       T.CONFIG_CODE configCode
+		  FROM MM_SPS_CONFIG T
+		 WHERE T.FACTORY_CODE = #{factoryCode} AND T.PRODUCTION_LINE = #{productionLine}
+	</select>
+	
+	<!-- 确认导入前查询是否还要校验结果未通过数据 -->
+	<select id="queryIsExistsCheckResultFalse" parameterType="java.lang.String" 
+		resultType="java.lang.Object">
+		SELECT COUNT(*)
+			FROM MM_SPS_MOULD_CONFIG_IMP T
+		WHERE T.IMP_UUID = #{uuid, jdbcType=VARCHAR} AND T.CHECK_RESULT = 0	
+	</select>
+	
+	<!-- 新增SPS票据模板 -->
+	<insert id="insertSpsMould" parameterType="com.hanthink.sps.model.SpsMouldModel">
+		INSERT INTO MM_SPS_MOULD
+		  (ID,
+		   MOULD_CODE,
+		   VERSION,
+		   MOULD_NAME,
+		   MODEL_CODE,
+		   PLAN_CODE,
+		   IS_ENABLE,
+		   IS_AUTO_PRINT,
+		   PRINTER_ID,
+		   ASSEMBLY_INS,
+		   MOULD_HEAD_PLACE,
+		   CREATION_TIME,
+		   CREATION_USER,
+		   LAST_MODIFIED_USER,
+		   LAST_MODIFIED_IP,
+		   LAST_MODIFIED_TIME)
+		VALUES
+		  (PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_SPS_MOULD'),
+		   #{mouldCode, jdbcType=VARCHAR},
+		   #{version, jdbcType=VARCHAR},
+		   #{mouldName, jdbcType=VARCHAR},
+		   #{modelCode, jdbcType=VARCHAR},
+		   #{planCode, jdbcType=VARCHAR},
+		   #{isEnable, jdbcType=VARCHAR},
+		   #{isAutoPrint, jdbcType=VARCHAR},
+		   #{printerId, jdbcType=VARCHAR},  
+		   #{assemblyIns, jdbcType=VARCHAR}, 
+		   #{mouldHeadPlace, jdbcType=VARCHAR}, 
+		   SYSDATE,
+		   #{creationUser, jdbcType=VARCHAR},
+		   #{creationUser, jdbcType=VARCHAR},
+		   #{lastModifiedIp, jdbcType=VARCHAR},
+		   SYSDATE)
+	</insert>
+	
+	<!-- SPS票据模板配置列表删除 -->
+	<delete id="deleteSpsMouldConfig" parameterType="com.hanthink.sps.model.SpsMouldConfigModel">
+		DELETE FROM MM_SPS_MOULD_CONFIG T WHERE T.ID = #{id}
+	</delete>
+	
+	<!-- 新增配置项列表 -->
+	<insert id="insertSpsMouldConfig" parameterType="com.hanthink.sps.model.SpsMouldConfigModel">
+		INSERT INTO MM_SPS_MOULD_CONFIG
+		      (ID,
+		       MOULD_ID,
+		       MOULD_PLACE,
+		       CONFIG_CODE,
+		       CONFIG_SHOW,
+		       CREATION_TIME,
+		       CREATION_USER,
+		       LAST_MODIFIED_TIME,
+		       LAST_MODIFIED_USER,
+		       LAST_MODIFIED_IP
+		       )
+		    VALUES
+		      ((PKG_PUB.USF_GET_SEQUENCE('SEQ_MM_SPS_MOULD_CONFIG')),
+		       #{mouldId, jdbcType=VARCHAR},
+		       #{mouldPlace, jdbcType=VARCHAR},
+		       #{configCode, jdbcType=VARCHAR},
+		       #{configShow, jdbcType=VARCHAR},
+		       SYSDATE,
+		       #{creationUser, jdbcType=VARCHAR},
+		       SYSDATE,
+		       #{creationUser, jdbcType=VARCHAR},
+		       #{lastModifiedIp, jdbcType=VARCHAR}
+		       )
+	</insert>
+	
+	<!-- 查询是否业务主键重复 -->
+	<select id="queryIsExists" parameterType="com.hanthink.sps.model.SpsMouldConfigModel"
+			resultType="com.hanthink.sps.model.SpsMouldConfigModel">
+		SELECT T.MOULD_ID mouldId,
+			   T.MOULD_PLACE mouldPlace
+			FROM MM_SPS_MOULD_CONFIG T
+		WHERE T.MOULD_ID = #{mouldId, jdbcType=VARCHAR}
+			AND T.MOULD_PLACE = #{mouldPlace, jdbcType=VARCHAR}		
+	</select>
+	
+</mapper>

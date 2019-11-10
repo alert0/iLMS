@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.pub.model.PubDataDictModel">
+		
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="queryPubDataDictForPage" parameterType="com.hanthink.pub.model.PubDataDictModel" resultType="com.hanthink.pub.model.PubDataDictModel">
+	              SELECT DISTINCT 
+	                     A.CODE_TYPE codeType,
+				         A.CODE_TYPE_NAME  codeTypeName
+				    FROM MM_PUB_DATA_DICT A
+					WHERE 1=1 
+					<if test="codeType!=null and codeType!='' ">
+					AND	A.CODE_TYPE LIKE CONCAT(#{codeType}, '%')
+					</if>
+					<if test="codeTypeName!=null and codeTypeName!='' ">
+					AND	A.CODE_TYPE_NAME LIKE CONCAT(#{codeTypeName}, '%')
+					</if>
+					AND A.FACTORY_CODE = #{factoryCode}
+					ORDER BY A.CODE_TYPE
+	</select>
+	
+	<!-- 右侧栏位显示查询结果 -->
+	<select id="getRowClick" parameterType="java.util.Map" resultType="com.hanthink.pub.model.PubDataDictModel">
+			  SELECT A.ID id,
+		             A.CODE_VALUE  codeValue,
+		             A.CODE_VALUE_NAME  codeValueName ,
+		             A.OTHER_CODE_VALUE  otherCodeValue,
+		             A.REMARK  remark ,
+		             A.SORT_NO  sortNo ,
+		             A.IS_EDIT  isEdit ,
+		             A.FACTORY_CODE factoryCode,
+		             B.CODE_VALUE_NAME codeValueNameB
+		        FROM MM_PUB_DATA_DICT A
+		   LEFT JOIN MM_PUB_DATA_DICT B
+		          ON A.IS_EDIT = B.CODE_VALUE
+		         AND B.CODE_TYPE = 'PUB_TRUE_FALSE'
+		         AND B.FACTORY_CODE = A.FACTORY_CODE
+			   WHERE A.CODE_TYPE = #{codeType}
+			     AND A.CODE_TYPE_NAME = #{codeTypeName}
+			     AND A.FACTORY_CODE = #{factoryCode}
+	</select>
+	
+	<!-- 左侧新增 -->
+	<insert id="insertLeft" parameterType="com.hanthink.pub.model.PubDataDictModel">
+	   INSERT INTO MM_PUB_DATA_DICT
+				  (ID,
+				   CODE_TYPE,
+				   CODE_TYPE_NAME,
+				   CODE_VALUE,
+				   CODE_VALUE_NAME,
+				   OTHER_CODE_VALUE,
+				   REMARK,
+				   SORT_NO,
+				   IS_EDIT,
+				   FACTORY_CODE)
+				VALUES
+				  (SEQ_MM_PUB_DATA_DICT.NEXTVAL,
+				   #{codeType,jdbcType=VARCHAR},
+				   #{codeTypeName,jdbcType=VARCHAR},
+				   #{codeValue,jdbcType=VARCHAR},
+				   #{codeValueName,jdbcType=VARCHAR},
+				   #{otherCodeValue,jdbcType=VARCHAR},
+				   #{remark,jdbcType=VARCHAR},
+				   #{sortNo,jdbcType=NUMERIC},
+				   #{isEdit,jdbcType=NUMERIC},
+				   #{factoryCode,jdbcType=VARCHAR})
+	</insert>
+	
+	<!-- 右侧新增 -->
+	<insert id="insertRight" parameterType="com.hanthink.pub.model.PubDataDictModel">
+		INSERT INTO MM_PUB_DATA_DICT
+				  (ID,
+				   CODE_TYPE,
+				   CODE_TYPE_NAME,
+				   CODE_VALUE,
+				   CODE_VALUE_NAME,
+				   OTHER_CODE_VALUE,
+				   REMARK,
+				   SORT_NO,
+				   IS_EDIT,
+				   FACTORY_CODE)
+				VALUES
+				   (SEQ_MM_PUB_DATA_DICT.NEXTVAL,
+				   #{codeType,jdbcType=VARCHAR},
+				   #{codeTypeName,jdbcType=VARCHAR},
+				   #{codeValue,jdbcType=VARCHAR},
+				   #{codeValueName,jdbcType=VARCHAR},
+				   #{otherCodeValue,jdbcType=VARCHAR},
+				   #{remark,jdbcType=VARCHAR},
+				   #{sortNo,jdbcType=NUMERIC},
+				   #{isEdit,jdbcType=NUMERIC},
+				   #{factoryCode,jdbcType=VARCHAR})
+	</insert>
+	
+	<!-- 单条/批量数据删除 -->
+	<delete id="deleteByIds" parameterType="java.lang.String">
+		DELETE FROM MM_PUB_DATA_DICT
+		WHERE ID IN
+		<foreach item="aryIds" collection="array" open="(" separator="," close=")">
+			#{aryIds,jdbcType=VARCHAR}
+		</foreach>
+	</delete>
+	
+	<!-- 修改方法 -->
+	<update id="update" parameterType="com.hanthink.pub.model.PubDataDictModel">
+		UPDATE MM_PUB_DATA_DICT
+		   SET CODE_VALUE = #{codeValue,jdbcType=VARCHAR},
+		       CODE_VALUE_NAME = #{codeValueName,jdbcType=VARCHAR},
+		       OTHER_CODE_VALUE = #{otherCodeValue,jdbcType=VARCHAR},
+		       REMARK = #{remark,jdbcType=VARCHAR},
+		       SORT_NO = #{sortNo,jdbcType=NUMERIC},
+		       IS_EDIT = #{isEdit,jdbcType=NUMERIC},
+		       FACTORY_CODE = #{factoryCode,jdbcType=VARCHAR}
+		 WHERE 1=1
+		   AND ID=#{id}
+	</update>
+	
+	<!-- 根据codeType查询数据字典 -->
+	<select id="queryDataDictByCodeType" parameterType="com.hanthink.pub.model.PubDataDictModel" 
+		resultType="com.hanthink.pub.model.PubDataDictModel">
+		SELECT T.CODE_VALUE codeValue, 
+			   T.CODE_VALUE_NAME codeValueName
+		  FROM MM_PUB_DATA_DICT T
+		 WHERE T.CODE_TYPE = #{codeType}
+		 ORDER BY T.SORT_NO ASC	
+	</select>
+
+</mapper>

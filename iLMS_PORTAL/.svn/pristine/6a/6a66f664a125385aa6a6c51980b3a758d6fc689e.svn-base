@@ -1,0 +1,241 @@
+package com.hanthink.sw.manager.impl;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.springframework.stereotype.Service;
+
+import com.hanthink.base.manager.impl.AbstractManagerImpl;
+import com.hanthink.sw.dao.SwDemondOrderDao;
+import com.hanthink.sw.manager.SwDemondOrderManager;
+import com.hanthink.sw.model.SwDemondOrderDetailModel;
+import com.hotent.base.core.util.string.StringUtil;
+import com.hotent.base.db.api.Dao;
+import com.hotent.base.db.mybatis.domain.DefaultPage;
+import com.hotent.base.db.mybatis.domain.PageList;
+
+@Service("SwDemondOrderManager")
+public class SwDemondOrderManagerImpl  extends AbstractManagerImpl<String, SwDemondOrderDetailModel> implements SwDemondOrderManager{
+
+	@Resource
+	private SwDemondOrderDao swDemondOrderDao;
+	
+	
+	@Override
+	protected Dao<String, SwDemondOrderDetailModel> getDao() {
+		return swDemondOrderDao;
+	}
+	/**
+	 * 订单分页查询
+	 * @param model
+	 * @param p
+	 * @return
+	 * Lxh
+	 */
+	@Override
+	public PageList<SwDemondOrderDetailModel> queryDemandOrderPage(SwDemondOrderDetailModel model, DefaultPage p) {
+		return swDemondOrderDao.queryDemandOrderPage(model,p);
+	}
+	/**
+	 * 订单明细查询
+	 * @param model
+	 * @param p
+	 * @return
+	 * Lxh
+	 */
+	@Override
+	public PageList<SwDemondOrderDetailModel> queryDemandDetailOrderPage(SwDemondOrderDetailModel model, DefaultPage p) {
+		return swDemondOrderDao.queryDemandDetailOrderPage(model,p);
+	}
+	/**
+	 * 订单批量下载
+	 * @param model
+	 * @return
+	 * Lxh
+	 */
+	@Override
+	public List<SwDemondOrderDetailModel> downloadDemondOrder(SwDemondOrderDetailModel model) {
+		return swDemondOrderDao.downloadDemondOrder(model);
+	}
+	/**
+	 * 订单选择下载
+	 * @param swDemondOrderDetailModel3
+	 * @return
+	 * Lxh
+	 */
+	@Override
+	public List<SwDemondOrderDetailModel> downloadDemondOrderByChoose(SwDemondOrderDetailModel model) {
+		return swDemondOrderDao.downloadDemondOrderByChoose(model);
+	}
+	/**
+	 * 明细更新
+	 * @param model
+	 * @param p
+	 * @return
+	 * Lxh
+	 */
+	@Override
+	public PageList<SwDemondOrderDetailModel> demondOrderDetailUpdateQuery(Map<String, Object> map, DefaultPage p) {
+		return swDemondOrderDao.demondOrderDetailUpdateQuery(map,p);
+	}
+	/**
+	 * 打印查询
+	 * @param list_q
+	 * @return
+	 * Lxh
+	 */
+	@Override
+	public List<SwDemondOrderDetailModel> queryDemondOrderPrintLabelList(SwDemondOrderDetailModel model) {
+		return swDemondOrderDao.queryDemondOrderPrintLabelList(model);
+	}
+	/**
+	 * 打印状态更新
+	 * @param swDemondOrderDetailModel
+	 * Lxh
+	 */
+	@Override
+	public void updatePrintLabelStatus(SwDemondOrderDetailModel swDemondOrderDetailModel) {
+		swDemondOrderDao.updatePrintLabelStatus(swDemondOrderDetailModel);
+		
+	}
+	/**
+	 * 订单明细查询
+	 * @param model_q
+	 * @return
+	 * Lxh
+	 */
+	@Override
+	public List<SwDemondOrderDetailModel> queryDemondOrderDetailList(SwDemondOrderDetailModel model_q) {
+		return swDemondOrderDao.queryDemondOrderDetailList(model_q);
+	}
+	/**
+	 * 打印更新
+	 * @param list_printInfo
+	 * Lxh
+	 */
+	@Override
+	public void updatePrintInfo(List<SwDemondOrderDetailModel> list_printInfo) {
+		swDemondOrderDao.updatePrintInfo(list_printInfo);
+		
+	}
+	/**
+	 * 下载更新
+	 * @param swDemondOrderDetailModel
+	 * Lxh
+	 */
+	@Override
+	public void updateDowloadInfo(Map<String, Object> map) {
+		swDemondOrderDao.updateDowloadInfo(map);
+		
+	}
+	/**
+	 * 批量下载更新
+	 * @param model
+	 * Lxh
+	 */
+	@Override
+	public void updateDowloadInfoByBatch(SwDemondOrderDetailModel model) {
+		swDemondOrderDao.updateDowloadInfoByBatch(model);
+		
+	}
+	/**
+	 * 托盘打印
+	 * @param model_q
+	 * @return
+	 * Lxh
+	 */
+	@Override
+	public List<SwDemondOrderDetailModel> demondOrderPrintTpLabel(SwDemondOrderDetailModel model_q) {
+		return swDemondOrderDao.demondOrderPrintTpLabel(model_q);
+	}
+	/**
+	 *  发货数更新
+	 * @param model
+	 * Lxh
+	 */
+	@Override
+	public void updateDemandDetailForPrint(SwDemondOrderDetailModel model) {
+		swDemondOrderDao.updateDemandDetailForPrint(model);
+		
+	}
+	/**
+	 * 获取发货单号
+	 * @param m
+	 * @return
+	 * Lxh
+	 */
+	@Override
+	public List<SwDemondOrderDetailModel> getDeliveryNo(SwDemondOrderDetailModel m) {
+		return swDemondOrderDao.getDeliveryNo(m);
+	}
+	/**
+	 * 更新发货订单
+	 * @param m
+	 * Lxh
+	 */
+	@Override
+	public void updateDelivery(SwDemondOrderDetailModel m) {
+		swDemondOrderDao.updateDelivery(m);
+		
+	}
+	/**
+	 * 更新发货订单明细
+	 * @param m
+	 * Lxh
+	 */
+	@Override
+	public void updateDeliveryDetail(SwDemondOrderDetailModel m) {
+		swDemondOrderDao.updateDeliveryDetail(m);
+		
+	}
+	
+	/**
+	 * 
+	 * @Description: 获取发货单号最后五位且为最大值
+	 * @param @return   
+	 * @return String  
+	 * @throws  
+	 * @author luoxq
+	 * @date 2019年1月15日 下午6:06:49
+	 */
+	@Override
+	public Integer getLastFive() {
+		
+		return swDemondOrderDao.getLastFive();
+	}
+	
+	/**
+	 * 
+	 * @Description: 查询导出的数据
+	 * @param @param model
+	 * @param @return   
+	 * @return PageList<SwDemondOrderDetailModel>  
+	 * @throws  
+	 * @author luoxq
+	 * @date 2019年1月15日 下午7:06:27
+	 */
+	@Override
+	public List<SwDemondOrderDetailModel> queryDemandOrderDownload(SwDemondOrderDetailModel model) {
+		
+		return swDemondOrderDao.queryDemandOrderDownload(model);
+	}
+	@Override
+	public List<SwDemondOrderDetailModel> downloadDemondOrderByChoose(String[] splitPurchaseNo) {
+		
+		return swDemondOrderDao.downloadDemondOrderByChoose(splitPurchaseNo);
+	}
+	@Override
+	public Boolean isExistsByDetail(SwDemondOrderDetailModel m) {
+		Integer num = swDemondOrderDao.isExistsByDetail(m);
+		if (num != null && num > 0) {
+			return true;
+		}
+		return false;
+	}
+
+	
+
+}

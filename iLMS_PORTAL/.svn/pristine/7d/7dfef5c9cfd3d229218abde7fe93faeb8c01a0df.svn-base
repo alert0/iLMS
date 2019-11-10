@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.org.persistence.model.OrgRel">
+	<resultMap id="OrgRel" type="com.hotent.org.persistence.model.OrgRel">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="orgId" column="org_id_" jdbcType="VARCHAR"/>
+		<result property="relDefId" column="rel_def_id_" jdbcType="VARCHAR"/>
+		<result property="relName" column="rel_name_" jdbcType="VARCHAR"/>
+		<result property="relCode" column="rel_code_" jdbcType="VARCHAR"/>
+		
+		<result property="orgName" column="org_name_" jdbcType="VARCHAR"/>
+		<result property="jobName" column="job_name_" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.org.persistence.model.OrgRel">
+		INSERT INTO sys_org_rel
+		(id_,org_id_,rel_def_id_,rel_name_,rel_code_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{orgId,jdbcType=VARCHAR}, #{relDefId,jdbcType=VARCHAR}, #{relName,jdbcType=VARCHAR}, #{relCode,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="OrgRel">
+		select org.name_  "org_name_", orgrel.*,def.name_ "job_name_"  from sys_org_rel  orgrel inner join sys_org_reldef def on orgrel.rel_def_id_=def.id_
+inner JOIN sys_org org on orgrel.org_id_=org.id_ 
+		WHERE 
+		orgrel.id_=#{id}
+	</select>
+		<select id="getByCode"   parameterType="java.lang.String" resultMap="OrgRel">
+		SELECT * FROM sys_org_rel 
+		WHERE 
+		rel_code_=#{code}
+	</select>
+	
+	<select id="getByReldefId"   parameterType="java.lang.String" resultMap="OrgRel">
+		SELECT * FROM sys_org_rel 
+		WHERE 
+		rel_def_id_=#{relDefId}
+	</select>
+	
+	<select id="getByOrgIdRelDefId"   parameterType="java.lang.String" resultMap="OrgRel">
+		SELECT * FROM sys_org_rel 
+		WHERE 
+		org_id_=#{orgId} and rel_def_id_=#{relDefId}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="OrgRel">
+		SELECT * FROM sys_org_rel
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+		<select id="getRelListByParam" parameterType="java.util.Map" resultMap="OrgRel">
+SELECT  rel.*,orguser.user_id_ ,u.account_ FROM   sys_org_user orguser inner join sys_org_rel rel ON
+orguser.rel_id_=rel.id_ inner join sys_user u on orguser.user_id_=u.id_
+		<if test="userId!=null">
+			 and orguser.user_id_=#{userId}
+		</if>
+	 <if test="account!=null">
+			 and u.account_=#{account}
+		</if>
+		<if test="orgId!=null">
+			 and rel.org_id_=#{orgId}
+		</if>
+		<if test="relDefId!=null">
+			 and rel.rel_def_id_=#{relDefId}
+		</if>
+	</select>
+	
+	<!-- 查询岗位全信息，包含组织名称，职务名称 -->
+	<select id="queryInfoList" parameterType="java.util.Map" resultMap="OrgRel">
+	select org.name_  "org_name_", orgrel.*,def.name_ "job_name_"  from sys_org_rel  orgrel inner join sys_org_reldef def on orgrel.rel_def_id_=def.id_
+inner JOIN sys_org org on orgrel.org_id_=org.id_
+		<if test="orgId!=null">
+			and orgrel.org_id_=#{orgId}
+		</if>
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY orgrel.id_ DESC
+		</if>
+	</select>
+	<update id="update" parameterType="com.hotent.org.persistence.model.OrgRel">
+		UPDATE sys_org_rel SET
+		org_id_=#{orgId,jdbcType=VARCHAR},
+		rel_def_id_=#{relDefId,jdbcType=VARCHAR},
+		rel_name_=#{relName,jdbcType=VARCHAR},
+		rel_code_=#{relCode,jdbcType=VARCHAR}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_org_rel 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	<delete id="delByOrgId" parameterType="java.lang.String">
+		delete from sys_org_rel where ORG_ID_ = #{orgId}
+	</delete>
+	
+</mapper>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.pub.model.PubTactTimeModel">
+		
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="queryPubTactTimeForPage" parameterType="com.hanthink.pub.model.PubTactTimeModel" resultType="com.hanthink.pub.model.PubTactTimeModel">
+	         SELECT a.FACTORY_CODE  factoryCode,
+					a.WORKCENTER  workcenter,
+					a.PRODUCTION_LINE  productionLine,
+					TO_CHAR(a.EFF_DATE, 'YYYY-MM-DD')  effDateStr,
+					a.JPH  jph,
+					a.OEE  oee,
+					a.PRODUCE_TIME   produceTime,
+					a.PRO_CAPACITY   proCapacity,
+					a.REMARK  remark,
+					b.CODE_VALUE_NAME codeValueName,
+					c.CODE_VALUE_NAME codeValueNameC
+					FROM MM_PUB_TACT_TIME a
+					LEFT JOIN MM_PUB_DATA_DICT b
+			        ON a.WORKCENTER = b.CODE_VALUE
+			        AND b.CODE_TYPE = 'PUB_WORKCENTER'
+			        LEFT JOIN MM_PUB_DATA_DICT c
+			        ON a.PRODUCTION_LINE = c.CODE_VALUE
+			        AND c.CODE_TYPE = 'PUB_PRODUCT'
+					WHERE 1=1 
+					<if test="workcenter!=null and workcenter!='' ">
+					AND	a.WORKCENTER = #{workcenter}
+					</if>
+					<if test="productionLine!=null and productionLine!='' ">
+					AND	a.PRODUCTION_LINE LIKE CONCAT(#{productionLine}, '%')
+					</if>
+					AND   A.FACTORY_CODE = #{factoryCode}
+	</select>
+	
+</mapper>

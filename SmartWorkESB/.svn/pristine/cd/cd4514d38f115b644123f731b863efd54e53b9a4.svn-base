@@ -1,0 +1,112 @@
+package com.mes.service;
+
+import org.junit.Test;
+
+import com.mes.client.WSSenderService;
+import com.mes.util.TestUtil;
+import com.smartwork.esb.dict.GlobalParameters;
+import com.smartwork.esb.dict.IfParamNames;
+import com.smartwork.esb.dict.ReceiveTableIDs;
+import com.smartwork.esb.transaction.configurator.IfConfigures;
+import com.smartwork.esb.transaction.data.ReceiveRecords;
+import com.smartwork.esb.util.DataUtil;
+import com.smartwork.esb.util.SpringBeanUtil;
+import com.smartwork.esb.util.ToolUtil;
+
+public class ServiceTest {
+
+    private static Service service;
+    
+    static {
+        TestUtil.stopJob(); //停止任务
+        service = (Service)ToolUtil.getApplicationContext().getBean("Service");
+    }
+    
+    @Test
+    public void testErrorFrom() {
+        
+        String from = null;
+        String token = DataUtil.getUUID();
+        String funcName = "funcName";
+        String parameters = TestUtil.readPackageFile("/com/mes/service/DR202.xml");
+        
+        Result callback = service.Invoke(from, token, funcName, parameters);
+        
+        System.out.println("parameters:" + parameters);
+        System.out.println("token:" + token);
+        System.out.println("callback:" + callback.getResult());
+        
+    }
+
+    @Test
+    public void testErrorFuncName() {
+        
+        String from = "MESSmartWork@123";
+        String token = DataUtil.getUUID();
+        String funcName = null; //"funcName";
+        String parameters = TestUtil.readPackageFile("/com/mes/service/DR202.xml");
+
+        Result callback = service.Invoke(from, token, funcName, parameters);
+        
+        System.out.println("parameters:" + parameters);
+        System.out.println("token:" + token);
+        System.out.println("callback:" + callback.getResult());
+    }
+    
+    @Test
+    public void testErrorIfCode() {
+        
+        String from = "MESSmartWork@123";
+        String token = DataUtil.getUUID();
+        String funcName = "func_Name";
+        String parameters = TestUtil.readPackageFile("/com/mes/service/DR202.xml");
+
+        Result callback = service.Invoke(from, token, funcName, parameters);
+        
+        System.out.println("parameters:" + parameters);
+        System.out.println("token:" + token);
+        System.out.println("callback:" + callback.getResult());
+    }
+    
+    @Test
+    public void testOK() {
+        
+        String from = "SAP_gacne@2017";
+        String token = DataUtil.getUUID();
+        String funcName = "MaterialMasterData_AD04";
+        String parameters = TestUtil.readPackageFile("/com/mes/service/DR202.xml");
+
+        Result callback = service.Invoke(from, token, funcName, parameters);
+        
+        System.out.println("parameters:" + parameters);
+        System.out.println("token:" + token);
+        System.out.println("callback:" + callback.getResult());
+    }
+    
+    @Test
+    public void testClient() {
+        
+        IfConfigures.setStorageFolder(GlobalParameters.getStorageFolder()); 
+        
+        //项目运行起来后，测试配置问题
+        String url = "http://127.0.0.1:8080/SmartWorkESB/services/Service"; //webservice
+        String actionURL = "http://service.mes.com/Invoke"; //方法父节点的targetNamespace+方法名
+        String paramName = "parameters"; //方法参数名；如果没有该参数，则直接加载包文件作为参数
+        String fileKey = TestUtil.copyToStoreFolder("/com/mes/service/DR202.xml"); //复制文件
+        
+        IfConfigures.getQueryParam().put("FROM", "MESSmartWork@123");
+        IfConfigures.getQueryParam().put("FUN_NAME", "XXX_DR202");
+        IfConfigures.getQueryParam().put(IfParamNames.SERVER_URL, url);
+        IfConfigures.getQueryParam().put(IfParamNames.ACTION_URL, actionURL);
+        IfConfigures.getQueryParam().put(IfParamNames.REQUEST_PARAM_NAME, paramName);
+        IfConfigures.setThirdQueryFileKey(fileKey); //设置后会读取复制后的文件内容
+        
+        WSSenderService service = new WSSenderService(); //输入对象或字符串，返回字符串
+        service.setFileLogService(SpringBeanUtil.getFileLogService());
+        service.setReceiveLogService(SpringBeanUtil.getReceiveLogService());
+        ReceiveRecords receiveRecords = service.send(null);
+        
+        System.out.println(TestUtil.readStoreFolderFile(receiveRecords.getReceiveFileKey() + ".xml")); 
+        TestUtil.print(receiveRecords.getMasterRecordList(ReceiveTableIDs.MESSAGE), ReceiveTableIDs.MESSAGE);
+    }
+}

@@ -1,0 +1,133 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns ="http://www.springframework.org/schema/beans" 
+	xmlns:xsi ="http://www.w3.org/2001/XMLSchema-instance" 
+	xsi:schemaLocation ="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.0.xsd" >   
+	
+	<!-- DAO -->  
+	<bean id="DevelopeDao" class="com.hanthink.gps.pub.dao.impl.DevelopeDaoImpl">
+		<property name="sqlMapClient" ref="sqlMapClient"></property>
+	</bean> 
+	<bean id="userDao" class="com.hanthink.gps.pub.dao.impl.UserDaoImpl">
+		<property name="sqlMapClient" ref="sqlMapClient"></property>
+	</bean>  
+	<bean id="commDao" class=" com.hanthink.gps.pub.dao.impl.CommDaoImpl">
+		<property name="sqlMapClient" ref="sqlMapClient"></property>
+	</bean>
+	<!-- 系统参数DAO -->
+	<bean id="pubSysParamDao" class=" com.hanthink.gps.pub.dao.impl.SysParamDaoImpl">
+		<property name="sqlMapClient" ref="sqlMapClient"></property>
+	</bean>
+	
+	<!-- 定时器管理 -->
+	<bean id="emailManageDao" class="com.hanthink.gps.email.dao.impl.EmailManageDaoImpl">
+		<property name="sqlMapClient" ref="sqlMapClient"></property>
+	</bean> 
+	<!-- 分组维护 -->
+	<bean id="msgGroupDao" class="com.hanthink.gps.email.dao.impl.MsgGroupDaoImpl">
+		<property name="sqlMapClient" ref="sqlMapClient"></property>
+	</bean>
+	
+	<!-- 主定时器 -->
+	<bean id="mainPoolDao" class="com.hanthink.gps.mail.dao.impl.MainPoolDaoImpl">
+		<property name="sqlMapClient" ref="sqlMapClient"></property>
+	</bean>
+	
+	<!--  -->
+	<bean id="queueDao" class="com.hanthink.gps.mail.dao.impl.QueueDaoImpl">
+		<property name="sqlMapClient" ref="sqlMapClient"></property>
+	</bean>
+	
+	<!-- **************************以下为Job DAO************************** -->
+	
+	<!-- 系统Job DAO -->
+	
+	<!-- 每日点检邮件信息DAO -->
+    <bean id="dailyCheckInfoDao" class="com.hanthink.gps.system.dao.impl.DailyCheckInfoDaoImpl">
+      <property name="sqlMapClient" ref="sqlMapClient"></property>
+    </bean>
+    
+    <bean id="portalDao" class="com.hanthink.gps.system.dao.impl.PortalDaoImpl">
+      <property name="sqlMapClient" ref="sqlMapClientPORTAL"></property>
+    </bean>
+    
+    <!-- 数据库阻塞异常邮件提醒Dao -->
+    <bean id="dataBaseBlockErrorDao" class="com.hanthink.gps.system.dao.impl.DataBaseBlockErrorDaoImpl">
+      <property name="sqlMapClient" ref="sqlMapClient"></property>
+    </bean>
+    
+    <!-- 接口平台异常提醒DAO -->
+    <bean id="interfErrorDao" class="com.hanthink.gps.system.dao.impl.InterfErrorDaoImpl">
+       <property name="sqlMapClient" ref="sqlMapClient"></property>
+    </bean>
+    
+    <!-- 自动打印异常提醒DAO   -->
+    <bean id="printErrorDao" class="com.hanthink.gps.system.dao.impl.PrintErrorDaoImpl">
+       <property name="sqlMapClient" ref="sqlMapClient"></property>
+    </bean>
+    
+    <bean id="sysErrorDao" class="com.hanthink.gps.system.dao.impl.SysErrorDaoImpl">
+		<property name="sqlMapClient" ref="sqlMapClient"></property>
+	</bean>
+	
+	<!-- 系统警讯信息提醒 DAO-->
+    <bean id="sysAlertDao" class="com.hanthink.gps.system.dao.impl.SysAlertDaoImpl">
+       <property name="sqlMapClient" ref="sqlMapClient"></property>
+    </bean>
+    
+    <!-- 系统Job DAO -->
+    
+    <!-- *********************************************** -->
+	
+	
+	<bean id="swNoticeInfoOverTimeDao" class="com.hanthink.gps.gacne.sw.dao.impl.NoticeInfoOverTimeDaoImpl">
+		<property name="sqlMapClient" ref="sqlMapClientPORTAL"></property>
+	</bean>
+	
+	<bean id="swPickupPlanServiceDao" class="com.hanthink.gps.gacne.sw.dao.impl.PickupPlanDaoImpl">
+		<property name="sqlMapClient" ref="sqlMapClientPORTAL"></property>
+	</bean>
+	
+	
+	
+	
+	<!-- 同步异常信息提醒DAO -->
+	<bean id="jisExceDaoPEC" class="com.hanthink.gps.jis.dao.impl.JisExceDaoImpl">
+		<property name="sqlMapClient" ref="sqlMapClient"></property>
+	</bean>
+	
+	<!-- 拉动异常信息提醒DAO -->
+	<bean id="jitExceDaoPEC" class="com.hanthink.gps.jit.dao.impl.JitExceDaoImpl">
+		<property name="sqlMapClient" ref="sqlMapClient"></property>
+	</bean>
+	
+	<!-- 不良品信息提醒DAO -->
+	<bean id="dpmDaoPEC" class="com.hanthink.gps.dpm.dao.impl.DpmInsDaoImpl">
+		<property name="sqlMapClient" ref="sqlMapClient"></property>
+	</bean>
+	
+	<!-- 包装零件担当信息提醒DAO -->
+	<bean id="PkgPartDaoPEC" class="com.hanthink.gps.pkg.dao.impl.PkgPartDaoImpl">
+		<property name="sqlMapClient" ref="sqlMapClient"></property>
+	</bean>
+	
+	<!-- 广汽新能源_订购零件基本信息维护异常邮件提醒Dao -->
+	<bean id="pubOrderAlertDao" class="com.hanthink.gps.gacne.pub.dao.impl.PubOrderAlertDaoImpl">
+		<property name="sqlMapClient" ref="sqlMapClient"></property>
+	</bean>
+	
+	<!-- 长周期订单提醒DAO -->
+	<bean id="LongOrderDaoPMC" class="com.hanthink.gps.gacne.sw.dao.impl.LongOrderDaoImpl">
+		<property name="sqlMapClient" ref="sqlMapClientPORTAL"></property>
+	</bean>
+	
+	<!-- 定制化订单检查提醒DAO -->
+	<bean id="NonStandardDaoPEC" class="com.hanthink.gps.gacne.pecNon.dao.impl.NonStandardDaoImpl">
+		<property name="sqlMapClient" ref="sqlMapClient"></property>
+	</bean>
+	
+	<!-- 数据库job异常停止 -->
+	<bean id="DataBaseExceptionStopDaoPEC" class="com.hanthink.gps.system.dao.impl.DataBaseExceptionStopDaoImpl">
+		<property name="sqlMapClient" ref="sqlMapClient"></property>
+	</bean>
+	
+</beans>

@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.sys.persistence.model.Resources">
+	<resultMap id="Resources" type="com.hotent.sys.persistence.model.Resources">
+		<id property="id" column="ID_" jdbcType="VARCHAR"/>
+		<result property="name" column="NAME_" jdbcType="VARCHAR"/>
+		<result property="alias" column="ALIAS_" jdbcType="VARCHAR"/>
+		<result property="sn" column="SN_" jdbcType="VARCHAR"/>
+		<result property="icon" column="ICON_" jdbcType="VARCHAR"/>
+		<result property="parentId" column="PARENT_ID_" jdbcType="VARCHAR"/>
+		<result property="defaultUrl" column="DEFAULT_URL_" jdbcType="VARCHAR"/>
+		<result property="isFolder" column="IS_FOLDER_" jdbcType="CHAR"/>
+		<result property="displayInMenu" column="DISPLAY_IN_MENU_" jdbcType="CHAR"/>
+		<result property="isOpen" column="IS_OPEN_" jdbcType="CHAR"/>
+		<result property="systemId" column="SYSTEM_ID_" jdbcType="VARCHAR"/>
+		<result property="path" column="PATH_" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<sql id="columns">
+		ID_,NAME_,ALIAS_,SN_,ICON_,PARENT_ID_,DEFAULT_URL_,IS_FOLDER_,DISPLAY_IN_MENU_,IS_OPEN_,SYSTEM_ID_,PATH_
+	</sql>
+	
+	<insert id="create" parameterType="com.hotent.sys.persistence.model.Resources">
+		INSERT INTO SYS_RES
+		(ID_,NAME_,ALIAS_,SN_,ICON_,PARENT_ID_,DEFAULT_URL_,IS_FOLDER_,DISPLAY_IN_MENU_,IS_OPEN_,SYSTEM_ID_,PATH_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR}, #{alias,jdbcType=VARCHAR}, #{sn,jdbcType=VARCHAR}, #{icon,jdbcType=VARCHAR}, #{parentId,jdbcType=VARCHAR}, #{defaultUrl,jdbcType=VARCHAR}, #{isFolder,jdbcType=CHAR,javaType=Boolean},#{displayInMenu,jdbcType=CHAR,javaType=Boolean},#{isOpen,jdbcType=CHAR,javaType=Boolean}, #{systemId,jdbcType=VARCHAR}, #{path,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="Resources">
+		SELECT * FROM SYS_RES 
+		WHERE 
+		ID_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="Resources">
+		SELECT * FROM SYS_RES
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY sn_ 
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.sys.persistence.model.Resources">
+		UPDATE SYS_RES SET
+		NAME_=#{name,jdbcType=VARCHAR},
+		ALIAS_=#{alias,jdbcType=VARCHAR},
+		SN_=#{sn,jdbcType=VARCHAR},
+		ICON_=#{icon,jdbcType=VARCHAR},
+		PARENT_ID_=#{parentId,jdbcType=VARCHAR},
+		DEFAULT_URL_=#{defaultUrl,jdbcType=VARCHAR},
+		IS_FOLDER_=#{isFolder, jdbcType=CHAR,javaType=Boolean},
+		DISPLAY_IN_MENU_=#{displayInMenu, jdbcType=CHAR,javaType=Boolean},
+		IS_OPEN_=#{isOpen, jdbcType=CHAR,javaType=Boolean},
+		SYSTEM_ID_=#{systemId,jdbcType=VARCHAR},
+		PATH_=#{path,jdbcType=VARCHAR}
+		WHERE
+		ID_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM SYS_RES 
+		WHERE
+		ID_=#{id}
+	</delete>
+	
+	<select id="getBySystemId"   parameterType="java.lang.String" resultMap="Resources">
+		SELECT <include refid="columns"/>
+		FROM SYS_RES WHERE SYSTEM_ID_=#{systemId}
+		ORDER BY SN_
+	</select>
+	
+	<select id="isAliasExists" resultType="Integer">
+		SELECT count(1) as count FROM SYS_RES WHERE SYSTEM_ID_=#{systemId} AND ALIAS_=#{alias}
+	</select>
+	
+	<select id="isAliasExistsForUpd" resultType="Integer">
+		SELECT count(1) as count FROM SYS_RES WHERE SYSTEM_ID_=#{systemId} AND ALIAS_=#{alias} and ID_!=#{id}
+	</select>
+	
+	<select id="getResourceByUrl" parameterType="java.util.Map" resultMap="Resources">
+		SELECT DISTINCT A.* FROM SYS_RES A 
+		LEFT JOIN SYS_RESURL C ON A.ID_ = C.RES_ID_
+		WHERE ( A.DEFAULT_URL_ = #{url} OR C.URL_ = #{url} )
+	</select> 
+	
+	<select id="getByRoleIdsSystemId" parameterType="java.util.Map" resultMap="Resources">
+		SELECT DISTINCT A.* FROM SYS_RES A
+		LEFT JOIN SYS_ROLE_RES B ON A.ID_ = B.RES_ID_
+		WHERE A.display_in_menu_ = 'Y' AND A.SYSTEM_ID_ = #{systemId}
+		<if test="roleIds!=null">AND B.role_id_ in <foreach close=")" collection="roleIds" item="id" open="(" separator=",">#{id}</foreach></if> 
+		ORDER BY SN_
+	</select> 
+	
+	
+	
+</mapper>

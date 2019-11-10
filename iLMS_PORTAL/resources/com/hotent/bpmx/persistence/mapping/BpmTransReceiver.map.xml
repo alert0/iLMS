@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.bpmx.persistence.model.BpmTransReceiver">
+	<resultMap id="BpmTransReceiver" type="com.hotent.bpmx.persistence.model.BpmTransReceiver">
+		<id property="id" column="ID_" jdbcType="VARCHAR"/>
+		<result property="transRecordid" column="TRANS_RECORDID_" jdbcType="VARCHAR"/>
+		<result property="receiver" column="RECEIVER_" jdbcType="VARCHAR"/>
+		<result property="receiverId" column="RECEIVER_ID_" jdbcType="VARCHAR"/>
+		<result property="status" column="STATUS_" jdbcType="NUMERIC"/>
+		<result property="opinion" column="OPINION_" jdbcType="VARCHAR"/>
+		<result property="receiverTime" column="RECEIVER_TIME_" jdbcType="TIMESTAMP"/>
+		<result property="checkTime" column="CHECK_TIME_" jdbcType="TIMESTAMP"/>
+		<result property="checkType" column="CHECK_TYPE_" jdbcType="NUMERIC"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.bpmx.persistence.model.BpmTransReceiver">
+		INSERT INTO bpm_trans_receiver
+		(ID_,TRANS_RECORDID_,RECEIVER_,RECEIVER_ID_,STATUS_,OPINION_,RECEIVER_TIME_,CHECK_TIME_,CHECK_TYPE_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{transRecordid,jdbcType=VARCHAR}, #{receiver,jdbcType=VARCHAR}, #{receiverId,jdbcType=VARCHAR}, #{status,jdbcType=NUMERIC}, #{opinion,jdbcType=VARCHAR}, #{receiverTime,jdbcType=TIMESTAMP}, #{checkTime,jdbcType=TIMESTAMP}, #{checkType,jdbcType=NUMERIC})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="BpmTransReceiver">
+		SELECT * FROM bpm_trans_receiver 
+		WHERE 
+		ID_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="BpmTransReceiver">
+		SELECT * FROM bpm_trans_receiver
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY ID_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.bpmx.persistence.model.BpmTransReceiver">
+		UPDATE bpm_trans_receiver SET
+		TRANS_RECORDID_=#{transRecordid,jdbcType=VARCHAR},
+		RECEIVER_=#{receiver,jdbcType=VARCHAR},
+		RECEIVER_ID_=#{receiverId,jdbcType=VARCHAR},
+		STATUS_=#{status,jdbcType=NUMERIC},
+		OPINION_=#{opinion,jdbcType=VARCHAR},
+		RECEIVER_TIME_=#{receiverTime,jdbcType=TIMESTAMP},
+		CHECK_TIME_=#{checkTime,jdbcType=TIMESTAMP},
+		CHECK_TYPE_=#{checkType,jdbcType=NUMERIC}
+		WHERE
+		ID_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM bpm_trans_receiver 
+		WHERE
+		ID_=#{id}
+	</delete>
+	
+	<select id="getByTransRecordid" parameterType="java.lang.String" resultMap="BpmTransReceiver">
+		SELECT * FROM bpm_trans_receiver WHERE TRANS_RECORDID_ = #{transRecordid}
+	</select>
+	
+	<select id="getByTransRecordAndUserId" parameterType="java.util.Map" resultMap="BpmTransReceiver">
+		SELECT * FROM bpm_trans_receiver WHERE TRANS_RECORDID_ = #{transRecordid} AND RECEIVER_ID_ = #{userId}
+	</select>
+</mapper>

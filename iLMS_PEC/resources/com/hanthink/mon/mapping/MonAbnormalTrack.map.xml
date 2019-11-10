@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.mon.model.MonAbnormalTrackModel">
+    <!-- 验收，配送，备件异常汇总 -->
+	<select id="queryAbnormalForPage" parameterType="com.hanthink.mon.model.MonAbnormalTrackModel"
+		resultType="com.hanthink.mon.model.MonAbnormalTrackModel">
+		WITH TMP AS
+       (SELECT A.DISTRI_PERSON,
+               PKG_PUB.USF_GET_BATCHSEQ_BY_PRODSEQNO(C.ID, A.DISTRI_PRODUCT_SEQNO) BATCH_SEQ,
+               PKG_PUB.USF_GET_BATCHSEQ_BY_PRODSEQNO(B.PLAN_CODE,
+                                                      A.DISTRI_PRODUCT_SEQNO) ACTUALLY_BATCH_SEQ
+          FROM MM_JIT_INS A
+          LEFT JOIN MM_PUB_PLAN_CODE B
+            ON A.PLAN_CODE = B.PLAN_CODE
+          LEFT JOIN MM_MON_KB C
+            ON B.KB_ID = C.ID
+         WHERE B.FACTORY_CODE = #{factoryCode})
+        SELECT * FROM (
+        
+        SELECT 
+        '验收'  optType,
+        C.RET_EMPTY_PLATFORM  projName,
+        SUM ((NVL(B.ORDER_QTY, 0) - NVL(B.CANCEL_NUM, 0))-NVL(B.ARRIVE_NUM, 0))  excepNum,
+        SUM (CEIL(((NVL(B.ORDER_QTY, 0) - NVL(B.CANCEL_NUM, 0))-NVL(B.ARRIVE_NUM, 0))/NVL(B.STANDARD_PACKAGE,1))) excepBox
+        FROM 
+        MM_SW_ORDER A
+        LEFT JOIN MM_SW_ORDER_DETAIL B
+        ON A.PURCHASE_NO = B.PURCHASE_NO
+        LEFT JOIN MM_SW_PICKUP_PLAN E
+          ON E.PURCHASE_NO = A.PURCHASE_NO
+         AND E.ORDER_NO = A.ORDER_NO
+         AND E.FACTORY_CODE = A.FACTORY_CODE
+        LEFT JOIN (SELECT DISTINCT D.ROUTE_CODE, D.RET_EMPTY_PLATFORM, D.WARE_CODE
+                   FROM MM_PUP_ROUTE D
+                  WHERE D.FACTORY_CODE = #{factoryCode}) C
+        ON C.ROUTE_CODE = E.ROUTE_CODE
+        LEFT JOIN (SELECT DISTINCT MI.WARE_CODE, MI.WORK_CENTER
+                   FROM MM_INV_UNLOAD MI
+                  WHERE MI.FACTORY_CODE = #{factoryCode}) F
+        ON F.WARE_CODE = C.WARE_CODE
+        WHERE A.RECEIVE_STATUS IN (0,1)
+        AND TO_CHAR(A.ARRIVE_DATE , 'YYYY-MM-DD') = TO_CHAR(SYSDATE , 'YYYY-MM-DD')
+        AND F.WORK_CENTER = #{workCenter}
+        GROUP BY '验收',C.RET_EMPTY_PLATFORM
+        
+        UNION ALL
+        SELECT 
+        '验收' optType,
+        C.RET_EMPTY_PLATFORM  projName,
+        SUM (
+        NVL(B.REQUIRE_NUM, 0)-NVL(B.ARRIVE_NUM, 0)
+        )  excepNum,
+        SUM (
+        CEIL(
+        (NVL(B.REQUIRE_NUM, 0)-NVL(B.ARRIVE_NUM, 0))/NVL(B.STANDARD_PACKAGE, 1)
+        )
+        )  excepBox
+        FROM 
+        MM_JIT_ORDER A
+        LEFT JOIN MM_JIT_ORDER_DETAIL B
+        ON A.ORDER_NO = B.ORDER_NO
+        LEFT JOIN MM_SW_PICKUP_PLAN E
+          ON E.ORDER_NO = A.ORDER_NO
+        LEFT JOIN (SELECT DISTINCT D.ROUTE_CODE, D.RET_EMPTY_PLATFORM, D.WARE_CODE
+                   FROM MM_PUP_ROUTE D
+                  WHERE D.FACTORY_CODE = #{factoryCode}) C
+        ON C.ROUTE_CODE = E.ROUTE_CODE
+        LEFT JOIN (SELECT DISTINCT MI.WARE_CODE, MI.WORK_CENTER
+                   FROM MM_INV_UNLOAD MI
+                  WHERE MI.FACTORY_CODE = #{factoryCode}) F
+        ON F.WARE_CODE = C.WARE_CODE
+        WHERE 1=1
+        AND TO_CHAR(A.ARRIVE_TIME , 'YYYY-MM-DD') = TO_CHAR(SYSDATE , 'YYYY-MM-DD')
+        AND F.WORK_CENTER = #{workCenter}
+        GROUP BY '验收',C.RET_EMPTY_PLATFORM
+        
+        UNION ALL
+        SELECT 
+        '验收' optType,
+        C.RET_EMPTY_PLATFORM  projName,
+        SUM (
+        NVL(B.REQUIRE_NUM, 0)-NVL(B.ARRIVE_NUM, 0)
+        )  excepNum,
+        SUM (
+        CEIL(
+        (NVL(B.REQUIRE_NUM, 0)-NVL(B.ARRIVE_NUM, 0))/NVL(B.STANDARD_PACKAGE, 1)
+        )
+        )  excepBox
+        FROM 
+        MM_JISO_ORDER A
+        LEFT JOIN MM_JISO_ORDER_DETAIL B
+        ON A.ORDER_NO = B.ORDER_NO
+        LEFT JOIN MM_SW_PICKUP_PLAN E
+          ON E.ORDER_NO = A.ORDER_NO
+        LEFT JOIN (SELECT DISTINCT D.ROUTE_CODE, D.RET_EMPTY_PLATFORM, D.WARE_CODE
+                   FROM MM_PUP_ROUTE D
+                  WHERE D.FACTORY_CODE = #{factoryCode}) C
+        ON C.ROUTE_CODE = E.ROUTE_CODE
+        LEFT JOIN (SELECT DISTINCT MI.WARE_CODE, MI.WORK_CENTER
+                   FROM MM_INV_UNLOAD MI
+                  WHERE MI.FACTORY_CODE = #{factoryCode}) F
+        ON F.WARE_CODE = C.WARE_CODE
+        WHERE 1=1
+        AND TO_CHAR(A.ARRIVE_TIME , 'YYYY-MM-DD') = TO_CHAR(SYSDATE , 'YYYY-MM-DD')
+        AND F.WORK_CENTER = #{workCenter}
+        GROUP BY '验收',C.RET_EMPTY_PLATFORM
+        UNION ALL
+        
+          SELECT '配送' optType,
+                          P.distriPerson  projName,
+                          NVL(SUM(P.requireNum)-SUM(P.recQty),0)  excepNum,
+                          NVL((SUM(P.requireBox)-SUM(P.recQtyBox)),0)  excepBox
+                     FROM (SELECT M.DISTRI_PERSON      distriPerson,
+             M.PART_NO            partNo,
+             M.REQUIRE_NUM        requireNum,
+             M.REQUIRE_BOX        requireBox,
+             M.BATCH_SEQ          batchSeq,
+             K.REC_QTY            recQty,
+             CEIL(K.REC_QTY/NVL(CEIL((M.REQUIRE_NUM/NVL(M.REQUIRE_BOX,1))),0))          recQtyBox,
+             M.ACTUALLY_BATCH_SEQ actuallyBatchSeq,
+             L.PART_SHORT_NO      partShortNo
+        FROM (SELECT F.DISTRI_PERSON,
+                     E.PART_NO,
+                     SUM(E.REQUIRE_NUM) REQUIRE_NUM,
+                     PKG_PUB.USF_GET_BATCHSEQ_BY_PRODSEQNO(H.ID,
+                                                           F.DISTRI_PRODUCT_SEQNO) BATCH_SEQ,
+                     PKG_PUB.USF_GET_BATCHSEQ_BY_PRODSEQNO(G.PLAN_CODE,
+                                                            F.DISTRI_PRODUCT_SEQNO) ACTUALLY_BATCH_SEQ,
+                     SUM(CEIL(E.REQUIRE_NUM/NVL(E.STANDARD_PACKAGE,1))) REQUIRE_BOX
+                FROM MM_JIT_INS_DETAIL E
+                LEFT JOIN MM_JIT_INS F
+                  ON F.INS_NO = E.INS_NO
+                LEFT JOIN MM_PUB_PLAN_CODE G
+                  ON G.PLAN_CODE = F.PLAN_CODE
+                LEFT JOIN MM_MON_KB H
+                  ON G.KB_ID = H.ID
+               WHERE F.GEN_INS_WAY = '1'
+                 AND E.PART_NO IN (SELECT Q.PART_NO
+                                     FROM MM_MP_PART Q
+                                    WHERE Q.FACTORY_CODE = #{factoryCode}
+                                      AND Q.WORKCENTER = #{workCenter})
+               GROUP BY E.PART_NO,
+                        F.DISTRI_PERSON,
+                        PKG_PUB.USF_GET_BATCHSEQ_BY_PRODSEQNO(H.ID,
+                                                              F.DISTRI_PRODUCT_SEQNO),
+                        PKG_PUB.USF_GET_PROCESSNO_BY_PRODSEQNO(G.PLAN_CODE,
+                                                               F.DISTRI_PRODUCT_SEQNO)
+              UNION ALL
+              SELECT E.DISTRI_PERSON,
+                     E.PART_NO,
+                     SUM(E.REQUIRE_NUM) REQUIRE_NUM,
+                     PKG_PUB.USF_GET_BATCHSEQ_BY_PRODSEQNO(H.ID,
+                                                           F.DISTRI_PRODUCT_SEQNO) BATCH_SEQ,
+                     PKG_PUB.USF_GET_BATCHSEQ_BY_PRODSEQNO(G.PLAN_CODE,
+                                                            F.DISTRI_PRODUCT_SEQNO) ACTUALLY_BATCH_SEQ,
+                     SUM(CEIL(E.REQUIRE_NUM/NVL(E.STANDARD_PACKAGE,1))) REQUIRE_BOX
+                FROM MM_JIT_INS_DETAIL E
+                LEFT JOIN MM_JIT_INS F
+                  ON F.INS_NO = E.INS_NO
+                LEFT JOIN MM_PUB_PLAN_CODE G
+                  ON G.PLAN_CODE = F.PLAN_CODE
+                LEFT JOIN MM_MON_KB H
+                  ON G.KB_ID = H.ID
+               WHERE F.GEN_INS_WAY = '2'
+                 AND E.PART_NO IN (SELECT Q.PART_NO
+                                     FROM MM_MP_PART Q
+                                    WHERE Q.FACTORY_CODE = #{factoryCode}
+                                      AND Q.WORKCENTER = #{workCenter})
+               GROUP BY E.PART_NO,
+                        E.DISTRI_PERSON,
+                        PKG_PUB.USF_GET_BATCHSEQ_BY_PRODSEQNO(H.ID,
+                                                              F.DISTRI_PRODUCT_SEQNO),
+                        PKG_PUB.USF_GET_BATCHSEQ_BY_PRODSEQNO(G.PLAN_CODE,
+                                                               F.DISTRI_PRODUCT_SEQNO)
+              UNION ALL
+              SELECT H.DISTRI_PERSON,
+                     G.PART_NO,
+                     SUM(G.REQUIRE_NUM) REQUIRE_NUM,
+                     H.BATCH_SEQ,
+                     H.ACTUALLY_BATCH_SEQ,
+                     SUM(CEIL(G.REQUIRE_NUM/NVL(G.STANDARD_PACKAGE,1))) REQUIRE_BOX
+                FROM MM_JIT_LABEL G
+                LEFT JOIN MM_PUB_PLAN_CODE S
+                  ON G.PLAN_CODE = S.PLAN_CODE, TMP H
+               WHERE G.DISTRI_PERSON = H.DISTRI_PERSON
+                 AND S.FACTORY_CODE = #{factoryCode}
+                 AND G.PART_NO IN (SELECT Q.PART_NO
+                                     FROM MM_MP_PART Q
+                                    WHERE Q.FACTORY_CODE = #{factoryCode}
+                                      AND Q.WORKCENTER = #{workCenter})
+                 AND NOT EXISTS (SELECT 1
+                        FROM MM_PDA_LABEL_SCAN_LOG M
+                       WHERE M.BAR_UUID = G.BAR_UUID)
+               GROUP BY G.PART_NO,
+                        H.DISTRI_PERSON,
+                        H.BATCH_SEQ,
+                        H.ACTUALLY_BATCH_SEQ) M
+        LEFT JOIN (SELECT A.BATCH_SEQ,
+                          A.DISTRI_PERSON,
+                          B.PART_NO,
+                          SUM(B.REC_QTY) REC_QTY
+                     FROM MM_INV_CONFIRM A
+                     LEFT JOIN MM_INV_CONFIRM_DETAIL B
+                       ON A.CONFIRM_NO = B.CONFIRM_NO
+                    WHERE A.WORK_CENTER = #{workCenter}
+                      AND A.BATCH_SEQ IN
+                          (SELECT PKG_PUB.USF_GET_BATCHSEQ_BY_PRODSEQNO(C.ID,
+                                                                        A.DISTRI_PRODUCT_SEQNO) BATCH_SEQ
+                             FROM MM_JIT_INS A
+                             LEFT JOIN MM_PUB_PLAN_CODE B
+                               ON A.PLAN_CODE = B.PLAN_CODE
+                             LEFT JOIN MM_MON_KB C
+                               ON B.KB_ID = C.ID
+                            WHERE B.FACTORY_CODE = #{factoryCode})
+                    GROUP BY A.BATCH_SEQ, A.DISTRI_PERSON, B.PART_NO) K
+          ON M.BATCH_SEQ = K.BATCH_SEQ
+         AND M.PART_NO = K.PART_NO
+         AND M.DISTRI_PERSON = K.DISTRI_PERSON
+         <!-- i-LMS2019053001 mod by dtp -->
+        LEFT JOIN MM_PUB_PART_UDA L
+          ON L.PART_NO = M.PART_NO AND L.FACTORY_CODE = #{factoryCode}
+       ) P
+            GROUP BY '配送',P.distriPerson
+        UNION ALL
+        
+        SELECT 
+        '备件' optType,
+        A.PREPARE_PERSON  projName,
+        SUM(B.REQUIRE_NUM)-SUM(B.PREPARE_NUM)  excepNum,
+        CEIL((SUM(B.REQUIRE_NUM)-SUM(B.PREPARE_NUM))/ MIN(B.STANDARD_PACKAGE))  excepBox
+        FROM MM_JIT_INS A
+        LEFT JOIN MM_JIT_INS_DETAIL B
+        ON B.INS_NO = A.INS_NO
+        LEFT JOIN MM_PUB_PLAN_CODE C
+        ON C.PLAN_CODE = A.PLAN_CODE
+        WHERE  1=1
+        AND TRUNC(A.PREPARE_TIME) = SYSDATE
+        AND C.WORKCENTER = #{workCenter}
+        GROUP BY '备件',A.PREPARE_PERSON
+        
+        ORDER BY 1,2
+        ) S
+      WHERE S.excepNum !=0
+	</select>
+	
+</mapper>

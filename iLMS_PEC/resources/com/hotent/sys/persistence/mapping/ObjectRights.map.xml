@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.sys.persistence.model.ObjectRights">
+	<resultMap id="ObjectRights" type="com.hotent.sys.persistence.model.ObjectRights">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="objType" column="obj_type_" jdbcType="VARCHAR"/>
+		<result property="objId" column="obj_id_" jdbcType="VARCHAR"/>
+		<result property="ownerType" column="owner_type_" jdbcType="VARCHAR"/>
+		<result property="ownerId" column="owner_id_" jdbcType="VARCHAR"/>
+		<result property="ownerName" column="owner_name_" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.sys.persistence.model.ObjectRights">
+		INSERT INTO SYS_OBJ_RIGHTS
+		(id_,obj_type_,obj_id_,owner_type_,owner_id_,owner_name_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{objType,jdbcType=VARCHAR}, #{objId,jdbcType=VARCHAR}, #{ownerType,jdbcType=VARCHAR}, #{ownerId,jdbcType=VARCHAR}, #{ownerName,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="ObjectRights">
+		SELECT * FROM SYS_OBJ_RIGHTS 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="ObjectRights">
+		SELECT * FROM SYS_OBJ_RIGHTS
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.sys.persistence.model.ObjectRights">
+		UPDATE SYS_OBJ_RIGHTS SET
+		obj_type_=#{objType,jdbcType=VARCHAR},
+		obj_id_=#{objId,jdbcType=VARCHAR},
+		owner_type_=#{ownerType,jdbcType=VARCHAR},
+		owner_id_=#{ownerId,jdbcType=VARCHAR},
+		owner_name_=#{ownerName,jdbcType=VARCHAR}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM SYS_OBJ_RIGHTS 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+		
+	<select id="getByObjIdAndObjType" parameterType="java.util.Map" resultMap="ObjectRights">
+		SELECT * FROM SYS_OBJ_RIGHTS
+		WHERE obj_id_ = #{objId} and obj_type_=#{objType}
+	</select>
+	
+	<delete id="delByObjIdAndobjType" parameterType="java.util.Map">
+		DELETE FROM SYS_OBJ_RIGHTS 
+		WHERE obj_id_ = #{objId} and obj_type_=#{objType}
+	</delete>
+</mapper>

@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.bpmx.persistence.model.DefaultBpmTaskCandidate">
+	<resultMap id="BpmTaskCandidate" type="com.hotent.bpmx.persistence.model.DefaultBpmTaskCandidate">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="taskId" column="task_id_" jdbcType="VARCHAR"/>
+		<result property="type" column="type_" jdbcType="VARCHAR"/>
+		<result property="executor" column="executor_" jdbcType="VARCHAR"/>
+		<result property="procInstId" column="proc_inst_id_" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.bpmx.persistence.model.DefaultBpmTaskCandidate">
+		INSERT INTO bpm_task_candidate
+		(id_,task_id_,type_,executor_,proc_inst_id_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{taskId,jdbcType=VARCHAR}, #{type,jdbcType=VARCHAR}, #{executor,jdbcType=VARCHAR}, #{procInstId,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="BpmTaskCandidate">
+		SELECT * FROM bpm_task_candidate 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="queryByTaskId"   parameterType="java.lang.String" resultMap="BpmTaskCandidate">
+		SELECT * FROM bpm_task_candidate 
+		WHERE 
+		task_id_=#{taskId}
+	</select>	
+	
+	<select id="query" parameterType="java.util.Map" resultMap="BpmTaskCandidate">
+		SELECT * FROM bpm_task_candidate
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<select id="getByTaskIdExeIdType" resultMap="BpmTaskCandidate">
+		select * from bpm_task_candidate t where t.task_id_=#{taskId} and executor_=#{executorId} and type_=#{type}
+	</select>
+	
+	<update id="update" parameterType="com.hotent.bpmx.persistence.model.DefaultBpmTaskCandidate">
+		UPDATE bpm_task_candidate SET
+		task_id_=#{taskId,jdbcType=VARCHAR},
+		type_=#{type,jdbcType=VARCHAR},
+		executor_=#{executor,jdbcType=VARCHAR},
+		proc_inst_id_=#{procInstId,jdbcType=VARCHAR}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM bpm_task_candidate 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	<delete id="removeByTaskId" parameterType="java.lang.String">
+		DELETE FROM bpm_task_candidate 
+		WHERE
+		task_id_=#{taskId}
+	</delete>
+	
+	
+	<delete id="delByInstList" >
+		DELETE FROM bpm_task_candidate 
+		WHERE task_id_ in (select id_ from bpm_task where proc_inst_id_ in 
+			<foreach collection="list" index="index" item="instId" open="(" separator="," close=")"> 
+            #{instId} 
+        	</foreach> 
+		)
+	</delete>
+	
+	
+	<select id="getByInstList" resultMap="BpmTaskCandidate">
+		select * FROM bpm_task_candidate 
+		WHERE
+		task_id_ in (select id_ from bpm_task where proc_inst_id_ in 
+			<foreach collection="list" index="index" item="instId" open="(" separator="," close=")"> 
+            #{instId} 
+        	</foreach> 
+		)
+	</select>
+	
+</mapper>

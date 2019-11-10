@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.jisi.model.JisiVehQueueModel">
+		<!-- PA OFF队列查询分页查询 -->
+		<select id="queryJisiVehQueueForPage" parameterType="com.hanthink.jisi.model.JisiVehQueueModel" resultType="com.hanthink.jisi.model.JisiVehQueueModel">
+		SELECT A.PLAN_CODE         planCode,
+		       A.ORDER_NO          orderNo,
+		       A.ERP_ORDER_NO      erpOrderNo,
+		       A.VIN               vin,
+		       A.MODEL_CODE        modelCode,
+		       A.PHASE             phase,
+		       A.PASS_TIME         passTime,
+		       A.WC_SEQNO          wcSeqno,
+		       A.PL_SEQNO          plSeqno,
+		       A.KB_PRODUCT_SEQNO  kbProductSeqno,
+		       A.KB_TIME           kbTime,
+		       PD.CODE_VALUE_NAME  execStatus,
+		       A.EXEC_TIME         execTime,
+		       A.PARTGROUP_NUM     partgroupNum,
+		       A.PARTGROUP_INS_NUM partgroupInsNum,
+		       A.CREATION_TIME     creationTime,
+		       pkg_pub.USF_GET_BATCHPROC_BY_PRODSEQNO(A.PLAN_CODE,A.KB_PRODUCT_SEQNO) offineSeqno
+		  FROM MM_JISI_VEH_QUEUE A
+		  INNER JOIN MM_PUB_PLAN_CODE B
+		    ON A.PLAN_CODE = B.PLAN_CODE
+		    LEFT JOIN MM_PUB_DATA_DICT PD
+		    ON A.EXEC_STATUS = PD.CODE_VALUE
+		   AND PD.CODE_TYPE = 'PUB_EXEC_STATUS'
+		   AND PD.FACTORY_CODE = #{factoryCode}
+		 WHERE B.FACTORY_CODE = #{factoryCode}
+		 <if test="vin != null and vin != ''">
+		  AND A.VIN LIKE CONCAT(#{vin}, '%')
+		 </if>
+		 <if test="wcSeqno != null and wcSeqno != ''">
+		  AND A.WC_SEQNO = #{wcSeqno}
+		 </if>
+		<if test="passTimeStart !=null and passTimeStart !='' ">
+		<![CDATA[ AND A.PASS_TIME >= TO_DATE(#{passTimeStart},'yyyy-MM-dd HH24:mi:ss') ]]>
+		</if>
+		<if test="passTimeEnd !=null and passTimeEnd !='' ">
+		<![CDATA[ AND A.PASS_TIME <= TO_DATE(#{passTimeEnd},'yyyy-MM-dd HH24:mi:ss') ]]>
+		</if>
+		ORDER BY A.PASS_TIME DESC
+		</select>
+</mapper>

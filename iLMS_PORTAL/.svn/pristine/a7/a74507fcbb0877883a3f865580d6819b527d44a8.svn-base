@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hanthink.sw.model.SwPickupPlanModel">
+	<!-- 取货计划界面，分页查询功能 -->
+   <select id="queryJisoPickupPage" parameterType="com.hanthink.sw.model.SwPickupPlanModel" resultType="com.hanthink.sw.model.SwPickupPlanModel">
+				   SELECT  
+				   		   <!-- A.LOGISTICS_MODE      logisticsMode, -->
+					       A.AREA                area,
+					       A.CAR_TYPE            carType,
+					       A.ROUTE_CODE          routeCode,
+					       A.TOTAL_BATCHS        totalBatchs,
+					       A.MERGE_BATCHS        mergeBatchs,
+					       A.SUPPLIER_NO         supplierNo,
+					       B.SUPPLIER_NAME       supplierName,
+					       A.ORDER_NO            orderNo,
+					       A.PURCHASE_NO         purchaseNo,
+					       A.WORK_DATE           workDate,
+					       A.TODAY_CAR_BATCH     todayCarBatch,
+					       to_char(A.PLAN_PICKUP_TIME,'yyyy-mm-dd hh24:mi:ss')    planPickupTime,
+					       to_char(A.PLAN_ARR_TIME,'yyyy-mm-dd hh24:mi:ss')       planArrTIME,
+					       to_char(A.PLAN_ASSEMBLE_TIME,'yyyy-mm-dd hh24:mi:ss')  planAssembleTime,
+					       A.ORDER_USE           orderUse,
+					       A.CREATION_USER       creationUser,
+					       A.INTER_LOGIS_MANAGER interLogisManager,
+					       A.CONFIRM_DAYS        confirmDays,
+					       D.CODE_VALUE_NAME     feedbackStatus,
+					       E.CODE_VALUE_NAME     downloadStatus,
+					       to_char(A.DOWNLOAD_TIME,'yyyy-mm-dd hh24:mi:ss')       downloadTime,
+					       A.SUP_FACTORY         supFactory,
+					       F.CODE_VALUE_NAME     adjStatus  ,
+					       A.PICKUP_TYPE		 logisticsMode 
+					  FROM MM_SW_PICKUP_PLAN A
+					  LEFT JOIN MM_PUB_SUPPLIER B
+					    ON A.SUPPLIER_NO = B.SUPPLIER_NO
+					    
+					  LEFT JOIN MM_PUB_DATA_DICT D
+					    ON A.FEEDBACK_STATUS = D.CODE_VALUE
+					   AND D.CODE_TYPE = 'SW_FEEDBACK_STATUS'
+					  LEFT JOIN MM_PUB_DATA_DICT E
+					    ON A.DOWNLOAD_STATUS = E.CODE_VALUE
+					   AND E.CODE_TYPE = 'SW_DOWNLOAD_STATUS'
+					  LEFT JOIN MM_PUB_DATA_DICT F
+					    ON F.CODE_TYPE = 'PUB_DIFF_FLAG'
+					   AND A.DIFF_FLAG = F.CODE_VALUE
+					   AND F.FACTORY_CODE = #{factoryCode}
+					 WHERE A.FACTORY_CODE = #{factoryCode}
+                  <if test="planPickupTimeStart !=null and planPickupTimeStart !='' ">
+				  <![CDATA[ AND A.PLAN_PICKUP_TIME>= TO_DATE(#{planPickupTimeStart},'yyyy-MM-dd ') ]]>
+				  </if>
+				  <if test="planPickupTimeEnd !=null and planPickupTimeEnd!='' ">
+				  <![CDATA[ AND A.PLAN_PICKUP_TIME <= TO_DATE(#{planPickupTimeEnd},'yyyy-MM-dd') +1]]>
+				  </if>
+				  <if test="orderNo !=null and orderNo !='' ">
+				  AND A.ORDER_NO like CONCAT(#{orderNo}, '%')
+				  </if>
+				  <if test="purchaseNo !=null and purchaseNo !='' ">
+				  AND A.ORDER_NO like CONCAT(#{orderNo}, '%')
+				  </if>
+				  <if test="supplierNo !=null and supplierNo !='' ">
+				  AND A.SUPPLIER_NO like CONCAT(#{supplierNo}, '%')
+				  </if>
+				  <if test="routeCode !=null and routeCode !='' ">
+				  AND A.ROUTE_CODE like CONCAT(#{routeCode}, '%')
+				  </if>
+				  <if test="partNo !=null and partNo !='' ">
+				  AND C.PART_NO like CONCAT(#{partNo}, '%')
+				  </if>
+				  <if test="downloadStatus !=null and downloadStatus !='' ">
+				  AND A.DOWNLOAD_STATUS = #{downloadStatus}
+				  </if>
+				   ORDER BY A.PLAN_PICKUP_TIME,A.DIFF_FLAG DESC
+   </select>
+   
+   <!--取货计划界面， 批量删除 -->
+   <delete id="removeByOrderAndPurchase" parameterType="com.hanthink.sw.model.SwPickupPlanModel">
+			   DELETE FROM MM_SW_PICKUP_PLAN A
+			 	WHERE A.ORDER_NO = #{orderNo}
+			   
+   </delete>
+   
+   <!-- 取货计划，供应商反馈功能 -->
+   <update id="feedbackPickupPlan" parameterType="com.hanthink.sw.model.SwPickupPlanModel">
+			   UPDATE MM_SW_PICKUP_PLAN A
+			   SET A.FEEDBACK_STATUS = #{feedbackStatus,jdbcType=VARCHAR},
+			   A.LAST_MODIFIED_TIME = SYSDATE
+			   WHERE A.ORDER_NO  IN
+		  <foreach collection="orderNos" item="orderNo" index="index" open="(" separator="," close=")">
+		      #{orderNo,jdbcType=VARCHAR}
+		  </foreach>
+   </update>
+   
+	<!-- 查询订单明细 -->
+	<select id="queryOrderDetail" parameterType="java.util.List" resultType="com.hanthink.sw.model.SwPickupPlanModel">
+		  
+		  SELECT   MSP.SUP_FACTORY        routeCode,
+			       MSP.SUPPLIER_NO          supplierNo,
+			       MSP.CAR_TYPE             carType,
+			       MSP.AREA                 area,
+			       MSD.PURCHASE_NO          purchaseNo,
+			       MSD.PURCHASE_ROWNO       purchaseRowNo,
+			       MSD.PART_NO partNo,
+			       TO_CHAR(MSP.PLAN_PICKUP_TIME, 'yyyy-MM-dd hh24:mi:ss')   planPickupTime,
+			       TO_CHAR(MSP.PLAN_ARR_TIME, 'yyyy-MM-dd hh24:mi:ss')      planArrTime,
+			       TO_CHAR(MSP.PLAN_ASSEMBLE_TIME, 'yyyy-MM-dd hh24:mi:ss') planAssembleTime,
+			       MPD.CODE_VALUE_NAME             deliveryStatus,
+			       MPDI.CODE_VALUE_NAME            reciveStatus,
+			       MPP.CODE_VALUE_NAME             orderType,
+			       CASE
+			         WHEN MSO.IS_URGENT = 1 THEN
+			          '紧急'
+			         ELSE
+			          '正常'
+			       END                             isUrgent,
+			       MSD.ORDER_UNIT                  orderUnit,
+			       NVL(MSD.ORDER_QTY, 0)           orderQty,
+			       NVL(MSD.CANCEL_NUM, 0)          cancelNum,
+			       NVL(MSD.TOTAL_DELIV_QTY, 0)     totalDelivQty,
+			       NVL(MSD.RECEIVE_COUNT, 0)       receiveCount,
+			       NVL(MSD.ORDER_QTY - MSD.CANCEL_NUM - MSD.TOTAL_DELIV_QTY, 0) waitQty,
+			       S.SUPPLIER_NAME                  supplierName,
+			       MSP.SUP_FACTORY                  supFactory,
+			       SD.SUP_FACTORY_ADDR              supFactoryAddr,
+				   to_char(MSP.CREATION_TIME,'yyyy-mm-dd hh24:mi:ss')				creationTime,
+             	   to_char(MSP.LAST_MODIFIED_TIME,'yyyy-mm-dd hh24:mi:ss')			lastModifiedTime,
+             	   MSD.DEPOT_NO                    	depotNo,
+             	   UDA.PART_SHORT_NO             	partShortNo,
+       			   UDA.PART_NAME_CN              	partNameCn,
+       			   to_char(MSO.ORDER_DATE,'yyyy-mm-dd') 					arriveDate
+			  FROM MM_SW_ORDER_DETAIL MSD
+			  LEFT JOIN MM_SW_ORDER MSO
+			    ON MSD.PURCHASE_NO = MSO.PURCHASE_NO
+			  LEFT JOIN MM_SW_PICKUP_PLAN MSP
+			    ON MSP.PURCHASE_NO = MSD.PURCHASE_NO
+			   AND MSP.ORDER_NO = MSO.ORDER_NO
+			  LEFT JOIN MM_PUB_PART_SUPPLIER P
+			    ON MSD.PART_NO = P.PART_NO
+			  LEFT JOIN MM_PUB_SUPPLIER S
+			    ON MSP.SUPPLIER_NO = S.SUPPLIER_NO
+			  LEFT JOIN MM_PUB_PART_UDA UDA
+			    ON MSD.PART_NO = UDA.PART_NO
+			  LEFT JOIN MM_PUB_SUPPLIER_DETAIL SD
+			    ON MSP.SUP_FACTORY = SD.SUP_FACTORY
+			   AND MSP.SUPPLIER_NO = SD.SUPPLIER_NO
+			
+			  LEFT JOIN MM_PUB_DATA_DICT MPP
+			    ON MPP.CODE_TYPE = 'SW_ORDER_TYPE'
+			   AND MPP.CODE_VALUE = MSO.ORDER_TYPE
+			  LEFT JOIN MM_PUB_DATA_DICT MPD
+			    ON MPD.CODE_TYPE = 'PUB_ARRIVE_STATUS'
+			   AND MPD.CODE_VALUE = MSD.DELIVERY_STATUS
+			  LEFT JOIN MM_PUB_DATA_DICT MPDI
+			    ON MPDI.CODE_TYPE = 'PUB_DELIVERY_STATUS'
+			   AND MPDI.CODE_VALUE = MSD.RECEIVE_STATUS
+   		     WHERE MSO.PURCHASE_NO IN
+		 <foreach item="item" collection="list" open="(" separator="," close=")">
+			(#{item.purchaseNo})
+		</foreach>
+		  ORDER BY MSD.PURCHASE_NO,MSD.ORDER_ROWNO
+	</select>
+</mapper>

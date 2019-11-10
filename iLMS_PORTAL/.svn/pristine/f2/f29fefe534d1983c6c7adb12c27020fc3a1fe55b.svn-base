@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.sw.model.SwDeliveryModel">
+      <!-- 发货数据管理界面，分页查询 -->
+      <select id="queryJisoDeliveryPage" parameterType="com.hanthink.sw.model.SwDeliveryModel" resultType="com.hanthink.sw.model.SwDeliveryModel">
+		SELECT A.DELIVERY_NO deliveryNo,
+			   B.SUPPLIER_NO supplierNo,
+			   B.SUP_FACTORY supFactory,
+		       C.SUPPLIER_NAME supplierName,
+		       B.ORDER_NO orderNo,
+		       A.PURCHASE_NO purchaseNo,
+		       B.ORDER_TYPE orderType,
+		       to_char(B.ORDER_DATE,'yyyy-MM-dd') orderDate,
+		       to_char(B.ARRIVE_DATE,'yyyy-MM-dd') arriveDate,
+		       B.DEPOT_NO depotNo,
+		       to_char(A.DELIVERY_TIME,'yyyy-MM-dd') deliveryTime
+		  FROM MM_SW_DELIVERY A
+		  LEFT JOIN MM_SW_ORDER B
+		       ON A.PURCHASE_NO = B.PURCHASE_NO
+		  LEFT JOIN MM_PUB_SUPPLIER C ON B.SUPPLIER_NO=C.SUPPLIER_NO
+          WHERE 1=1 
+          <if test="supplierNo !=null and supplierNo !='' ">
+				  AND B.SUPPLIER_NO = #{supplierNo}
+		  </if>
+		  <if test="supFactory !=null and supFactory !='' ">
+				  AND B.SUP_FACTORY = #{supFactory}
+		  </if>
+		  <if test="orderNo !=null and orderNo !='' ">
+				  AND B.ORDER_NO like CONCAT(#{orderNo}, '%')
+		  </if>
+		  <if test="orderType !=null and orderType !='' ">
+				  AND B.ORDER_TYPE =#{orderType}
+		  </if>
+		  <if test="purchaseNo !=null and purchaseNo !='' ">
+				  AND A.PURCHASE_NO like CONCAT(#{purchaseNo}, '%')
+		  </if>
+		  <if test="deliveryTimeStart !=null and deliveryTimeStart!='' ">
+		  <![CDATA[ AND A.DELIVERY_TIME >= TO_DATE(#{deliveryTimeStart},'yyyy-MM-dd') ]]>
+		  </if>
+		  <if test="deliveryTimeEnd !=null and deliveryTimeEnd!='' ">
+		  <![CDATA[ AND A.DELIVERY_TIME <= TO_DATE(#{deliveryTimeEnd},'yyyy-MM-dd') + 1 ]]>
+		  </if>
+		  ORDER BY A.DELIVERY_TIME ASC
+      </select>
+      
+      <!-- 发货数据管理界面，明细查看功能-->
+      <select id="queryJisoDeliveryDetailPage" parameterType="com.hanthink.sw.model.SwDeliveryModel" resultType="com.hanthink.sw.model.SwDeliveryModel">
+		      SELECT    
+		      			<!-- A.DELIVERY_NO deliveryNo,  -->
+						D.PURCHASE_ROWNO purchaseRowno, 
+						B.PART_NO partNo,
+						E.PART_NAME_CN partName,
+						E.PART_SHORT_NO partShortNo,
+						D.STANDARD_PACKAGE standardPackage,
+						B.DELIVERY_QTY  deliveryQty,
+						D.ORDER_QTY orderQty,
+						ceil(D.ORDER_QTY/D.STANDARD_PACKAGE) boxNum
+						  FROM MM_SW_DELIVERY A
+						  INNER JOIN MM_SW_DELIVERY_DETAIL B
+						    ON A.DELIVERY_NO = B.DELIVERY_NO
+<!-- 						  LEFT JOIN MM_SW_ORDER C
+						    ON A.PURCHASE_NO = C.PURCHASE_NO -->
+						  LEFT JOIN MM_SW_ORDER_DETAIL D
+						    ON  A.PURCHASE_NO = D.PURCHASE_NO
+						    AND A.PURCHASE_ROWNO = D.PURCHASE_ROWNO
+						  LEFT JOIN MM_PUB_PART E
+						    ON B.PART_NO = E.PART_NO
+					WHERE A.DELIVERY_NO = #{deliveryNo}
+					ORDER BY  B.DELIVERY_ROWNO ASC
+					
+      </select>
+      
+      <!-- 查询订单打印需要的数据 -->
+      <select id="queryDeliveryOrderDetailList" parameterType="com.hanthink.sw.model.SwDeliveryModel" resultType="com.hanthink.sw.model.SwDeliveryModel">
+			      SELECT B.PURCHASE_NO purchaseOrderno,
+			       B.ORDER_NO orderNo,
+			       B.ARRIVE_DATE arriveTime,
+			       F.UNLOAD_PORT  unloadPort,
+			       B.SUPPLIER_NO supplierNo,
+			       C.SUPPLIER_NAME supplierName,
+			       D.PART_NO partNo,
+			       D.PART_NAME_CN partName,
+			       D.PART_SHORT_NO partShortNo,
+			       E.STANDARD_PACKAGE standardPackage,
+			       E.ORDER_QTY orderQty,
+			       CEIL(E.ORDER_QTY / E.STANDARD_PACKAGE) boxNum
+			  FROM MM_SW_DELIVERY A
+			  INNER JOIN MM_SW_ORDER B
+			    ON A.PURCHASE_NO = B.PURCHASE_NO
+			  LEFT JOIN MM_SW_ORDER_DETAIL E
+			    ON B.PURCHASE_NO = E.PURCHASE_NO
+			  LEFT JOIN MM_PUB_SUPPLIER C
+			    ON B.SUPPLIER_NO = C.SUPPLIER_NO
+			  LEFT JOIN MM_PUB_PART D
+			    ON E.PART_NO = D.PART_NO
+			  LEFT JOIN MM_SW_PICKUP_PLAN F
+			    ON B.ORDER_NO = F.ORDER_NO
+			  WHERE A.DELIVERY_NO = #{deliveryNo}
+      </select>
+      
+      <!-- 查询托盘打印需要数据 -->
+      <select id="deliveryOrderPrintTpLabel" parameterType="com.hanthink.sw.model.SwDeliveryModel" resultType="com.hanthink.sw.model.SwDeliveryModel">
+			SELECT F.SUPPLIER_NO   supplierNo,
+			       F.SUPPLIER_NAME supplierName,
+			       E.UNLOAD_PORT   unloadPort,
+			       B.ORDER_NO 	   orderNo,
+			       B.PURCHASE_NO   purchaseOrderno,
+			       E.ROUTE_CODE    routCode,
+			       A.DELIVERY_TIME deliveryTime,
+			       B.ARRIVE_DATE   arriveTime
+			  FROM MM_SW_DELIVERY A
+			  LEFT JOIN MM_SW_DELIVERY_DETAIL C
+			    ON A.DELIVERY_NO = C.DELIVERY_NO
+			  LEFT JOIN MM_SW_ORDER B
+			    ON A.PURCHASE_NO = B.PURCHASE_NO
+			  LEFT JOIN MM_SW_ORDER_DETAIL D
+			    ON B.PURCHASE_NO = D.PURCHASE_NO
+			  LEFT JOIN MM_SW_PICKUP_PLAN E
+			    ON B.ORDER_NO = E.ORDER_NO
+			  LEFT JOIN MM_PUB_SUPPLIER F
+			    ON B.SUPPLIER_NO = F.SUPPLIER_NO
+			 WHERE A.DELIVERY_NO = #{deliveryNo}
+      </select>
+      
+      <!-- 查询标签打印需要的数据 -->
+      <select id="querydeliveryOrderPrintLabelList" parameterType="java.util.List" resultType="com.hanthink.sw.model.SwDeliveryModel">
+			SELECT A.DELIVERY_NO      deliveryNo,
+			       B.PART_NO          partNo,
+			       H.PART_SHORT_NO    partShortNo,
+			       H.PART_NAME_CN     partName,
+			       C.SUPPLIER_NO      supplierNo,
+			       J.SUPPLIER_NAME    supplierName,
+			       E.UNLOAD_PORT      unloadPort,
+			       D.STANDARD_PACKAGE standardPackage,
+			       E.PLAN_PICKUP_TIME distriProductSeqno,
+       			   E.PLAN_ARR_TIME    arriveProductSeqno
+			  FROM MM_SW_DELIVERY A
+			  LEFT JOIN MM_SW_DELIVERY_DETAIL B
+			    ON A.DELIVERY_NO = B.DELIVERY_NO
+			  LEFT JOIN MM_SW_ORDER C
+			    ON A.PURCHASE_NO = C.PURCHASE_NO
+			  LEFT JOIN MM_SW_ORDER_DETAIL D
+			    ON C.PURCHASE_NO = D.PURCHASE_NO
+			  LEFT JOIN MM_SW_PICKUP_PLAN E
+			    ON C.ORDER_NO = E.ORDER_NO
+			  LEFT JOIN MM_PUB_PART H
+			    ON B.PART_NO = H.PART_NO
+			  LEFT JOIN MM_PUB_SUPPLIER J
+			    ON C.SUPPLIER_NO = J.SUPPLIER_NO
+			 WHERE 1=1 
+		      AND A.DELIVERY_NO IN
+		      <foreach collection="list" item="item" index="index" open="(" separator="," close=")">
+		     	 #{item.deliveryNo}
+		     </foreach>
+			  
+      </select>
+	
+	  <!-- 查询标签打印需要的数据 -->
+      <select id="querydeliveryOrderPrintLabelListModel" parameterType="java.util.List" resultType="com.hanthink.sw.model.SwDeliveryModel">
+			SELECT A.DELIVERY_NO      deliveryNo,
+			       B.PART_NO          partNo,
+			       H.PART_SHORT_NO    partShortNo,
+			       H.PART_NAME_CN     partName,
+			       C.SUPPLIER_NO      supplierNo,
+			       J.SUPPLIER_NAME    supplierName,
+			       E.UNLOAD_PORT      unloadPort,
+			       D.STANDARD_PACKAGE standardPackage,
+			       E.PLAN_PICKUP_TIME distriProductSeqno,
+       			   E.PLAN_ARR_TIME    arriveProductSeqno
+			  FROM MM_SW_DELIVERY A
+			  LEFT JOIN MM_SW_DELIVERY_DETAIL B
+			    ON A.DELIVERY_NO = B.DELIVERY_NO
+			  LEFT JOIN MM_SW_ORDER C
+			    ON A.PURCHASE_NO = C.PURCHASE_NO
+			  LEFT JOIN MM_SW_ORDER_DETAIL D
+			    ON C.PURCHASE_NO = D.PURCHASE_NO
+			  LEFT JOIN MM_SW_PICKUP_PLAN E
+			    ON C.ORDER_NO = E.ORDER_NO
+			  LEFT JOIN MM_PUB_PART H
+			    ON B.PART_NO = H.PART_NO
+			  LEFT JOIN MM_PUB_SUPPLIER J
+			    ON C.SUPPLIER_NO = J.SUPPLIER_NO
+			 WHERE 1=1 
+		      AND A.DELIVERY_NO = #{deliveryNo}
+      </select>
+</mapper>

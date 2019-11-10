@@ -1,0 +1,369 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.mon.model.EmptyReturnKbModel">
+
+	<!-- 查询DCS单信息用于拉绳 -->
+		<select id="selectDCSUp" parameterType="java.lang.String"
+				resultType="com.hanthink.mon.model.EmptyReturnKbModel">
+				SELECT *
+				  FROM (SELECT A.PLAN_SHEET_NO planSheetNo,
+				               A.FACTORY_CODE factoryCode,
+				               TO_CHAR(A.PLAN_ARRIVE_TIME, 'YYYY-MM-DD HH24:MI:SS') planArriveTimeStr,
+				               A.RET_EMPTY_PLATFORM retEmptyPlatform,
+				               A.PLATE_NUM plateNum
+				          FROM MM_PUP_DCS_PICK_PLAN A
+				         WHERE A.EXCUTE_STATUS = 0
+				           AND A.RET_EMPTY_PLATFORM = #{retEmptyPlatform}
+				           AND TO_CHAR(A.PLAN_ARRIVE_TIME, 'YYYY-MM-DD') =
+				               TO_CHAR(SYSDATE, 'YYYY-MM-DD'))
+				           WHERE ROWNUM &lt;= 3
+				 ORDER BY TO_DATE(3) ASC
+		</select>
+
+    <!-- 查询DCS单信息用于展示 -->
+	<select id="selectDCS" parameterType="java.util.Map"
+			resultType="com.hanthink.mon.model.EmptyReturnKbModel">
+			SELECT * FROM (
+	   SELECT DISTINCT A.PLAN_SHEET_NO    planSheetNo,
+				       A.FACTORY_CODE    factoryCode,
+				       TO_CHAR(A.PLAN_ARRIVE_TIME , 'YYYY-MM-DD HH24:MI:SS')    planArriveTimeStr,
+				       A.RET_EMPTY_PLATFORM    retEmptyPlatform,
+				       A.PLATE_NUM   plateNum
+				  FROM MM_PUP_DCS_PICK_PLAN A
+		     LEFT JOIN MM_PUP_DCS_PICK_PLAN_DETAIL B
+		            ON A.PLAN_SHEET_NO = B.PLAN_SHEET_NO
+			 LEFT JOIN MM_SW_ORDER C
+		            ON C.ORDER_NO = B.ORDER_NO 
+		         WHERE A.EXCUTE_STATUS = 0
+		           AND C.DEPOT_NO IN (SELECT DISTINCT B.WARE_CODE 
+		                    FROM MM_INV_UNLOAD B
+		                    WHERE B.WORK_CENTER = #{workCenter}
+		                    ) 
+				   AND A.RET_EMPTY_PLATFORM = #{retEmptyPlatform}
+				   AND TO_CHAR(A.PLAN_ARRIVE_TIME,'YYYY-MM-DD')=TO_CHAR(SYSDATE,'YYYY-MM-DD') 
+			UNION ALL
+			SELECT DISTINCT A.PLAN_SHEET_NO    planSheetNo,
+			               A.FACTORY_CODE    factoryCode,
+			               TO_CHAR(A.PLAN_ARRIVE_TIME , 'YYYY-MM-DD HH24:MI:SS')    planArriveTimeStr,
+			               A.RET_EMPTY_PLATFORM    retEmptyPlatform,
+			               A.PLATE_NUM   plateNum
+			          FROM MM_PUP_DCS_PICK_PLAN A
+			         LEFT JOIN MM_PUP_DCS_PICK_PLAN_DETAIL B
+			                ON A.PLAN_SHEET_NO = B.PLAN_SHEET_NO
+			         LEFT JOIN MM_JIT_ORDER C
+			                ON C.ORDER_NO = B.ORDER_NO 
+			             WHERE A.EXCUTE_STATUS = 0
+			               AND C.ARR_DEPOT IN (SELECT DISTINCT B.WARE_CODE 
+			                        FROM MM_INV_UNLOAD B
+			                        WHERE B.WORK_CENTER = #{workCenter}
+			                        ) 
+			           AND A.RET_EMPTY_PLATFORM = #{retEmptyPlatform}
+			           AND TO_CHAR(A.PLAN_ARRIVE_TIME,'YYYY-MM-DD')=TO_CHAR(SYSDATE,'YYYY-MM-DD') 
+			           ) WHERE ROWNUM &lt;= 3
+				  ORDER BY TO_DATE(3) ASC
+	</select>
+	
+	<!-- 查询DCS单信息用于查找明细 -->
+	<select id="selectDCSTop" parameterType="java.util.Map"
+			resultType="com.hanthink.mon.model.EmptyReturnKbModel">
+	   SELECT DISTINCT A.PLAN_SHEET_NO    planSheetNo,
+				       A.FACTORY_CODE    factoryCode,
+				       A.PLAN_ARRIVE_TIME planArriveTime,
+				       A.RET_EMPTY_PLATFORM    retEmptyPlatform,
+				       A.PLATE_NUM   plateNum
+				  FROM MM_PUP_DCS_PICK_PLAN A
+		     LEFT JOIN MM_PUP_DCS_PICK_PLAN_DETAIL B
+		            ON A.PLAN_SHEET_NO = B.PLAN_SHEET_NO
+			 LEFT JOIN MM_SW_ORDER C
+		            ON C.ORDER_NO = B.ORDER_NO 
+		         WHERE A.EXCUTE_STATUS = 0
+		           AND C.DEPOT_NO IN (SELECT DISTINCT B.WARE_CODE 
+		                    FROM MM_INV_UNLOAD B
+		                    WHERE B.WORK_CENTER = #{workCenter}
+		                    ) 
+				   AND A.RET_EMPTY_PLATFORM = #{retEmptyPlatform}
+				   AND TO_CHAR(A.PLAN_ARRIVE_TIME,'YYYY-MM-DD')=TO_CHAR(SYSDATE,'YYYY-MM-DD') 
+			UNION ALL
+			SELECT DISTINCT A.PLAN_SHEET_NO    planSheetNo,
+			               A.FACTORY_CODE    factoryCode,
+			               A.PLAN_ARRIVE_TIME planArriveTime,
+			               A.RET_EMPTY_PLATFORM    retEmptyPlatform,
+			               A.PLATE_NUM   plateNum
+			          FROM MM_PUP_DCS_PICK_PLAN A
+			         LEFT JOIN MM_PUP_DCS_PICK_PLAN_DETAIL B
+			                ON A.PLAN_SHEET_NO = B.PLAN_SHEET_NO
+			         LEFT JOIN MM_JIT_ORDER C
+			                ON C.ORDER_NO = B.ORDER_NO 
+			             WHERE A.EXCUTE_STATUS = 0
+			               AND C.ARR_DEPOT IN (SELECT DISTINCT B.WARE_CODE 
+			                        FROM MM_INV_UNLOAD B
+			                        WHERE B.WORK_CENTER = #{workCenter}
+			                        ) 
+			           AND A.RET_EMPTY_PLATFORM = #{retEmptyPlatform}	
+			           AND TO_CHAR(A.PLAN_ARRIVE_TIME,'YYYY-MM-DD')=TO_CHAR(SYSDATE,'YYYY-MM-DD') 		   
+			ORDER BY 3 ASC
+	</select>
+
+	<!-- 查询DCS单明细信息 -->
+	<select id="selectDCSDetail" parameterType="com.hanthink.mon.model.EmptyReturnKbModel"
+			resultType="com.hanthink.mon.model.EmptyReturnKbModel">
+		       SELECT A.PLAN_SHEET_NO planSheetNo,
+		          B.ORDER_NO orderNo,
+		          B.SUPPLIER_NO supplierNo,
+		          A.PLAN_ARRIVE_TIME    planArriveTime
+		          FROM MM_PUP_DCS_PICK_PLAN A 
+		          LEFT JOIN MM_PUP_DCS_PICK_PLAN_DETAIL B
+		          ON A.PLAN_SHEET_NO = B.PLAN_SHEET_NO
+		          LEFT JOIN MM_SW_ORDER C
+		          ON C.ORDER_NO = B.ORDER_NO 
+		          WHERE A.FACTORY_CODE = #{factoryCode}
+		            AND A.PLAN_SHEET_NO = #{planSheetNo}
+		            AND A.EXCUTE_STATUS = 0
+		            AND C.DEPOT_NO IN (SELECT DISTINCT B.WARE_CODE 
+		                    FROM MM_INV_UNLOAD B
+		                    WHERE B.WORK_CENTER = #{workCenter}
+		                    ) 
+		      UNION ALL
+		         SELECT A.PLAN_SHEET_NO planSheetNo,
+		          B.ORDER_NO orderNo,
+		          B.SUPPLIER_NO supplierNo,
+		          A.PLAN_ARRIVE_TIME    planArriveTime
+		          FROM MM_PUP_DCS_PICK_PLAN A
+		          LEFT JOIN MM_PUP_DCS_PICK_PLAN_DETAIL B
+		          ON A.PLAN_SHEET_NO = B.PLAN_SHEET_NO
+		          LEFT JOIN MM_JIT_ORDER C
+		          ON C.ORDER_NO = B.ORDER_NO 
+		          WHERE A.FACTORY_CODE = #{factoryCode}
+		            AND A.PLAN_SHEET_NO = #{planSheetNo}
+		            AND A.EXCUTE_STATUS = 0
+		            AND C.ARR_DEPOT IN (SELECT DISTINCT B.WARE_CODE 
+		                    FROM MM_INV_UNLOAD B
+		                    WHERE B.WORK_CENTER = #{workCenter}
+		                    ) 
+		        ORDER BY 4 ASC
+	</select>
+	
+	<!-- 是否为取货 -->
+	<select id="selectOrderNoBySw" parameterType="com.hanthink.mon.model.EmptyReturnKbModel"
+		resultType="com.hanthink.mon.model.EmptyReturnKbModel">
+				SELECT #{planSheetNo} planSheetNo,
+				TO_CHAR(G.BOXTYPE)  boxType,
+				G.SUPPLIERNO  supplierNo,
+			    H.SUPPLIER_NAME  supplierName,
+				TO_CHAR((CASE G.BOXTYPE
+				WHEN 0 THEN
+				CEIL(G.totalVolume / 800 / 1200 / 1100)
+				ELSE
+				0
+				END))  palletIron,
+				TO_CHAR((CASE G.BOXTYPE
+				WHEN 0 THEN
+				0
+				ELSE
+				G.totalOrderQty
+				END))  palletBox
+				FROM (SELECT SUM(F.partVolume) totalVolume,
+				SUM(F.ORDERQTY) totalOrderQty,
+				F.BOXTYPE,
+				F.SUPPLIERNO
+				FROM (SELECT E.BOX_TYPE boxType,
+				E.SUPPLIER_NO supplierNo,
+				A.ORDER_QTY * E.volume partVolume,
+				CEIL(A.ORDER_QTY / A.STANDARD_PACKAGE) orderQty,
+				E.PART_NO partNo
+				FROM MM_SW_ORDER_DETAIL A
+				LEFT JOIN MM_SW_ORDER D
+				ON A.ORDER_NO = D.ORDER_NO
+				LEFT JOIN (SELECT DISTINCT B.BOX_TYPE,
+				B.PART_NO,
+				B.SUPPLIER_NO,
+				C.PART_LENGTH,
+				C.PART_WEIGHT,
+				C.PART_HEIGHT,
+				C.STANDARD_PACKAGE,
+				C.PART_LENGTH * C.PART_WEIGHT * C.PART_HEIGHT VOLUME
+				FROM MM_PKG_PROPOSAL B
+				LEFT JOIN MM_PKG_PROPOSAL_DETAIL C
+				ON B.ID = C.PROPOSAL_ID
+				WHERE B.EFF_START &lt;= SYSDATE
+				AND B.EFF_END &gt;= SYSDATE
+				AND B.PROPOSAL_STATUS = 5) E
+				ON A.PART_NO = E.PART_NO
+				AND D.SUPPLIER_NO = E.SUPPLIER_NO
+				WHERE D.ORDER_NO = #{orderNo}) F
+				GROUP BY F.BOXTYPE, F.SUPPLIERNO) G
+				LEFT JOIN   MM_PUB_SUPPLIER H
+				ON  H.SUPPLIER_NO = G.SUPPLIERNO
+	</select>
+
+	<!-- 是否为拉动 -->
+	<select id="selectOrderNoByJit" parameterType="com.hanthink.mon.model.EmptyReturnKbModel"
+		resultType="com.hanthink.mon.model.EmptyReturnKbModel">
+				SELECT #{planSheetNo}  planSheetNo,
+				TO_CHAR(G.BOXTYPE)  boxType,
+				G.SUPPLIERNO  supplierNo,
+			    H.SUPPLIER_NAME  supplierName,
+				TO_CHAR((CASE G.BOXTYPE
+				WHEN 0 THEN
+				CEIL(G.totalVolume / 800 / 1200 / 1100)
+				ELSE
+				0
+				END))  palletIron,
+				TO_CHAR((CASE G.BOXTYPE
+				WHEN 0 THEN
+				0
+				ELSE
+				G.totalOrderQty
+				END))  palletBox
+				FROM (SELECT SUM(F.partVolume) totalVolume,
+				SUM(F.ORDERQTY) totalOrderQty,
+				F.BOXTYPE,
+				F.SUPPLIERNO
+				FROM (SELECT E.BOX_TYPE boxType,
+				E.SUPPLIER_NO supplierNo,
+				A.ORDER_QTY * E.volume partVolume,
+				CEIL(A.ORDER_QTY / A.STANDARD_PACKAGE) orderQty,
+				E.PART_NO partNo
+				FROM MM_JIT_ORDER_DETAIL A
+				LEFT JOIN MM_JIT_ORDER D
+				ON A.ORDER_NO = D.ORDER_NO
+				LEFT JOIN (SELECT DISTINCT B.BOX_TYPE,
+				B.PART_NO,
+				B.SUPPLIER_NO,
+				C.PART_LENGTH,
+				C.PART_WEIGHT,
+				C.PART_HEIGHT,
+				C.STANDARD_PACKAGE,
+				C.PART_LENGTH * C.PART_WEIGHT * C.PART_HEIGHT VOLUME
+				FROM MM_PKG_PROPOSAL B
+				LEFT JOIN MM_PKG_PROPOSAL_DETAIL C
+				ON B.ID = C.PROPOSAL_ID
+				WHERE B.EFF_START &lt;= SYSDATE
+				AND B.EFF_END &gt;= SYSDATE
+				AND B.PROPOSAL_STATUS = 5) E
+				ON A.PART_NO = E.PART_NO
+				AND D.SUPPLIER_NO = E.SUPPLIER_NO
+				WHERE D.ORDER_NO = #{orderNo}) F
+				GROUP BY F.BOXTYPE, F.SUPPLIERNO) G
+				LEFT JOIN   MM_PUB_SUPPLIER  H
+				ON  H.SUPPLIER_NO = G.SUPPLIERNO 
+	</select>
+
+	<!-- 是否为同步 -->
+    <select id="selectOrderNoByJiso" parameterType="com.hanthink.mon.model.EmptyReturnKbModel"
+		resultType="com.hanthink.mon.model.EmptyReturnKbModel">
+			 SELECT #{planSheetNo}  planSheetNo,
+					TO_CHAR(G.BOXTYPE)  boxType,
+					G.SUPPLIERNO  supplierNo,
+					H.SUPPLIER_NAME  supplierName,
+					TO_CHAR((CASE G.BOXTYPE
+					WHEN 0 THEN
+					CEIL(G.totalVolume / 800 / 1200 / 1100)
+					ELSE
+					0
+					END))  palletIron,
+					TO_CHAR((CASE G.BOXTYPE
+					WHEN 0 THEN
+					0
+					ELSE
+					G.totalOrderQty
+					END))  palletBox
+					FROM (SELECT SUM(F.partVolume) totalVolume,
+					SUM(F.ORDERQTY) totalOrderQty,
+					F.BOXTYPE,
+					F.SUPPLIERNO
+					FROM (SELECT E.BOX_TYPE boxType,
+					E.SUPPLIER_NO supplierNo,
+					A.REQUIRE_NUM * E.volume partVolume,
+					CEIL(A.REQUIRE_NUM / A.STANDARD_PACKAGE) orderQty,
+					E.PART_NO partNo
+					FROM MM_JISO_ORDER_DETAIL A
+					LEFT JOIN MM_JISO_ORDER D
+					ON A.ORDER_NO = D.ORDER_NO
+					LEFT JOIN (SELECT DISTINCT B.BOX_TYPE,
+					B.PART_NO,
+					B.SUPPLIER_NO,
+					C.PART_LENGTH,
+					C.PART_WEIGHT,
+					C.PART_HEIGHT,
+					C.STANDARD_PACKAGE,
+					C.PART_LENGTH * C.PART_WEIGHT * C.PART_HEIGHT VOLUME
+					FROM MM_PKG_PROPOSAL B
+					LEFT JOIN MM_PKG_PROPOSAL_DETAIL C
+					ON B.ID = C.PROPOSAL_ID
+					WHERE B.EFF_START &lt;= SYSDATE
+					AND B.EFF_END &gt;= SYSDATE
+					AND B.PROPOSAL_STATUS = 5) E
+					ON A.PART_NO = E.PART_NO
+					AND D.SUPPLIER_NO = E.SUPPLIER_NO
+					WHERE D.ORDER_NO = #{orderNo}) F
+					GROUP BY F.BOXTYPE, F.SUPPLIERNO) G
+					LEFT JOIN   MM_PUB_SUPPLIER H
+					ON  H.SUPPLIER_NO = G.SUPPLIERNO 
+	</select> 
+	
+	<select id="getShowMessage" parameterType="java.util.Map" 
+	    resultType="com.hanthink.mon.model.EmptyReturnKbModel">
+		  SELECT A.STATION_CODE  retEmptyPlatform,
+		         #{opeUser}  opeUser,
+		         A.FACTORY_CODE  factoryCode
+	        FROM MM_KB_IP_CONFIG A
+		   WHERE A.FACTORY_CODE = #{factoryCode}
+		     AND A.KB_IP = #{ip}
+	  </select>
+	
+	<!-- 排除为空的情况 -->
+	<select id="selectOrderNoByNull"
+		resultType="com.hanthink.mon.model.EmptyReturnKbModel">
+		  SELECT * FROM (
+				SELECT ''  planSheetNo,
+                       ''  boxType,
+                       ''  supplierNo,
+                       ''  supplierName,
+                       ''  palletIron,
+				       ''  palletBox,
+				       ''  workTime,
+				       ''  actualArriveTimeStr,
+				       ''  planStartTimeStr
+           FROM MM_JIT_INS_SORT A
+		) WHERE ROWNUM &lt;= 8
+	</select>
+	
+	<!-- 根据comnIp查询IP地址 -->
+	<select id="selectIpByCombIp" parameterType="java.lang.String"
+			resultType="com.hanthink.mon.model.EmptyReturnKbModel">
+			    SELECT A.KB_IP ip,
+			           A.FACTORY_CODE factoryCode,
+			           A.STATION_CODE retEmptyPlatform
+				  FROM MM_KB_IP_CONFIG A
+				 WHERE A.MBPS_COMB = #{combIp}
+	</select>
+	
+	<!-- 根据站台修改DCS单状态-->
+	<update id="updateDCS" parameterType="com.hanthink.mon.model.EmptyReturnKbModel">
+			UPDATE MM_PUP_DCS_PICK_PLAN A
+			   SET A.EXCUTE_STATUS = 1,
+			       A.OPERATION_USER = #{opeUser}
+			 WHERE A.FACTORY_CODE = #{factoryCode}
+			   AND A.PLAN_SHEET_NO = #{planSheetNo}
+			   AND A.EXCUTE_STATUS = 0 
+	</update>
+	
+	<!-- 获取各种时间 -->
+	<select id="selectPubSysParam"
+	    resultType="com.hanthink.mon.model.EmptyReturnKbModel">
+		SELECT A.PARAM_CODE  paramCode,
+		       A.PARAM_VAL  paramVal
+		  FROM MM_PUB_SYS_PARAM A
+		 WHERE A.PARAM_GROUP = 'EMPTY_RETURN'
+	</select>
+	
+	 <!-- 根据IP获取车间-->
+    <select id="selectWorkCenterByIpEmpty" parameterType="java.lang.String"
+         resultType="java.lang.String">
+            SELECT DISTINCT A.WORK_CENTER workCenter
+			  FROM MM_KB_IP_CONFIG A
+			 WHERE A.KB_IP = #{ip}
+    </select>
+	
+</mapper>

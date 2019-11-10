@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+<title>SmartWorkESB 登录</title>
+<link href="zui/css/zui.min.css?v=1.0" rel="stylesheet">
+<style type="text/css">
+body, p, ul, h5, table, h6 {
+    font-size: 12px;
+    margin: 0px;
+    padding: 0px;
+    background-color: #FFF;
+}
+
+.loginTabBg {
+    background-image: url(images/bgimg.jpg);
+    background-repeat: no-repeat;
+    background-position: center center;
+    width: 100%;
+    height: 430px;
+    margin-top: 100px;
+}
+
+.login td {
+    padding: 3px;
+    font-size: 12px;
+    color: #333;
+}
+
+.text {
+    width: 120px;
+    height: 15px;
+}
+
+.textNext {
+    width: 90px;
+    height: 15px;
+}
+
+.select {
+    width: 100px;
+}
+
+.tabStyle {
+    margin-top: 20px;
+    padding: 0px;
+}
+
+.loginTabBg form table {
+    width: 230px;
+    margin-left: 20px;
+}
+</style>
+</head>
+
+<body>
+
+  <!--[if lt IE 8]>
+    <div class="alert alert-danger">您正在使用 <strong>过时的</strong> 浏览器. 是时候 <a href="http://browsehappy.com/">更换一个更好的浏览器</a> 来提升用户体验.</div>
+  <![endif]-->
+  
+  <div id="loginDiv" style="z-index: 100; top:40%; left: 47%; right:25%; position: absolute;"></div>
+  <div class="tabStyle">
+    <table class="loginTabBg" align="center" border="0">
+      <tr>
+        <td align="right"><img src="images/login-img.jpg" width="463" height="254" /></td>
+        <td valign="top" style="padding-top: 80px;">
+          <img src="images/banner.jpg" width="320" height="60" />
+          <form action="javascript:void(0);">
+            <table border="0" cellpadding="0" class="login" cellspacing="0">
+              <tr>
+                <td>
+                  <div class="input-control has-icon-left">
+                    <input id="id-userName" name="userName" type="text" required="true" class="form-control" placeholder="用户名"><label for="id-userName" class="input-control-icon-left"><i class="icon icon-user"></i></label>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="input-control has-icon-left input-group">
+                    <input id="id-password" name="password" type="password" required="true" class="form-control" placeholder="密码"><label for="id-password" class="input-control-icon-left"><i class="icon icon-key"></i></label> <span class="input-group-btn">
+                      <button class="btn btn-default" type="button">
+                        <i class="icon icon-signin"></i>
+                      </button>
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            </table>
+          </form>
+        </td>
+      </tr>
+    </table>
+  </div>
+  <script src="zui/lib/jquery/jquery.js?v=1.0"></script>
+  <script src="zui/lib/jquery/jquery.validate.min.js?v=1.0"></script>
+  <script src="zui/lib/jquery/localization/messages_zh.min.js?v=1.0"></script>
+  <script src="zui/js/zui.min.js?v=1.0"></script>
+  <script src="js/extension.js?v=1.0"></script>
+  <script src="js/index.js?v=1.0"></script>
+</body>
+</html>

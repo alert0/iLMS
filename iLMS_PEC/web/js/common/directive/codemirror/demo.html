@@ -1,0 +1,41 @@
+<html>
+<head>
+<link rel="stylesheet" href="lang/codemirror.css">
+<script src="../../../lib/angular/angular.min.js"></script>
+<script src="../../../lib/jquery/jquery.min.js"></script>
+<script src="../../service/BaseService.js"></script>
+<script src="lang/codemirror.js"></script>
+<script src="lang/matchbrackets.js"></script>
+<script src="lang/htmlmixed.js"></script>
+<script src="lang/xml.js"></script>
+<script src="lang/javascript.js"></script>
+<script src="lang/css.js"></script>
+<script src="lang/clike.js"></script>
+<script src="lang/php.js"></script>
+<script src="ui-codemirror.js"></script>
+<script type="text/javascript">
+	function getResult() {
+		return AngularUtil.getScope().code;
+	}
+</script>
+</head>
+<body ng-app="myApp" ng-controller="codeCtrl">
+	<div>
+		<div>
+			<a class="btn btn-primary btn-xs" onclick="selectScript()">常用脚本</a>
+			<a class="btn btn-primary btn-xs" onclick="selectConditionScript()">条件脚本</a>
+			<a id="varTree" class="btn btn-primary btn-xs">表单变量</a>
+			<textarea ui-codemirror ng-model="code"></textarea>
+		</div>
+	</div>
+	<script>
+		var myApp = angular.module('myApp', [ 'ui.codemirror' ]);
+		function codeCtrl($scope) {
+			//初始化
+			if (window.passConf && window.passConf.code) {
+				$scope.code = window.passConf.code;
+			}
+		}
+	</script>
+</body>
+</html>

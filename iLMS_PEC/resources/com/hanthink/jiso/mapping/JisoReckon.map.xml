@@ -1,0 +1,345 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.jiso.model.JisoVehQueueModel">
+	
+	<!-- 查询厂外同步推算服务启停状态 -->
+	<select id="queryReckonState" parameterType="com.hanthink.pub.model.PubPlanCodeModel" 
+			resultType="com.hanthink.pub.model.PubPlanCodeModel">
+		SELECT
+		   CASE WHEN T.EXEC_STATE = '1' THEN 1
+	     		WHEN T.EXEC_STATE = '0' AND T.IS_AUTO_EXEC = '0' THEN 0
+	       		WHEN T.EXEC_STATE = '0' AND T.IS_AUTO_EXEC = '1' THEN 1
+	      END execState
+	    FROM MM_PUB_PLAN_CODE T
+         WHERE T.PLAN_CODE = #{planCode}
+         AND T.FACTORY_CODE = #{factoryCode}
+	</select>
+	
+	<!-- 厂外同步推算控制台-推算启停 -->
+	<update id="updateJisoExecState" parameterType="com.hanthink.pub.model.PubPlanCodeModel">
+		UPDATE MM_PUB_PLAN_CODE T SET
+       T.IS_AUTO_EXEC = #{execState},
+       T.LAST_MODIFIED_TIME = SYSDATE,
+       T.LAST_MODIFIED_USER = #{lastModifiedUser},
+       T.LAST_MODIFIED_IP = #{lastModifiedIp}
+		WHERE T.PLAN_CODE = 'A_JISO_PAOFF'
+	</update>
+	
+	 <!-- 厂外同步推算控制台-查询过点车序   -->
+	 <select id="queryJisoVehQueuePage" parameterType="com.hanthink.jiso.model.JisoVehQueueModel" 
+	 		resultType="com.hanthink.jiso.model.JisoVehQueueModel">
+	 	SELECT T.PLAN_CODE planCode, 
+               T.ORDER_NO orderNo,
+               T.ERP_ORDER_NO erpOrderNo,
+               T.VIN vin,
+               T.MODEL_CODE modelCode,
+               DD.CODE_VALUE_NAME phase,
+               to_char(T.PASS_TIME, 'yyyy-mm-dd hh24:mi:ss') passTime,
+               T.WC_SEQNO wcSeqno,
+               T.PL_SEQNO plSeqno,
+               D.CODE_VALUE_NAME execStatus,
+               to_char(T.EXEC_TIME, 'yyyy-mm-dd hh24:mi:ss') execTime,
+               T.PARTGROUP_NUM partgroupNum,
+               T.PARTGROUP_INS_NUM partgroupInsNum,
+               T.PARTGROUP_ORDER_NUM partgroupOrderNum,
+               to_char(T.CREATION_TIME, 'yyyy-mm-dd hh24:mi:ss') creationTime,
+               PKG_PUB.USF_GET_BATCHPROC_BY_PRODSEQNO(T.PLAN_CODE, T.KB_PRODUCT_SEQNO) kbProductSeqno,
+               (CASE WHEN T.PARTGROUP_INS_NUM = 0 THEN '未组票'
+                     WHEN T.PARTGROUP_NUM &gt; T.PARTGROUP_INS_NUM AND T.PARTGROUP_INS_NUM &gt; 0 THEN '部分组票'
+               		 WHEN T.PARTGROUP_NUM = T.PARTGROUP_INS_NUM THEN '全部组票' 
+                     ELSE '' END) groupInsState,
+               (CASE WHEN T.PARTGROUP_ORDER_NUM = 0 THEN '未组单'
+                     WHEN T.PARTGROUP_NUM &gt; T.PARTGROUP_ORDER_NUM AND T.PARTGROUP_ORDER_NUM &gt; 0 THEN '部分组单'
+               		 WHEN T.PARTGROUP_NUM = T.PARTGROUP_ORDER_NUM THEN '全部组单'
+                     ELSE '' END) groupOrderState
+        FROM MM_JISO_VEH_QUEUE T
+          INNER JOIN MM_PUB_PLAN_CODE C ON C.PLAN_CODE = T.PLAN_CODE AND C.FACTORY_CODE = #{factoryCode}
+          LEFT JOIN MM_PUB_DATA_DICT D
+            ON D.CODE_TYPE = 'PUB_EXEC_STATUS' AND D.CODE_VALUE = T.EXEC_STATUS AND C.FACTORY_CODE = D.FACTORY_CODE 
+          LEFT JOIN MM_PUB_DATA_DICT DD ON DD.CODE_VALUE = T.PHASE AND DD.CODE_TYPE = 'PUB_PHASE' 
+               AND DD.FACTORY_CODE = C.FACTORY_CODE
+	        <where>
+	        	<if test="null!=vin and ''!=vin">
+	        		AND T.VIN LIKE CONCAT('%', #{vin, jdbcType=VARCHAR})
+	        	</if>
+	        	<if test="wcSeqno!=null and ''!=wcSeqno">
+	        		AND T.WC_SEQNO = #{wcSeqno, jdbcType=VARCHAR}
+	        	</if>
+	        	<if test="null != erpOrderNo and ''!= erpOrderNo">
+	        		AND T.ERP_ORDER_NO LIKE CONCAT('%', #{erpOrderNo, jdbcType=VARCHAR})
+	        	</if>
+	        	<if test="passTime!=null and passTime!=''">
+	        		AND T.PASS_TIME &gt;= to_date(#{passTime}, 'yyyy-mm-dd hh24:mi:ss')   
+	        	</if>
+	        	<if test="passTimeTo!=null and passTimeTo!=''">
+					AND T.PASS_TIME &lt;= to_date(#{passTimeTo}, 'yyyy-mm-dd hh24:mi:ss')
+				</if>
+	        </where>
+	        ORDER BY T.PASS_TIME DESC
+	 </select>
+	 
+	 <!-- 厂外同步推算控制台-待组票净需求-零件组列表 -->
+	 <select id="queryJisoPartGroupPage" parameterType="com.hanthink.jiso.model.JisoPartgroupModel" 
+	 		resultType="com.hanthink.jiso.model.JisoPartgroupModel">
+	 	SELECT P.PLAN_CODE planCode,
+	 		   P.PARTGROUP_NO partgroupNo,
+	 		   P.PARTGROUP_NO partgroupNoDisplay,
+	           P.PARTGROUP_NAME partgroupName,
+	           P.INS_PRODUCT_NUM insProductNum,
+	           nvl(B.NOT_DEAL_VEH, 0) notDealVeh,
+	           DECODE(C.DEAL_FLAG, 0, '手工', '系统') nextGroupInsWay,
+	           C.MANU_REQ_TIME manuReqTime,
+	           C.DEAL_TIME dealTime,
+	           U.FULLNAME_  manuReqUser
+	      FROM MM_JISO_PARTGROUP P
+	      INNER JOIN MM_PUB_PLAN_CODE C ON C.PLAN_CODE = P.PLAN_CODE AND C.FACTORY_CODE = #{factoryCode}
+	      LEFT JOIN (SELECT R.PARTGROUP_NO,
+	                        R.PLAN_CODE,
+	                        COUNT(DISTINCT R.VIN) AS NOT_DEAL_VEH
+	                   FROM MM_JISO_NET_REQ R
+	                  GROUP BY R.PARTGROUP_NO, R.PLAN_CODE) B
+	        ON P.PLAN_CODE = B.PLAN_CODE
+	       AND P.PARTGROUP_NO = B.PARTGROUP_NO
+	      LEFT JOIN MM_JISO_INS_MANU_DEAL C
+	        ON C.PLAN_CODE = P.PLAN_CODE
+	        AND C.PARTGROUP_NO = P.PARTGROUP_NO
+	      LEFT JOIN SYS_USER U ON U.ACCOUNT_ = C.MANU_REQ_USER
+	     WHERE SYSDATE BETWEEN P.EFF_START AND P.EFF_END
+		   <if test="null != partgroupNo and '' != partgroupNo">
+	       	AND P.PARTGROUP_NO = #{partgroupNo}
+	       </if>
+	     ORDER BY P.PARTGROUP_NO
+	 </select>
+	 
+	 <!-- 厂外同步推算控制台-手工组票 -->
+	 <insert id="insertBatchManuDealBill" parameterType="java.util.List">
+	 	INSERT INTO MM_JISO_INS_MANU_DEAL
+			(PLAN_CODE, PARTGROUP_NO, MANU_REQ_USER, MANU_REQ_TIME, MANU_REQ_IP)
+			<foreach collection="list" item="item" index="index" separator=" UNION ALL ">
+				SELECT #{item.planCode, jdbcType=VARCHAR}, #{item.partgroupNo, jdbcType=VARCHAR}, 
+					#{item.manuReqUser, jdbcType=VARCHAR}, SYSDATE, #{item.manuReqIp, jdbcType=VARCHAR}
+				FROM DUAL
+			</foreach>	 	
+	 </insert>
+	 
+	 <!-- 查询未组票零件净需求 -->
+	 <select id="queryRemainByPartgroupNo" parameterType="com.hanthink.jiso.model.JisoNetReqModel" 
+	 		resultType="com.hanthink.jiso.model.JisoNetReqModel">
+		SELECT T.PLAN_CODE planCode,
+	           T.VIN vin,
+	           T.WC_SEQNO wcSeqno,
+	           to_char(T.PASS_TIME, 'yyyy-mm-dd hh24:mi:ss') passTime,
+	           T.SUPPLIER_NO supplierNo,
+	           T.SUP_FACTORY supFactory,
+	           T.PART_NO partNo,
+	           P.PART_SHORT_NO partShortNo,
+	           P.PART_NAME_CN partNameCn,
+	           T.PART_MARK partMark,
+	           T.REQUIRE_NUM requireNum,
+	           T.PARTGROUP_NO partgroupNo,
+	           T.ORDER_NO orderNo,
+	           T.MODEL_CODE modelCode,
+	           T.PHASE phase,
+	           T.PL_SEQNO plSeqno,
+	           T.KB_PRODUCT_SEQNO kbProductSeqno,
+	           to_char(T.CREATION_TIME, 'yyyy-mm-dd hh24:mi:ss') creationTime
+	     FROM MM_JISO_NET_REQ T
+	     INNER JOIN MM_PUB_PLAN_CODE C ON C.PLAN_CODE = T.PLAN_CODE AND C.FACTORY_CODE = #{factoryCode}
+	     <!-- i-LMS2019053001 mod by dtp -->
+	     LEFT JOIN MM_PUB_PART P ON P.PART_NO = T.PART_NO AND P.FACTORY_CODE = #{factoryCode}
+		 WHERE T.PLAN_CODE = #{planCode, jdbcType=VARCHAR} AND T.PARTGROUP_NO = #{partgroupNo, jdbcType=VARCHAR}
+		 ORDER BY T.WC_SEQNO ASC
+	 </select>
+	 
+	 <!-- 待组单指示票-组单信息列表 -->
+	 <select id="queryJisoGroupOrderPage" parameterType="com.hanthink.jiso.model.JisoInsModel"
+	 		resultType="com.hanthink.jiso.model.JisoInsModel">
+	 	SELECT DISTINCT T.PLAN_CODE planCode,
+	 		   T.SUPPLIER_NO supplierNo,
+	 		   T.SUP_FACTORY supFactory,
+		       T.ROUTE_CODE routeCode,
+		       T.CAR_BATCH carBatch,
+		       T.CAR_BATCH_SEQNO carBatchSeqno,
+		       nvl(B.notDelIns, 0) notDelIns,
+		       DECODE(C.DEAL_FLAG, 0, '手工', '系统') nextGroupOrderWay,
+		       C.MANU_REQ_TIME manuReqTime,
+		       C.DEAL_TIME orderDealTime,
+		       U.FULLNAME_  manuReqUser
+		  FROM MM_JISO_INS T
+		  INNER JOIN MM_PUB_PLAN_CODE CC ON CC.PLAN_CODE = T.PLAN_CODE AND CC.FACTORY_CODE = #{factoryCode}
+		  LEFT JOIN (SELECT I.PLAN_CODE,
+		                    I.SUP_FACTORY,
+		                    I.ROUTE_CODE,
+		                    I.CAR_BATCH_SEQNO,
+		                    I.SUPPLIER_NO,
+		                    COUNT(DISTINCT I.INS_NO) notDelIns
+		               FROM MM_JISO_INS I
+		               WHERE I.ORDER_DEAL_FLAG = '0' AND I.ORDER_FLG = '1'
+		              GROUP BY I.PLAN_CODE,
+		                       I.SUP_FACTORY,
+		                       I.ROUTE_CODE,
+		                       I.SUPPLIER_NO,
+		                       I.CAR_BATCH_SEQNO) B
+		    ON T.PLAN_CODE = B.PLAN_CODE
+		   AND T.SUP_FACTORY = B.SUP_FACTORY
+		   AND T.ROUTE_CODE = B.ROUTE_CODE
+		   AND T.SUPPLIER_NO = B.SUPPLIER_NO
+		   AND T.CAR_BATCH_SEQNO = B.CAR_BATCH_SEQNO
+		  LEFT JOIN MM_JISO_ORDER_MANU_DEAL C
+		    ON C.PLAN_CODE = T.PLAN_CODE
+		   AND C.SUP_FACTORY = T.SUP_FACTORY
+		   AND C.ROUTE_CODE = T.ROUTE_CODE
+		   AND C.SUPPLIER_NO = T.SUPPLIER_NO
+		   AND C.CAR_BATCH_SEQNO = T.CAR_BATCH_SEQNO
+		  LEFT JOIN SYS_USER U ON U.ACCOUNT_ = C.MANU_REQ_USER
+		  WHERE 1=1
+		   AND T.ORDER_DEAL_FLAG = '0' AND T.ORDER_FLG = '1'
+		  <if test="null != supplierNo and '' != supplierNo">
+			AND T.SUPPLIER_NO = #{supplierNo}
+		  </if>
+		  <if test="null != supFactory and '' != supFactory">
+		  	AND T.SUP_FACTORY = #{supFactory}
+		  </if>
+		  <if test="null != routeCode and '' != routeCode">
+		  	AND T.ROUTE_CODE = #{routeCode}
+		  </if>
+		  <if test="null != carBatch and '' != carBatch">
+			AND T.CAR_BATCH = #{carBatch}		  	
+		  </if>
+		  ORDER BY T.CAR_BATCH_SEQNO
+	 </select>
+	 
+	 <!-- 待组单指示票-查询未组单指示票列表   -->
+	 <select id="queryNotGroupBillPage" parameterType="com.hanthink.jiso.model.JisoInsModel" 
+	 		resultType="com.hanthink.jiso.model.JisoInsModel">
+	 	SELECT INS_NO insNo,
+		       PARTGROUP_NO partgroupNo,
+		       ARR_DEPOT arrDepot,
+		       SUPPLIER_NO supplierNo,
+		       SUP_FACTORY supFactory,
+		       PARTGROUP_NAME partgroupName,
+		       LOCATION location,
+		       to_char(CREATION_TIME, 'yyyy-mm-dd hh24:mi:ss') creationTime
+		  FROM MM_JISO_INS
+		  WHERE 1=1
+		  	   AND ORDER_DEAL_FLAG = '0' AND ORDER_FLG = '1'
+		   	   AND PLAN_CODE = #{planCode,jdbcType=VARCHAR}
+		   	   AND SUP_FACTORY = #{supFactory,jdbcType=VARCHAR}
+		   	   AND ROUTE_CODE = #{routeCode,jdbcType=VARCHAR}
+		   	   AND CAR_BATCH_SEQNO = #{carBatchSeqno,jdbcType=VARCHAR}
+		   	   AND SUPPLIER_NO = #{supplierNo,jdbcType=VARCHAR}
+	 </select>
+	 
+	 <!-- 获取厂外同步零件组下拉框 -->
+	 <select id="queryPartgroupComboData" parameterType="com.hanthink.jiso.model.JisoInsModel" 
+	 		resultType="com.hanthink.jiso.model.JisoInsModel">
+	 	 SELECT DISTINCT 
+	           T.PARTGROUP_NO partgroupNo,
+	           T.PARTGROUP_NAME partgroupName
+			FROM MM_JISO_PARTGROUP T 
+			INNER JOIN MM_PUB_PLAN_CODE C ON C.PLAN_CODE = T.PLAN_CODE AND C.FACTORY_CODE = #{factoryCode}   
+	    	WHERE SYSDATE BETWEEN T.EFF_START AND T.EFF_END
+	    	ORDER BY T.PARTGROUP_NO
+	 </select>
+	 
+	 <!-- 手工组单 -->
+	 <update id="updateManuDealOrderList" parameterType="java.util.List">
+	 	<foreach collection="list" item="item" index="index" separator=";" open="" close="">
+	 	UPDATE MM_JISO_ORDER_MANU_DEAL
+		 	<set>
+		 		MANU_REQ_USER = #{item.manuReqUser, jdbcType=VARCHAR},
+		 		MANU_REQ_TIME = SYSDATE,
+		 		MANU_REQ_IP = #{item.manuReqIp, jdbcType=VARCHAR},
+		 		DEAL_TIME = NULL,
+		 		DEAL_FLAG = 0
+		 	</set>
+		 	WHERE PLAN_CODE = #{item.planCode, jdbcType=VARCHAR} 
+		 	AND   SUP_FACTORY = #{item.supFactory, jdbcType=VARCHAR}
+		 	AND   ROUTE_CODE = #{item.routeCode, jdbcType=VARCHAR}
+		 	AND   CAR_BATCH_SEQNO = #{item.carBatchSeqno, jdbcType=VARCHAR}
+		 	AND   SUPPLIER_NO = #{item.supplierNo, jdbcType=VARCHAR}
+	 	</foreach>
+	 </update>
+	 
+	 <!-- 手工组单 -->
+	 <update id="updateManuDealOrder" parameterType="com.hanthink.jiso.model.JisoOrderManuDealModel">
+	 	UPDATE MM_JISO_ORDER_MANU_DEAL SET
+	 		MANU_REQ_USER = #{manuReqUser, jdbcType=VARCHAR},
+	 		MANU_REQ_TIME = SYSDATE,
+	 		MANU_REQ_IP = #{manuReqIp, jdbcType=VARCHAR},
+	 		DEAL_TIME = NULL,
+	 		DEAL_FLAG = 0
+	 	WHERE 1=1
+	 		AND PLAN_CODE = #{planCode, jdbcType=VARCHAR} 
+	 		AND SUP_FACTORY = #{supFactory, jdbcType=VARCHAR}
+	 		AND ROUTE_CODE = #{routeCode, jdbcType=VARCHAR}
+		 	AND CAR_BATCH_SEQNO = #{carBatchSeqno, jdbcType=VARCHAR}
+		 	AND SUPPLIER_NO = #{supplierNo, jdbcType=VARCHAR}
+	 </update>
+	 
+	 <!-- 查询MM_JISO_INS_MANU_DEAL是否存在某零件组 -->
+	 <select id="queryJisoInsManuDealList" parameterType="com.hanthink.jiso.model.JisoInsManuDealModel"
+	 		resultType="com.hanthink.jiso.model.JisoInsManuDealModel">
+	 	SELECT 
+              T.PLAN_CODE planCode,
+              T.PARTGROUP_NO partgroupNo
+	       FROM MM_JISO_INS_MANU_DEAL T
+	       WHERE T.PLAN_CODE = #{planCode} AND T.PARTGROUP_NO =  #{partgroupNo}	
+	 </select>
+	 
+	 <!-- 手工组单更新MM_JISO_INS_MANU_DEAL -->
+	 <update id="updateManuDealBill" parameterType="com.hanthink.jiso.model.JisoInsManuDealModel">
+	 	UPDATE MM_JISO_INS_MANU_DEAL T SET 
+              T.MANU_REQ_USER = #{manuReqUser, jdbcType=VARCHAR},
+              T.MANU_REQ_TIME = SYSDATE,
+              T.MANU_REQ_IP = #{manuReqIp, jdbcType=VARCHAR},
+              T.DEAL_FLAG = 0,
+              T.DEAL_TIME = NULL
+       WHERE T.PLAN_CODE = #{planCode} AND T.PARTGROUP_NO =  #{partgroupNo}	
+	 </update>
+	 
+	 <!-- 手工组单 -->
+	 <select id="queryJisoOrderManuDealList" parameterType="com.hanthink.jiso.model.JisoOrderManuDealModel"
+	 	resultType="com.hanthink.jiso.model.JisoOrderManuDealModel">
+	 	SELECT 
+	       T.PLAN_CODE planCode,
+	       T.SUPPLIER_NO supplierNo, 
+	       T.SUP_FACTORY supFactory,
+	       T.ROUTE_CODE routeCode,
+	       T.CAR_BATCH_SEQNO carBatchSeqno 
+	       FROM MM_JISO_ORDER_MANU_DEAL T	
+	 	WHERE 1=1
+	 		AND T.PLAN_CODE = #{planCode} 
+	 		AND T.SUPPLIER_NO = #{supplierNo}
+	 		AND T.SUP_FACTORY = #{supFactory}
+	 		AND T.ROUTE_CODE = #{routeCode}
+		 	AND T.CAR_BATCH_SEQNO = #{carBatchSeqno}
+	 </select>
+	 
+	 <!-- 手工组票 ,存在更新,不存在更新-->
+	 <insert id="insertManuDealOrder" parameterType="com.hanthink.jiso.model.JisoOrderManuDealModel">
+	 	INSERT INTO MM_JISO_ORDER_MANU_DEAL
+			  (PLAN_CODE,
+			   SUPPLIER_NO,
+			   SUP_FACTORY,
+			   ROUTE_CODE,
+			   CAR_BATCH_SEQNO,
+			   MANU_REQ_USER,
+			   MANU_REQ_TIME,
+			   MANU_REQ_IP,
+			   DEAL_FLAG
+			   )
+			VALUES
+			  (#{planCode, jdbcType=VARCHAR},
+			   #{supplierNo, jdbcType=VARCHAR},
+			   #{supFactory, jdbcType=VARCHAR},
+			   #{routeCode, jdbcType=VARCHAR},
+			   #{carBatchSeqno, jdbcType=VARCHAR},
+			   #{manuReqUser, jdbcType=VARCHAR},
+			   SYSDATE,
+			   #{manuReqIp, jdbcType=VARCHAR},
+			   0
+			   )
+	 </insert>
+	 
+</mapper>

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.sys.persistence.model.QuerySqldef">
+	<resultMap id="QuerySqldef" type="com.hotent.sys.persistence.model.QuerySqldef">
+		<id property="id" column="ID_" jdbcType="VARCHAR"/>
+		<result property="alias" column="ALIAS_" jdbcType="VARCHAR"/>
+		<result property="name" column="NAME_" jdbcType="VARCHAR"/>
+		<result property="dsName" column="DS_NAME_" jdbcType="VARCHAR"/>
+		<result property="sql" column="SQL_" jdbcType="VARCHAR"/>
+		<result property="categoryId" column="CATEGORY_ID_" jdbcType="VARCHAR"/>
+		<result property="supportTab" column="SUPPORT_TAB_" jdbcType="NUMERIC"/>
+		<result property="buttonDef" column="BUTTON_DEF_" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.sys.persistence.model.QuerySqldef">
+		INSERT INTO sys_query_sqldef
+		(ID_,ALIAS_,NAME_,DS_NAME_,SQL_,CATEGORY_ID_,SUPPORT_TAB_,BUTTON_DEF_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{alias,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR}, #{dsName,jdbcType=VARCHAR}, #{sql,jdbcType=VARCHAR}, #{categoryId,jdbcType=VARCHAR}, #{supportTab,jdbcType=NUMERIC}, #{buttonDef,jdbcType=CLOB})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="QuerySqldef">
+		SELECT * FROM sys_query_sqldef 
+		WHERE 
+		ID_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="QuerySqldef">
+		SELECT * FROM sys_query_sqldef
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY ID_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.sys.persistence.model.QuerySqldef">
+		UPDATE sys_query_sqldef SET
+		ALIAS_=#{alias,jdbcType=VARCHAR},
+		NAME_=#{name,jdbcType=VARCHAR},
+		DS_NAME_=#{dsName,jdbcType=VARCHAR},
+		SQL_=#{sql,jdbcType=VARCHAR},
+		CATEGORY_ID_=#{categoryId,jdbcType=VARCHAR},
+		SUPPORT_TAB_=#{supportTab,jdbcType=NUMERIC},
+		BUTTON_DEF_=#{buttonDef,jdbcType=CLOB}
+		WHERE
+		ID_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_query_sqldef 
+		WHERE
+		ID_=#{id}
+	</delete>
+	
+	
+</mapper>

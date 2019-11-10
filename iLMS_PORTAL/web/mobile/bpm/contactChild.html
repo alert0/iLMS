@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html ng-app="myApp">
+<head>
+<title>X5手机平台</title>
+<meta charset="utf-8">
+<script src="../assets/js/importJs.js"></script>
+
+<script type="text/javascript">
+var myApp = angular.module("myApp", ['base','mobileDirective']);
+myApp.controller("myTaskCtrl",['$scope','baseService','$sce', function(scope,baseService,$sce) {
+	var demId=HtUtil.getParameter("demId");
+	var id=HtUtil.getParameter("id");
+	scope.currentOrgname=HtUtil.getParameter("orgname");
+	var showSize = 3;
+	// 加载用户
+	scope.loadUser = function(){
+		var param = {"orgId":id,page:1,rows:1000};
+		var url = __ctx + "/org/user/getUserAndGroup";
+		baseService.postForm(url,param).then(
+				function(data){
+					scope.userRes = data.rows;
+					$.each(scope.userRes,function(){
+						if(this.photo != undefined){
+							this.photo = __ctx + this.photo;
+						}
+					})
+					scope.showSize=showSize;
+					scope.showlength = showSize;
+				},function(){}
+			)
+	}
+	// 加载组织
+	scope.loadOrg = function(){
+		var param = {"demId":demId,"id":id};
+		var url = __ctx + "/org/org/getTreeDataByDemid";
+		baseService.postForm(url,param).then(
+				function(data){
+					scope.orgRes = data;
+				},function(){}
+			)
+	}
+	// 加载父级组织
+	scope.loadParentOrg = function(){
+		var param = {"demId":demId,"id":id};
+		var url = __ctx + "/org/org/getParentOrgList";
+		baseService.postForm(url,param).then(
+				function(data){
+					scope.orgParent = data;
+				},function(){}
+			)
+	}
+	scope.loadParentOrg();
+	scope.loadUser();
+	scope.loadOrg();
+	scope.contactChild = function(item){
+		location.href = "contactChild.html?demId="+demId+"&id="+item.id+"&orgname="+item.name;
+	}
+	scope.contactDetail = function(item){
+		location.href = "contactDetail.html?id="+item.userId+"&orgId="+id;
+	}
+	scope.lookmore = function(){
+		scope.showSize = scope.userRes.length;
+		$(".shouqi").show();
+		$(".lookmore").hide();
+	}
+	scope.shouqi = function(){
+		scope.showSize = showSize;
+		$(".lookmore").show();
+		$(".shouqi").hide();
+	}
+}]);
+
+$(function(){
+	$("a.item-inner").click(function(){
+		$.closePanel()
+	});
+	$(".search-input").click(function(){
+		location.href = "contactSearch.html";
+	});
+})
+</script>
+</head>
+<body ng-controller="myTaskCtrl" class="body_foot">
+<div class="page contactChildPage" id="taskToDo">
+ 	<header class="hkm-red-header bar bar-nav">
+	  <a class="icon icon-left pull-left back" href="javascript:history.go(-1);"></a>
+	  <!--<a class="icon icon-me pull-left open-panel" href="#" ></a> 
+	  <a class="pull-right icon-button fa fa-sign-out" href="#" onclick="signout();" ></a> -->
+	  <span class='title'>联系人</span>
+	</header>
+	<div class="bar bar-header-secondary">
+	  <div class="searchbar">
+	    <a class="searchbar-cancel">取消</a>
+	    <div class="search-input">
+	      <label class="icon icon-search" for="search"></label>
+	      <input type="search" id='search' placeholder=''/>
+	    </div>
+	  </div>
+	</div>
+   <div class="txl_part01 clearfix">
+      <div ng-repeat="item in orgParent">
+		<a class="txl_cenji" href="##" ng-click="contactChild(item)">{{item.name}}</a>
+		<span class="txl_cenji_arr">></span>
+      </div>
+		<a class="txl_cenji" href="##">{{currentOrgname}}</a>
+	</div>
+	<div class="txl_jiagou">
+		<div class="txl_bumen_tit clearfix"><img class="txl_bumen_Timg" src="../assets/img/txl_members.png" alt="" /><span class="txl_bumen_p">部门成员</span></div>
+		<div>
+			<a class="txl_bumen_list clearfix" href="##"  ng-click="contactDetail(item)" ng-repeat="item in userRes">
+				<div class="txl_bumen_peo_img"><img ng-show="item.photo != undefined" ng-src="{{item.photo}}" alt="" /><span ng-hide="item.photo != undefined">{{item.fullName | nameAlias}}</span></div>
+				<div class="txl_bumen_word"><span class="txl_bumen_name">{{item.fullName}}</span><span class="txl_bumen_duty">{{item.relName}}</span></div>
+			</a>
+		</div>
+	</div>
+	<div class="txl_jiagou">
+		<div class="txl_bumen_tit clearfix"><img class="txl_bumen_Timg" src="../assets/img/txl_members.png" alt="" /><span class="txl_bumen_p">下级部门</span></div>
+		<div>
+			<a class="txl_jiagou_list" href="##" ng-click="contactChild(item)" ng-repeat="item in orgRes"><span class="txl_jiagou_word">{{item.name}}</span><span class="txl_jiagou_num">{{item.population}}</span></a>
+		</div>
+	</div>
+  <div class="hot_foot clearfix">
+		<a href="../index.html" class="hot_foot_cell" external><span class="iconfont hot_foot_icon">&#xe601;</span><span class="hot_foot_word">首页</span></a>
+		<a href="workbench.html" class="hot_foot_cell" external><span class="iconfont hot_foot_icon">&#xe66b;</span><span class="hot_foot_word">工作台</span></a>
+		<a href="##" class="hot_foot_cell current"><span class="iconfont hot_foot_icon">&#xe612;</span><span class="hot_foot_word">通讯录</span></a>
+		<a href="myCenter.html" class="hot_foot_cell" external><span class="iconfont hot_foot_icon">&#xe630;</span><span class="hot_foot_word">我的</span></a>
+	</div>
+</div>
+	<div index-page></div>
+	
+	<div class="panel-overlay"></div>
+</body>
+</html>

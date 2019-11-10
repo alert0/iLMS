@@ -1,0 +1,750 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.sw.model.SwMaterialOrderModel">
+
+
+	<!-- 订单查询 -->
+	<select id="queryMaterialOrderPage"
+		parameterType="com.hanthink.sw.model.SwMaterialOrderModel"
+		resultType="com.hanthink.sw.model.SwMaterialOrderModel">
+		SELECT ZC.REPLY_SEQ_NO replySeqNo,<!--反馈序号 -->
+		O.PURCHASE_NO purchaseNo, <!--订单号 -->
+		OD.PURCHASE_ROWNO purchaseRowNo,
+		OD.INV_TYPE invType, <!--库存区分 -->
+		OD.PART_NO partNo, <!--物料编号 -->
+		OD.COST_CODE costCode, <!--费用中心代码 -->
+		P.PART_NAME_CN partName, <!--资材名称 -->
+		OD.COST_CENTER costCenter, <!--成本中心代码 -->
+		OD.STANDARD_PACKAGE standPackage, <!--规格 -->
+		TO_CHAR(O.ARRIVE_DATE, 'YYYY-MM-DD') arriveDate, <!--要求交货日期 -->
+		OD.ORDER_QTY orderQty, <!--订购数量 -->
+		CASE
+		WHEN NVL(OD.CANCEL_NUM, 0) > 0 THEN
+		'取消'
+		ELSE
+		'正常'
+		END orderStatus, <!--订单状态 -->
+		OD.ORDER_UNIT orderUnit, <!--订购单位 -->
+		DA.CODE_VALUE_NAME printStatus, <!--打印状态 -->
+		TO_CHAR(O.ORDER_DATE, 'YYYY-MM-DD') orderDate, <!--订购日期 -->
+		TO_CHAR(ZC.PLAN_TIME, 'YYYY-MM-DD') planTime, <!--交货日期 -->
+		TO_CHAR(O.PRINT_TIME, 'YYYY-MM-DD HH24:MI:SS') printTime, <!--打印时间 -->
+		O.REC_USER recUser, <!--订购人 -->
+		DECODE(ZC.RETURN_STATUS, '1', '满足', '2', '多次发货', '未反馈') returnStatus, <!--反馈状态 -->
+		O.REC_TEL recTel, <!--收货联系方式 -->
+		TO_CHAR(ZC.RETURN_TIME, 'YYYY-MM-DD HH24:MI:SS') returnTime, <!--反馈时间 -->
+		O.REC_ADDRESS recAdress, <!--收货地址 -->
+		ZC.PLAN_NUM planNum, <!--计划交货数 -->
+		O.SUPPLIER_NO supplierNo, <!--供应商代码 -->
+		SP.SUPPLIER_NAME supplierName,
+		ZC.RETURN_MSG returnMsg, <!--反馈备注 -->
+		UD.PART_SHORT_NO  partShortNo
+		FROM MM_SW_ORDER_DETAIL OD
+		LEFT JOIN MM_SW_ORDER O
+		ON OD.PURCHASE_NO =
+		O.PURCHASE_NO
+		LEFT JOIN MM_PUB_PART P
+		ON OD.PART_NO = P.PART_NO
+		LEFT JOIN
+		MM_PUB_SUPPLIER SP
+		ON O.SUPPLIER_NO = SP.SUPPLIER_NO
+		LEFT JOIN
+		MM_SW_FEEDBACK_ZC ZC
+		ON OD.PURCHASE_NO = ZC.PURCHASE_NO
+		AND
+		OD.PURCHASE_ROWNO = ZC.PURCHASE_ROW_NO
+		LEFT JOIN MM_PUB_DATA_DICT DA
+		ON
+		DA.CODE_TYPE = 'PUB_PRINT_STATUS'
+		AND TO_CHAR(ZC.PRINT_STATUS) =
+		DA.CODE_VALUE
+		LEFT JOIN MM_PUB_PART_UDA  UD
+		ON 
+		UD.PART_NO = OD.PART_NO
+		WHERE O.ORDER_TYPE = '14'
+
+		<if test="purchaseNo != null and '' != purchaseNo">
+			AND O.PURCHASE_NO LIKE CONCAT(CONCAT('%',#{purchaseNo}), '%')
+		</if>
+		<if test="partNo != null and '' != partNo">
+			AND OD.PART_NO LIKE CONCAT(#{partNo}, '%')
+		</if>
+		<if test="supplierName != null and '' != supplierName">
+			AND SP.SUPPLIER_NAME LIKE CONCAT(CONCAT('%',#{supplierName}), '%')
+		</if>
+		<if test="supplierNo != null and '' != supplierNo">
+			AND SP.SUPPLIER_NO = #{supplierNo}
+		</if>
+		<if test="recUser != null and '' != recUser">
+			AND O.REC_USER = #{recUser}
+		</if>
+		<if test="arriveDateFrom != null and '' != arriveDateFrom">
+			AND TO_CHAR(O.ARRIVE_DATE, 'YYYY-MM-DD') &gt;=
+			#{arriveDateFrom}
+		</if>
+		<if test="arriveDateTo != null and '' != arriveDateTo">
+			AND TO_CHAR(O.ARRIVE_DATE, 'YYYY-MM-DD') &lt;=
+			#{arriveDateTo}
+		</if>
+		<if test="printStatus != null and '' != printStatus">
+			AND ZC.PRINT_STATUS = #{printStatus}
+		</if>
+
+
+		UNION
+
+		SELECT ZC.REPLY_SEQ_NO replySeqNo,<!--反馈序号 -->
+		O.PURCHASE_NO purchaseNo, <!--订单号 -->
+		OD.PURCHASE_ROWNO purchaseRowNo,
+		OD.INV_TYPE invType, <!--库存区分 -->
+		OD.PART_NO partNo, <!--物料编号 -->
+		OD.COST_CODE costCode, <!--费用中心代码 -->
+		P.PART_NAME_CN partName, <!--资材名称 -->
+		OD.COST_CENTER costCenter, <!--成本中心代码 -->
+		OD.STANDARD_PACKAGE standPackage, <!--规格 -->
+		TO_CHAR(O.ARRIVE_DATE, 'YYYY-MM-DD') arriveDate, <!--要求交货日期 -->
+		OD.ORDER_QTY orderQty, <!--订购数量 -->
+		CASE
+		WHEN NVL(OD.CANCEL_NUM, 0) > 0 THEN
+		'取消'
+		ELSE
+		'正常'
+		END orderStatus, <!--订单状态 -->
+		OD.ORDER_UNIT orderUnit, <!--订购单位 -->
+		DA.CODE_VALUE_NAME printStatus, <!--打印状态 -->
+		TO_CHAR(O.ORDER_DATE, 'YYYY-MM-DD') orderDate, <!--订购日期 -->
+		TO_CHAR(ZC.PLAN_TIME, 'YYYY-MM-DD') planTime, <!--交货日期 -->
+		TO_CHAR(O.PRINT_TIME, 'YYYY-MM-DD HH24:MI:SS') printTime, <!--打印时间 -->
+		O.REC_USER recUser, <!--订购人 -->
+		DECODE(ZC.RETURN_STATUS, '1', '满足', '2', '多次发货', '未反馈') returnStatus, <!--反馈状态 -->
+		O.REC_TEL recTel, <!--收货联系方式 -->
+		TO_CHAR(ZC.RETURN_TIME, 'YYYY-MM-DD HH24:MI:SS') returnTime, <!--反馈时间 -->
+		O.REC_ADDRESS recAdress, <!--收货地址 -->
+		ZC.PLAN_NUM planNum, <!--计划交货数 -->
+		O.SUPPLIER_NO supplierNo, <!--供应商代码 -->
+		SP.SUPPLIER_NAME supplierName,
+		ZC.RETURN_MSG returnMsg, <!--反馈备注 -->
+		UD.PART_SHORT_NO  partShortNo
+		FROM MM_SW_FEEDBACK_ZC ZC
+		LEFT JOIN MM_SW_ORDER_DETAIL OD
+		ON
+		OD.PURCHASE_NO = ZC.PURCHASE_NO
+		AND OD.PURCHASE_ROWNO =
+		ZC.PURCHASE_ROW_NO
+		LEFT JOIN MM_SW_ORDER O
+		ON OD.PURCHASE_NO =
+		O.PURCHASE_NO
+		LEFT JOIN MM_PUB_PART P
+		ON OD.PART_NO = P.PART_NO
+		LEFT JOIN
+		MM_PUB_SUPPLIER SP
+		ON O.SUPPLIER_NO = SP.SUPPLIER_NO
+		LEFT JOIN
+		MM_PUB_DATA_DICT DA
+		ON
+		DA.CODE_TYPE = 'PUB_PRINT_STATUS'
+		AND
+		TO_CHAR(ZC.PRINT_STATUS) =
+		DA.CODE_VALUE
+		LEFT JOIN MM_PUB_PART_UDA  UD
+		ON 
+		UD.PART_NO = OD.PART_NO
+		WHERE O.ORDER_TYPE = '14'
+
+		<if test="purchaseNo != null and '' != purchaseNo">
+			AND O.PURCHASE_NO LIKE CONCAT(CONCAT('%',#{purchaseNo}), '%')
+		</if>
+		<if test="partNo != null and '' != partNo">
+			AND OD.PART_NO LIKE CONCAT(#{partNo}, '%')
+		</if>
+		<if test="supplierName != null and '' != supplierName">
+			AND SP.SUPPLIER_NAME LIKE CONCAT(CONCAT('%',#{supplierName}), '%')
+		</if>
+		<if test="supplierNo != null and '' != supplierNo">
+			AND SP.SUPPLIER_NO = #{supplierNo}
+		</if>
+		<if test="recUser != null and '' != recUser">
+			AND O.REC_USER = #{recUser}
+		</if>
+		<if test="arriveDateFrom != null and '' != arriveDateFrom">
+			AND TO_CHAR(O.ARRIVE_DATE, 'YYYY-MM-DD') &gt;=
+			#{arriveDateFrom}
+		</if>
+		<if test="arriveDateTo != null and '' != arriveDateTo">
+			AND TO_CHAR(O.ARRIVE_DATE, 'YYYY-MM-DD') &lt;=
+			#{arriveDateTo}
+		</if>
+		<if test="printStatus != null and '' != printStatus">
+			AND ZC.PRINT_STATUS = #{printStatus}
+		</if>
+	</select>
+
+	<!-- 订单导出 -->
+	<select id="downloadMaterialOrder"
+		parameterType="com.hanthink.sw.model.SwMaterialOrderModel"
+		resultType="com.hanthink.sw.model.SwMaterialOrderModel">
+		SELECT ZC.REPLY_SEQ_NO replySeqNo,<!--反馈序号 -->
+		O.PURCHASE_NO purchaseNo, <!--订单号 -->
+		OD.PURCHASE_ROWNO purchaseRowNo,
+		OD.INV_TYPE invType, <!--库存区分 -->
+		OD.PART_NO partNo, <!--物料编号 -->
+		OD.COST_CODE costCode, <!--费用中心代码 -->
+		P.PART_NAME_CN partName, <!--资材名称 -->
+		OD.COST_CENTER costCenter, <!--成本中心代码 -->
+		OD.STANDARD_PACKAGE standPackage, <!--规格 -->
+		TO_CHAR(O.ARRIVE_DATE, 'YYYY-MM-DD') arriveDate, <!--要求交货日期 -->
+		OD.ORDER_QTY orderQty, <!--订购数量 -->
+		CASE
+		WHEN NVL(OD.CANCEL_NUM, 0) > 0 THEN
+		'取消'
+		ELSE
+		'正常'
+		END orderStatus, <!--订单状态 -->
+		OD.ORDER_UNIT orderUnit, <!--订购单位 -->
+		DA.CODE_VALUE_NAME printStatus, <!--打印状态 -->
+		TO_CHAR(O.ORDER_DATE, 'YYYY-MM-DD') orderDate, <!--订购日期 -->
+		TO_CHAR(ZC.PLAN_TIME, 'YYYY-MM-DD') planTime, <!--交货日期 -->
+		TO_CHAR(O.PRINT_TIME, 'YYYY-MM-DD HH24:MI:SS') printTime, <!--打印时间 -->
+		O.REC_USER recUser, <!--订购人 -->
+		DECODE(ZC.RETURN_STATUS, '1', '满足', '2', '多次发货', '未反馈') returnStatus, <!--反馈状态 -->
+		O.REC_TEL recTel, <!--收货联系方式 -->
+		TO_CHAR(ZC.RETURN_TIME, 'YYYY-MM-DD HH24:MI:SS') returnTime, <!--反馈时间 -->
+		O.REC_ADDRESS recAdress, <!--收货地址 -->
+		ZC.PLAN_NUM planNum, <!--计划交货数 -->
+		O.SUPPLIER_NO supplierNo, <!--供应商代码 -->
+		SP.SUPPLIER_NAME supplierName,
+		ZC.RETURN_MSG returnMsg, <!--反馈备注 -->
+		UD.PART_SHORT_NO  partShortNo
+		FROM MM_SW_ORDER_DETAIL OD
+		LEFT JOIN MM_SW_ORDER O
+		ON OD.PURCHASE_NO =
+		O.PURCHASE_NO
+		LEFT JOIN MM_PUB_PART P
+		ON OD.PART_NO = P.PART_NO
+		LEFT JOIN
+		MM_PUB_SUPPLIER SP
+		ON O.SUPPLIER_NO = SP.SUPPLIER_NO
+		LEFT JOIN
+		MM_SW_FEEDBACK_ZC ZC
+		ON OD.PURCHASE_NO = ZC.PURCHASE_NO
+		AND
+		OD.PURCHASE_ROWNO = ZC.PURCHASE_ROW_NO
+		LEFT JOIN MM_PUB_DATA_DICT DA
+		ON
+		DA.CODE_TYPE = 'PUB_PRINT_STATUS'
+		AND TO_CHAR(ZC.PRINT_STATUS) =
+		DA.CODE_VALUE
+		LEFT JOIN MM_PUB_PART_UDA  UD
+		ON 
+		UD.PART_NO = OD.PART_NO
+		WHERE O.ORDER_TYPE = '14'
+
+		<if test="purchaseNo != null and '' != purchaseNo">
+			AND O.PURCHASE_NO LIKE CONCAT(CONCAT('%',#{purchaseNo}), '%')
+		</if>
+		<if test="partNo != null and '' != partNo">
+			AND OD.PART_NO LIKE CONCAT(#{partNo}, '%')
+		</if>
+		<if test="supplierName != null and '' != supplierName">
+			AND SP.SUPPLIER_NAME LIKE CONCAT(CONCAT('%',#{supplierName}), '%')
+		</if>
+		<if test="supplierNo != null and '' != supplierNo">
+			AND SP.SUPPLIER_NO = #{supplierNo}
+		</if>
+		<if test="recUser != null and '' != recUser">
+			AND O.REC_USER = #{recUser}
+		</if>
+		<if test="arriveDateFrom != null and '' != arriveDateFrom">
+			AND TO_CHAR(O.ARRIVE_DATE, 'YYYY-MM-DD') &gt;=
+			#{arriveDateFrom}
+		</if>
+		<if test="arriveDateTo != null and '' != arriveDateTo">
+			AND TO_CHAR(O.ARRIVE_DATE, 'YYYY-MM-DD') &lt;=
+			#{arriveDateTo}
+		</if>
+		<if test="printStatus != null and '' != printStatus">
+			AND ZC.PRINT_STATUS = #{printStatus}
+		</if>
+
+
+		UNION
+
+		SELECT ZC.REPLY_SEQ_NO replySeqNo,<!--反馈序号 -->
+		O.PURCHASE_NO purchaseNo, <!--订单号 -->
+		OD.PURCHASE_ROWNO purchaseRowNo,
+		OD.INV_TYPE invType, <!--库存区分 -->
+		OD.PART_NO partNo, <!--物料编号 -->
+		OD.COST_CODE costCode, <!--费用中心代码 -->
+		P.PART_NAME_CN partName, <!--资材名称 -->
+		OD.COST_CENTER costCenter, <!--成本中心代码 -->
+		OD.STANDARD_PACKAGE standPackage, <!--规格 -->
+		TO_CHAR(O.ARRIVE_DATE, 'YYYY-MM-DD') arriveDate, <!--要求交货日期 -->
+		OD.ORDER_QTY orderQty, <!--订购数量 -->
+		CASE
+		WHEN NVL(OD.CANCEL_NUM, 0) > 0 THEN
+		'取消'
+		ELSE
+		'正常'
+		END orderStatus, <!--订单状态 -->
+		OD.ORDER_UNIT orderUnit, <!--订购单位 -->
+		DA.CODE_VALUE_NAME printStatus, <!--打印状态 -->
+		TO_CHAR(O.ORDER_DATE, 'YYYY-MM-DD') orderDate, <!--订购日期 -->
+		TO_CHAR(ZC.PLAN_TIME, 'YYYY-MM-DD') planTime, <!--交货日期 -->
+		TO_CHAR(O.PRINT_TIME, 'YYYY-MM-DD HH24:MI:SS') printTime, <!--打印时间 -->
+		O.REC_USER recUser, <!--订购人 -->
+		DECODE(ZC.RETURN_STATUS, '1', '满足', '2', '多次发货', '未反馈') returnStatus, <!--反馈状态 -->
+		O.REC_TEL recTel, <!--收货联系方式 -->
+		TO_CHAR(ZC.RETURN_TIME, 'YYYY-MM-DD HH24:MI:SS') returnTime, <!--反馈时间 -->
+		O.REC_ADDRESS recAdress, <!--收货地址 -->
+		ZC.PLAN_NUM planNum, <!--计划交货数 -->
+		O.SUPPLIER_NO supplierNo, <!--供应商代码 -->
+		SP.SUPPLIER_NAME supplierName,
+		ZC.RETURN_MSG returnMsg, <!--反馈备注 -->
+		UD.PART_SHORT_NO  partShortNo
+		FROM MM_SW_FEEDBACK_ZC ZC
+		LEFT JOIN MM_SW_ORDER_DETAIL OD
+		ON
+		OD.PURCHASE_NO = ZC.PURCHASE_NO
+		AND OD.PURCHASE_ROWNO =
+		ZC.PURCHASE_ROW_NO
+		LEFT JOIN MM_SW_ORDER O
+		ON OD.PURCHASE_NO =
+		O.PURCHASE_NO
+		LEFT JOIN MM_PUB_PART P
+		ON OD.PART_NO = P.PART_NO
+		LEFT JOIN
+		MM_PUB_SUPPLIER SP
+		ON O.SUPPLIER_NO = SP.SUPPLIER_NO
+		LEFT JOIN
+		MM_PUB_DATA_DICT DA
+		ON
+		DA.CODE_TYPE = 'PUB_PRINT_STATUS'
+		AND
+		TO_CHAR(ZC.PRINT_STATUS) =
+		DA.CODE_VALUE
+		LEFT JOIN MM_PUB_PART_UDA  UD
+		ON 
+		UD.PART_NO = OD.PART_NO
+		WHERE O.ORDER_TYPE = '14'
+
+		<if test="purchaseNo != null and '' != purchaseNo">
+			AND O.PURCHASE_NO LIKE CONCAT(CONCAT('%',#{purchaseNo}), '%')
+		</if>
+		<if test="partNo != null and '' != partNo">
+			AND OD.PART_NO LIKE CONCAT(#{partNo}, '%')
+		</if>
+		<if test="supplierName != null and '' != supplierName">
+			AND SP.SUPPLIER_NAME LIKE CONCAT(CONCAT('%',#{supplierName}), '%')
+		</if>
+		<if test="supplierNo != null and '' != supplierNo">
+			AND SP.SUPPLIER_NO = #{supplierNo}
+		</if>
+		<if test="recUser != null and '' != recUser">
+			AND O.REC_USER = #{recUser}
+		</if>
+		<if test="arriveDateFrom != null and '' != arriveDateFrom">
+			AND TO_CHAR(O.ARRIVE_DATE, 'YYYY-MM-DD') &gt;=
+			#{arriveDateFrom}
+		</if>
+		<if test="arriveDateTo != null and '' != arriveDateTo">
+			AND TO_CHAR(O.ARRIVE_DATE, 'YYYY-MM-DD') &lt;=
+			#{arriveDateTo}
+		</if>
+		<if test="printStatus != null and '' != printStatus">
+			AND ZC.PRINT_STATUS = #{printStatus}
+		</if>
+	</select>
+
+
+	<!-- 反馈修改 -->
+	<update id="updateMaterialOrderPage"
+		parameterType="com.hanthink.sw.model.SwMaterialOrderModel">
+		UPDATE MM_SW_FEEDBACK_ZC ZC
+		SET ZC.PLAN_TIME =
+		TO_DATE(#{planTime},'YYYY-MM-DD'),
+		ZC.RETURN_MSG = #{returnMsg},
+		ZC.DEAL_FLAG = 1,
+		ZC.DEAL_TIME = SYSDATE,
+		ZC.LAST_MODIFIED_USER =
+		#{lasetModifiedUser},
+		ZC.LAST_MODIFIED_TIME = SYSDATE
+		WHERE
+		ZC.PURCHASE_NO = #{purchaseNo}
+		AND ZC.REPLY_SEQ_NO = #{replySeqNo}
+		AND ZC.PURCHASE_ROW_NO = #{purchaseRowNo}
+	</update>
+
+	<select id="queryDemondOrderPrintLabelList"
+		parameterType="com.hanthink.sw.model.SwMaterialOrderModel"
+		resultType="com.hanthink.sw.model.SwMaterialOrderModel">
+
+		SELECT ZC.REPLY_SEQ_NO replySeqNo,<!--反馈序号 -->
+		O.PURCHASE_NO purchaseNo, <!--订单号 -->
+		OD.INV_TYPE invType, <!--库存区分 -->
+		OD.PART_NO partNo, <!--物料编号 -->
+		OD.COST_CODE costCode, <!--费用中心代码 -->
+		P.PART_NAME_CN partName, <!--资材名称 -->
+		OD.COST_CENTER costCenter, <!--成本中心代码 -->
+		OD.STANDARD_PACKAGE standPackage, <!--规格 -->
+		TO_CHAR(O.ARRIVE_DATE, 'YYYY-MM-DD') arriveDate, <!--要求交货日期 -->
+		OD.ORDER_QTY orderQty, <!--订购数量 -->
+		CASE
+		WHEN NVL(OD.CANCEL_NUM, 0) > 0 THEN
+		'取消'
+		ELSE
+		'正常'
+		END orderStatus, <!--订单状态 -->
+		OD.ORDER_UNIT orderUnit, <!--订购单位 -->
+		DA.CODE_VALUE_NAME printStatus, <!--打印状态 -->
+		TO_CHAR(O.ORDER_DATE, 'YYYY-MM-DD') orderDate, <!--订购日期 -->
+		TO_CHAR(ZC.PLAN_TIME, 'YYYY-MM-DD') planTime, <!--交货日期 -->
+		TO_CHAR(O.PRINT_TIME, 'YYYY-MM-DD HH24:MI:SS') printTime, <!--打印时间 -->
+		O.REC_USER recUser, <!--订购人 -->
+		DECODE(ZC.RETURN_STATUS, '1', '满足', '2', '多次发货', '未反馈') returnStatus, <!--反馈状态 -->
+		O.REC_TEL recTel, <!--收货联系方式 -->
+		TO_CHAR(ZC.RETURN_TIME, 'YYYY-MM-DD') returnTime, <!--反馈时间 -->
+		O.REC_ADDRESS recAdress, <!--收货地址 -->
+		ZC.PLAN_NUM planNum, <!--计划交货数 -->
+		O.SUPPLIER_NO supplierNo, <!--供应商代码 -->
+		SP.SUPPLIER_NAME supplierName,
+		ZC.RETURN_MSG returnMsg <!--反馈备注 -->
+		FROM MM_SW_FEEDBACK_ZC ZC
+		LEFT JOIN MM_SW_ORDER_DETAIL OD
+		ON
+		OD.PURCHASE_NO = ZC.PURCHASE_NO
+		AND OD.PURCHASE_ROWNO =
+		ZC.PURCHASE_ROW_NO
+		LEFT JOIN MM_SW_ORDER O
+		ON OD.PURCHASE_NO =
+		O.PURCHASE_NO
+		LEFT JOIN MM_PUB_PART P
+		ON OD.PART_NO = P.PART_NO
+		LEFT JOIN
+		MM_PUB_SUPPLIER SP
+		ON O.SUPPLIER_NO = SP.SUPPLIER_NO
+		LEFT JOIN
+		MM_PUB_DATA_DICT DA
+		ON
+		DA.CODE_TYPE = 'PUB_PRINT_STATUS'
+		AND
+		TO_CHAR(ZC.PRINT_STATUS) =
+		DA.CODE_VALUE
+		WHERE O.ORDER_TYPE = '14'
+
+		AND
+		ZC.REPLY_SEQ_NO = #{replySeqNo}
+		AND ZC.PURCHASE_NO = #{purchaseNo}
+		AND ZC.PURCHASE_ROW_NO = #{purchaseRowNo}
+
+	</select>
+
+	<!-- 交货反馈临时数据查询 -->
+	<select id="queryMaterialOrderReturnTmp"
+		parameterType="com.hanthink.sw.model.SwMaterialOrderModel"
+		resultType="com.hanthink.sw.model.SwMaterialOrderModel">
+		SELECT TMP.ID tmpId,TMP.PURCHASE_NO
+		purchaseNo,TMP.PURCHASE_ROW_NO
+		purchaseRowNo,
+		TMP.PLAN_NUM planNum,
+		TO_CHAR(PLAN_TIME,'YYYY-MM-DD') planTime,
+		TMP.RETURN_MSG returnMsg FROM
+		MM_SW_FEEDBACK_ZC_TMP TMP WHERE TMP.PURCHASE_NO =
+		#{purchaseNo} AND
+		TMP.PURCHASE_ROW_NO = #{purchaseRowNo}
+	</select>
+
+
+	<!-- 交货反馈临时数据新增 -->
+	<insert id="insertMaterialOrderReturnTmp"
+		parameterType="com.hanthink.sw.model.SwMaterialOrderModel">
+
+		INSERT INTO MM_SW_FEEDBACK_ZC_TMP
+		(ID,
+		PURCHASE_NO,
+		PLAN_TIME,
+		PLAN_NUM,
+		PURCHASE_ROW_NO,
+		RETURN_MSG
+		) VALUES
+		(SEQ_MM_SW_FEEDBACK_ZC_TMP.NEXTVAL,
+		#{purchaseNo},
+		TO_DATE(#{planTime},'YYYY-MM-DD'),
+		#{planNum},
+		#{purchaseRowNo},
+		#{returnMsg}
+		)
+	</insert>
+	<!-- 判断反馈数量汇总是否满足订单总数 -->
+	<select id="checkMeetDelivery"
+		parameterType="com.hanthink.sw.model.SwMaterialOrderModel"
+		resultType="com.hanthink.sw.model.SwMaterialOrderModel">
+		SELECT SUM(PLAN_NUM) returnSum FROM MM_SW_FEEDBACK_ZC_TMP
+		TMP WHERE TMP.PURCHASE_NO = #{purchaseNo} AND TMP.PURCHASE_ROW_NO =
+		#{purchaseRowNo}
+	</select>
+	<!-- 获取反馈条数 -->
+	<select id="getMaterialOrderReturnTmpCount"
+		parameterType="com.hanthink.sw.model.SwMaterialOrderModel"
+		resultType="com.hanthink.sw.model.SwMaterialOrderModel">
+		SELECT COUNT(1) returnCount FROM MM_SW_FEEDBACK_ZC_TMP TMP
+		WHERE TMP.PURCHASE_NO = #{purchaseNo} AND TMP.PURCHASE_ROW_NO =
+		#{purchaseRowNo}
+	</select>
+	<!-- 更新反馈状态 -->
+	<update id="updateReturnStatus"
+		parameterType="com.hanthink.sw.model.SwMaterialOrderModel">
+		UPDATE MM_SW_FEEDBACK_ZC_TMP TMP SET TMP.RETURN_STATUS =
+		#{returnStatus} WHERE TMP.PURCHASE_NO = #{purchaseNo} AND
+		TMP.PURCHASE_ROW_NO = #{purchaseRowNo}
+	</update>
+	<!-- 反馈临时数据提交到业务 -->
+	<insert id="MaterialOrderReturnTmpToOrder"
+		parameterType="com.hanthink.sw.model.SwMaterialOrderModel">
+		INSERT INTO MM_SW_FEEDBACK_ZC (
+		REPLY_SEQ_NO,
+		FACTORY_CODE,
+		PURCHASE_NO,
+		PURCHASE_ROW_NO,
+		PLAN_TIME,
+		PLAN_NUM,
+		RETURN_MSG,
+		RETURN_TIME,
+		RETURN_STATUS
+		) VALUES (
+		#{tmpId},
+		'2000',
+		#{purchaseNo},
+		#{purchaseRowNo},
+		TO_DATE(#{planTime},'YYYY-MM-DD'),
+		#{planNum},
+		#{returnMsg},
+		SYSDATE,
+		#{returnStatus}
+		)
+	</insert>
+
+
+	<!-- 交货反馈临时数据修改 -->
+	<update id="updateMaterialOrderReturnTmp"
+		parameterType="com.hanthink.sw.model.SwMaterialOrderModel">
+		UPDATE MM_SW_FEEDBACK_ZC_TMP TMP SET
+		TMP.RETURN_MSG =
+		#{returnMsg},
+		TMP.PLAN_TIME = TO_DATE(#{planTime},'YYYY-MM-DD'),
+		TMP.PLAN_NUM = #{planNum}
+		WHERE TMP.ID = #{tmpId}
+	</update>
+	<!-- 交货反馈临时数据删除 -->
+	<delete id="deleteMaterialOrderReturnTmp"
+		parameterType="com.hanthink.sw.model.SwMaterialOrderModel">
+		DELETE FROM MM_SW_FEEDBACK_ZC_TMP TMP WHERE TMP.ID =
+		#{tmpId}
+	</delete>
+
+
+	<!-- 根据uuid删除数据 -->
+	<delete id="deleteTempCongfigByUUID"
+		parameterType="java.lang.String">
+		DELETE FROM MM_SW_FEEDBACK_ZC_IMP IMP
+		WHERE IMP.IMP_UUID
+		= #{uuid}
+	</delete>
+
+	<!-- 分页查询导入临时数据 -->
+	<select id="queryImportForPage" parameterType="java.lang.String"
+		resultType="com.hanthink.sw.model.SwMaterialOrderModel">
+		SELECT
+		MSC.PURCHASE_NO purchaseNo,
+		MSC.PURCHASE_ROWNO
+		purchaseRowNo,
+		MSC.PART_NO partNo,
+		MSC.PART_NAME partName,
+		MSC.STANDARD_PACKAGE standPackage,
+		MSC.ORDER_QTY orderQty,
+		MSC.ORDER_UNIT orderUnit,
+		TO_CHAR(MSC.ORDER_DATE,'YYYY-MM-DD')
+		orderDate,
+		MSC.REC_USER recUser,
+		MSC.REC_TEL recTel,
+		MSC.SUPPLIER_NO
+		supplierNo,
+		MSC.SUPPLIER_NANE supplierName,
+		MSC.REC_ADDRESS recAdress,
+		MSC.INV_TYPE invType,
+		MSC.COST_CODE costCode,
+		MSC.COST_CENTER
+		costCenter,
+		TO_CHAR(MSC.PRINT_TIME,'YYYY-MM-DD') printTime,
+		MSC.RETURN_STATUS returnStatus,
+		TO_CHAR(MSC.RETURN_TIME,'YYYY-MM-DD')
+		returnTime,
+		PLAN_NUM planNum,
+		RETURN_MSG returnMsg,
+		TO_CHAR(MSC.PLAN_TIME,'YYYY-MM-DD') planTime,
+		MSC.CHECK_RESULT
+		checkResult,
+		MSC.CHECK_INFO checkInfo,
+		MSC.IMPORT_STATUS importStatus,
+		MPD.CODE_VALUE_NAME excelImportStatus,
+		MPDP.CODE_VALUE_NAME
+		excelCheckResult
+		FROM MM_SW_FEEDBACK_ZC_IMP MSC
+		LEFT JOIN
+		MM_PUB_DATA_DICT MPD
+		ON MPD.CODE_TYPE = 'PUB_IMP_STATUS'
+		AND
+		MPD.CODE_VALUE = MSC.IMPORT_STATUS
+		LEFT JOIN MM_PUB_DATA_DICT MPDP
+		ON
+		MPDP.CODE_TYPE = 'PUB_IMP_CK_RESULT'
+		AND MSC.CHECK_RESULT =
+		MPDP.CODE_VALUE
+		WHERE MSC.IMP_UUID = #{uuid}
+		ORDER
+		BY MSC.CHECK_RESULT
+	</select>
+
+	<!-- 查询导入校验结果是否包含不通过 -->
+	<select id="queryIsExistsCheckResultFalse"
+		parameterType="java.lang.String" resultType="java.lang.Object">
+		SELECT COUNT(*)
+		FROM
+		MM_SW_FEEDBACK_ZC_IMP T
+		WHERE T.IMP_UUID = #{uuid, jdbcType=VARCHAR}
+		AND T.CHECK_RESULT = 0
+	</select>
+
+	<!-- 临时数据导入到正式表 -->
+	<insert id="insertTempToFormal" parameterType="java.util.Map">
+
+		INSERT INTO MM_SW_FEEDBACK_ZC (
+		REPLY_SEQ_NO,
+		FACTORY_CODE,
+		PURCHASE_NO,
+		PURCHASE_ROW_NO,
+		PLAN_TIME,
+		PLAN_NUM,
+		RETURN_MSG,
+		RETURN_TIME,
+		RETURN_STATUS
+		) SELECT
+		IMP.ID,
+		'2000',
+		IMP.PURCHASE_NO,
+		IMP.PURCHASE_ROWNO,
+		IMP.PLAN_TIME,
+		IMP.PLAN_NUM,
+		IMP.RETURN_MSG,
+		SYSDATE,
+		IMP.RETURN_STATUS
+		FROM MM_SW_FEEDBACK_ZC_IMP IMP
+		WHERE
+		IMP.IMP_UUID = #{uuid,jdbcType=VARCHAR}
+		AND IMP.CHECK_RESULT = #{checkResult,jdbcType=VARCHAR}
+		AND IMP.IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR}
+
+	</insert>
+
+	<!-- 修改临时数据表的导入状态 -->
+	<update id="updateImportStatus" parameterType="java.util.Map">
+		UPDATE
+		MM_SW_FEEDBACK_ZC_IMP SET
+		IMPORT_STATUS =
+		#{IMPORT_STATUS_YES,jdbcType=VARCHAR}
+		WHERE IMP_UUID =
+		#{uuid,jdbcType=VARCHAR}
+		AND CHECK_RESULT =
+		#{checkResult,jdbcType=VARCHAR}
+		AND IMPORT_STATUS =
+		#{importStatus,jdbcType=VARCHAR}
+	</update>
+
+
+
+
+	<!-- 将数据写入临时表 -->
+	<insert id="insertConfigToTemp" parameterType="java.util.List">
+		INSERT INTO MM_SW_FEEDBACK_ZC_IMP
+		(ID,
+		PURCHASE_NO,
+		PURCHASE_ROWNO,
+		PART_NO,
+		PART_NAME,
+		STANDARD_PACKAGE,
+		ORDER_QTY,
+		ORDER_UNIT,
+		ORDER_DATE,
+		REC_USER,
+		REC_TEL,
+		SUPPLIER_NO,
+		SUPPLIER_NANE,
+		REC_ADDRESS,
+		INV_TYPE,
+		COST_CODE,
+		COST_CENTER,
+		PRINT_TIME,
+		RETURN_STATUS,
+		RETURN_TIME,
+		PLAN_NUM,
+		RETURN_MSG,
+		IMP_UUID,
+		CHECK_RESULT,
+		CHECK_INFO,
+		IMPORT_STATUS,
+		PLAN_TIME)
+		<foreach collection="list" item="item" index="index"
+			separator=" UNION ALL">
+			SELECT
+			#{item.id},
+			#{item.purchaseNo},
+			#{item.purchaseRowNo},
+			#{item.partNo,jdbcType=VARCHAR},
+			#{item.partName,jdbcType=VARCHAR},
+			#{item.standPackage,jdbcType=VARCHAR},
+			#{item.orderQty},
+			#{item.orderUnit,jdbcType=VARCHAR},
+			TO_DATE(#{item.orderDate,jdbcType=VARCHAR},'yyyy-mm-dd hh24:mi:ss'),
+			#{item.recUser,jdbcType=VARCHAR},
+			#{item.recTel,jdbcType=VARCHAR},
+			#{item.supplierNo,jdbcType=VARCHAR},
+			#{item.supplierName,jdbcType=VARCHAR},
+			#{item.recAdress,jdbcType=VARCHAR},
+			#{item.invType,jdbcType=VARCHAR},
+			#{item.costCode},
+			#{item.costCenter,jdbcType=VARCHAR},
+			TO_DATE(#{item.printTime,jdbcType=VARCHAR},'yyyy-mm-dd hh24:mi:ss'),
+			#{item.printStatus,jdbcType=VARCHAR},
+			TO_DATE(#{item.returnTime,jdbcType=VARCHAR},'yyyy-mm-dd hh24:mi:ss'),
+			#{item.planNum},
+			#{item.returnMsg,jdbcType=VARCHAR},
+			#{item.uuid,jdbcType=VARCHAR},
+			#{item.checkResult,jdbcType=VARCHAR},
+			#{item.checkInfo,jdbcType=VARCHAR},
+			#{item.importStatus,jdbcType=VARCHAR},
+			TO_DATE(#{item.planTime,jdbcType=VARCHAR},'yyyy-mm-dd hh24:mi:ss')
+			FROM DUAL
+		</foreach>
+	</insert>
+
+	<!-- 调用存储校验数据 -->
+	<parameterMap type="map" id="checkResultMap">
+		<parameter property="uuid" mode="IN" />
+		<parameter property="errorFlag" jdbcType="VARCHAR"
+			mode="OUT" />
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT" />
+	</parameterMap>
+	<select id="ckeckImportConfig" parameterMap="checkResultMap"
+		statementType="CALLABLE">
+		{CALL PKG_INV_CHECK.USP_MATERIAL_IMPORT_CHECK(?, ?, ?)}
+	</select>
+	
+	<!-- 修改资材打印状态 -->
+	 <update id="updatePrintStatus" parameterType="com.hanthink.sw.model.SwMaterialOrderModel">
+			UPDATE MM_SW_FEEDBACK_ZC  ZC  SET
+			ZC.PRINT_STATUS = 1 ,
+			ZC.PRINT_TIME = sysdate
+			WHERE  ZC.PURCHASE_NO = #{purchaseNo}
+			AND  ZC.PURCHASE_ROW_NO = #{purchaseRowNo}
+	</update>
+	
+</mapper>

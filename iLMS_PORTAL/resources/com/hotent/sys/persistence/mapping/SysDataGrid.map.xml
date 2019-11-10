@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.sys.persistence.model.SysDataGrid">
+	<resultMap id="SysDataGrid" type="com.hotent.sys.persistence.model.SysDataGrid">
+		<id property="gridid" column="gridId_" jdbcType="VARCHAR"/>
+		<result property="gridName" column="grid_name_" jdbcType="VARCHAR"/>
+		<result property="dataSourceType" column="data_source_type_" jdbcType="VARCHAR"/>
+		<result property="dataSource" column="data_source_" jdbcType="VARCHAR"/>
+		<result property="physicsTable" column="physics_table_" jdbcType="VARCHAR"/>
+		<result property="remark" column="remark_" jdbcType="VARCHAR"/>
+		<result property="createdtime" column="createdtime_" jdbcType="TIMESTAMP"/>
+		<result property="isFieldPower" column="is_field_power_" jdbcType="BOOLEAN"/>
+		<result property="isDefaultLoadData" column="is_default_load_data_" jdbcType="BOOLEAN"/>
+		<result property="condition" column="condition_" jdbcType="VARCHAR"/>
+		<result property="isEnableCondition" column="is_enable_condition_" jdbcType="BOOLEAN"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.sys.persistence.model.SysDataGrid">
+		INSERT INTO sys_datagrid
+		(is_enable_condition_,condition_,is_default_load_data_,is_field_power_,gridId_,grid_name_,data_source_type_,data_source_,physics_table_,remark_,createdtime_)
+		VALUES 
+		(#{isEnableCondition,jdbcType=BOOLEAN},#{condition,jdbcType=VARCHAR},#{isDefaultLoadData,jdbcType=BOOLEAN},#{isFieldPower,jdbcType=BOOLEAN},#{gridid,jdbcType=VARCHAR}, #{gridName,jdbcType=VARCHAR}, #{dataSourceType,jdbcType=VARCHAR}, #{dataSource,jdbcType=VARCHAR}, #{physicsTable,jdbcType=VARCHAR}, #{remark,jdbcType=VARCHAR}, #{createdtime,jdbcType=TIMESTAMP})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="SysDataGrid">
+		SELECT * FROM sys_datagrid 
+		WHERE 
+		gridId_=#{gridid}
+	</select>
+	
+		<select id="getByGridName"   parameterType="java.lang.String" resultMap="SysDataGrid">
+		SELECT * FROM sys_datagrid 
+		WHERE 
+		grid_name_=#{gridName}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="SysDataGrid">
+		SELECT * FROM sys_datagrid
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY gridId_ DESC
+		</if>
+	</select>
+	
+	
+	
+	<update id="update" parameterType="com.hotent.sys.persistence.model.SysDataGrid">
+		UPDATE sys_datagrid SET
+		grid_name_=#{gridName,jdbcType=VARCHAR},
+		data_source_type_=#{dataSourceType,jdbcType=VARCHAR},
+		data_source_=#{dataSource,jdbcType=VARCHAR},
+		physics_table_=#{physicsTable,jdbcType=VARCHAR},
+		remark_=#{remark,jdbcType=VARCHAR},
+		createdtime_=#{createdtime,jdbcType=TIMESTAMP},
+		is_field_power_=#{isFieldPower,jdbcType=BOOLEAN},
+		is_default_load_data_=#{isDefaultLoadData,jdbcType=BOOLEAN},
+		is_enable_condition_=#{isEnableCondition,jdbcType=BOOLEAN},
+		condition_=#{condition,jdbcType=VARCHAR}
+		WHERE
+		gridId_=#{gridid}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_datagrid 
+		WHERE
+		gridId_=#{gridid}
+	</delete>
+	
+
+	
+</mapper>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project-module
+  type="WEB"
+  name="GACNE_ILMS_MAIL"
+  id="myeclipse.1524969671456"
+  context-root="/GACNE_ILMS_MAIL"
+  j2ee-spec="1.4"
+  archive="GACNE_ILMS_MAIL.war">
+  <attributes>
+    <attribute name="webrootdir" value="WebRoot" />
+  </attributes>
+</project-module>
+

@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd"> 
+<mapper namespace="com.hotent.bpmx.persistence.model.BpmDefAuthorize">
+	<resultMap id="BpmDefAuthorize" type="com.hotent.bpmx.persistence.model.BpmDefAuthorize">
+		<id property="id" column="ID_" jdbcType="VARCHAR"/>
+		<result property="authorizeDesc" column="AUTHORIZE_DESC_" jdbcType="VARCHAR"/>
+		<result property="createBy" column="CREATE_BY_" jdbcType="VARCHAR"/>
+		<result property="creator" column="CREATOR_" jdbcType="VARCHAR"/>
+		<result property="createTime" column="CREATE_TIME_" jdbcType="TIMESTAMP"/>
+	</resultMap>
+	
+	<sql id="columns">
+		ID_,AUTHORIZE_DESC_,CREATE_BY_,CREATOR_,CREATE_TIME_
+	</sql>
+	
+	<sql id="dynamicWhere">
+		<where>
+			
+			<if test="id!=null"> 
+				AND ID_  =#{id} 
+			</if>
+			
+			<if test="authorizeTypes!=null"> 
+				AND ID_ in (SELECT AUTHORIZE_ID_ FROM BPM_DEF_AUTH_TYPE WHERE AUTHORIZE_TYPE_ like #{authorizeTypes} )
+			</if>
+			
+			<if test="authorizeDesc!=null"> 
+			    AND AUTHORIZE_DESC_ LIKE #{authorizeDesc}  
+			</if>
+			<if test="ownerName!=null">
+			    <if test="defName==null">
+			   		AND ID_ in (SELECT AUTHORIZE_ID_ FROM BPM_DEF_USER WHERE OWNER_NAME_ LIKE #{ownerName} )
+				</if>
+			</if>
+			<if test="defName!=null">
+			    <if test="ownerName==null">
+				    AND ID_ in (SELECT AUTHORIZE_ID_ FROM BPM_DEF_ACT WHERE DEF_NAME_ LIKE #{defName} )
+				</if>
+			</if>
+			<if test="ownerName!=null">
+			    <if test="defName!=null">
+				    AND ID_ in (
+				                  SELECT U.AUTHORIZE_ID_ FROM BPM_DEF_USER U,BPM_DEF_ACT A 
+				                  		WHERE U.AUTHORIZE_ID_=A.AUTHORIZE_ID_ AND U.OWNER_NAME_ LIKE #{ownerName} AND A.DEF_NAME_ LIKE #{defName}
+									         )
+				</if>
+			</if>
+			
+		</where>
+	</sql>
+
+	<insert id="create" parameterType="com.hotent.bpmx.persistence.model.BpmDefAuthorize">
+		INSERT INTO BPM_DEF_AUTHORIZE
+		(ID_,AUTHORIZE_DESC_,CREATE_BY_,CREATOR_,CREATE_TIME_)
+		VALUES
+		(#{id,jdbcType=VARCHAR}, #{authorizeDesc,jdbcType=VARCHAR},#{createBy,jdbcType=VARCHAR}, #{creator,jdbcType=NUMERIC}, #{createTime,jdbcType=TIMESTAMP})
+	</insert>
+	
+	
+	<update id="update" parameterType="com.hotent.bpmx.persistence.model.BpmDefAuthorize">
+		UPDATE BPM_DEF_AUTHORIZE SET
+		AUTHORIZE_DESC_=#{authorizeDesc,jdbcType=VARCHAR}  
+		WHERE
+		ID_=#{id}
+	</update>
+	
+
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM BPM_DEF_AUTHORIZE 
+		WHERE
+		ID_=#{id}
+	</delete>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="BpmDefAuthorize">
+		SELECT <include refid="columns"/> FROM BPM_DEF_AUTHORIZE 
+		WHERE 
+		ID_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="BpmDefAuthorize">
+		SELECT <include refid="columns"/> FROM BPM_DEF_AUTHORIZE
+		<!-- <where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where> -->
+		<include refid="dynamicWhere" />
+		
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY ID_ DESC
+		</if>
+	</select>
+	
+	
+
+</mapper>

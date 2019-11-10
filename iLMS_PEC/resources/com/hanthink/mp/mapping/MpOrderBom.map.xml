@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.mp.model.MpOrderBomModel">
+
+	<!-- 分页查询订购单车BOM数据 -->
+	<select id="queryMpOrderBomForPage" parameterType="com.hanthink.mp.model.MpOrderBomModel"
+		resultType="com.hanthink.mp.model.MpOrderBomModel">
+		SELECT A.FACTORY_CODE factoryCode,
+		       A.ORDER_NO orderNo,
+		       A.MODEL_CODE modelCode,
+		       A.PART_ROWNO partRowNo,
+		       A.VEHICLE_PART_NO vehiclePartNo,
+		       A.PART_NO partNo,
+		       B.PART_NAME_CN partNameCn,
+		       NVL(C.CODE_VALUE_NAME, A.WORKCENTER) workcenter,
+		       A.STATION_CODE stationCode,
+		       A.NUM num,
+		       A.USAGE_AMOUNT_UNIT usageAmountUnit,
+		       A.PURCHASE_TYPE purchaseType
+		  FROM MM_MP_ORDER_BOM A
+		  LEFT JOIN MM_PUB_PART_UDA B
+		    ON A.PART_NO = B.PART_NO
+		   AND A.FACTORY_CODE = B.FACTORY_CODE
+		  LEFT JOIN MM_PUB_DATA_DICT C
+		    ON C.CODE_TYPE = 'PUB_WORKCENTER'
+		   AND C.CODE_VALUE = A.WORKCENTER
+		   <!-- i-LMS2019053001 mod by 赵明健 -->
+		   AND C.FACTORY_CODE = A.FACTORY_CODE
+		 WHERE A.FACTORY_CODE = #{factoryCode}
+	 		<if test="orderNo!=null and orderNo!='' ">
+				AND A.ORDER_NO LIKE CONCAT(#{orderNo}, '%')
+			</if> 
+			<if test="partNo!=null and partNo!='' ">
+				AND A.PART_NO LIKE CONCAT(#{partNo}, '%')
+			</if> 
+			<if test="partNameCn!=null and partNameCn!='' ">
+				AND B.PART_NAME_CN LIKE CONCAT(#{partNameCn}, '%')
+			</if> 
+			<if test="purchaseType!=null and purchaseType!='' ">
+				AND A.PURCHASE_TYPE = #{purchaseType}
+			</if> 
+			<if test="workcenter!=null and workcenter!='' ">
+				AND A.WORKCENTER = #{workcenter}
+			</if> 
+			ORDER BY A.ORDER_NO, A.PART_NO
+	</select>
+	
+	<!-- 需求计算  -->
+	<parameterMap type="map" id="genOrderBomMap">  
+		<parameter property="factoryCode" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="account" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="outCode" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap> 
+	<select id="genOrderBom" parameterMap="genOrderBomMap" statementType="CALLABLE">
+		{CALL PKG_MP_MAIN.USP_MP_GEN_ORDER_BOM(?, ?, ?)}
+	</select>
+
+</mapper>

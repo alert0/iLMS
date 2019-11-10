@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.bpmx.persistence.model.BpmCptoReceiver">
+	<resultMap id="BpmCptoReceiver" type="com.hotent.bpmx.persistence.model.BpmCptoReceiver">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="cptoId" column="cpto_id_" jdbcType="VARCHAR"/>
+		<result property="receiverId" column="receiver_id_" jdbcType="VARCHAR"/>
+		<result property="receiver" column="receiver_" jdbcType="VARCHAR"/>
+		<result property="isRead" column="is_read_" jdbcType="NUMERIC"/>
+		<result property="readTime" column="read_time_" jdbcType="TIMESTAMP"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.bpmx.persistence.model.BpmCptoReceiver">
+		INSERT INTO bpm_cpto_receiver
+		(id_,cpto_id_,receiver_id_,receiver_,is_read_,read_time_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{cptoId,jdbcType=VARCHAR}, #{receiverId,jdbcType=VARCHAR}, #{receiver,jdbcType=VARCHAR}, #{isRead,jdbcType=NUMERIC}, #{readTime,jdbcType=TIMESTAMP})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="BpmCptoReceiver">
+		SELECT * FROM bpm_cpto_receiver 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="getByCopyToId"   parameterType="java.util.Map" resultMap="BpmCptoReceiver">
+		SELECT * FROM bpm_cpto_receiver 
+		WHERE
+		cpto_id_='${copToId}' and receiver_id_='${receiverId}'
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="BpmCptoReceiver">
+		SELECT * FROM bpm_cpto_receiver
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.bpmx.persistence.model.BpmCptoReceiver">
+		UPDATE bpm_cpto_receiver SET
+		cpto_id_=#{cptoId,jdbcType=VARCHAR},
+		receiver_id_=#{receiverId,jdbcType=VARCHAR},
+		receiver_=#{receiver,jdbcType=VARCHAR},
+		is_read_=#{isRead,jdbcType=NUMERIC},
+		read_time_=#{readTime,jdbcType=TIMESTAMP}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM bpm_cpto_receiver 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	
+</mapper>

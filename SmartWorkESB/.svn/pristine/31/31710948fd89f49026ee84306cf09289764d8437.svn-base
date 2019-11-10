@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<respone>
+  <id>wwerwe1231</id>
+  <ifCode>third-ifcode</ifCode>
+  <data>
+    <master> <!-- 测试单笔数据路径 -->
+      <productNo>productNo1</productNo>
+      <price>14.54</price>
+      <effDate>2018-01-30 11:22:40</effDate>
+      <quantity>13</quantity>
+      <productName>productName中文1</productName>
+    </master>
+    <Item>
+      <itemName></itemName>
+      <itemNo>itemNo1</itemNo>
+      <price>54.54</price>
+      <effDate>2018-01-30 11:22:46</effDate>
+      <quantity>53</quantity>
+    </Item>
+    <Item>
+      <itemName>itemName2</itemName> <!-- 测试同一个元素名称时，数据合并成类似xml -->
+      <itemName>itemNameXX2</itemName>
+      <itemName>
+        <first>f</first>
+        <other>
+          <third>t</third>
+        </other>
+      </itemName>
+      <itemNo>itemNo2</itemNo>
+      <price>54.54</price>
+      <effDate>2018-01-30 11:22:54</effDate>
+      <quantity>53</quantity>
+    </Item>
+    <Item>
+      <itemName>itemName3</itemName>
+      <itemNo>itemNo3</itemNo>
+      <price>54.54</price>
+      <effDate>2018-01-30 11:23:02</effDate>
+      <quantity>53</quantity>
+    </Item>
+  </data>
+  <data>
+    <master>
+      <productNo>productNo2</productNo>
+      <price>15.54</price>
+      <effDate>2018-01-30 11:22:42</effDate>
+      <quantity>14</quantity>
+      <productName>productName2</productName>
+    </master>
+    <Item>
+      <itemName>itemName1</itemName>
+      <itemNo>itemNo1</itemNo>
+      <price>55.54</price>
+      <effDate>2018-01-30 11:22:46</effDate>
+      <quantity>54</quantity>
+    </Item>
+    <Item>
+      <itemName>itemName2</itemName>
+      <itemNo>itemNo2</itemNo>
+      <price>55.54</price>
+      <effDate>2018-01-30 11:22:54</effDate>
+      <quantity>54</quantity>
+    </Item>
+    <Item>
+      <itemName>itemName3</itemName>
+      <itemNo>itemNo3</itemNo>
+      <price>55.54</price>
+      <effDate>2018-01-30 11:23:02</effDate>
+      <quantity>54</quantity>
+    </Item>
+  </data>
+  <data>
+    <master>
+      <productNo>productNo3</productNo>
+      <price>16.54</price>
+      <effDate>2018-01-30 11:22:44</effDate>
+      <quantity>15</quantity>
+      <productName>productName3</productName>
+    </master>
+    <Item>
+      <itemName>itemName1</itemName>
+      <itemNo>itemNo1</itemNo>
+      <price>56.54</price>
+      <effDate>2018-01-30 11:22:46</effDate>
+      <quantity>55</quantity>
+    </Item>
+    <Item>
+      <itemName>itemName2</itemName>
+      <itemNo>itemNo2</itemNo>
+      <price>56.54</price>
+      <effDate>2018-01-30 11:22:54</effDate>
+      <quantity>55</quantity>
+    </Item>
+    <Item>
+      <itemName>itemName3</itemName>
+      <itemNo>itemNo3</itemNo>
+      <price>56.54</price>
+      <effDate>2018-01-30 11:23:02</effDate>
+      <quantity>55</quantity>
+    </Item>
+  </data>
+  <data>
+    <master>
+      <productNo>productNo4</productNo>
+      <price>17.54</price>
+      <effDate>2018-01-30 11:22:46</effDate>
+      <quantity>16</quantity>
+      <productName>productName4</productName>
+    </master>
+    <Item>
+      <itemName>itemName1</itemName>
+      <itemNo>itemNo1</itemNo>
+      <price>57.54</price>
+      <effDate>2018-01-30 11:22:46</effDate>
+      <quantity>56</quantity>
+    </Item>
+    <Item>
+      <itemName>itemName2</itemName>
+      <itemNo>itemNo2</itemNo>
+      <price>57.54</price>
+      <effDate>2018-01-30 11:22:54</effDate>
+      <quantity>56</quantity>
+    </Item>
+    <Item>
+      <itemName>itemName3</itemName>
+      <itemNo>itemNo3</itemNo>
+      <price>57.54</price>
+      <effDate>2018-01-30 11:23:02</effDate>
+      <quantity>56</quantity>
+    </Item>
+  </data>
+  <data>
+    <master>
+      <productNo>productNo5</productNo>
+      <price>18.54</price>
+      <effDate>2018-01-30 11:22:48</effDate>
+      <quantity>17</quantity>
+      <productName>productName5</productName>
+    </master>
+    <Item>
+      <itemName>itemName1</itemName>
+      <itemNo>itemNo1</itemNo>
+      <price>58.54</price>
+      <effDate>2018-01-30 11:22:46</effDate>
+      <quantity>57</quantity>
+    </Item>
+    <Item>
+      <itemName>itemName2</itemName>
+      <itemNo>itemNo2</itemNo>
+      <price>58.54</price>
+      <effDate>2018-01-30 11:22:54</effDate>
+      <quantity>57</quantity>
+    </Item>
+    <Item>
+      <itemName>itemName3</itemName>
+      <itemNo>itemNo3</itemNo>
+      <price>58.54</price>
+      <effDate>2018-01-30 11:23:02</effDate>
+      <quantity>57</quantity>
+    </Item>
+  </data>
+</respone>

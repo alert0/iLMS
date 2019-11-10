@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tns:servicecfg xmlns:tns="http://www.ksoft.com/service/manager/config" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.ksoft.com/service/manager/config service-manager.xsd ">
+    <tns:httpservices>
+        <tns:httpservice groupname="weixin" url="/http/weixin/getoauthtoken" category="service" 
+        				 sn="1" servicename="getWxOAuth" disabled="0" 
+        				 createdate="2014-01-16 10:30:00" servicetype="http" 
+        				 description="get weixin info" createby="1" />
+        <tns:httpservice groupname="weixin" url="/http/weixin/getoauthtoken" category="service" 
+        				 sn="2" servicename="getWxOAuth" disabled="0" 
+        				 createdate="2014-01-16 10:30:00" servicetype="http" 
+        				 description="get weixin info" createby="1" />
+        <tns:httpservice groupname="user" url="/http/cmd/user/findAliasByAliasno" category="service" 
+        				 sn="3" servicename="findAliasByAliasno" disabled="0" 
+        				 createdate="2014-01-16 10:30:00" servicetype="http" 
+        				 description="get user info" createby="1" />
+        <tns:httpservice groupname="weixinopen" url="/cgi-bin/groups/get" category="service" sn="6" 
+        				 servicename="getGroupInfo" disabled="0" createdate="2014-01-16 10:30:00" 
+        				 servicetype="http" description="get group info" createby="1" />
+    </tns:httpservices>
+    
+    <tns:webservices>
+        <tns:webservice groupname="bpm" url="/bpmx3/service/ProcessService?wsdl" category="service" 
+        				sn="4" servicename="getTasksByUserId" outputparam="List" disabled="0" 
+        				createdate="2014-01-16 10:30:00" servicetype="ws" description="get task info" 
+        				createby="1" namespace="http://api.webservice.platform.hotent.com/" />
+        <tns:webservice groupname="fm" url="/ws/fm/costrefund/SaveCostrefundAndList?wsdl" 
+        				category="service" sn="5" servicename="saveCostrefundAndList" 
+        				outputparam="String" disabled="0" createdate="2014-01-16 10:30:00" 
+        				servicetype="ws" description="save costrefund info" createby="1" 
+        				namespace="http://ws.costrefund.fm.services.ksoft.com/" />
+    </tns:webservices>
+</tns:servicecfg>

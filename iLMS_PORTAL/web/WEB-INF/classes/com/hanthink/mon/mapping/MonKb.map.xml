@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.mon.model.MonKbModel">
+	<!-- 看板基础信息查询 -->
+	<select id="queryMonBaseKbPage" parameterType="com.hanthink.mon.model.MonKbModel"
+			resultType="com.hanthink.mon.model.MonKbModel">
+		SELECT  T.ID  id,
+				T.FACTORY_CODE factoryCode,
+				T.KB_CODE kbCode,
+				T.PRODUCTION_LINE productionLine,
+				T.WORKCENTER workcenter,
+				T.STATION_CODE stationCode,
+				T.KB_NAME kbName,
+				T.KB_TYPE kbType,
+				T.BATCH_CYCLE_NUM batchCycleNum,
+				T.PROCESS_CYCLE_NUM processCycleNum,
+				T.CURR_BATCH_NO currbatchNo,
+				T.CURR_PROCESS_NO currprocessNo,
+				T.CURR_BATCH_SEQNO currbatchseqNo,
+				T.PRODUCT_SEQNO productSeqno,
+				T.IS_EDIT isEdit,
+				T.REMARK remark
+		  FROM MM_MON_KB T
+	    WHERE T.FACTORY_CODE = #{factoryCode}
+	    <if test="null != kbType and '' != kbType">
+	      AND T.KB_TYPE = #{kbType}
+	    </if>
+		<if test="null != kbName and '' != kbName">
+	      AND T.KB_NAME LIKE ('%' || #{kbName} || '%')
+	    </if>
+	    <if test="null != stationCode and '' != stationCode">
+	      AND T.STATION_CODE = #{stationCode}
+	    </if>
+	    ORDER BY T.CREATION_TIME
+	</select>
+	
+	<!-- 供应商看板信息查询 -->
+	<select id="queryMonKbOne" parameterType="com.hanthink.mon.model.MonKbModel"
+			resultType="com.hanthink.mon.model.MonKbModel">
+		SELECT  T.ID  id,
+				T.FACTORY_CODE factoryCode,
+				T.KB_CODE kbCode,
+				T.PRODUCTION_LINE productionLine,
+				T.WORKCENTER workcenter,
+				T.STATION_CODE stationCode,
+				T.KB_NAME kbName,
+				T.KB_TYPE kbType,
+				T.BATCH_CYCLE_NUM batchCycleNum,
+				T.PROCESS_CYCLE_NUM processCycleNum,
+				T.CURR_BATCH_NO currbatchNo,
+				T.CURR_PROCESS_NO currprocessNo,
+				T.CURR_BATCH_SEQNO currbatchseqNo,
+				T.PRODUCT_SEQNO productSeqno,
+				T.IS_EDIT isEdit,
+				T.REMARK remark
+		  FROM MM_MON_KB T
+	    WHERE 1=1
+	      AND T.ID = #{id}
+	</select>
+	<!-- 厂内拉动信息查询 -->
+	<select id="queryJitInKbOne" parameterType="com.hanthink.mon.model.MonKbModel"
+			resultType="com.hanthink.mon.model.MonKbModel">
+		SELECT  T.ID  id,
+				T.FACTORY_CODE factoryCode,
+				T.KB_CODE kbCode,
+				T.PRODUCTION_LINE productionLine,
+				T.WORKCENTER workcenter,
+				T.STATION_CODE stationCode,
+				T.KB_NAME kbName,
+				T.KB_TYPE kbType,
+				T.BATCH_CYCLE_NUM batchCycleNum,
+				T.PROCESS_CYCLE_NUM processCycleNum,
+				T.CURR_BATCH_NO currbatchNo,
+				T.CURR_PROCESS_NO currprocessNo,
+				T.CURR_BATCH_SEQNO currbatchseqNo,
+				T.PRODUCT_SEQNO productSeqno,
+				T.IS_EDIT isEdit,
+				T.REMARK remark
+		  FROM MM_MON_KB T
+	    WHERE 1=1
+	      AND T.ID = #{id}
+	</select>
+	
+	<!-- 看板基础信息新增 -->
+	<insert id="addMonBaseKbOne" parameterType="com.hanthink.mon.model.MonKbModel">
+		INSERT INTO MM_MON_KB(
+			ID,FACTORY_CODE,KB_CODE,
+			PRODUCTION_LINE,WORKCENTER,STATION_CODE,
+			KB_NAME,KB_TYPE,BATCH_CYCLE_NUM,
+			PROCESS_CYCLE_NUM,CURR_BATCH_NO,CURR_PROCESS_NO,IS_EDIT,
+			REMARK,CREATION_USER,CREATION_TIME
+		)VALUES(
+			SEQ_MM_MON_KB.NEXTVAL,#{factoryCode,jdbcType=VARCHAR},#{kbCode,jdbcType=VARCHAR},
+			#{productionLine,jdbcType=VARCHAR},#{workcenter,jdbcType=VARCHAR},#{stationCode,jdbcType=VARCHAR},
+			#{kbName,jdbcType=VARCHAR},#{kbType,jdbcType=VARCHAR},${batchCycleNum},
+			${processCycleNum},${currbatchNo},${currprocessNo},${isEdit},
+			#{remark,jdbcType=VARCHAR},#{createBy,jdbcType=VARCHAR},SYSDATE
+		)
+	</insert>
+	
+	<!-- 看板基础信息修改 -->
+	<update id="modifyMonBaseKbOne"  parameterType="com.hanthink.mon.model.MonKbModel">
+		UPDATE MM_MON_KB 
+			<set>
+			<if test="kbName!=null">KB_NAME=#{kbName,jdbcType=VARCHAR},</if>
+			<if test="kbType!=null">KB_TYPE=#{kbType,jdbcType=VARCHAR},</if>
+			<if test="stationCode!=null">STATION_CODE=#{stationCode,jdbcType=VARCHAR},</if>
+			<if test="batchCycleNum!=null">BATCH_CYCLE_NUM=${batchCycleNum},</if>
+			<if test="processCycleNum!=null">PROCESS_CYCLE_NUM=${processCycleNum},</if>
+			<if test="currbatchNo!=null">CURR_BATCH_NO=${currbatchNo},</if>
+			<if test="currprocessNo!=null">CURR_PROCESS_NO=${currprocessNo},</if>
+			<if test="remark!=null">REMARK=#{remark,jdbcType=VARCHAR},</if>
+			<if test="isEdit!=null">IS_EDIT=${isEdit},</if>
+			LAST_MODIFIED_USER=#{updateBy,jdbcType=VARCHAR},
+			LAST_MODIFIED_TIME=SYSDATE,
+			LAST_MODIFIED_IP=#{modifyIp,jdbcType=VARCHAR}
+			</set>
+	    WHERE ID = #{id}
+	</update>
+	
+	  <!-- 根据id删除看板信息 -->
+      <delete id="removeByKbIds" parameterType="java.util.List">
+           DELETE FROM MM_MON_KB WHERE ID IN (
+            <foreach collection="list" item="monKb" index="index" separator=",">
+	            #{monKb.id}
+	        </foreach>
+       		)
+      </delete>
+     
+      
+      <!-- 检查业务主键 -->
+      <select id="checkUnique" parameterType="com.hanthink.mon.model.MonKbModel" 
+         resultType="java.lang.Integer">
+      	SELECT count(1) FROM MM_MON_KB T
+      	WHERE T.FACTORY_CODE= #{factoryCode}
+	    AND T.KB_CODE =#{kbCode}
+      </select>
+       <!--*********************************    看板详情操作              *********************************-->
+       <!-- 看板明细信息查询 -->
+	<select id="queryKbDetailOne" parameterType="com.hanthink.mon.model.MonKbModel"
+			resultType="com.hanthink.mon.model.MonKbModel">
+			SELECT  T.ID  id,
+		        T.STATION_CODE stationCode,
+		        T.KB_NAME kbName,
+		        T.BATCH_CYCLE_NUM batchCycleNum,
+		        T.PROCESS_CYCLE_NUM processCycleNum,
+		        T.CURR_BATCH_NO currbatchNo,
+		        T.CURR_PROCESS_NO currprocessNo,
+		        T.CURR_BATCH_SEQNO currbatchseqNo,     
+		        D.DISTRI_PERSON distriPerson,
+		        D.RUN_PROCESS_NO runProcessNo,
+		        D.LAMP_ID lampId,
+		        CASE WHEN CEIL((MMDL.GET_RUN_TIME-MMDL.REQUEST_RUN_TIME)*24*60) > D.LIMIT_DELAY
+		        THEN 1
+		        ELSE 0
+		        END runDelayFlag,
+		        MMDL.STATUS kbStatus,
+		        D.LIMIT_DELAY limitDelay,
+		        T.PRODUCT_SEQNO productSeqno
+	      FROM MM_MON_KB T
+	      LEFT JOIN MM_MON_KB_DETAIL D
+	      ON T.ID=D.KB_ID
+	      LEFT JOIN MM_MON_DISTRIBUTION_LOG MMDL
+	      ON MMDL.KB_DETAIL_ID = D.ID
+	    WHERE T.FACTORY_CODE = #{factoryCode}
+	    <if test="null != kbType and '' != kbType">
+	      AND T.KB_TYPE = #{kbType}
+	    </if>
+	    <if test="null != id and '' != id">
+	      AND T.ID = #{id}
+	    </if>
+	    <if test="null != distriPerson and '' != distriPerson">
+	      AND D.DISTRI_PERSON = #{distriPerson}
+	    </if>
+	</select>
+	
+       <!--看板明细信息增加 -->
+		<insert id="addKbDetailOne" parameterType="com.hanthink.mon.model.MonKbModel">
+			INSERT INTO MM_MON_KB_DETAIL(
+				ID,KB_ID,DISTRI_PERSON,		
+				RUN_PROCESS_NO,LAMP_ID,LIMIT_DELAY,
+				CREATION_USER,CREATION_TIME
+			)VALUES(
+				SEQ_MM_MON_KB_DETAIL.NEXTVAL,#{id},#{distriPerson,jdbcType=VARCHAR},
+				#{runProcessNo,jdbcType=NUMERIC},#{lampId,jdbcType=VARCHAR},#{limitDelay,jdbcType=NUMERIC},
+				#{createBy,jdbcType=VARCHAR},SYSDATE
+			)
+		</insert>      
+      <!-- 看板明细信息修改 -->
+		<update id="modifyKbDetailOne"  parameterType="com.hanthink.mon.model.MonKbModel">
+			UPDATE MM_MON_KB_DETAIL 
+				<set>
+				<if test="runProcessNo!=null">RUN_PROCESS_NO=#{runProcessNo},</if>
+				<if test="lampId!=null">LAMP_ID=#{lampId,jdbcType=VARCHAR},</if>
+				<if test="limitDelay!=null">LIMIT_DELAY=#{limitDelay},</if>
+				LAST_MODIFIED_USER=#{updateBy,jdbcType=VARCHAR},
+				LAST_MODIFIED_TIME=SYSDATE,
+				LAST_MODIFIED_IP=#{modifyIp,jdbcType=VARCHAR}
+				</set>
+		    WHERE KB_ID = #{id} and DISTRI_PERSON=#{distriPerson,jdbcType=VARCHAR}
+		</update>
+		
+	<!-- <update id="modifyKbDistLog" parameterType="com.hanthink.mon.model.MonKbModel">
+			UPDATE MM_MON_DISTRIBUTION_LOG MMDL
+				<set>
+					<if test="limitDelay!=null">LIMIT_DELAY=#{limitDelay}</if>
+				</set>
+			WHERE KB_DETAIL_ID = #{id}
+		</update> -->
+		
+       <!-- 根据看板id删除看板详情信息 -->
+      <delete id="removeDetailByKbIds" parameterType="java.util.List">
+      		DELETE FROM MM_MON_KB_DETAIL WHERE KB_ID IN (
+                 <foreach collection="list" item="monKb" index="index"
+		            separator=",">
+		            #{monKb.id}
+		        </foreach>
+       		)
+      </delete>
+      
+      <!-- 检查看板详情是否存在 -->
+      <select id="checkKbId" parameterType="com.hanthink.mon.model.MonKbModel" 
+         resultType="java.lang.Integer">
+      	SELECT count(1) FROM MM_MON_KB_DETAIL T
+      	WHERE T.KB_ID= #{id} AND T.DISTRI_PERSON = #{distriPerson}
+      </select>
+      
+      <!--根据流水号显示批次进度-->
+      <select id="selectBatchBySeq" parameterType="com.hanthink.mon.model.MonKbModel" resultType="com.hanthink.mon.model.MonKbModel">
+        SELECT T.ID  id,T.KB_NAME kbName,PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(t.ID,t.PRODUCT_SEQNO) currbatchNo, 
+		PKG_PUB.USF_GET_PROCESSNO_BY_PRODSEQNO(t.ID,t.PRODUCT_SEQNO) currprocessNo
+		FROM MM_MON_KB t 
+		WHERE t.FACTORY_CODE = #{factoryCode}
+		AND t.id=#{id}
+      </select>
+      <!--根据流水号和偏移进度显示批次进度-->
+      <select id="selectBatchBySeqAndSkew" parameterType="com.hanthink.mon.model.MonKbModel" resultType="com.hanthink.mon.model.MonKbModel">
+        SELECT T.ID id,T.KB_NAME kbName,
+        PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(t.ID,t.PRODUCT_SEQNO+NVL(#{skweProcessNo},0)) currbatchNo, 
+		PKG_PUB.USF_GET_PROCESSNO_BY_PRODSEQNO(t.ID,t.PRODUCT_SEQNO+NVL(#{skweProcessNo},0)) currprocessNo
+		FROM MM_MON_KB t 
+		WHERE t.FACTORY_CODE = #{factoryCode}
+		AND t.id=#{id}
+      </select>
+      <!-- 更新看板偏移进度 -->
+      <update id="updateSkewProcessNo" parameterType="com.hanthink.mon.model.MonKbModel">
+      	update MM_MON_KB set 
+      		LAST_MODIFIED_USER = #{lastModifiedUser},
+      		LAST_MODIFIED_IP = #{lastModifiedIp},
+      		LAST_MODIFIED_TIME = SYSDATE,
+      		SKEW_PROCESS_NO = #{skweProcessNo} where ID = #{id}
+      </update>
+      <!--*********************************    相关下拉框数据              *********************************-->
+      
+      <!-- 看板名称 -->
+      <select id="queryForMonKbName" parameterType="com.hanthink.mon.model.MonKbModel" resultType="com.hanthink.base.model.DictVO">
+		SELECT DISTINCT  ID valueKey, KB_NAME valueName FROM MM_MON_KB T
+		WHERE T.FACTORY_CODE = #{factoryCode}
+		<if test=" kbType != null and kbType != '' ">AND T.KB_TYPE = #{kbType}</if>  
+	  </select>
+	  
+	  <!-- 工程 -->
+	  <select id="queryForDistriPerson" parameterType="com.hanthink.mon.model.MonKbModel" resultType="com.hanthink.base.model.DictVO">
+		SELECT DISTINCT  a.DISTRI_PERSON valueKey, a.DISTRI_PERSON valueName FROM MM_MON_KB_DETAIL a,
+		MM_MON_KB b where a.KB_ID=b.ID  
+		<if test=" kbType != null and kbType != '' ">AND b.KB_TYPE = #{kbType}</if>  
+	  </select>
+	  
+	  <!-- 安灯灯号-->
+	  <select id="queryForLampId" resultType="com.hanthink.base.model.DictVO">
+		SELECT DISTINCT  ID valueKey, LAMP_DESC valueName FROM MM_MON_LAMP T
+	  </select>
+</mapper>

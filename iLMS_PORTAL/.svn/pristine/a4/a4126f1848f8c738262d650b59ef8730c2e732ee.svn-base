@@ -1,0 +1,533 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hanthink.sw.model.SwSupplierMsgModel">
+	
+	<!-- 供应商第一次登录时，将填写的信息写入到供应商明细表中 -->
+	<insert id="insertSupplierDetail" parameterType="com.hanthink.sw.model.SwSupplierMsgModel">
+			INSERT INTO MM_PUB_SUPPLIER_DETAIL
+			  (SUP_FACTORY,
+			   SUPPLIER_NO,
+			   
+			   IMPORT_DEP,
+			   IMPORT_POSITION,
+			   IMPORT_NAME,
+			   IMPORT_MOBILE,
+			   IMPORT_TEL,
+			   IMPORT_MAIL,
+			   
+			   PT_DEP,
+			   PT_POSITION,
+			   PT_NAME,
+			   PT_MOBILE,
+			   PT_TEL,
+			   PT_MAIL,
+			   
+			   MASS_DEP,
+			   MASS_POSITION,
+			   MASS_NAME,
+			   MASS_MOBILE,
+			   MASS_TEL,
+			   MASS_MAIL,
+			   
+			   EXCEP_DEP_A,
+			   EXCEP_DEP_B,
+			   EXCEP_POSITION_A,
+			   EXCEP_POSITION_B,
+			   EXCEP_NAME_A,
+			   EXCEP_NAME_B,
+			   EXCEP_MOBILE_A,
+			   EXCEP_MOBILE_B,
+			   EXCEP_TEL_A,
+			   EXCEP_TEL_B,
+			   EXCEP_MAIL_A,
+			   EXCEP_MAIL_B,
+			   
+			   DEVICE_DEP,
+			   DEVICE_POSITION,
+			   DEVICE_NAME,
+			   DEVICE_MOBILE,
+			   DEVICE_TEL,
+			   DEVICE_MAIL,
+			   
+			   IMPORT_DEP_A,
+			   IMPORT_POSITION_A,
+			   IMPORT_NAME_A,
+			   IMPORT_MOBILE_A,
+			   IMPORT_TEL_A,
+			   IMPORT_MAIL_A,
+			   
+			   PT_DEP_A,
+			   PT_POSITION_A,
+			   PT_NAME_A,
+			   PT_MOBILE_A,
+			   PT_TEL_A,
+			   PT_MAIL_A,
+			   
+			   MASS_DEP_A,
+			   MASS_POSITION_A,
+			   MASS_NAME_A,
+			   MASS_MOBILE_A,
+			   MASS_TEL_A,
+			   MASS_MAIL_A,
+			   
+			   DEVICE_DEP_A,
+			   DEVICE_POSITION_A,
+			   DEVICE_NAME_A,
+			   DEVICE_MOBILE_A,
+			   DEVICE_TEL_A,
+			   DEVICE_MAIL_A,
+			   
+			   PACK_DEP_A,
+			   PACK_POSITION_A,
+			   PACK_NAME_A,
+			   PACK_MOBILE_A,
+			   PACK_TEL_A,
+			   PACK_MAIL_A,
+			   
+			   PACK_DEP_B,
+			   PACK_POSITION_B,
+			   PACK_NAME_B,
+			   PACK_MOBILE_B,
+			   PACK_TEL_B,
+			   PACK_MAIL_B,
+			   
+			   PT_LOGISTICS_DEP,
+			   PT_LOGISTICS_NAME,
+			   PT_LOGISTICS_POSITION,
+			   PT_LOGISTICS_MOBILE,
+			   PT_LOGISTICS_TEL,
+			   PT_LOGISTICS_MAIL,
+			   
+			   PT_LOGISTICS_DEP_A,
+			   PT_LOGISTICS_NAME_A,
+			   PT_LOGISTICS_POSITION_A,
+			   PT_LOGISTICS_MOBILE_A,
+			   PT_LOGISTICS_TEL_A,
+			   PT_LOGISTICS_MAIL_A,
+			   
+			   MASS_LOGISTICS_DEP,
+			   MASS_LOGISTICS_POSITION,
+			   MASS_LOGISTICS_NAME,
+			   MASS_LOGISTICS_MOBILE,
+			   MASS_LOGISTICS_TEL,
+			   MASS_LOGISTICS_MAIL,
+			   
+			   MASS_LOGISTICS_DEP_A,
+			   MASS_LOGISTICS_POSITION_A,
+			   MASS_LOGISTICS_NAME_A,
+			   MASS_LOGISTICS_MOBILE_A,
+			   MASS_LOGISTICS_TEL_A,
+			   MASS_LOGISTICS_MAIL_A,
+			   SUP_FACTORY_ADDR)
+			VALUES
+			  (#{supFactory,jdbcType=VARCHAR} ,
+			   #{supplierNo,jdbcType=VARCHAR},
+			   #{importDep,jdbcType=VARCHAR},
+			   #{importPosition,jdbcType=VARCHAR},
+			   #{importName,jdbcType=VARCHAR},
+			   #{importMobile,jdbcType=VARCHAR},
+			   #{importTel,jdbcType=VARCHAR},
+			   #{importMail,jdbcType=VARCHAR},
+			   
+			   #{PtDep,jdbcType=VARCHAR},
+			   #{PtPosition,jdbcType=VARCHAR},
+			   #{PtName,jdbcType=VARCHAR},
+			   #{PtMobile,jdbcType=VARCHAR},
+			   #{PtTel,jdbcType=VARCHAR},
+			   #{PtMail,jdbcType=VARCHAR},
+			   
+			   #{massDep,jdbcType=VARCHAR},
+			   #{massPosition,jdbcType=VARCHAR},
+			   #{massName,jdbcType=VARCHAR},
+			   #{massMobile,jdbcType=VARCHAR},
+			   #{massTel,jdbcType=VARCHAR},
+			   #{massMail,jdbcType=VARCHAR},
+			   
+			   #{excepDepA,jdbcType=VARCHAR},
+			   #{excepDepB,jdbcType=VARCHAR},
+			   #{excepPositionA,jdbcType=VARCHAR},
+			   #{excepPositionB,jdbcType=VARCHAR},
+			   #{excepNameA,jdbcType=VARCHAR},
+			   #{excepNameB,jdbcType=VARCHAR},
+			   #{excepMobileA,jdbcType=VARCHAR},
+			   #{excepMobileB,jdbcType=VARCHAR},
+			   #{excepTelA,jdbcType=VARCHAR},
+			   #{excepTelB,jdbcType=VARCHAR},
+			   #{excepMailA,jdbcType=VARCHAR},
+			   #{excepMailB,jdbcType=VARCHAR},
+			   
+			   #{deviceDep,jdbcType=VARCHAR},
+			   #{devicePosition,jdbcType=VARCHAR},
+			   #{deviceName,jdbcType=VARCHAR},
+			   #{deviceMobile,jdbcType=VARCHAR},
+			   #{deviceTel,jdbcType=VARCHAR},
+			   #{deviceMail,jdbcType=VARCHAR},
+			   
+			   #{importDepA,jdbcType=VARCHAR},
+			   #{importPositionA,jdbcType=VARCHAR},
+			   #{importNameA,jdbcType=VARCHAR},
+			   #{importMobileA,jdbcType=VARCHAR},
+			   #{importTelA,jdbcType=VARCHAR},
+			   #{importMailA,jdbcType=VARCHAR},
+			   
+			   #{PtDepA,jdbcType=VARCHAR},
+			   #{PtPositionA,jdbcType=VARCHAR},
+			   #{PtNameA,jdbcType=VARCHAR},
+			   #{PtMobileA,jdbcType=VARCHAR},
+			   #{PtTelA,jdbcType=VARCHAR},
+			   #{PtMailA,jdbcType=VARCHAR},
+			   
+			   #{massDepA,jdbcType=VARCHAR},
+			   #{massPositionA,jdbcType=VARCHAR},
+			   #{massNameA,jdbcType=VARCHAR},
+			   #{massMobileA,jdbcType=VARCHAR},
+			   #{massTelA,jdbcType=VARCHAR},
+			   #{massMailA,jdbcType=VARCHAR},
+			   
+			   #{deviceDepA,jdbcType=VARCHAR},
+			   #{devicePositionA,jdbcType=VARCHAR},
+			   #{deviceNameA,jdbcType=VARCHAR},
+			   #{deviceMobileA,jdbcType=VARCHAR},
+			   #{deviceTelA,jdbcType=VARCHAR},
+			   #{deviceMailA,jdbcType=VARCHAR},
+			   
+			   #{packDepA,jdbcType=VARCHAR},
+			   #{packPositionA,jdbcType=VARCHAR},
+			   #{packNameA,jdbcType=VARCHAR},
+			   #{packMobileA,jdbcType=VARCHAR},
+			   #{packTelA,jdbcType=VARCHAR},
+			   #{packMailA,jdbcType=VARCHAR},
+			   
+			   #{packDepB,jdbcType=VARCHAR},
+			   #{packPositionB,jdbcType=VARCHAR},
+			   #{packNameB,jdbcType=VARCHAR},
+			   #{packMobileB,jdbcType=VARCHAR},
+			   #{packTelB,jdbcType=VARCHAR},
+			   #{packMailB,jdbcType=VARCHAR},
+			   
+			   #{PtLogisticsDep,jdbcType=VARCHAR},
+			   #{PtLogisticsName,jdbcType=VARCHAR},
+			   #{PtLogisticsPosition,jdbcType=VARCHAR},
+			   #{PtLogisticsMobile,jdbcType=VARCHAR},
+			   #{PtLogisticsTel,jdbcType=VARCHAR},
+			   #{PtLogisticsMail,jdbcType=VARCHAR},
+			   
+			   #{PtLogisticsDepA,jdbcType=VARCHAR},
+			   #{PtLogisticsNameA,jdbcType=VARCHAR},
+			   #{PtLogisticsPositionA,jdbcType=VARCHAR},
+			   #{PtLogisticsMobileA,jdbcType=VARCHAR},
+			   #{PtLogisticsTelA,jdbcType=VARCHAR},
+			   #{PtLogisticsMailA,jdbcType=VARCHAR},
+			   
+			   #{massLogisticeDep,jdbcType=VARCHAR},
+			   #{massLogisticePosition,jdbcType=VARCHAR},
+			   #{massLogisticeName,jdbcType=VARCHAR},
+			   #{massLogisticeMobile,jdbcType=VARCHAR},
+			   #{massLogisticeTel,jdbcType=VARCHAR},
+			   #{massLogisticeMail,jdbcType=VARCHAR},
+			   
+			   #{massLogisticeDepA,jdbcType=VARCHAR},
+			   #{massLogisticePositionA,jdbcType=VARCHAR},
+			   #{massLogisticeNameA,jdbcType=VARCHAR},
+			   #{massLogisticeMobileA,jdbcType=VARCHAR},
+			   #{massLogisticeTelA,jdbcType=VARCHAR},
+			   #{massLogisticeMailA,jdbcType=VARCHAR},
+			   
+			   #{supFactoryAddr,jdbcType=VARCHAR})
+	</insert>
+	
+	<!-- 更新主表中的供应商状态为激活 3-->
+	<update id="updateSupplierStatus" parameterType="com.hanthink.sw.model.SwSupplierMsgModel">
+	UPDATE MM_PUB_SUPPLIER A
+		       SET 
+		           A.DETAIL_ADDR        = #{detailAddr,jdbcType=VARCHAR},
+		           A.SUP_STATUS           = 3
+		     WHERE A.SUPPLIER_NO = #{supplierNo} 
+	</update>
+
+	<!-- 供应商信息更新,更新明细表中数据 -->
+   <update id="updateSupplier" parameterType="com.hanthink.sw.model.SwSupplierMsgModel" >
+		   UPDATE MM_PUB_SUPPLIER_DETAIL A
+		       SET 
+		           <!-- 重要联络人 -->
+		           A.IMPORT_DEP         = #{importDep,jdbcType=VARCHAR},
+		           A.IMPORT_POSITION    = #{importPosition,jdbcType=VARCHAR},
+		           A.IMPORT_NAME        = #{importName,jdbcType=VARCHAR},
+		           A.IMPORT_MOBILE      = #{importMobile,jdbcType=VARCHAR},
+		           A.IMPORT_TEL         = #{importTel,jdbcType=VARCHAR},
+		           A.IMPORT_MAIL        = #{importMail,jdbcType=VARCHAR},
+		           		           
+		           A.IMPORT_DEP_A         = #{importDepA,jdbcType=VARCHAR},
+		           A.IMPORT_POSITION_A    = #{importPositionA,jdbcType=VARCHAR},
+		           A.IMPORT_NAME_A        = #{importNameA,jdbcType=VARCHAR},
+		           A.IMPORT_MOBILE_A      = #{importMobileA,jdbcType=VARCHAR},
+		           A.IMPORT_TEL_A         = #{importTelA,jdbcType=VARCHAR},
+		           A.IMPORT_MAIL_A        = #{importMailA,jdbcType=VARCHAR},
+		           
+		           <!-- PT订单联络人 -->
+		           A.PT_DEP             = #{PtDep,jdbcType=VARCHAR},
+		           A.PT_POSITION        = #{PtPosition,jdbcType=VARCHAR},
+		           A.PT_NAME            = #{PtName,jdbcType=VARCHAR},
+		           A.PT_MOBILE           = #{PtMobile,jdbcType=VARCHAR},
+		           A.PT_TEL             = #{PtTel,jdbcType=VARCHAR},
+		           A.PT_MAIL            = #{PtMail,jdbcType=VARCHAR},
+		           		           
+		           A.PT_DEP_A             = #{PtDepA,jdbcType=VARCHAR},
+		           A.PT_POSITION_A        = #{PtPositionA,jdbcType=VARCHAR},
+		           A.PT_NAME_A            = #{PtNameA,jdbcType=VARCHAR},
+		           A.PT_MOBILE_A           = #{PtMobileA,jdbcType=VARCHAR},
+		           A.PT_TEL_A             = #{PtTelA,jdbcType=VARCHAR},
+		           A.PT_MAIL_A            = #{PtMailA,jdbcType=VARCHAR},
+		           
+		           <!-- 量产订单联络人 -->
+		           A.MASS_DEP           = #{massDep,jdbcType=VARCHAR},
+		           A.MASS_POSITION      = #{massPosition,jdbcType=VARCHAR},
+		           A.MASS_NAME          = #{massName,jdbcType=VARCHAR},
+		           A.MASS_MOBILE         = #{massMobile,jdbcType=VARCHAR},
+		           A.MASS_TEL           = #{massTel,jdbcType=VARCHAR},
+		           A.MASS_MAIL          = #{massMail,jdbcType=VARCHAR},
+		           
+		           A.MASS_DEP_A           = #{massDepA,jdbcType=VARCHAR},
+		           A.MASS_POSITION_A      = #{massPositionA,jdbcType=VARCHAR},
+		           A.MASS_NAME_A          = #{massNameA,jdbcType=VARCHAR},
+		           A.MASS_MOBILE_A         = #{massMobileA,jdbcType=VARCHAR},
+		           A.MASS_TEL_A           = #{massTelA,jdbcType=VARCHAR},
+		           A.MASS_MAIL_A          = #{massMailA,jdbcType=VARCHAR},
+		           
+		           <!-- 异常联络人 -->
+		           A.EXCEP_DEP_A        = #{excepDepA,jdbcType=VARCHAR},
+		           A.EXCEP_DEP_B        = #{excepDepB,jdbcType=VARCHAR},
+		           A.EXCEP_POSITION_A   = #{excepPositionA,jdbcType=VARCHAR},
+		           A.EXCEP_POSITION_B   = #{excepPositionB,jdbcType=VARCHAR},
+		           A.EXCEP_NAME_A       = #{excepNameA,jdbcType=VARCHAR},
+		           A.EXCEP_NAME_B       = #{excepNameB,jdbcType=VARCHAR},
+		           A.EXCEP_MOBILE_A      = #{excepMobileA,jdbcType=VARCHAR},
+		           A.EXCEP_MOBILE_B      = #{excepMobileB,jdbcType=VARCHAR},
+		           A.EXCEP_TEL_A        = #{excepTelA,jdbcType=VARCHAR},
+		           A.EXCEP_TEL_B        = #{excepTelB,jdbcType=VARCHAR},
+		           A.EXCEP_MAIL_A       = #{excepMailA,jdbcType=VARCHAR},
+		           A.EXCEP_MAIL_B       = #{excepMailB,jdbcType=VARCHAR},
+		           
+		           <!-- 设变联络人 -->
+		           A.DEVICE_DEP         = #{deviceDep,jdbcType=VARCHAR},
+		           A.DEVICE_POSITION    = #{devicePosition,jdbcType=VARCHAR},
+		           A.DEVICE_NAME        = #{deviceName,jdbcType=VARCHAR},
+		           A.DEVICE_MOBILE       = #{deviceMobile,jdbcType=VARCHAR},
+		           A.DEVICE_TEL         = #{deviceTel,jdbcType=VARCHAR},
+		           A.DEVICE_MAIL        = #{deviceMail,jdbcType=VARCHAR},
+		           		           
+		           A.DEVICE_DEP_A         = #{deviceDepA,jdbcType=VARCHAR},
+		           A.DEVICE_POSITION_A    = #{devicePositionA,jdbcType=VARCHAR},
+		           A.DEVICE_NAME_A        = #{deviceNameA,jdbcType=VARCHAR},
+		           A.DEVICE_MOBILE_A       = #{deviceMobileA,jdbcType=VARCHAR},
+		           A.DEVICE_TEL_A         = #{deviceTelA,jdbcType=VARCHAR},
+		           A.DEVICE_MAIL_A        = #{deviceMailA,jdbcType=VARCHAR},
+
+				   <!-- PT物流联络人 -->
+		           A.PT_LOGISTICS_DEP      = #{PtLogisticsDep,jdbcType=VARCHAR},
+		           A.PT_LOGISTICS_POSITION = #{PtLogisticsPosition,jdbcType=VARCHAR},
+		           A.PT_LOGISTICS_NAME     = #{PtLogisticsName,jdbcType=VARCHAR},
+		           A.PT_LOGISTICS_MOBILE   = #{PtLogisticsMobile,jdbcType=VARCHAR},
+		           A.PT_LOGISTICS_TEL      = #{PtLogisticsTel,jdbcType=VARCHAR},
+		           A.PT_LOGISTICS_MAIL     = #{PtLogisticsMail,jdbcType=VARCHAR},
+		           
+		           A.PT_LOGISTICS_DEP_A      = #{PtLogisticsDepA,jdbcType=VARCHAR},
+		           A.PT_LOGISTICS_POSITION_A = #{PtLogisticsPositionA,jdbcType=VARCHAR},
+		           A.PT_LOGISTICS_NAME_A     = #{PtLogisticsNameA,jdbcType=VARCHAR},
+		           A.PT_LOGISTICS_MOBILE_A   = #{PtLogisticsMobileA,jdbcType=VARCHAR},
+		           A.PT_LOGISTICS_TEL_A      = #{PtLogisticsTelA,jdbcType=VARCHAR},
+		           A.PT_LOGISTICS_MAIL_A     = #{PtLogisticsMailA,jdbcType=VARCHAR},
+		           
+		           <!-- 量产物流联络人 -->
+		           A.MASS_LOGISTICS_DEP           = #{massLogisticeDep,jdbcType=VARCHAR},
+		           A.MASS_LOGISTICS_POSITION      = #{massLogisticePosition,jdbcType=VARCHAR},
+		           A.MASS_LOGISTICS_NAME          = #{massLogisticeName,jdbcType=VARCHAR},
+		           A.MASS_LOGISTICS_MOBILE        = #{massLogisticeMobile,jdbcType=VARCHAR},
+		           A.MASS_LOGISTICS_TEL           = #{massLogisticeTel,jdbcType=VARCHAR},
+		           A.MASS_LOGISTICS_MAIL          = #{massLogisticeMail,jdbcType=VARCHAR},
+		           
+		           A.MASS_LOGISTICS_DEP_A         = #{massLogisticeDepA,jdbcType=VARCHAR},
+		           A.MASS_LOGISTICS_POSITION_A    = #{massLogisticePositionA,jdbcType=VARCHAR},
+		           A.MASS_LOGISTICS_NAME_A        = #{massLogisticeNameA,jdbcType=VARCHAR},
+		           A.MASS_LOGISTICS_MOBILE_A      = #{massLogisticeMobileA,jdbcType=VARCHAR},
+		           A.MASS_LOGISTICS_TEL_A         = #{massLogisticeTelA,jdbcType=VARCHAR},
+		           A.MASS_LOGISTICS_MAIL_A        = #{massLogisticeMailA,jdbcType=VARCHAR},
+		           
+		           <!-- 包装联络人 -->
+		           A.PACK_DEP_A           = #{packDepA,jdbcType=VARCHAR},
+		           A.PACK_POSITION_A      = #{packPositionA,jdbcType=VARCHAR},
+		           A.PACK_NAME_A          = #{packNameA,jdbcType=VARCHAR},
+		           A.PACK_MOBILE_A        = #{packMobileA,jdbcType=VARCHAR},
+		           A.PACK_TEL_A           = #{packTelA,jdbcType=VARCHAR},
+		           A.PACK_MAIL_A          = #{packMailA,jdbcType=VARCHAR},
+		           
+		           A.PACK_DEP_B           = #{packDepB,jdbcType=VARCHAR},
+		           A.PACK_POSITION_B      = #{packPositionB,jdbcType=VARCHAR},
+		           A.PACK_NAME_B          = #{packNameB,jdbcType=VARCHAR},
+		           A.PACK_MOBILE_B        = #{packMobileB,jdbcType=VARCHAR},
+		           A.PACK_TEL_B           = #{packTelB,jdbcType=VARCHAR},
+		           A.PACK_MAIL_B          = #{packMailB,jdbcType=VARCHAR}
+		     WHERE A.SUPPLIER_NO = #{supplierNo} 
+		       AND A.SUP_FACTORY = #{supFactory}  
+   </update>
+   
+   <!-- 修改登录密码 -->
+   <update id="updateAccountPassword" parameterType="com.hanthink.sw.model.SwSupplierMsgModel" >
+		UPDATE SYS_USER A
+		   SET A.PASSWORD_ = #{newConfirmPassword,jdbcType=VARCHAR}
+		 WHERE A.ACCOUNT_ = #{username,jdbcType=VARCHAR}
+   </update>
+   
+   <!-- 获取当前登录用户供应商信息 -->
+   <select id="getSupplierByUserId" parameterType="com.hanthink.sw.model.SwSupplierMsgModel" resultType="com.hanthink.sw.model.SwSupplierMsgModel">
+		SELECT #{supFactory,jdbcType=VARCHAR}       supFactory,
+		       C.SUPPLIER_NO        supplierNo,
+		       C.SUPPLIER_NAME      supplierName,
+		       C.DETAIL_ADDR        detailAddr,
+		       
+		       B.SUP_FACTORY_ADDR   supFactoryAddr,
+		       
+		       <!-- 重要联络人 -->
+		       B.IMPORT_DEP         importDep,
+		       B.IMPORT_POSITION    importPosition,
+		       B.IMPORT_NAME        importName,
+		       B.IMPORT_MOBILE      importMobile,
+		       B.IMPORT_TEL         importTel,
+		       B.IMPORT_MAIL        importMail,
+		       
+		       B.IMPORT_DEP_A         importDepA,
+		       B.IMPORT_POSITION_A    importPositionA,
+		       B.IMPORT_NAME_A        importNameA,
+		       B.IMPORT_MOBILE_A      importMobileA,
+		       B.IMPORT_TEL_A         importTelA,
+		       B.IMPORT_MAIL_A        importMailA,
+		       
+		       <!-- PT订单联络人 -->
+		       B.PT_DEP             PtDep,
+		       B.PT_POSITION        PtPosition,
+		       B.PT_NAME            PtName,
+		       B.PT_MOBILE          PtMobile,
+		       B.PT_TEL             PtTel,
+		       B.PT_MAIL            PtMail,
+		       
+		       B.PT_DEP_A             PtDepA,
+		       B.PT_POSITION_A        PtPositionA,
+		       B.PT_NAME_A            PtNameA,
+		       B.PT_MOBILE_A           PtMobileA,
+		       B.PT_TEL_A             PtTelA,
+		       B.PT_MAIL_A            PtMailA,
+		       
+		       <!-- 量产订单联络人 -->
+		       B.MASS_DEP           massDep,
+		       B.MASS_POSITION      massPosition,
+		       B.MASS_NAME          massName,
+		       B.MASS_MOBILE         massMobile,
+		       B.MASS_TEL           massTel,
+		       B.MASS_MAIL          massMail,
+		       
+		       B.MASS_DEP_A           massDepA,
+		       B.MASS_POSITION_A      massPositionA,
+		       B.MASS_NAME_A          massNameA,
+		       B.MASS_MOBILE_A         massMobileA,
+		       B.MASS_TEL_A           massTelA,
+		       B.MASS_MAIL_A          massMailA,
+		       
+		       <!-- 异常联络人 -->
+		       B.EXCEP_DEP_A        excepDepA,
+		       B.EXCEP_DEP_B        excepDepB,
+		       B.EXCEP_POSITION_A   excepPositionA,
+		       B.EXCEP_POSITION_B   excepPositionB,
+		       B.EXCEP_NAME_A       excepNameA,
+		       B.EXCEP_NAME_B       excepNameB,
+		       B.EXCEP_MOBILE_A      excepMobileA,
+		       B.EXCEP_MOBILE_B      excepMobileB,
+		       B.EXCEP_TEL_A        excepTelA,
+		       B.EXCEP_TEL_B        excepTelB,
+		       B.EXCEP_MAIL_A       excepMailA,
+		       B.EXCEP_MAIL_B       excepMailB,
+		       
+		       <!-- 设变联络人 -->
+		       B.DEVICE_DEP         deviceDep,
+		       B.DEVICE_POSITION    devicePosition,
+		       B.DEVICE_NAME        deviceName,
+		       B.DEVICE_MOBILE       deviceMobile,
+		       B.DEVICE_TEL         deviceTel,
+		       B.DEVICE_MAIL        deviceMail,
+		       
+		       B.DEVICE_DEP_A         deviceDepA,
+		       B.DEVICE_POSITION_A    devicePositionA,
+		       B.DEVICE_NAME_A        deviceNameA,
+		       B.DEVICE_MOBILE_A       deviceMobileA,
+		       B.DEVICE_TEL_A         deviceTelA,
+		       B.DEVICE_MAIL_A        deviceMailA,
+		       
+		        <!-- 包装联络人 -->
+	           B.PACK_DEP_A          packDepA,
+	           B.PACK_POSITION_A     packPositionA,
+	           B.PACK_NAME_A         packNameA,
+	           B.PACK_MOBILE_A       packMobileA,
+	           B.PACK_TEL_A          packTelA,
+	           B.PACK_MAIL_A         packMailA,
+	           
+	           B.PACK_DEP_B          packDepB,
+	           B.PACK_POSITION_B     packPositionB,
+	           B.PACK_NAME_B         packNameB,
+	           B.PACK_MOBILE_B       packMobileB,
+	           B.PACK_TEL_B          packTelB,
+	           B.PACK_MAIL_B         packMailB,
+	           
+	           <!-- 量产物流联络人 -->
+	           B.MASS_LOGISTICS_DEP           massLogisticeDep,
+	           B.MASS_LOGISTICS_POSITION      massLogisticePosition,
+	           B.MASS_LOGISTICS_NAME          massLogisticeName,
+	           B.MASS_LOGISTICS_MOBILE        massLogisticeMobile,
+	           B.MASS_LOGISTICS_TEL           massLogisticeTel,
+	           B.MASS_LOGISTICS_MAIL          massLogisticeMail,
+	           
+	           B.MASS_LOGISTICS_DEP_A         massLogisticeDepA,
+	           B.MASS_LOGISTICS_POSITION_A    massLogisticePositionA,
+	           B.MASS_LOGISTICS_NAME_A        massLogisticeNameA,
+	           B.MASS_LOGISTICS_MOBILE_A      massLogisticeMobileA,
+	           B.MASS_LOGISTICS_TEL_A         massLogisticeTelA,
+	           B.MASS_LOGISTICS_MAIL_A        massLogisticeMailA,
+	           
+	            <!-- PT物流联络人 -->
+	           B.PT_LOGISTICS_DEP             PtLogisticsDep,
+	           B.PT_LOGISTICS_POSITION        PtLogisticsPosition,
+	           B.PT_LOGISTICS_NAME            PtLogisticsName,
+	           B.PT_LOGISTICS_MOBILE          PtLogisticsMobile,
+	           B.PT_LOGISTICS_TEL             PtLogisticsTel,
+	           B.PT_LOGISTICS_MAIL            PtLogisticsMail,
+	           
+	           B.PT_LOGISTICS_DEP_A           PtLogisticsDepA, 
+	           B.PT_LOGISTICS_POSITION_A      PtLogisticsPositionA, 
+	           B.PT_LOGISTICS_NAME_A          PtLogisticsNameA, 
+	           B.PT_LOGISTICS_MOBILE_A        PtLogisticsMobileA, 
+	           B.PT_LOGISTICS_TEL_A           PtLogisticsTelA, 
+	           B.PT_LOGISTICS_MAIL_A          PtLogisticsMailA
+		           
+		  FROM SYS_USER A
+		  LEFT JOIN MM_PUB_SUPPLIER C
+		    ON A.SUPPLIER_NO = C.SUPPLIER_NO
+		  LEFT JOIN MM_PUB_SUPPLIER_DETAIL B
+		    ON C.SUPPLIER_NO = B.SUPPLIER_NO
+		    AND B.SUP_FACTORY = #{supFactory} 
+		 WHERE A.ACCOUNT_ = #{userId}
+		 <!-- <if test="activeStatus !=null and activeStatus == 1 ">
+		   AND B.SUP_FACTORY = #{supFactory} 
+		 </if> -->
+   </select>
+   
+   <!-- 获取当前登录用户的供应商状态 -->
+   <select id="getSupStatusByUser" parameterType="java.util.Map" resultType="java.lang.String">
+   SELECT A.SUP_STATUS FROM MM_PUB_SUPPLIER A WHERE A.SUPPLIER_NO = #{supplierNo}
+   </select>
+	
+	<select id="getActiveStatusByMap" parameterType="java.util.Map" resultType="java.lang.String">
+		select count(*) activeStatus
+	  from mm_pub_supplier_detail a
+	 where a.supplier_no = #{supplierNo}
+	   and a.sup_factory = #{supFactory}
+	</select>
+</mapper>

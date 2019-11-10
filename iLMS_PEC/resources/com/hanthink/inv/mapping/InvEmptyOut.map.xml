@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.inv.model.InvEmptyOutModel">
+	<!-- 空容器出库指示分页查询 -->
+	<select id="queryForPage" parameterType="com.hanthink.inv.model.InvEmptyOutModel" resultType="com.hanthink.inv.model.InvEmptyOutModel">
+		SELECT MIE.ID id,
+	         MIE.SUPPLIER_NO supplierNo,
+	         MPPS.SUPPLIER_NAME supplierName,
+	         MIE.ROUTE_CODE routeCode,
+	         MIE.CAR_TYPE carType,
+	         MIE.TOTAL_CAR_NO totalCarNo,
+	         TO_CHAR(PICKUP_TIME,'yyyy-MM-dd hh24:mi:ss') pickupTime,
+	         MIE.OUT_QTY outQTY,
+	         MPD.CODE_VALUE_NAME boxType
+	    FROM MM_INV_EC_OUT_INS MIE
+			 LEFT JOIN MM_PUB_SUPPLIER MPPS
+			 ON MIE.SUPPLIER_NO = MPPS.SUPPLIER_NO
+			 LEFT JOIN MM_PUB_DATA_DICT MPD
+			 ON MPD.CODE_TYPE = 'INV_BOX_TYPE'
+			 AND MIE.BOX_TYPE = MPD.CODE_VALUE
+			 AND MPD.FACTORY_CODE = MIE.FACTORY_CODE
+	    WHERE MIE.FACTORY_CODE = #{factoryCode}
+    	<if test="supplierNo != null and supplierNo != ''">
+    		AND MIE.SUPPLIER_NO = #{supplierNo}
+    	</if>
+    	<if test="routeCode != null and routeCode != ''">
+    		AND MIE.ROUTE_CODE = #{routeCode}
+    	</if>
+    	<if test="carType != null and carType != ''">
+    		AND MIE.CAR_TYPE = #{carType}
+    	</if>
+    	<if test="totalCarNo != null and totalCarNo != ''">
+    		AND MIE.TOTAL_CAR_NO = #{totalCarNo}
+    	</if>
+    	ORDER BY MIE.ROUTE_CODE,MIE.SUPPLIER_NO,MIE.TOTAL_CAR_NO,MPD.CODE_VALUE_NAME
+	</select>
+	
+	<!-- 空容器生成 -->
+	<parameterMap type="map" id="paramsMap">  
+		<parameter property="factoryCode" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="resultCode" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap>
+	<select id="makeEmptyContainer" parameterMap="paramsMap" statementType="CALLABLE">
+		{CALL PKG_INV_MAIN.USP_EC_OUT_INS(?, ?)}
+	</select>
+</mapper>

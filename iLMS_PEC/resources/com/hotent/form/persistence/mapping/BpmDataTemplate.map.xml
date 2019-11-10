@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.form.persistence.model.BpmDataTemplate">
+	<resultMap id="BpmDataTemplate" type="com.hotent.form.persistence.model.BpmDataTemplate">
+		<id property="id" column="ID_" jdbcType="VARCHAR"/>
+		<result property="boDefId" column="BO_DEF_ID_" jdbcType="VARCHAR"/>
+		<result property="boDefAlias" column="BO_DEF_AlIAS_" jdbcType="VARCHAR"/>
+		<result property="formKey" column="FORM_KEY_" jdbcType="VARCHAR"/>
+		<result property="name" column="NAME_" jdbcType="VARCHAR"/>
+		<result property="alias" column="ALIAS_" jdbcType="VARCHAR"/>
+		<result property="style" column="STYLE_" jdbcType="NUMERIC"/>
+		<result property="needPage" column="NEED_PAGE_" jdbcType="NUMERIC"/>
+		<result property="pageSize" column="PAGE_SIZE_" jdbcType="NUMERIC"/>
+		<result property="templateAlias" column="TEMPLATE_ALIAS_" jdbcType="VARCHAR"/>
+		<result property="templateHtml" column="TEMPLATE_HTML_" jdbcType="CLOB"/>
+		<result property="displayField" column="DISPLAY_FIELD_" jdbcType="CLOB"/>
+		<result property="sortField" column="SORT_FIELD_" jdbcType="VARCHAR"/>
+		<result property="conditionField" column="CONDITION_FIELD_" jdbcType="CLOB"/>
+		<result property="manageField" column="MANAGE_FIELD_" jdbcType="VARCHAR"/>
+		<result property="filterField" column="FILTER_FIELD_" jdbcType="CLOB"/>
+		<result property="varField" column="VAR_FIELD_" jdbcType="VARCHAR"/>
+		<result property="filterType" column="FILTER_TYPE_" jdbcType="NUMERIC"/>
+		<result property="source" column="SOURCE_" jdbcType="NUMERIC"/>
+		<result property="defId" column="DEF_ID_" jdbcType="VARCHAR"/>
+		<result property="subject" column="subject" jdbcType="VARCHAR"/>
+		<result property="isQuery" column="IS_QUERY_" jdbcType="NUMERIC"/>
+		<result property="isFilter" column="IS_FILTER_" jdbcType="NUMERIC"/>
+		<result property="exportField" column="EXPORT_FIELD_" jdbcType="CLOB"/>
+		<result property="printField" column="PRINT_FIELD_" jdbcType="CLOB"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.form.persistence.model.BpmDataTemplate">
+		INSERT INTO bpm_data_template
+		(ID_,BO_DEF_ID_,BO_DEF_AlIAS_,FORM_KEY_,NAME_,ALIAS_,STYLE_,NEED_PAGE_,PAGE_SIZE_,TEMPLATE_ALIAS_,TEMPLATE_HTML_,DISPLAY_FIELD_,SORT_FIELD_,CONDITION_FIELD_,MANAGE_FIELD_,FILTER_FIELD_,VAR_FIELD_,FILTER_TYPE_,SOURCE_,DEF_ID_,IS_QUERY_,IS_FILTER_,EXPORT_FIELD_,PRINT_FIELD_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{boDefId,jdbcType=VARCHAR},#{boDefAlias,jdbcType=VARCHAR}, #{formKey,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR}, #{alias,jdbcType=VARCHAR}, #{style,jdbcType=NUMERIC}, #{needPage,jdbcType=NUMERIC}, #{pageSize,jdbcType=NUMERIC}, #{templateAlias,jdbcType=VARCHAR}, #{templateHtml,jdbcType=CLOB}, #{displayField,jdbcType=CLOB}, #{sortField,jdbcType=VARCHAR}, #{conditionField,jdbcType=CLOB}, #{manageField,jdbcType=VARCHAR}, #{filterField,jdbcType=CLOB}, #{varField,jdbcType=VARCHAR}, #{filterType,jdbcType=NUMERIC}, #{source,jdbcType=NUMERIC}, #{defId,jdbcType=NUMERIC}, #{isQuery,jdbcType=NUMERIC}, #{isFilter,jdbcType=NUMERIC}, #{exportField,jdbcType=CLOB}, #{printField,jdbcType=CLOB})
+	</insert>
+	
+	<select id="get" parameterType="java.lang.String" resultMap="BpmDataTemplate">
+		SELECT a.*, b.name_ as "subject" FROM bpm_data_template a left join bpm_definition b on a.def_id_ = b.def_id_
+		WHERE 
+		ID_=#{id}
+	</select>
+	
+	<select id="getByFormKey"   parameterType="java.lang.String" resultMap="BpmDataTemplate">
+		SELECT a.*, b.name_ as "subject" FROM bpm_data_template a left join bpm_definition b on a.def_id_ = b.def_id_
+		WHERE 
+		FORM_KEY_=#{formKey}
+	</select>
+	
+	<select id="getCountByFormKey" parameterType="java.lang.String" resultType="java.lang.Integer">
+		SELECT count(*) from bpm_data_template
+		WHERE
+		FORM_KEY_ = #{formKey}
+	</select>
+	
+	<!-- 业务对象的查询 -->
+	<select id="query" parameterType="java.util.Map"  resultType="java.util.HashMap">
+		${sql}
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY ID_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.form.persistence.model.BpmDataTemplate">
+		UPDATE bpm_data_template SET
+		BO_DEF_ID_=#{boDefId,jdbcType=VARCHAR},
+		BO_DEF_ALIAS_=#{boDefAlias,jdbcType=VARCHAR},
+		FORM_KEY_=#{formKey,jdbcType=VARCHAR},
+		NAME_=#{name,jdbcType=VARCHAR},
+		ALIAS_=#{alias,jdbcType=VARCHAR},
+		STYLE_=#{style,jdbcType=NUMERIC},
+		NEED_PAGE_=#{needPage,jdbcType=NUMERIC},
+		PAGE_SIZE_=#{pageSize,jdbcType=NUMERIC},
+		TEMPLATE_ALIAS_=#{templateAlias,jdbcType=VARCHAR},
+		TEMPLATE_HTML_=#{templateHtml,jdbcType=CLOB},
+		DISPLAY_FIELD_=#{displayField,jdbcType=CLOB},
+		SORT_FIELD_=#{sortField,jdbcType=VARCHAR},
+		CONDITION_FIELD_=#{conditionField,jdbcType=CLOB},
+		MANAGE_FIELD_=#{manageField,jdbcType=VARCHAR},
+		FILTER_FIELD_=#{filterField,jdbcType=CLOB},
+		VAR_FIELD_=#{varField,jdbcType=VARCHAR},
+		FILTER_TYPE_=#{filterType,jdbcType=NUMERIC},
+		SOURCE_=#{source,jdbcType=NUMERIC},
+		DEF_ID_=#{defId,jdbcType=NUMERIC},
+		IS_QUERY_=#{isQuery,jdbcType=NUMERIC},
+		IS_FILTER_=#{isFilter,jdbcType=NUMERIC},
+		EXPORT_FIELD_=#{exportField,jdbcType=CLOB},
+		PRINT_FIELD_=#{printField,jdbcType=CLOB}
+		WHERE
+		ID_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM bpm_data_template 
+		WHERE
+		ID_=#{id}
+	</delete>
+	
+	<delete id="removeByFormKey" parameterType="java.lang.String">
+		DELETE FROM bpm_data_template 
+		WHERE
+		FORM_KEY_=#{formKey}
+	</delete>
+	
+	
+</mapper>

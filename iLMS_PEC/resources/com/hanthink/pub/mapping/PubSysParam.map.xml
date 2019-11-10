@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.pub.model.PubSysParamModel">
+
+	<insert id="create" parameterType="com.hanthink.pub.model.PubSysParamModel">
+		INSERT INTO MM_PUB_SYS_PARAM
+		(ID,
+		FACTORY_CODE,
+		PARAM_CODE,
+		PARAM_NAME,
+		PARAM_VAL,
+		PARAM_GROUP,
+		IS_EDIT,
+		NOTE,
+		CHECK_BY,
+		CHECK_COMP,
+		MESSAGE,
+		UDA_1,
+		UDA_2,
+		UDA_3,
+		CREATION_TIME,
+		CREATION_USER
+		)
+		VALUES 
+		(SEQ_MM_PUB_SYS_PARAM.NEXTVAL,
+		#{factoryCode,jdbcType=VARCHAR},
+		#{paramCode,jdbcType=VARCHAR}, 
+		#{paramName,jdbcType=VARCHAR},
+		#{paramVal,jdbcType=VARCHAR},
+		#{paramGroup,jdbcType=VARCHAR}, 
+		#{isEdit,jdbcType=NUMERIC},
+		#{note,jdbcType=VARCHAR}, 
+		#{checkBy,jdbcType=VARCHAR},
+		#{checkComp,jdbcType=VARCHAR},
+		#{message,jdbcType=VARCHAR}, 
+		#{uda1,jdbcType=VARCHAR},
+		#{uda2,jdbcType=VARCHAR},
+		#{uda3,jdbcType=VARCHAR},
+		sysdate,
+		#{creationUser,jdbcType=VARCHAR}
+		)
+	</insert>
+
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="queryPubSysParamForPage" parameterType="com.hanthink.pub.model.PubSysParamModel" resultType="com.hanthink.pub.model.PubSysParamModel">
+			 SELECT A.ID  id,
+             A.FACTORY_CODE factoryCode,
+             A.PARAM_CODE   paramCode,
+             A.PARAM_NAME   paramName,
+             A.PARAM_VAL    paramVal,
+             A.PARAM_GROUP  paramGroup,
+             A.IS_EDIT  isEdit,
+             A.NOTE  note,
+             A.CHECK_BY  checkBy,
+             A.CHECK_COMP  checkComp,
+             A.MESSAGE  message,
+             A.UDA_1 uda1,
+             A.UDA_2 uda2,
+             A.UDA_3 uda3,
+             A.LAST_MODIFIED_TIME lastModifiedTimeStr,
+             A.LAST_MODIFIED_USER lastModifiedUser,
+             A.LAST_MODIFIED_IP lastModifiedIp,
+             B.CODE_VALUE_NAME codeValueNameB,
+             C.CODE_VALUE_NAME codeValueNameC
+             FROM MM_PUB_SYS_PARAM A
+             LEFT JOIN MM_PUB_DATA_DICT B
+             ON  B.CODE_TYPE = 'PUB_CHECK_BY'
+             AND B.CODE_VALUE = A.CHECK_BY
+             LEFT JOIN MM_PUB_DATA_DICT C
+             ON  C.CODE_TYPE = 'PUB_TRUE_FALSE'
+             AND C.CODE_VALUE = A.IS_EDIT
+			WHERE  1=1
+			<if test="userId != 1 ">
+			AND A.PARAM_CODE IN (
+			  SELECT B.VALUE_CODE 
+			  FROM VIEW_SYS_USER_DATA_PERM  B
+              WHERE B.USER_ID =  #{userId}
+              AND  B.TYPE_CODE = 'SYS_PARAM'
+			) 
+			</if>
+			<if test="paramGroup!=null and paramGroup!='' ">
+			AND	A.PARAM_GROUP LIKE CONCAT(#{paramGroup}, '%')
+			</if>
+			<if test="paramCode!=null and paramCode!='' ">
+			AND	A.PARAM_CODE LIKE CONCAT(#{paramCode}, '%')
+			</if>
+			<if test="paramName!=null and paramName!='' ">
+			AND	A.PARAM_NAME LIKE CONCAT(#{paramName}, '%')
+			</if>
+			AND A.FACTORY_CODE = #{factoryCode}
+			ORDER BY A.PARAM_CODE,A.PARAM_GROUP,A.PARAM_NAME
+	</select>
+	
+	<!-- 修改方法 -->
+	<update id="update" parameterType="com.hanthink.pub.model.PubSysParamModel">
+	   UPDATE MM_PUB_SYS_PARAM
+		  SET FACTORY_CODE = #{factoryCode,jdbcType=VARCHAR},
+		      PARAM_CODE = #{paramCode,jdbcType=VARCHAR},
+		      PARAM_NAME = #{paramName,jdbcType=VARCHAR},
+		      PARAM_VAL = #{paramVal,jdbcType=VARCHAR},
+		      PARAM_GROUP = #{paramGroup,jdbcType=VARCHAR},
+		      IS_EDIT = #{isEdit,jdbcType=NUMERIC},
+		      NOTE = #{note,jdbcType=VARCHAR},
+		      CHECK_BY = #{checkBy,jdbcType=VARCHAR},
+		      CHECK_COMP = #{checkComp,jdbcType=VARCHAR},
+		      MESSAGE = #{message,jdbcType=VARCHAR},
+		      UDA_1 = #{uda1,jdbcType=VARCHAR},
+		      UDA_2 = #{uda2,jdbcType=VARCHAR},
+		      UDA_3 = #{uda3,jdbcType=VARCHAR},
+		      LAST_MODIFIED_TIME = sysdate,
+		      LAST_MODIFIED_USER = #{lastModifiedUser,jdbcType=VARCHAR},
+		      LAST_MODIFIED_IP = #{lastModifiedIp,jdbcType=VARCHAR}
+		WHERE ID = #{id}
+	</update>
+	
+	<!-- 删除方法 -->
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM MM_PUB_SYS_PARAM 
+		WHERE 1=1
+		AND ID=#{id}
+	</delete>
+	
+	<!-- 单条/批量数据删除 -->
+	<delete id="deleteByIds" parameterType="java.lang.String">
+		DELETE FROM MM_PUB_SYS_PARAM
+		WHERE ID IN
+		<foreach item="aryIds" collection="array" open="(" separator="," close=")">
+			#{aryIds,jdbcType=VARCHAR}
+		</foreach>
+	</delete>
+	
+	<!-- 判断主键冲突 -->
+	<select id="selectPrimaryKey" parameterType="com.hanthink.pub.model.PubSysParamModel" resultType="java.lang.Integer">
+      SELECT COUNT(*)
+		FROM MM_PUB_SYS_PARAM A
+	   WHERE A.FACTORY_CODE = #{factoryCode,jdbcType = VARCHAR}
+		 AND A.PARAM_CODE = #{paramCode,jdbcType = VARCHAR}
+		 AND A.PARAM_GROUP = #{paramGroup,jdbcType = VARCHAR}
+	</select>
+	
+	<!-- 判断主键冲突 -->
+	<select id="selectParamVal" parameterType="com.hanthink.pub.model.PubSysParamModel" resultType="java.lang.Integer">
+      SELECT COUNT(*)
+		FROM MM_PUB_DATA_DICT A
+	   WHERE A.CODE_TYPE = #{paramCode,jdbcType = VARCHAR}
+		 AND A.CODE_VALUE = #{paramVal,jdbcType = VARCHAR}
+	</select>
+	
+	<!-- 验证SQL是否正确 -->
+	<select id="sheckParamVal" parameterType="java.lang.String" resultType="java.util.LinkedHashMap"> 
+	   ${value}
+    </select>
+	
+	<!-- 修改方法 -->
+	<update id="userUpdate" parameterType="com.hanthink.pub.model.PubSysParamModel">
+	   UPDATE MM_PUB_SYS_PARAM
+		  SET PARAM_VAL = #{paramVal,jdbcType=VARCHAR},
+		      LAST_MODIFIED_TIME = sysdate,
+		      LAST_MODIFIED_USER = #{lastModifiedUser,jdbcType=VARCHAR},
+		      LAST_MODIFIED_IP = #{lastModifiedIp,jdbcType=VARCHAR}
+		WHERE ID = #{id}
+	</update>
+	
+	<!-- 校验SQL是否有返回值 -->
+	<select id="sheckParamValReturn" parameterType="java.lang.String" resultType="java.lang.Integer"> 
+	   <![CDATA[
+        SELECT * FROM (${value}) 
+       ]]>
+    </select>
+    
+	<!--根据参数值和代码获取校验表达式和校验依据 -->
+	<select id="getCheckBy" parameterType="com.hanthink.pub.model.PubSysParamModel" resultType="com.hanthink.pub.model.PubSysParamModel"> 
+	    SELECT
+	    A.CHECK_BY  checkBy,
+	    A.CHECK_COMP  checkComp
+	    FROM MM_PUB_SYS_PARAM
+	    WHERE A.PARAM_CODE = #{paramCode}
+	      AND A.PARAM_VAL = #{paramVal}
+    </select>
+	
+</mapper>

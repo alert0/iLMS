@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.sys.persistence.model.MsgTemplate">
+	<resultMap id="MsgTemplate" type="com.hotent.sys.persistence.model.MsgTemplate">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="name" column="name_" jdbcType="VARCHAR"/>
+		<result property="key" column="key_" jdbcType="VARCHAR"/>
+		<result property="typeKey" column="type_key_" jdbcType="VARCHAR"/>
+		<result property="isDefault" column="is_default_" jdbcType="NUMERIC"/>
+		<result property="subject" column="subject_" jdbcType="VARCHAR"/>
+		<result property="plain" column="plain_" jdbcType="VARCHAR"/>
+		<result property="html" column="html_" jdbcType="CLOB"/>
+		<result property="createBy" column="create_by_" jdbcType="VARCHAR"/>
+		<result property="createTime" column="create_time_" jdbcType="TIMESTAMP"/>
+		<result property="createOrgId" column="create_org_id_" jdbcType="VARCHAR"/>
+		<result property="updateBy" column="update_by_" jdbcType="VARCHAR"/>
+		<result property="updateTime" column="update_time_" jdbcType="TIMESTAMP"/>
+	    <result property="smsTemplateNo" column="sms_template_no_" jdbcType="VARCHAR"/>
+		<result property="voiceTemplateNo" column="voice_template_no_" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.sys.persistence.model.MsgTemplate">
+		INSERT INTO sys_msg_tpl
+		(sms_template_no_,voice_template_no_,id_,name_,key_,type_key_,is_default_,subject_,plain_,html_,create_by_,create_time_,create_org_id_,update_by_,update_time_)
+		VALUES 
+		(#{smsTemplateNo,jdbcType=VARCHAR},#{voiceTemplateNo,jdbcType=VARCHAR},#{id,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR}, #{key,jdbcType=VARCHAR}, #{typeKey,jdbcType=VARCHAR},  #{isDefault,jdbcType=VARCHAR}, #{subject,jdbcType=VARCHAR}, #{plain,jdbcType=VARCHAR}, #{html,jdbcType=CLOB}, #{createBy,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP}, #{createOrgId,jdbcType=VARCHAR}, #{updateBy,jdbcType=VARCHAR}, #{updateTime,jdbcType=TIMESTAMP})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="MsgTemplate">
+		SELECT * FROM sys_msg_tpl 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="getDefault"   resultMap="MsgTemplate">
+		SELECT * FROM sys_msg_tpl 
+		WHERE 
+		type_key_=#{typeKey}	
+		and
+		is_default_='1'
+		order by id_ desc	
+	</select>	
+	
+	<select id="getByKey"   resultMap="MsgTemplate">
+		SELECT * FROM sys_msg_tpl 
+		WHERE 
+		key_=#{key_}	
+	</select>	
+	
+	
+	
+	<select id="query" parameterType="java.util.Map" resultMap="MsgTemplate">
+		SELECT * FROM sys_msg_tpl
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.sys.persistence.model.MsgTemplate">
+		UPDATE sys_msg_tpl SET
+		name_=#{name,jdbcType=VARCHAR},
+		key_=#{key,jdbcType=VARCHAR},
+		
+		type_key_=#{typeKey,jdbcType=VARCHAR},
+		
+		is_default_=#{isDefault,jdbcType=VARCHAR},
+		subject_=#{subject,jdbcType=VARCHAR},
+		plain_=#{plain,jdbcType=VARCHAR},
+		html_=#{html,jdbcType=CLOB},
+		create_by_=#{createBy,jdbcType=VARCHAR},
+		create_time_=#{createTime,jdbcType=TIMESTAMP},
+		create_org_id_=#{createOrgId,jdbcType=VARCHAR},
+		update_by_=#{updateBy,jdbcType=VARCHAR},
+		update_time_=#{updateTime,jdbcType=TIMESTAMP},
+		sms_template_no_=#{smsTemplateNo,jdbcType=VARCHAR},
+		voice_template_no_=#{voiceTemplateNo,jdbcType=VARCHAR}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_msg_tpl 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	
+</mapper>

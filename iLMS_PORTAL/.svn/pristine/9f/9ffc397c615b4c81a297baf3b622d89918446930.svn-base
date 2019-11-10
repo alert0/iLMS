@@ -1,0 +1,624 @@
+package com.hanthink.sw.controller;
+
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.ibatis.session.RowBounds;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.hanthink.business.util.MakeQrcodeImages;
+import com.hanthink.sw.manager.SwDemondOrderManager;
+import com.hanthink.sw.model.SwDemondOrderDetailModel;
+import com.hanthink.util.BufferImage.BarCodeImage;
+import com.hanthink.util.excel.ExcelUtil;
+import com.hotent.base.api.model.ResultMessage;
+import com.hotent.base.core.util.FileUtil;
+import com.hotent.base.core.util.string.StringUtil;
+import com.hotent.base.core.web.GenericController;
+import com.hotent.base.core.web.RequestUtil;
+import com.hotent.base.db.mybatis.domain.DefaultPage;
+import com.hotent.base.db.mybatis.domain.PageJson;
+import com.hotent.base.db.mybatis.domain.PageList;
+import com.hotent.org.api.model.IUser;
+import com.hotent.sys.api.entity.CurrentUser;
+import com.hotent.sys.util.ContextUtil;
+import com.hotent.sys.util.SysPropertyUtil;
+
+import net.sf.jasperreports.engine.JRDataSource;
+import net.sf.jasperreports.engine.JREmptyDataSource;
+import net.sf.jasperreports.engine.JRException;
+import net.sf.jasperreports.engine.JRExporterParameter;
+import net.sf.jasperreports.engine.JasperFillManager;
+import net.sf.jasperreports.engine.JasperPrint;
+import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
+import net.sf.jasperreports.engine.export.JRPdfExporter;
+
+/**
+ * 零件订单
+ * 
+ * @author 李兴辉
+ *
+ */
+@Controller
+@RequestMapping("/sw/swDemandOrder")
+public class SwDemondOrderController extends GenericController {
+
+	@Resource
+	private SwDemondOrderManager swDemondOrderManager;
+
+	private static Logger log = LoggerFactory.getLogger(SwDemondOrderController.class);
+
+	/**
+	 * 订单查询
+	 * 
+	 * @param request
+	 * @param reponse
+	 * @param model
+	 * @return
+	 * @throws Exception Lxh
+	 */
+	@RequestMapping("/queryDemondOrderPage")
+	public @ResponseBody PageJson queryDemandOrderPage(HttpServletRequest request, HttpServletResponse reponse,
+			@ModelAttribute("model") SwDemondOrderDetailModel model) throws Exception {
+		DefaultPage p = new DefaultPage(new RowBounds(getQueryFilter(request).getPage().getStartIndex(),
+				getQueryFilter(request).getPage().getPageSize()));
+		PageList<SwDemondOrderDetailModel> pageList = (PageList<SwDemondOrderDetailModel>) swDemondOrderManager
+				.queryDemandOrderPage(model, p);
+		return new PageJson(pageList);
+	}
+
+	/**
+	 * 订单明细查询
+	 * 
+	 * @param request
+	 * @param reponse
+	 * @param model
+	 * @return
+	 * @throws Exception
+	 */
+	@RequestMapping("/queryDemondOrderDetailPage")
+	public @ResponseBody PageJson queryDemandDetailOrderPage(HttpServletRequest request, HttpServletResponse reponse,
+			@ModelAttribute("model") SwDemondOrderDetailModel model) throws Exception {
+		DefaultPage p = new DefaultPage(new RowBounds(getQueryFilter(request).getPage().getStartIndex(),
+				getQueryFilter(request).getPage().getPageSize()));
+		PageList<SwDemondOrderDetailModel> pageList = (PageList<SwDemondOrderDetailModel>) swDemondOrderManager
+				.queryDemandDetailOrderPage(model, p);
+		return new PageJson(pageList);
+	}
+
+	/**
+	 * 订单明细修改
+	 * 
+	 * @param request
+	 * @param reponse
+	 * @param model
+	 * @return
+	 * @throws Exception Lxh
+	 */
+	@RequestMapping("/DemondOrderDetailUpdateQuery")
+	public @ResponseBody PageJson demondOrderDetailUpdateQuery(HttpServletRequest request, HttpServletResponse reponse,
+			@ModelAttribute("model") SwDemondOrderDetailModel model) throws Exception {
+		DefaultPage p = new DefaultPage(new RowBounds(getQueryFilter(request).getPage().getStartIndex(),
+				getQueryFilter(request).getPage().getPageSize()));
+		String parameter = model.getPurchaseNoArr();
+		
+		String[] purchaseNos = parameter.split(",");
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put("purchaseNos", purchaseNos);
+		map.put("model", model);
+//		ArrayList<SwDemondOrderDetailModel> arrayList = new ArrayList<SwDemondOrderDetailModel>();
+//		for (int i = 0; i < split.length; i++) {
+//			String string = split[i];
+//			SwDemondOrderDetailModel models = new SwDemondOrderDetailModel();
+//			models.setPurchaseNo(string);	
+//			models.setOrderNo(model.getOrderNo());
+//			models.setSupplierNo(model.getSupplierNo());
+//			models.setSupplierName(model.getSupplierName());
+//			models.setPartName(model.getPartName());
+//			models.setPartShortNo(model.getPartShortNo());
+//			arrayList.add(models);
+//		}
+
+		PageList<SwDemondOrderDetailModel> pageList = (PageList<SwDemondOrderDetailModel>) swDemondOrderManager
+				.demondOrderDetailUpdateQuery(map, p);
+		return new PageJson(pageList);
+	}
+
+	/**
+	 * 更新发货数量
+	 * 
+	 * @param request
+	 * @param response
+	 * @param model
+	 * @throws Exception
+	 */
+	@RequestMapping("/updateDemandDetailForPrint")
+	public void updateDemandDetailForPrint(HttpServletRequest request, HttpServletResponse response,
+			@RequestBody SwDemondOrderDetailModel model) throws Exception {
+
+		IUser user = ContextUtil.getCurrentUser();
+		try {
+			String message = "";
+			String tempDelivQty = model.getTempDelivQty();// 本次发货
+			String totalDelivQty = model.getTotalDelivQty();// 历史发货总数量
+			String orderQity = model.getOrderQty();// 采购数量
+			String regex = "^([0-9])*";
+			boolean isCorrect = tempDelivQty.trim().matches(regex);
+			boolean isCorrect1 = totalDelivQty.trim().matches(regex);
+			boolean isCorrect2 = orderQity.trim().matches(regex);
+			if (isCorrect && isCorrect1 && isCorrect2) {
+				int tempDelivQtyInt = Integer.parseInt(tempDelivQty);
+				int totalDelivQtyInt = Integer.parseInt(totalDelivQty);
+				int orderQityInt = Integer.parseInt(orderQity);
+				int count = tempDelivQtyInt + totalDelivQtyInt;
+				if (orderQityInt >= count) {
+					model.setTotalDelivQty(count + "");
+					model.setUpdateUser(user.getAccount());
+					model.setFactoryCode(user.getCurFactoryCode());
+					swDemondOrderManager.updateDemandDetailForPrint(model);
+					updateDelivery(model);
+				} else {
+					message = "收货总数不能大于采购数量";
+					writeResultMessage(response.getWriter(), message, ResultMessage.FAIL);
+					return;
+				}
+			} else {
+				message = "本次发货数只能为数字格式";
+				writeResultMessage(response.getWriter(), message, ResultMessage.FAIL);
+				return;
+			}
+
+			message = "更新成功";
+			writeResultMessage(response.getWriter(), message, ResultMessage.SUCCESS);
+		} catch (IOException e) {
+			e.printStackTrace();
+			log.error(e.toString());
+			throw new Exception("系统错误,请联系管理员");
+		}
+	}
+
+	/**
+	 * 批量导出
+	 * 
+	 * @param request
+	 * @param response
+	 * @throws Exception
+	 */
+	@RequestMapping("/downloadDemondOrderByBatch")
+	public void downloadDemondOrderByBatch(HttpServletRequest request, HttpServletResponse response,
+			@ModelAttribute("model") SwDemondOrderDetailModel model) throws Exception {
+
+		try {
+			String exportFileName = "需求订单" + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+
+			
+			List<SwDemondOrderDetailModel> list = (List<SwDemondOrderDetailModel>) swDemondOrderManager
+					.queryDemandOrderDownload(model);
+			int curNum = list.size();
+			if (0 == curNum) {
+				ExcelUtil.exportNoDataError(request, response);
+				return;
+			}
+			int sysMaxNum = SysPropertyUtil.getIntByAlias("EXCEL_EXPORT_MAX_SIZE", 10000);
+//			int sysMaxNum_T = SysPropertyUtil.getIntByAlias("EXCEL_EXPORT_MAX_SIZE_T", 100000);
+			if (curNum > sysMaxNum) {
+				ExcelUtil.exportNumError(sysMaxNum, request, response);
+				return;
+			}
+//			List<SwDemondOrderDetailModel> list = swDemondOrderManager.downloadDemondOrder(model);
+			if (null != list) {
+				model.setDownloadStatusYes(SwDemondOrderDetailModel.DOWNLOAD_STATUS_YES);
+				swDemondOrderManager.updateDowloadInfoByBatch(model); //导出时更新下载状态为已下载
+				String[] headers = { "订单号", "物流单号", "供应商代码", "供应商名称", "订购日期", "到货日期", "仓库编码", 
+						"打印状态", "下载状态", "发货状态",
+						"收货状态", "零件号", "零件名称", "零件简号", "订购数量", "包装数", "箱数", "取消数量", "收货数量" };
+				String[] columns = { "purchaseNo", "orderNo", "supplierNo", "supplierName", "orderDate",
+						"arriveDate", "depotNo", "printStatus", "downloadStatus", "deliveryStatus", "receiveStatus",
+						"partNo", "partName", "partShortNo", "orderQty", "standardPackage", "boxesNum", "cancelNum",
+						"totalRecQty" };
+				int[] widths = { 100, 100, 100, 100, 150, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100,
+						100, 100 };
+				ExcelUtil.exportExcel(ExcelUtil.EXCEL_XLSX, request, response, exportFileName, list, headers,
+							widths, columns);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.error(e.toString());
+			throw new Exception("系统错误,请联系管理员");
+		}
+	}
+
+	/**
+	 * 选择导出
+	 * 
+	 * @param request
+	 * @param response
+	 * @throws Exception
+	 */
+	@SuppressWarnings({ "null", "unused", "deprecation" })
+	@RequestMapping("downloadDemondOrderByChoose")
+	public void downloadDemondOrderByChoose(HttpServletRequest request, HttpServletResponse response) throws Exception {
+//		 String purchaseNoArr = request.getParameter("purchaseNoArr");
+		String str = request.getQueryString();
+		String ss = java.net.URLDecoder.decode(str);
+		String[] strs = ss.split("=");
+		String purchaseNoArr = strs[1];
+		String exportFileName = "需求订单" + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+		String[] splitPurchaseNo = purchaseNoArr.split(",");
+
+		try {
+
+//			List<SwDemondOrderDetailModel> list = new ArrayList<SwDemondOrderDetailModel>();
+			
+//			SwDemondOrderDetailModel swDemondOrderDetailModel3 = new SwDemondOrderDetailModel();
+//			for (int i = 0; i < splitPurchaseNo.length; i++) {
+//				String purcharceNo = splitPurchaseNo[i].trim();
+//				swDemondOrderDetailModel3.setPurchaseNo(purcharceNo);
+//				List<SwDemondOrderDetailModel> swDemondOrderDetailModel = swDemondOrderManager
+//						.downloadDemondOrderByChoose(swDemondOrderDetailModel3);
+//				swDemondOrderManager.updateDowloadInfo(swDemondOrderDetailModel3);
+//				for (SwDemondOrderDetailModel swDemondOrderDetailModel2 : swDemondOrderDetailModel) {
+//					list.add(swDemondOrderDetailModel2);
+//				}
+//			}
+			Map<String, Object> map = new HashMap<String, Object>();
+			map.put("purchaseNoArr", splitPurchaseNo); 
+			map.put("downloadStatus", SwDemondOrderDetailModel.DOWNLOAD_STATUS_YES);
+			swDemondOrderManager.updateDowloadInfo(map);  //导出修改下载状态为已下载
+			List<SwDemondOrderDetailModel> list = swDemondOrderManager.downloadDemondOrderByChoose(splitPurchaseNo);
+			if (list.size() > 0) {
+				String[] headers = { "订单号", "订单行号", "供应商代码", "供应商名称", "订购日期",
+						"到货日期", "仓库编码", "打印状态", "下载状态", "发货状态",
+						"收货状态", "零件号", "零件名称", "零件简号", "订购数量",
+						"包装数", "箱数", "取消数量", "收货数量","取货时间" };
+				String[] columns = { "purchaseNo", "purchaseRowNo", "supplierNo", "supplierName", "orderDate",
+						"arriveDate", "depotNo", "printStatus", "downloadStatus", "deliveryStatus",
+						"receiveStatus","partNo", "partName", "partShortNo", "orderQty", 
+						"standardPackage", "boxesNum", "cancelNum","totalRecQty","planPickUpTimeStr" };
+				int[] widths = { 100, 100, 100, 100, 150,
+						100, 100, 100, 100, 100,
+						100, 100, 100, 100, 100,
+						100, 100, 100, 100, 100};
+				ExcelUtil.exportExcel(ExcelUtil.EXCEL_XLSX, request, response, exportFileName, list, headers, widths,
+						columns);
+			} else {
+
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.error(e.toString());
+//			ExcelUtil.exportException(e, request, response);
+			throw new Exception("系统错误,请联系管理员");
+		}
+
+	}
+
+	/**
+	 * 标签打印
+	 * 
+	 * @param request
+	 * @param response
+	 * @throws Exception
+	 */
+	@RequestMapping("demondOrderPrintLabel")
+	public void jitOrderPrintLabel(HttpServletRequest request, HttpServletResponse response) throws Exception {
+		String orderNoArr = request.getParameter("orderNo");
+		String[] splitOrderNo = orderNoArr.split(",");
+		List<SwDemondOrderDetailModel> list = null;
+
+		try {
+
+			if (null != splitOrderNo && splitOrderNo.length > 0) {
+				// 打印N张
+				List<JasperPrint> JasperPrintList = new ArrayList<JasperPrint>();
+				for (int i = 0; i < splitOrderNo.length; i++) {
+					SwDemondOrderDetailModel orderModel = new SwDemondOrderDetailModel();
+					orderModel.setOrderNo(splitOrderNo[i]);
+					// 查询标签打印信息明细
+					list = swDemondOrderManager.queryDemondOrderPrintLabelList(orderModel);
+					if (list == null || list.size() == 0) {
+						return;
+					}
+					List<SwDemondOrderDetailModel> paramList = new ArrayList<SwDemondOrderDetailModel>();
+					for (int j = 0; j < list.size(); j++) {
+						list.get(j).setRowId((j + 1) + "");
+						list.get(j).setPageCount((j + 1) + "/" + list.size());
+					}
+					String filenurl = FileUtil.getClassesPath() + File.separator + "template" + File.separator
+							+ "ireport" + File.separator + "demo" + File.separator + "SW_DEMOND_LABEL.jasper";
+					Map<String, Object> map = new HashMap<String, Object>();
+					
+					SwDemondOrderDetailModel model = new SwDemondOrderDetailModel();
+					model = list.get(i);
+					String orderType = model.getOrderType();// 订单类型
+					String spType = model.getSpType();// 售后订单类型,2,3采用特殊打印类型
+					if ("12".equals(orderType) && ("2".equals(spType) || "3".equals(spType))) {
+						filenurl = FileUtil.getClassesPath() + File.separator + "template" + File.separator + "ireport"
+								+ File.separator + "demo" + File.separator + "SW_DEMOND_LABEL_SP.jasper";
+					}
+					InputStream file = new FileInputStream(filenurl);
+					int size = list.size();
+					for (int k = 0; k < size; k++) {	
+						model = list.get(k);
+						Integer standardPackge =Integer.parseInt(model.getStandardPackage()) ;
+						Integer currentQty = Integer.parseInt(model.getTempDelivQty());
+						for (; 0 < currentQty; ) {
+//							SwDemondOrderDetailModel  m = new SwDemondOrderDetailModel();
+							
+							SwDemondOrderDetailModel   swDemondOrderDetailModel_q = new SwDemondOrderDetailModel();
+							swDemondOrderDetailModel_q.setOrderTypeName(model.getOrderType());
+							swDemondOrderDetailModel_q.setPageCount(model.getPageCount());
+							swDemondOrderDetailModel_q.setRowId(model.getRowId());
+							swDemondOrderDetailModel_q.setPartNo(model.getPartNo());
+							swDemondOrderDetailModel_q.setPartShortNo(model.getPartShortNo());
+							swDemondOrderDetailModel_q.setSupplierNo(model.getSupplierNo());
+							swDemondOrderDetailModel_q.setPartName(model.getPartName());
+							swDemondOrderDetailModel_q.setDistriPerson(model.getDistriPerson());
+							swDemondOrderDetailModel_q.setDistriProductSeqno(model.getDistriProductSeqno());
+							swDemondOrderDetailModel_q.setRequireNum(model.getRequireNum());
+							swDemondOrderDetailModel_q.setLocation(model.getLocation());
+							swDemondOrderDetailModel_q.setOrderTimeHhmi(model.getOrderTimeHhmi());
+							swDemondOrderDetailModel_q.setOrderTimeYmd(model.getOrderTimeYmd());
+							swDemondOrderDetailModel_q.setUnloadPort(model.getUnloadPort());
+							swDemondOrderDetailModel_q.setArriveTime(model.getArriveTime());
+							swDemondOrderDetailModel_q.setPurchaseNo(model.getPurchaseNo());
+							swDemondOrderDetailModel_q.setOrderNo(model.getOrderNo());
+							swDemondOrderDetailModel_q.setArriveProductSeqno(model.getArriveProductSeqno());
+							swDemondOrderDetailModel_q.setPrepareAddress(model.getPrepareAddress());
+							swDemondOrderDetailModel_q.setStandardPackage(model.getStandardPackage());
+							swDemondOrderDetailModel_q.setPurchaseRowNo(model.getPurchaseRowNo());
+							currentQty = currentQty - standardPackge;
+							if (currentQty >= 0) {
+								swDemondOrderDetailModel_q.setTempDelivQty(standardPackge.toString());
+							}else {
+								swDemondOrderDetailModel_q.setTempDelivQty((currentQty+standardPackge) + "");
+							}
+							
+						
+					// 物流单号#订单号#供应商代码#供应商出货地代码#订单行号#零件号#简号#卸货口#规格包装#当前包装量#拣货工程#拣货地址#配送工程#配送地址
+//				String code = model.getOrderNo() + "#" + model.getPurchaseNo() + "#" +
+//						model.getSupplierNo()+ "#" + model.getPurchaseRowNo()+ "#" + model.getPartNo()
+//						+ "#" + model.getUnloadPort() + "#" + model.getStandartPackage() + "#" + 
+//						model.getBoxesNum() + "#" + model.getPreparePerson() + "#" + model.getPrepareAddress()
+//						+ "#" + model.getDistriPerson() + "#" +  model.getLocation();
+					// BufferedImage img = QrCodeImage.createQrcode(code,'L','B' ,3);
+
+					// 零件号#包装数#erp单号#物流单行号#物流单号#简号#订单类型#追朔等级#供应商代码#零件批次号#同批次数量#uuid
+					String code = swDemondOrderDetailModel_q.getPartNo() + "#" + swDemondOrderDetailModel_q.getStandardPackage() + "#" + swDemondOrderDetailModel_q.getPurchaseNo()
+							+ "#" + swDemondOrderDetailModel_q.getPurchaseRowNo() + "#" + swDemondOrderDetailModel_q.getOrderNo() + "#" + swDemondOrderDetailModel_q.getPartShortNo()
+							+ "#" + swDemondOrderDetailModel_q.getOrderTypeName() + "#" + "" + "#" + swDemondOrderDetailModel_q.getSupplierNo() + "#" + "" + "#"
+							+ swDemondOrderDetailModel_q.getTempDelivQty() + "#" + UUID.randomUUID().toString().replaceAll("-", "");
+					BufferedImage img = MakeQrcodeImages.getQrCodeImage(code, "150", "150");
+//					map.put("QR_INFOS", img);
+					swDemondOrderDetailModel_q.setQR_INFOS(MakeQrcodeImages.getQrCodeImage(code.toString(), "150", "150"));
+					paramList.add(swDemondOrderDetailModel_q);
+//					strList.add(code);
+						}
+					}
+					JRDataSource jRDataSource = new JRBeanCollectionDataSource(paramList);
+					JasperPrint jasperPrint = JasperFillManager.fillReport(file, map, jRDataSource);
+					
+					JasperPrintList.add(jasperPrint);
+				
+				if (JasperPrintList.size() > 0) {
+					response.setContentType("application/pdf");
+					response.setHeader("Content-disposition", "inline;");
+					JRPdfExporter exporter = new JRPdfExporter();
+					OutputStream out = response.getOutputStream();
+					exporter.setParameter(JRExporterParameter.JASPER_PRINT_LIST, JasperPrintList);
+					exporter.setParameter(JRExporterParameter.OUTPUT_STREAM, out);
+					exporter.exportReport();
+					for (SwDemondOrderDetailModel swDemondOrderDetailModel : list) {
+						swDemondOrderManager.updatePrintLabelStatus(swDemondOrderDetailModel);
+					}
+				}
+			}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.error(e.toString());
+			throw new Exception("系统错误,请联系管理员");
+		}
+	}
+
+	/**
+	 * 订单打印
+	 * 
+	 * @param request
+	 * @param response
+	 * @throws Exception Lxh
+	 */
+	@RequestMapping("DemondOrderPrint")
+	public void jitOrderPrint(HttpServletRequest request, HttpServletResponse response) throws Exception {
+		String orderNoStr = RequestUtil.getString(request, "orderNo");
+		String[] orderNoArr = orderNoStr.split(",");
+		List<SwDemondOrderDetailModel> detailList = null;
+		List<SwDemondOrderDetailModel> updateList = new ArrayList<SwDemondOrderDetailModel>();
+
+		try {
+
+			if (null != orderNoArr && orderNoArr.length > 0) {
+				// 打印N张
+				List<JasperPrint> JasperPrintList = new ArrayList<JasperPrint>();
+
+				for (int i = 0; i < orderNoArr.length; i++) {
+					SwDemondOrderDetailModel model_q = new SwDemondOrderDetailModel();
+					String filenurl = FileUtil.getClassesPath() + File.separator + "template" + File.separator
+							+ "ireport" + File.separator + "demo" + File.separator + "DEMOND_ORDER.jasper";
+					model_q.setOrderNo(orderNoArr[i]);
+					updateList.add(model_q);
+					// 查询订单明细
+					detailList = swDemondOrderManager.queryDemondOrderDetailList(model_q);
+					for (int j = 0; j < detailList.size(); j++) {
+						detailList.get(j).setRowId((j + 1) + "");
+						detailList.get(j).setPageCount((i + 1) + "/" + orderNoArr.length);
+						detailList.get(j).setLabelCount(detailList.size() + "");
+
+					}
+					HashMap<String, Object> parameters = new HashMap<String, Object>();
+					if (null != detailList && detailList.size() > 0) {
+						SwDemondOrderDetailModel model = detailList.get(0);
+						String orderType = model.getOrderType();// 订单类型
+						String spType = model.getSpType();// 售后订单类型,2,3采用特殊打印类型
+						BufferedImage img = BarCodeImage.creatBarCode(model.getOrderNo());
+						if ("12".equals(orderType) && ("2".equals(spType) || "3".equals(spType))) {
+							filenurl = FileUtil.getClassesPath() + File.separator + "template" + File.separator
+									+ "ireport" + File.separator + "demo" + File.separator + "DEMOND_ORDER_SP.jasper";
+							String hmsOrder = model.getHmsOrder() != null ? model.getHmsOrder() : " ";
+							img = BarCodeImage.creatBarCode(hmsOrder);
+						}
+						parameters.put("barCode", img);
+						InputStream file = new FileInputStream(filenurl);
+						JRDataSource jRDataSource = new JRBeanCollectionDataSource(detailList);
+						JasperPrint jasperPrint = JasperFillManager.fillReport(file, parameters, jRDataSource);
+						JasperPrintList.add(jasperPrint);
+					}
+
+				}
+				if (JasperPrintList.size() > 0) {
+//					SwDemondOrderDetailModel model = new SwDemondOrderDetailModel();
+//					model.setOrderNo(orderNoStr);
+//					updateDelivery(model);
+//					
+					response.setContentType("application/pdf");
+					response.setHeader("Content-disposition", "inline;");
+					JRPdfExporter exporter = new JRPdfExporter();
+					OutputStream out = response.getOutputStream();
+					exporter.setParameter(JRExporterParameter.JASPER_PRINT_LIST, JasperPrintList);
+					exporter.setParameter(JRExporterParameter.OUTPUT_STREAM, out);
+					exporter.exportReport();
+
+					swDemondOrderManager.updatePrintInfo(updateList);
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.error(e.toString());
+			throw new Exception("系统错误,请联系管理员");
+		}
+	}
+	
+//	@RequestMapping("updateDelivery")
+//	public void updateDelivery() {
+//		
+//	}
+
+	/**
+	 * 托盘标签打印
+	 * 
+	 * @param request
+	 * @param response
+	 * @throws Exception
+	 */
+	@RequestMapping("demondOrderPrintTpLabel")
+	public void demondOrderPrintTpLabel(HttpServletRequest request, HttpServletResponse response) throws Exception {
+		String orderNoStr = RequestUtil.getString(request, "orderNoStr");
+		String[] orderNoArr = orderNoStr.split(",");
+
+		try {
+
+			if (null != orderNoArr && orderNoArr.length > 0) {
+				// 打印N张
+				List<JasperPrint> JasperPrintList = new ArrayList<JasperPrint>();
+				for (int i = 0; i < orderNoArr.length; i++) {
+					SwDemondOrderDetailModel model_q = new SwDemondOrderDetailModel();
+					model_q.setOrderNo(orderNoArr[i]);
+					// 根据订单号查询托盘标签打印信息
+					List<SwDemondOrderDetailModel> list = swDemondOrderManager.demondOrderPrintTpLabel(model_q);
+					for (int j = 0; j < list.size(); j++) {
+						String filenurl = FileUtil.getClassesPath() + File.separator + "template" + File.separator
+								+ "ireport" + File.separator + "demo" + File.separator + "TP_LABEL.jasper";
+						InputStream file = new FileInputStream(filenurl);
+						HashMap<String, Object> parameters = new HashMap<String, Object>();
+						SwDemondOrderDetailModel model = list.get(j);
+						parameters.put("supplierNo", model.getSupplierNo());
+						parameters.put("supplierName", model.getSupplierName());
+						parameters.put("unloadPort", model.getUnloadPort());
+						parameters.put("distriBatchNo", "");
+						parameters.put("orderNo", model.getOrderNo());
+						parameters.put("purchaseOrderno", model.getPurchaseNo());
+						// 托盘总数
+						parameters.put("total", "" + list.size());
+						// 第 ?拖
+						parameters.put("no", "" + (j + 1));
+						JRDataSource jRDataSource = new JREmptyDataSource();
+						JasperPrint jasperPrint = JasperFillManager.fillReport(file, parameters, jRDataSource);
+						JasperPrintList.add(jasperPrint);
+
+					}
+				}
+				response.setContentType("application/pdf");
+				response.setHeader("Content-disposition", "inline;");
+				JRPdfExporter exporter = new JRPdfExporter();
+				OutputStream out = response.getOutputStream();
+				exporter.setParameter(JRExporterParameter.JASPER_PRINT_LIST, JasperPrintList);
+				exporter.setParameter(JRExporterParameter.OUTPUT_STREAM, out);
+				exporter.exportReport();
+
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.error(e.toString());
+			throw new Exception("系统错误,请联系管理员");
+		}
+	}
+
+	/**
+	 * 更新发货单数据
+	 * 
+	 * @param m Lxh
+	 * @throws Exception
+	 */
+	public void updateDelivery(SwDemondOrderDetailModel m) throws Exception {
+		// 查询发货单数据是否存在，存在就流水号+1，不存在从0开始
+//		Integer lastFive = 0;
+		try {
+			Integer lastFive = swDemondOrderManager.getLastFive();
+			if (lastFive == null) {
+				lastFive = 0;
+			}
+			IUser user = ContextUtil.getCurrentUser();
+			m.setUpdateUser(user.getAccount());
+			m.setFactoryCode(user.getCurFactoryCode());
+			String purchaseNo = m.getPurchaseNo();
+			if (StringUtil.isEmpty(purchaseNo)) {
+				return;
+			}
+		    Boolean b = swDemondOrderManager.isExistsByDetail(m);
+		    if (!b) {
+			lastFive = lastFive + 1;
+			m.setLastFive(lastFive+"");
+			swDemondOrderManager.updateDelivery(m);// 更新发货数据
+			}
+		    m.setLastFive(lastFive+"");
+			swDemondOrderManager.updateDeliveryDetail(m);// 更新发货明细
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.error(e.toString());
+			throw new Exception("系统错误,请联系管理员");
+		}
+	}
+
+}

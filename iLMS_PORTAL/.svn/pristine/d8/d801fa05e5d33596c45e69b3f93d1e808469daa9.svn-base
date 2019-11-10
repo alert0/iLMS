@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.sys.persistence.model.SysDataSource">
+	<resultMap id="SysDataSource" type="com.hotent.sys.persistence.model.SysDataSource">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="name" column="name_" jdbcType="VARCHAR"/>
+		<result property="alias" column="alias_" jdbcType="VARCHAR"/>
+		<result property="classPath" column="class_path_" jdbcType="VARCHAR"/>
+		<result property="dbType" column="db_type_" jdbcType="VARCHAR"/>
+		<result property="settingJson" column="setting_json_" jdbcType="CLOB"/>
+		<result property="initOnStart" column="init_on_start_" jdbcType="NUMERIC"/>
+		<result property="enabled" column="enabled_" jdbcType="NUMERIC"/>
+		<result property="initMethod" column="init_method_" jdbcType="VARCHAR"/>
+		<result property="closeMethod" column="close_method_" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.sys.persistence.model.SysDataSource">
+		INSERT INTO sys_datasource
+		(id_,name_,alias_,db_type_,setting_json_,init_on_start_,enabled_,init_method_,close_method_,class_path_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR}, #{alias,jdbcType=VARCHAR}, #{dbType,jdbcType=VARCHAR}, #{settingJson,jdbcType=CLOB}, #{initOnStart,jdbcType=NUMERIC,javaType=Boolean}, #{enabled,jdbcType=NUMERIC,javaType=Boolean}, #{initMethod,jdbcType=VARCHAR}, #{closeMethod,jdbcType=VARCHAR}, #{classPath,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="SysDataSource">
+		SELECT * FROM sys_datasource 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="SysDataSource">
+		SELECT * FROM sys_datasource
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.sys.persistence.model.SysDataSource">
+		UPDATE sys_datasource SET
+		name_=#{name,jdbcType=VARCHAR},
+		alias_=#{alias,jdbcType=VARCHAR},
+		db_type_=#{dbType,jdbcType=VARCHAR},
+		setting_json_=#{settingJson,jdbcType=CLOB},
+		init_on_start_=#{initOnStart,jdbcType=NUMERIC,javaType=Boolean},
+		enabled_=#{enabled,jdbcType=NUMERIC,javaType=Boolean},
+		init_method_=#{initMethod,jdbcType=VARCHAR},
+		close_method_=#{closeMethod,jdbcType=VARCHAR},
+		class_path_=#{classPath,jdbcType=VARCHAR}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_datasource 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	
+	<select id="getDataSource" parameterType="java.util.Map" resultMap="SysDataSource">
+		SELECT * FROM sys_datasource
+		where init_on_start_=#{initOnStart,jdbcType=NUMERIC}
+		and enabled_=#{enabled,jdbcType=NUMERIC}
+			ORDER BY id_ DESC
+	</select>
+	
+	
+	<select id="getByAlias"   parameterType="java.lang.String" resultMap="SysDataSource">
+		SELECT * FROM sys_datasource 
+		WHERE alias_=#{alias,jdbcType=VARCHAR}
+	</select>
+	
+	
+	
+</mapper>

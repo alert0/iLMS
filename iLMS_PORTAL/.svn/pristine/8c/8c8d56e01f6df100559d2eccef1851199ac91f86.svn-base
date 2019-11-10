@@ -1,0 +1,100 @@
+<!doctype html>
+<html ng-app="myApp">
+<head>
+<title>X5手机平台</title>
+<meta charset="utf-8">
+<script src="../assets/js/importJs.js"></script>
+
+<script type="text/javascript">
+importJs(validateJs);
+	var myApp = angular.module("myApp", [ 'base', 'mobileDirective','formDirective' ]);
+	myApp.controller("myTaskCtrl", [ '$scope', 'baseService', '$sce',
+			function(scope, baseService, $sce) {
+		scope.changePsw = function(){
+			if(scope.form.$invalid)return;
+			if(scope.newPassword!=scope.password){
+				$.alert("新密码与确认密码不同！");
+				return ;
+			}
+			baseService.postForm(__ctx+"/org/user/updateUserPsw",{oldPassWorld:scope.oldPassword,newPassword:scope.newPassword}).then(
+			function(data){
+				if(data.result == 1){
+					$.alert("修改成功");
+				}else{
+					$.alert(data.message);
+				}
+			},
+			function(code){}
+			)
+		}
+
+	} ]);
+
+	$(function() {
+		$("a.item-inner").click(function() {
+			$.closePanel()
+		});
+	})
+</script>
+
+</head>
+
+<body ng-controller="myTaskCtrl">
+	<div class="page">
+		<header class="hkm-red-header bar bar-nav">
+		  <a class="icon icon-left pull-left back" href="javascript:history.go(-1);""></a>
+		  <span class='title'>修改密码</span>
+		</header>
+		<div class="content pull-to-refresh-content infinite-scroll">
+		  	 <div class="pull-to-refresh-layer">
+		        <div class="preloader"></div>
+		        <div class="pull-to-refresh-arrow"></div>
+		    </div>
+			<div class="xgmm-page">
+				<p>新修改的密码需重新登录生效</p>
+				<form name="form" method="post"  ng-model="data">
+				 <div class="list-block">
+				    <ul>
+				      <!-- Text inputs -->
+				      <li>
+				        <div class="item-content">
+				          <div class="item-inner">
+				            <div class="item-title label">旧密码</div>
+				            <div class="item-input">
+				              <input type="password" ng-model="oldPassword" placeholder="旧密码" ht-validate="{required:true,maxlength:192}">
+				            </div>
+				          </div>
+				        </div>
+				      </li>
+				      <li>
+				        <div class="item-content">
+				          <div class="item-inner">
+				            <div class="item-title label">新密码</div>
+				            <div class="item-input">
+				              <input type="password" ng-model="newPassword" placeholder="新密码" ht-validate="{required:true,maxlength:192}">
+				            </div>
+				          </div>
+				        </div>
+				      </li>
+				      <li>
+				        <div class="item-content">
+				          <div class="item-inner">
+				            <div class="item-title label">确认密码</div>
+				            <div class="item-input">
+				              <input type="password" ng-model="password" placeholder="确认密码" ht-validate="{required:true,maxlength:192}">
+				              <span ng-if="newPassword!=password" style="color: red;">新密码与确认密码不同！</span>
+				            </div>
+				          </div>
+				        </div>
+				      </li>
+				    </ul>
+				  </div>
+				  </form>
+				<div class="baocun">
+					<a href="#" class="button button-big button-fill button-danger" ng-click="changePsw()">保存</a>
+				</div>
+			</div>
+		</div>
+	</div>
+</body>
+</html>

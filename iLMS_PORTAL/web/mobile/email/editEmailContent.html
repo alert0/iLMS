@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html ng-app="myApp">
+<head>
+<title>X5手机平台</title>
+<meta charset="utf-8">
+<script src="../assets/js/importJs.js"></script>
+
+<script type="text/javascript">
+	importCss([ "/mobile/assets/css/email.css" ]);
+	importJs(["/js/platform/bpm/service/arrayToolService.js"]);
+	var mailSetId = HtUtil.getParameter("mailSetId");
+	var myApp = angular.module("myApp", [ 'base', 'mobileDirective',
+			'arrayToolService' ]);
+	myApp.controller("myTaskCtrl", [ '$scope', 'baseService', '$sce','ArrayToolService',function(scope, baseService, $sce,ArrayToolService) {
+		scope.mail = {};
+		var url = __ctx + "/mail/mail/mail/getDefaultEmail";
+		baseService.get(url).then(function(data) {
+			if (data != null) {
+				scope.mail.senderAddress = data.mailAddress;
+			}
+		})
+		scope.sendEmail = function(){
+			scope.mail.type = 2;
+			scope.mail.isReply = 0;
+			var reg = /^((([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+(\.([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+)*)|((\x22)((((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(([\x01-\x08\x0b\x0c\x0e-\x1f\x7f]|\x21|[\x23-\x5b]|[\x5d-\x7e]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(\\([\x01-\x09\x0b\x0c\x0d-\x7f]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]))))*(((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(\x22)))@((([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.)+(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))$/i;
+			if(!scope.mail.receiverAddresses || !reg.test(scope.mail.receiverAddresses.trim())){
+				$.alert("请填写正确的收件人邮箱地址!");
+				return;
+			}
+			if(!scope.mail.subject){
+				$.alert("请填写邮件主题!");
+				return;
+			}
+			if(!scope.mail.content){
+				$.alert("请填写邮件内容!");
+				return;
+			}
+			$.showPreloader('发送邮件中·······');
+			var url = __ctx + "/mail/mail/mail/mobileSend";
+			baseService.post(url,scope.mail).then(function(data) {
+				$.hidePreloader();
+				if (data != null) {
+					$.alert(data.message,function(){
+						if(data.result == 1){
+							location.href = "emailList.html";
+						}
+					})
+				}
+			})
+		}
+		scope.showDialog = function(){
+			var conf ={callback:function(data){
+				if(data.length > 0){
+					scope.mail.fileIds = data;
+				}
+				AngularUtil.setData(scope);
+			}}; 
+			UploadDialog(conf);
+		}
+		scope.removeTo=function(val,list){
+			ArrayToolService.remove(val,list);
+		};
+	} ]);
+
+	$(function() {
+		$("a.item-inner").click(function() {
+			$.closePanel()
+		});
+	})
+</script>
+<style type="text/css">
+.content {
+	background-color: #fff;
+}
+</style>
+</head>
+<body ng-controller="myTaskCtrl">
+	<div class="page email-huifu-page" id="taskToDo">
+		<header class="hkm-red-header bar bar-nav">
+			<a class="icon icon-left pull-left back"
+				href="javascript:history.go(-1);" external></a> <span class='title'>编写邮件</span>
+			<a class="icon icon-star pull-right" href="#"></a>
+		</header>
+		<div class="content">
+			<div class="list-block emailTarget">
+				<ul>
+					<li>
+						<div class="item-content">
+							<div class="item-inner">
+								<div class="item-input">
+									<input type="text" placeholder="发送给..."  ng-model="mail.receiverAddresses">
+								</div>
+							</div>
+						</div>
+					</li>
+				</ul>
+			</div>
+			<div class="list-block emailTarget emailMessage">
+				<ul>
+					<li class="write-biaoti">
+						<div class="item-content">
+							<div class="item-inner">
+								<div class="item-input">
+									<input type="text" placeholder="邮件标题..."  ng-model="mail.subject">
+								</div>
+							</div>
+						</div>
+					</li>
+					<li class="align-top">
+						<div class="item-content">
+							<div class="item-inner">
+								<div class="item-input">
+									<textarea ng-model="mail.content" placeholder="邮件内容..."></textarea>
+								</div>
+							</div>
+						</div>
+					</li>
+					<li class="align-top">
+						<div class="item-content">
+							<div class="item-inner">
+								<div class="item-input">
+									<span class="col-50 ng-scope" style="word-break:normal; width:auto; display:block; white-space:normal;word-wrap : break-word ;overflow: hidden ;" ng-repeat="file in mail.fileIds track by $index">	
+											<span class="button ng-binding" style="margin: 4px 0;padding:0 7px" title="移除该项" ng-click="removeTo(file,mail.fileIds)">{{file.name}}<span class="fa fa-close"></span></span>
+									</span>
+								</div>
+							</div>
+						</div>
+					</li>
+				</ul>
+			</div>
+		</div>
+		<div class="writeBottom">
+			<div class="fujianBtn pull-left icon icon-picture" ng-click="showDialog()">
+			</div>
+			<div class="sendBtn pull-right" ng-click="sendEmail()">发送</div>
+		</div>
+	</div>
+</body>
+</html>

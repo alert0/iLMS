@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="pec_non">
+	<typeAlias alias="NonStandardVo" type="com.hanthink.gps.gacne.pecNon.vo.NonStandardVo" />
+	<typeAlias alias="map" type="java.util.Map" />
+	<typeAlias alias="int" type="java.lang.Integer"/>
+	<typeAlias alias="string" type="java.lang.String"/>
+	
+	<select id="getDateCount" parameterClass="string" resultClass="int">
+		select a.param_val dateCount from mm_pub_sys_param a where a.param_code = #dateCount#
+	</select>
+
+	<select id="getNonStandardCount" parameterClass="map" resultClass="NonStandardVo">
+			SELECT 
+				B.SALE_NO			saleNo,
+				B.SALE_ROW_NO 		saleRowNo,
+				B.PART_NO			partNo
+				  FROM MM_SW_NON_STANDARD B
+				  LEFT JOIN MM_SW_NON_STAND_PIC A
+				  ON B.SALE_NO = A.SALE_NO
+				  AND B.SALE_ROW_NO = A.SALE_ROW_NO
+				  AND B.PART_NO = A.PART_NO
+				LEFT JOIN MM_SW_NON_STANDAR_CHECK C
+           			ON B.LAST_CHECK_ID = C.ID
+				 WHERE 
+				 (A.PIC_TYPE = 0 AND A.PIC_ID IS NOT NULL AND A.EMAIL_FLAG = 0) 
+				 OR 
+				 (SYSDATE > A.CREATION_TIME + #dateCount#)
+				 AND C.CHECK_RESULT = 0
+				GROUP BY B.SALE_NO,B.SALE_ROW_NO,B.PART_NO
+	</select>
+	
+	<update id="updateEmailFlag" parameterClass="map" >
+	  UPDATE MM_SW_NON_STAND_PIC A SET A.EMAIL_FLAG = 1 WHERE A.EMAIL_FLAG = 0
+	</update>
+
+</sqlMap>

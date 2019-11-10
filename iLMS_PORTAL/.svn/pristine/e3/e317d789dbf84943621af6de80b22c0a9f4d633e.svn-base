@@ -1,0 +1,574 @@
+package com.hanthink.jit.controller;
+
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import org.apache.ibatis.session.RowBounds;
+import org.apache.poi.ss.formula.functions.T;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.hanthink.business.util.SessionKey;
+import com.hanthink.jit.manager.JitReckonManager;
+import com.hanthink.jit.model.JitPartRemainLogModel;
+import com.hanthink.jit.model.JitPartRemainModel;
+import com.hanthink.jit.model.JitPartRemainProdModel;
+import com.hanthink.jit.model.JitVehQueueModel;
+import com.hanthink.pub.model.PubPlanCodeModel;
+import com.hanthink.util.excel.ExcelUtil;
+import com.hotent.base.api.model.ResultMessage;
+import com.hotent.base.core.util.string.StringUtil;
+import com.hotent.base.core.web.GenericController;
+import com.hotent.base.core.web.RequestUtil;
+import com.hotent.base.db.mybatis.domain.DefaultPage;
+import com.hotent.base.db.mybatis.domain.PageJson;
+import com.hotent.base.db.mybatis.domain.PageList;
+import com.hotent.org.api.model.IUser;
+import com.hotent.sys.util.ContextUtil;
+import com.hotent.sys.util.SysPropertyUtil;
+
+import net.sf.json.JSONObject;
+
+/**
+ * @ClassName: JitReckonController
+ * @Description: 拉动推算控制台
+ * @author dtp
+ * @date 2018年9月21日
+ */
+@Controller
+@RequestMapping("/jit/jitReckon")
+public class JitReckonController extends GenericController{
+	
+	private static Logger log = LoggerFactory.getLogger(JitReckonController.class);
+	
+	@Resource 
+	private JitReckonManager jitReckonManager;
+	
+	/**
+	 * @Description: 根据planCode查询推算状态 
+	 * @param: @param request
+	 * @param: @param response
+	 * @param: @param model    
+	 * @return: void   
+	 * @author: dtp
+	 * @date: 2018年11月14日
+	 */
+	@RequestMapping("queryReckonState")
+	public @ResponseBody PubPlanCodeModel queryReckonState(HttpServletRequest request,HttpServletResponse response, 
+			@ModelAttribute("model") PubPlanCodeModel model) {
+		model.setFactoryCode(ContextUtil.getCurrentUser().getCurFactoryCode());
+		PubPlanCodeModel res = jitReckonManager.queryReckonState(model);
+		return res;
+	}
+	
+	
+	/**
+	 * @Description: 过点车序查询
+	 * @param: @param request
+	 * @param: @param response
+	 * @param: @param model
+	 * @param: @return    
+	 * @return: PageJson   
+	 * @author: dtp
+	 * @throws IOException 
+	 * @date: 2018年9月21日
+	 */
+	@RequestMapping("queryJitVehQueuePage")
+	public @ResponseBody PageJson queryJitVehQueuePage(HttpServletRequest request,HttpServletResponse response, 
+			@ModelAttribute("model") JitVehQueueModel model) throws IOException {
+		/*HttpSession session = request.getSession();
+		String planCode = (String) session.getAttribute(SessionKey.PUB_PLAN_CODE_QUERYFILTER);
+		model.setPlanCode(planCode);
+		session.setAttribute(SessionKey.JIT_RECKON_VEH_QUEUE_QUERYFILTER, model);*/
+		DefaultPage page=new DefaultPage(new RowBounds(getQueryFilter(request).getPage().getStartIndex(), 
+				getQueryFilter(request).getPage().getPageSize()));
+		PageList<JitVehQueueModel> pageList = jitReckonManager.queryJitVehQueuePage(model, page);
+		return new PageJson(pageList);
+		
+	}
+	
+	/**
+	 * @Description: 过点车序导出
+	 * @param: @param request
+	 * @param: @param response    
+	 * @return: void   
+	 * @author: dtp
+	 * @date: 2018年9月21日
+	 */
+	@RequestMapping("downloadJitVehQueuePage")
+	public void downloadJitVehQueuePage(HttpServletRequest request,HttpServletResponse response,
+			@ModelAttribute("model") JitVehQueueModel model) {
+		String exportFileName = "拉动推算过点车序" + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+		DefaultPage page=new DefaultPage(new RowBounds(getQueryFilter(request).getPage().getStartIndex(), 
+				getQueryFilter(request).getPage().getPageSize()));
+		PageList<JitVehQueueModel> pageList = jitReckonManager.queryJitVehQueuePage(model, page);
+		//判断记录是否超过系统允许数量
+		int curNum = pageList.getPageResult().getTotalCount();
+		if(0 == curNum){
+			ExcelUtil.exportNoDataError(request, response);
+			return;
+		}
+		int sysMaxNum = SysPropertyUtil.getIntByAlias("EXCEL_EXPORT_MAX_SIZE", 10000); //获取系统所允许的最大导出数量
+		if(curNum > sysMaxNum){
+			ExcelUtil.exportNumError(sysMaxNum, request, response);
+			return;
+		}
+		List<JitVehQueueModel> list = jitReckonManager.queryJitVehQueueList(model);
+		if(null != list) {
+			String[] headers = {"车间", "信息点", "订单号", "VIN", "计划排序号",
+					"车辆流水号", "过点时间", "推算时间","推算状态"};
+			String[] columns = {"workcenter", "planCodeDesc", "orderNo", "vin", "sortid",
+					"kbProductSeqno", "passTime", "execTime", "execStatus"};
+			int[] widths = {100, 100, 100, 100, 100,
+					100, 100, 100, 100};
+			ExcelUtil.exportExcel(ExcelUtil.EXCEL_XLSX, request, response, exportFileName, list, headers, widths, columns);
+			
+		}
+		
+	}
+	
+	/**
+	 * @Description: 当前零件余量查询  
+	 * @param: @param request
+	 * @param: @param response
+	 * @param: @param model
+	 * @param: @return    
+	 * @return: PageJson   
+	 * @author: dtp
+	 * @date: 2018年9月21日
+	 */
+	@RequestMapping("queryJitPartRemainPage")
+	public @ResponseBody PageJson queryJitPartRemainPage(HttpServletRequest request,HttpServletResponse response, 
+			@ModelAttribute("model") JitPartRemainModel model) {
+		DefaultPage page=new DefaultPage(new RowBounds(getQueryFilter(request).getPage().getStartIndex(), 
+				getQueryFilter(request).getPage().getPageSize()));
+		PageList<JitPartRemainModel> pageList = jitReckonManager.queryJitPartRemainPage(model, page);
+		return new PageJson(pageList);
+		
+	}
+	
+	/**
+	 * @Description:  当前零件余量导出excel
+	 * @param:     
+	 * @return: void   
+	 * @author: dtp
+	 * @date: 2018年9月21日
+	 */
+	@RequestMapping("downloadJitpartRemainPage")
+	public void downloadJitpartRemainPage(HttpServletRequest request,HttpServletResponse response,
+			@ModelAttribute("model") JitPartRemainModel model) {
+		String exportFileName = "当前零件余量" + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+		//HttpSession session = request.getSession();
+		//JitPartRemainModel model = (JitPartRemainModel) session.getAttribute(SessionKey.JIT_PART_REMAIN_QUERYFILTER);
+		DefaultPage page=new DefaultPage(new RowBounds(getQueryFilter(request).getPage().getStartIndex(), 
+				getQueryFilter(request).getPage().getPageSize()));
+		PageList<JitPartRemainModel> pageList = jitReckonManager.queryJitPartRemainPage(model, page);
+		//判断记录是否超过系统允许数量
+		int curNum = pageList.getPageResult().getTotalCount();
+		if(0 == curNum){
+			ExcelUtil.exportNoDataError(request, response);
+			return;
+		}
+		int sysMaxNum = SysPropertyUtil.getIntByAlias("EXCEL_EXPORT_MAX_SIZE", 10000); //获取系统所允许的最大导出数量
+		if(curNum > sysMaxNum){
+			ExcelUtil.exportNumError(sysMaxNum, request, response);
+			return;
+		}
+		List<JitPartRemainModel> list = jitReckonManager.queryJitPartRemainList(model);
+		if(null != list) {
+			String[] headers = {"车间", "信息点", "配送地址", "零件号", "简号",
+					"零件名称", "零件余量", "安全库存", "出货仓库", 
+					"截止日期", "截止所需零件量"};
+			String[] columns = {"workcenter", "planCodeDesc", "location", "partNo", "partShortNo",
+					"partNameCn", "partRemain", "safetyInventory", "shipDepot", 
+					"endRequireDate", "endRequireNum"};
+			int[] widths = {100, 100, 100, 100, 150,
+					100, 100, 100, 100,
+					100, 100};
+			ExcelUtil.exportExcel(ExcelUtil.EXCEL_XLSX, request, response, exportFileName, list, headers, widths, columns);
+			
+		}
+		
+	}
+	
+	/**
+	 * @Description: 截止产品编号零件余量查询
+	 * @param: @param request
+	 * @param: @param response
+	 * @param: @param model
+	 * @param: @return    
+	 * @return: PageJson   
+	 * @author: dtp
+	 * @date: 2018年9月21日
+	 */
+	@RequestMapping("queryJitPartRemainProdPage")
+	public @ResponseBody PageJson queryJitPartRemainProdPage(HttpServletRequest request,HttpServletResponse response, 
+			@ModelAttribute("model") JitPartRemainProdModel model) {
+		//HttpSession session = request.getSession();
+		//session.setAttribute(SessionKey.JIT_PART_REMAIN_PROD_QUERYFILTER, model);
+		DefaultPage page=new DefaultPage(new RowBounds(getQueryFilter(request).getPage().getStartIndex(), 
+				getQueryFilter(request).getPage().getPageSize()));
+		PageList<JitPartRemainProdModel> pageList = jitReckonManager.queryJitPartRemainProdPage(model, page);
+		return new PageJson(pageList);
+		
+	}
+	
+	/**
+	 * @Description:  截止产品编号零件余量查询导出excel
+	 * @param: @param request
+	 * @param: @param response    
+	 * @return: void   
+	 * @author: dtp
+	 * @date: 2018年9月21日
+	 */
+	@RequestMapping("downloadJitpartRemainProdPage")
+	public void downloadJitpartRemainProdPage(HttpServletRequest request,HttpServletResponse response,
+			@ModelAttribute("model") JitPartRemainProdModel model) {
+		String exportFileName = "当前零件余量" + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+		//HttpSession session = request.getSession();
+		//JitPartRemainProdModel model = (JitPartRemainProdModel) session.getAttribute(SessionKey.JIT_PART_REMAIN_PROD_QUERYFILTER);
+		DefaultPage page=new DefaultPage(new RowBounds(getQueryFilter(request).getPage().getStartIndex(), 
+				getQueryFilter(request).getPage().getPageSize()));
+		PageList<JitPartRemainProdModel> pageList = jitReckonManager.queryJitPartRemainProdPage(model, page);
+		//判断记录是否超过系统允许数量
+		int curNum = pageList.getPageResult().getTotalCount();
+		if(0 == curNum){
+			ExcelUtil.exportNoDataError(request, response);
+			return;
+		}
+		int sysMaxNum = SysPropertyUtil.getIntByAlias("EXCEL_EXPORT_MAX_SIZE", 10000); //获取系统所允许的最大导出数量
+		if(curNum > sysMaxNum){
+			ExcelUtil.exportNumError(sysMaxNum, request, response);
+			return;
+		}
+		List<JitPartRemainProdModel> list = jitReckonManager.queryJitPartRemainProdList(model);
+		if(null != list) {
+			String[] headers = {"车间", "信息点", "VIN", "配送地址", "零件号",
+					"简号", "零件名称", "零件余量", "下线批次", 
+					"下线时间"};
+			String[] columns = {"workcenter", "planCode", "vin", "location", "partNo",
+					"partShortNo", "partNameCn", "endRemain", "", 
+					""};
+			int[] widths = {100, 100, 100, 100, 150,
+					100, 100, 100, 100,
+					100};
+			ExcelUtil.exportExcel(ExcelUtil.EXCEL_XLSX, request, response, exportFileName, list, headers, widths, columns);
+			
+		}
+		
+	}
+	
+	/**
+	 * @Description: 零件余量修改日志查询  
+	 * @param: @param request
+	 * @param: @param response
+	 * @param: @param model
+	 * @param: @return    
+	 * @return: PageJson   
+	 * @author: dtp
+	 * @date: 2018年9月21日
+	 */
+	@RequestMapping("queryJitPartRemainLogPage")
+	public @ResponseBody PageJson queryJitPartRemainLogPage(HttpServletRequest request,HttpServletResponse response, 
+			@ModelAttribute("model") JitPartRemainLogModel model) {
+		//HttpSession session = request.getSession();
+		//String planCode = (String) session.getAttribute(SessionKey.PUB_PLAN_CODE_QUERYFILTER);
+		//model.setPlanCode(planCode);
+		//session.setAttribute(SessionKey.JIT_PART_REMAIN_LOG_QUERYFILTER, model);
+		DefaultPage page=new DefaultPage(new RowBounds(getQueryFilter(request).getPage().getStartIndex(), 
+				getQueryFilter(request).getPage().getPageSize()));
+		PageList<JitPartRemainLogModel> pageList = jitReckonManager.queryJitPartRemainLogPage(model, page);
+		return new PageJson(pageList);
+		
+	}
+	
+	/**
+	 * @Description: 添加,修改当前零件余量 
+	 * @param: @param request
+	 * @param: @param response
+	 * @param: @param model    
+	 * @return: void   
+	 * @author: dtp
+	 * @throws IOException 
+	 * @date: 2018年9月25日
+	 */
+	@RequestMapping("savePartRemain")
+	public void savePartRemain(HttpServletRequest request, HttpServletResponse response, 
+			@ModelAttribute("model") JitPartRemainModel model) throws Exception {
+		String resultMsg = null;
+		Long id = model.getId();
+		//获取用户信息
+		IUser user = ContextUtil.getCurrentUser();
+		try {
+			if(StringUtil.isEmpty(id)) {
+				//校验业务主键唯一性，信息点、配送地址、零件号
+				List<JitPartRemainModel> list = jitReckonManager.queryJitPartRemainUnique(model);
+				if(null != list && list.size() > 0) {
+					resultMsg="该零件余量信息已存在";
+					writeResultMessage(response.getWriter(),resultMsg,ResultMessage.FAIL);
+					return;
+				}
+				model.setCreationUser(user.getAccount());
+				jitReckonManager.savePartRemain(model);
+				resultMsg="添加成功";
+			}else {
+				model.setLastModifiedUser(user.getAccount());
+				model.setLastModifiedIp(RequestUtil.getIpAddr(request));
+				jitReckonManager.updatePartRemain(model);
+				resultMsg="更新成功";
+			}
+			writeResultMessage(response.getWriter(),resultMsg,ResultMessage.SUCCESS);
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.error(e.toString());
+			resultMsg="操作失败";
+			writeResultMessage(response.getWriter(),resultMsg,e.getMessage(),ResultMessage.FAIL);
+		}
+		
+	}
+	
+	/**
+	 * @Description: 
+	 * @param: @param request
+	 * @param: @param response
+	 * @param: @return    
+	 * @return: JitPartRemainModel   
+	 * @author: dtp
+	 * @date: 2018年9月25日
+	 */
+	@RequestMapping("queryPartRemain")
+	public @ResponseBody JitPartRemainModel queryPartRemain(HttpServletRequest request, HttpServletResponse response) {
+		String id = RequestUtil.getString(request, "id");
+		JitPartRemainModel model = new JitPartRemainModel();
+		if(StringUtil.isEmpty(id)){
+			return model;
+		}else {
+			model.setId(Long.valueOf(id));
+		}
+		return jitReckonManager.queryPartRemain(model);
+		
+	}
+	
+	/**
+	 * @Description: 零件余量excel批量导入
+	 * @param: @param file
+	 * @param: @param request
+	 * @param: @param response    
+	 * @return: void   
+	 * @author: dtp
+	 * @throws IOException 
+	 * @date: 2018年9月26日
+	 */
+	@RequestMapping("importJitPartRemain")
+	public void importJitPartRemain(@RequestParam("file") MultipartFile file,HttpServletRequest request,HttpServletResponse response) throws IOException {
+		try {
+			String uuid = null;
+			HttpSession session = request.getSession();
+			uuid = (String)session.getAttribute(SessionKey.JIT_PART_REMAIN_IMPORT_UUID);
+			if(StringUtil.isEmpty(uuid)){
+				uuid = RequestUtil.getString(request, "uuid");
+			}
+			if(StringUtil.isNotEmpty(uuid)) {
+				jitReckonManager.deleteImportTempDataByUUID(uuid); 
+			}else {
+				uuid = UUID.randomUUID().toString().replaceAll("-", "");
+			}
+			session.setAttribute(SessionKey.JIT_PART_REMAIN_IMPORT_UUID, uuid);
+			Map<String,Object> rtn = jitReckonManager.importJitPartRemain(file, uuid, RequestUtil.getIpAddr(request));
+			rtn.put("uuid", uuid);
+			if((Boolean)rtn.get("result")){
+				writeResultMessage(response.getWriter(), "成功", "", JSONObject.fromObject(rtn), ResultMessage.SUCCESS);
+			}else{
+				writeResultMessage(response.getWriter(), "失败", "", JSONObject.fromObject(rtn), ResultMessage.FAIL);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.error(e.toString());
+			writeResultMessage(response.getWriter(), e.getMessage(), ResultMessage.FAIL);
+		}
+		
+	}
+
+	/**
+	 * @Description:  确定导入，将临时表数据写入到正式业务表
+	 * @param: @param request
+	 * @param: @param response    
+	 * @return: void   
+	 * @author: dtp
+	 * @throws IOException 
+	 * @date: 2018年9月27日
+	 */
+	@RequestMapping("isImport")
+	public void isImport(HttpServletRequest request,HttpServletResponse response,
+			@ModelAttribute("model") JitPartRemainModel model) throws IOException {
+		ResultMessage message = null;
+		try {
+			//查询导入校验结果是否包含不通过
+			int count = jitReckonManager.queryIsExistsCheckResultFalse(model.getUuid());
+			if(count > 0) {
+				writeResultMessage(response.getWriter(), "存在校验结果不通过数据", ResultMessage.FAIL);
+				return;
+			}
+			Map<String, String> paramMap = new HashMap<String, String>();
+			paramMap.put("uuid", model.getUuid());
+			paramMap.put("checkResult", ExcelUtil.EXCEL_IMPCKRESULT_SUCCESS);
+			jitReckonManager.insertImportData(paramMap);
+			message = new ResultMessage(ResultMessage.SUCCESS, "执行成功");
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.error(e.toString());
+			message = new ResultMessage(ResultMessage.FAIL, "执行失败");
+		}
+		writeResultMessage(response.getWriter(), message);
+	}
+	
+	/**
+	 * @Description: 查询临时表数据
+	 * @param: @param request
+	 * @param: @param reponse
+	 * @param: @return    
+	 * @return: PageJson   
+	 * @author: dtp
+	 * @date: 2018年9月27日
+	 */
+	@RequestMapping("queryImportTempPage")
+	public @ResponseBody PageJson queryImportTempPage(HttpServletRequest request,HttpServletResponse reponse,
+			@ModelAttribute("model") JitPartRemainModel model) {
+		DefaultPage page=new DefaultPage(new RowBounds(getQueryFilter(request).getPage().getStartIndex(), 
+				getQueryFilter(request).getPage().getPageSize()));
+		PageList<JitPartRemainModel> pageList = jitReckonManager.queryImportTempPage(model, page);
+		return new PageJson(pageList);
+		
+	}
+	
+	/**
+	 * @Description: 导出临时表数据
+	 * @param: @param request
+	 * @param: @param response    
+	 * @return: void   
+	 * @author: dtp
+	 * @date: 2018年9月27日
+	 */
+	@RequestMapping("exportTempData")
+	public void exportTempData(HttpServletRequest request,HttpServletResponse response,
+			@ModelAttribute("model") JitPartRemainModel model) {
+		String exportFileName =  "零件余量批量导入" + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+		DefaultPage page=new DefaultPage(new RowBounds(getQueryFilter(request).getPage().getStartIndex(), 
+				getQueryFilter(request).getPage().getPageSize()));
+		PageList<JitPartRemainModel> pageList = jitReckonManager.queryImportTempPage(model, page);
+		//判断记录是否超过系统允许数量
+		int curNum = pageList.getPageResult().getTotalCount();
+		if(0 == curNum){
+			ExcelUtil.exportNoDataError(request, response);
+			return;
+		}
+		int sysMaxNum = SysPropertyUtil.getIntByAlias("EXCEL_EXPORT_MAX_SIZE", 10000); //获取系统所允许的最大导出数量
+		if(curNum > sysMaxNum){
+			ExcelUtil.exportNumError(sysMaxNum, request, response);
+			return;
+		}
+		List<JitPartRemainModel> list = jitReckonManager.queryImportTempList(model);
+		if(null != list) {
+			String[] headers = {"信息点", "配送地址", "零件号", "零件余量", "安全库存",
+					"截止日期", "截止所需零件量", "导入状态", "检查结果", 
+					"校验信息"};
+			String[] columns = {"planCodeDesc", "location", "partNo", "partRemain", "safetyInventory",
+					"endRequireDate", "endRequireNum", "importStatus", "checkResult", 
+					"checkInfo"};
+			int[] widths = {100, 100, 100, 100, 150,
+					100, 100, 100, 120,
+					150};
+			ExcelUtil.exportExcel(ExcelUtil.EXCEL_XLSX, request, response, exportFileName, list, headers, widths, columns);
+		}
+		
+	}
+	
+	/**
+	 * @Description: 拉动推算控制台推算服务状态查询
+	 * @param: @param request
+	 * @param: @param reponse
+	 * @param: @return    
+	 * @return: PageJson   
+	 * @author: dtp
+	 * @date: 2018年9月27日
+	 */
+	@RequestMapping("queryJitReckonStatePage")
+	public @ResponseBody PageJson queryJitReckonStatePage(HttpServletRequest request,HttpServletResponse reponse) {
+		DefaultPage page=new DefaultPage(new RowBounds(getQueryFilter(request).getPage().getStartIndex(), 
+				getQueryFilter(request).getPage().getPageSize()));
+		PubPlanCodeModel model = new PubPlanCodeModel();
+		PageList<PubPlanCodeModel> pageList = jitReckonManager.queryJitReckonStatePage(model, page);
+		return new PageJson(pageList);
+		
+	}
+	
+	/**
+	 * @Description: 加载信息点下拉框  
+	 * @param: @param request
+	 * @param: @param response
+	 * @param: @return    
+	 * @return: PageJson   
+	 * @author: dtp
+	 * @throws IOException 
+	 * @date: 2018年9月27日
+	 */
+	@SuppressWarnings("unchecked")
+	@RequestMapping("loadPlanCodeComboData")
+	public @ResponseBody List<T> loadPlanCodeComboData(HttpServletRequest request,HttpServletResponse response) {
+		PubPlanCodeModel model = new PubPlanCodeModel();
+		List<Map<String, Object>> dataDictList = new ArrayList<Map<String, Object>>();
+		List<PubPlanCodeModel> list = jitReckonManager.loadPlanCodeComboData(model);
+		if(null != list) {
+			for (PubPlanCodeModel pubPlanCodeModel : list) {
+				Map<String, Object> map = new HashMap<String, Object>();
+				map.put("label", pubPlanCodeModel.getPlanCodeDesc());
+				map.put("value", pubPlanCodeModel.getPlanCode());
+				dataDictList.add(map);
+			}
+		}
+		return new PageJson(dataDictList).getRows();
+		
+	}
+	
+	/**
+	 * @Description: 更新推算状态
+	 * @param: @param request
+	 * @param: @param response    
+	 * @return: void   
+	 * @author: dtp
+	 * @throws IOException 
+	 * @date: 2018年9月27日
+	 */
+	@RequestMapping("updateReckonExecState")
+	public void updateReckonExecState(HttpServletRequest request,HttpServletResponse response,
+			@ModelAttribute("model") PubPlanCodeModel pubPlanCodeModel) throws IOException {
+		//获取用户信息
+		IUser user = ContextUtil.getCurrentUser(); 
+		/*PubPlanCodeModel pubPlanCodeModel = new PubPlanCodeModel();
+		String execState = RequestUtil.getString(request, "execState");
+		String planCode = RequestUtil.getString(request, "planCode");*/
+		pubPlanCodeModel.setLastModifiedUser(user.getAccount());
+		pubPlanCodeModel.setLastModifiedIp(request.getLocalAddr());
+		jitReckonManager.updateReckonExecState(pubPlanCodeModel);
+		writeResultMessage(response.getWriter(),"更新成功",ResultMessage.SUCCESS);		
+	}
+	
+	
+}

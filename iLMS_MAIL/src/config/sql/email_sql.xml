@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="email">	
+	<typeAlias alias="EmailManageVO" type="com.hanthink.gps.email.vo.EmailManageVO" />
+	<typeAlias alias="MsgGroupVO" type="com.hanthink.gps.email.vo.MsgGroupVO" />
+	
+    <!-- +++++++++++++++++++++++++++++定时器管理start++++++++++++++++++++++++++++++++++++ -->	
+	<!-- 查询定时器信息 -->
+	<select id="select_queryEmailTimerForPage" parameterClass="EmailManageVO" resultClass="EmailManageVO">
+	SELECT ID AS pkId,
+		TIMER_CODE as timerCode,
+		TIMER_NAME as timerName,
+		TIMER_PARAM as timerParam,
+		RUN_CODE as runCode,
+		  <!--START_TIME as startTime,-->
+		START_TIME as startTime,
+		LAST_RUN_TIME as lastRunTime,
+		NEXT_RUN_TIME as nextRunTime,
+		decode(RUN_STATE, 0,'停止',1,'运行中')as runState,
+		NVL(UPDATE_STATE, '0') as updateStatus,
+		NVL(DEL_FLAG, '0') as delFlag,
+		ENTRY_ID as entryId ,
+		ENTRY_DATE as entryDate,
+		MODIFY_ID as modifyId,
+		MODIFY_DATE as modifyDateStr,
+		TIMER_GROUP as timerGroup,
+		TIMER_DESC as timerDesc,
+		A.groupCode
+	from MM_PUB_MSG_TIMER PGU
+	LEFT OUTER JOIN ( SELECT WMSYS.WM_CONCAT(PUF.GROUP_CODE) AS groupCode, PUF.TIMER_ID FROM mm_pub_msg_group_timer PUF GROUP BY PUF.TIMER_ID
+		) A ON A.TIMER_ID = PGU.ID
+	where APP_TYPE = #appType#
+	<isNotEmpty prepend="AND" property="timerCode">
+	    TIMER_CODE LIKE '%'|| #timerCode# ||'%'
+	</isNotEmpty>
+	<isNotEmpty prepend="AND" property="timerDesc">
+		TIMER_DESC LIKE '%'|| #timerDesc# ||'%'
+	</isNotEmpty>
+	<isNotEmpty prepend="AND" property="runState">
+		run_State = #runState# 
+	</isNotEmpty> 
+	</select>
+	
+	<!-- 修改定时器信息 -->
+	<update id="update_updateEmail" parameterClass="EmailManageVO">
+	UPDATE MM_PUB_MSG_TIMER
+		SET
+		MODIFY_ID = #modifyId#,
+		MODIFY_DATE = SYSDATE,
+		UPDATE_STATE = '1'
+	<isNotEmpty prepend="," property="startTime">
+		start_Time = #startTime#
+    </isNotEmpty>
+	<isNotEmpty prepend="," property="timerParam">
+		run_State = #runState#
+    </isNotEmpty>
+	<isNotEmpty prepend="," property="timerParam">
+		TIMER_PARAM = #timerParam#
+    </isNotEmpty>
+	<isNotEmpty prepend="," property="timerDesc">
+		TIMER_DESC = #timerDesc#
+    </isNotEmpty>
+	WHERE ID = #pkId#
+    </update>
+	
+	<!-- 插入分组 -->
+	<insert id="insert_batchInsert"  parameterClass="EmailManageVO">
+		INSERT INTO mm_pub_msg_group_timer (Timer_id,GROUP_CODE,
+		 ENTRY_ID,ENTRY_DATE
+		)VALUES(#pkId#,#groupCode#,#entryId#,SYSDATE)
+	</insert>
+	
+	<!-- 删除分组 -->
+	<delete id="delete_group" parameterClass="EmailManageVO">
+		DELETE FROM mm_pub_msg_group_timer WHERE timer_id = #pkId#
+	</delete>
+	<!-- 修改定时器信息 -->
+	<update id="update_updateRunstate" parameterClass="EmailManageVO">
+	UPDATE MM_PUB_MSG_TIMER
+		SET
+		MODIFY_ID = #modifyId#,
+		MODIFY_DATE = SYSDATE,
+		run_State = '0'
+		where ID=#pkId# and run_state = '1'
+	</update>
+    <!-- ++++++++++++++++++++++++++++++定时器管理end+++++++++++++++++++++++++++++++++++++++ -->	
+    <!-- ++++++++++++++++++++++++++++++分组人员维护start++++++++++++++++++++++++++++++++++++ -->
+	<!-- 分组信息查询 -->
+	<select id="select_queryGroupForPage" parameterClass="MsgGroupVO" resultClass="MsgGroupVO">
+	SELECT GROUP_CODE as groupCode,
+	       GROUP_NAME as groupName,
+	       ID as pkId 
+	FROM MM_PUB_MSG_GROUP
+	where 1=1
+	<isNotEmpty prepend="AND" property="groupCode">
+		GROUP_CODE LIKE '%'|| #groupCode# ||'%'
+	</isNotEmpty>
+	<isNotEmpty prepend="AND" property="groupName">
+		GROUP_NAME LIKE '%'|| #groupName# ||'%'
+	</isNotEmpty> 
+	</select>
+	
+	<!-- 分组人员信息查询 -->
+	<select id="select_queryUserForPage" parameterClass="java.lang.String" resultClass="MsgGroupVO">
+	SELECT
+		U.ID AS pkId,
+		U.SORT_ID sortId,
+		U.GROUP_CODE AS groupCode,
+		case
+		WHEN U.USER_ID IS NOT NULL THEN
+		'系统人员'
+		when U.USER_ID is null then
+		'例外人员'
+		end
+		AS userId,
+		U.TIMER_CODE AS timerCode,
+		U.DEL_FLAG AS delFlag,
+		<!-- PDD.CODE_VALUE_NAME AS department,  -->
+		NVL(G.FULLNAME_, U.USER_CNAME) AS userCName,
+		NVL(G.MOBILE_, U.MOBILE) AS mobile,
+		NVL(G.EMAIL_, U.EMAIL) AS email
+	FROM MM_PUB_MSG_GROUP_USER U
+	LEFT OUTER JOIN SYS_USER G ON G.ACCOUNT_ = U.USER_ID
+	<!--  LEFT OUTER JOIN MM_PUB_DATA_DICT PDD ON PDD.CODE_TYPE = 'DEPARTMENT_CODE' AND PDD.CODE_VALUE = G.DEPARTMENT_ID -->
+	WHERE U.GROUP_CODE = #value#
+	AND U.DEL_FLAG = 0
+	ORDER BY U.SORT_ID
+	</select>
+	
+	  <!--修改分组 -->
+	<update id="update_updateGroup" parameterClass="MsgGroupVO">
+     update MM_PUB_MSG_GROUP  SET
+	      GROUP_NAME = #groupName#,
+	      MODIFY_ID = #modifyId#,
+	      MODFIFY_DATE = SYSDATE
+	      WHERE ID = #pkId#
+    </update>
+    
+   <!-- 新增分组信息 -->
+   <insert id="insert_insertGroup" parameterClass="MsgGroupVO">
+	 INSERT INTO MM_PUB_MSG_GROUP(ID, GROUP_CODE, 
+	   GROUP_NAME, DEL_FLAG, ENTRY_ID, ENTYRY_DATE)
+	 VALUES(
+	   (SELECT NVL(MAX(ID),0)+1 FROM MM_PUB_MSG_GROUP),
+	  #groupCode#,#groupName#,'0',#entryId#,SYSDATE)
+   </insert>
+   
+    <!-- 删除分组信息 -->
+	<delete id="delete_deleteGroup" parameterClass="MsgGroupVO">
+		DELETE FROM MM_PUB_MSG_GROUP WHERE ID = #pkId#
+	</delete>
+	 <!-- 删除分组信息下的人员分组 -->
+	<delete id="delete_deleteGroupUser" parameterClass="MsgGroupVO">
+		DELETE FROM MM_PUB_MSG_GROUP_USER WHERE GROUP_CODE = #groupCode#
+	</delete>
+	
+	<!-- 新增用户-->
+	<insert id="insert_addUser"  parameterClass="MsgGroupVO">
+		INSERT INTO MM_PUB_MSG_GROUP_USER (id,GROUP_CODE,
+		  USER_ID, DEL_FLAG, ENTRY_ID,ENTRY_DATE
+		)VALUES(
+		(SELECT NVL(MAX(ID),0)+1 FROM MM_PUB_MSG_GROUP_USER),
+		  #groupCode#,#userId#,'0',#entryId#,SYSDATE )
+	</insert>
+	
+	<!-- 查询分组代码是否重复-->
+	<select id="select_queryRepGroupForPage" parameterClass="MsgGroupVO" resultClass="MsgGroupVO">
+	SELECT id as pkId,
+           GROUP_CODE as groupCode 
+	FROM MM_PUB_MSG_GROUP
+	where group_Code = #groupCode#
+	</select>
+	
+	 <!-- 查询未配置用户信息-->	    
+     <select id="select_queryNotUserForPage" parameterClass="MsgGroupVO" resultClass="MsgGroupVO">
+	 SELECT g.account_ as userId,g.FULLNAME_ AS userCname,g.MOBILE_ AS mobile, g.EMAIL_ as email
+	 FROM SYS_USER g 
+	 WHERE NOT EXISTS (SELECT 1
+	    FROM MM_PUB_MSG_GROUP_USER U
+		WHERE u.USER_ID = g.account_
+		AND u.GROUP_Code = #groupCode#)
+	<isNotEmpty prepend="AND" property="userId">
+		(g.account_ LIKE '%' || #userId# || '%' or g.FULLNAME_ LIKE '%' || #userId# || '%')
+	</isNotEmpty>
+		ORDER BY g.account_
+    </select>
+	   
+   	<!-- 删除用户信息 -->
+	<delete id="delete_batchDeleteUser" parameterClass="MsgGroupVO">
+		DELETE FROM MM_PUB_MSG_GROUP_USER WHERE ID = #pkId#
+	</delete>
+	
+	<!-- 新增用户-->
+	<insert id="insert_addExcUser"  parameterClass="MsgGroupVO">
+	INSERT INTO MM_PUB_MSG_GROUP_USER (id,GROUP_CODE,
+		  USER_CNAME,EMAIL,MOBILE,DEL_FLAG, ENTRY_ID,ENTRY_DATE,SORT_ID
+	)VALUES(
+		(SELECT NVL(MAX(ID),0)+1 FROM MM_PUB_MSG_GROUP_USER),
+		  #groupCode#,#userCname#,#email#,#mobile#,'0',#entryId#,SYSDATE,#sortId#)
+	</insert>
+	
+	<!--修改用户 -->
+	<update id="update_updateUser" parameterClass="MsgGroupVO">
+     update MM_PUB_MSG_GROUP_USER  SET
+      USER_CNAME = #userCname#,
+      mobile = #mobile#,
+      sort_id = #sortId#,
+      email = #email#
+      WHERE ID = #pkId#
+    </update>
+    <!-- ++++++++++++++++++++++++++++++分组人员维护end++++++++++++++++++++++++++++++++++++ -->
+ 
+</sqlMap>
+
+

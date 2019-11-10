@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.inv.model.InvStockTakModel">
+	<!-- 分页数据查询 -->
+	<select id="queryStockTakForPage" parameterType="com.hanthink.inv.model.InvStockTakModel" resultType="com.hanthink.inv.model.InvStockTakModel">
+	    SELECT MPPA.PART_SHORT_NO partShortNo,
+			 MISTD.PART_NO partNo,
+			 MPPD.STANDARD_PACKAGE standerdPackage,
+			 MISTD.WARE_CODE wareCode,
+			 MISTD.TAKE_STOCK takeStock,
+			 MIS.DEAL_FLAG dealFlag,
+			 MIS.CREATION_TIME creationTime,
+			 'i-LMS盘点' dataSource,
+			 MPD.CODE_VALUE_NAME wareType,
+			 MPDD.CODE_VALUE_NAME workCenter,
+			 null note,
+			 MIP.LOCATION location
+		  FROM MM_INV_STOCK_TAKE_DETAIL MISTD
+		  LEFT JOIN MM_INV_STOCK_TAKE MIS
+		    ON MISTD.INS_NO = MIS.INS_NO
+		    AND MIS.FACTOY_CODE = #{factoryCode}
+		  LEFT JOIN MM_PKG_PROPOSAL MPP
+		    ON MISTD.PART_NO = MPP.PART_NO
+		   AND MIS.FACTOY_CODE = MPP.FACTORY_CODE
+		   AND TRUNC(SYSDATE) BETWEEN TRUNC(MPP.EFF_START) AND TRUNC(MPP.EFF_END)
+		   AND MPP.PROPOSAL_STATUS = 5
+		  LEFT JOIN MM_PKG_PROPOSAL_DETAIL MPPD
+		    ON MPP.ID = MPPD.PROPOSAL_ID
+		  LEFT JOIN MM_PUB_PART MPPA
+		    ON MISTD.PART_NO = MPPA.PART_NO
+		   AND MIS.FACTOY_CODE = MPPA.FACTORY_CODE
+		  LEFT JOIN (SELECT DISTINCT WARE_CODE,WARE_TYPE FROM MM_INV_WAREHOUSE) TEMP_WARE
+			ON TEMP_WARE.WARE_CODE = MISTD.WARE_CODE
+			LEFT JOIN MM_PUB_DATA_DICT MPD
+			ON MPD.CODE_TYPE = 'INV_WAREHOUSE_TYPE'
+			AND MPD.CODE_VALUE = TEMP_WARE.WARE_TYPE
+			AND MPD.FACTORY_CODE = #{factoryCode}
+			LEFT JOIN (SELECT DISTINCT WARE_CODE,WORK_CENTER FROM MM_INV_UNLOAD) TEMPW
+			ON TEMPW.WARE_CODE = MISTD.WARE_CODE
+			LEFT JOIN MM_PUB_DATA_DICT MPDD
+			ON MPDD.CODE_TYPE = 'PUB_WORKCENTER'
+			AND MPDD.CODE_VALUE = TEMPW.WORK_CENTER
+			AND MPDD.FACTORY_CODE = #{factoryCode}
+			 LEFT JOIN MM_INV_PART_LOCATION MIP
+	        ON MIP.FACTORY_CODE = #{factoryCode}
+	        AND MISTD.PART_NO = MIP.PART_NO
+	        AND MISTD.WARE_CODE = MIP.WARE_CODE
+	        AND MIP.SUPPLIER_NO IN
+	           (SELECT MPPS.SUPPLIER_NO
+	              FROM MM_PUB_PART_SUPPLIER MPPS
+	              LEFT JOIN MM_INV_STOCK MIS
+	                ON MIS.PART_NO = MPPS.PART_NO
+	               AND MPPS.FACTORY_CODE = MIS.FACTORY_CODE)
+	        AND sysdate BETWEEN MIP.EFF_START AND MIP.EFF_END
+     	WHERE 1 = 1
+		 <if test="partShortNo != null and partShortNo != ''">
+		 	AND MPPA.PART_SHORT_NO LIKE CONCAT(#{partShortNo},'%')
+		 </if>
+		 <if test="partNo != null and partNo != ''">
+		 	AND MISTD.PART_NO  = #{partNo}
+		 </if>
+		 <if test="dealFlag != null and dealFlag != ''">
+		 	AND MIS.DEAL_FLAG = #{dealFlag}
+		 </if>
+		 <if test="workCenter != null and workCenter != ''">
+		 	AND TEMPW.WORK_CENTER = #{workCenter}
+		 </if>
+		 <if test="wareType != null and wareType != ''">
+		 	AND TEMP_WARE.WARE_TYPE = #{wareType}
+		 </if>
+		 ORDER BY MISTD.WARE_CODE,MISTD.PART_NO
+	</select>
+	<!-- 根据UUID删除临时表数据 -->
+	<delete id="deleteTempStockTakByUUID" parameterType="java.lang.String">
+		DELETE FROM MM_INV_STOCK_TAKE_IMP
+		WHERE
+		IMP_UUID = #{importUuid}
+	</delete>
+	<!-- 将Excel数据插入临时表 -->
+	<insert id="importStockTakToTemp" >
+		INSERT INTO MM_INV_STOCK_TAKE_IMP
+		(FACTORY_CODE,WARE_CODE,PART_NO,PART_SHORT_NO,TAKE_STOCK,NOTE,IMP_UUID,IMPORT_STATUS,
+		 OPE_TYPE,CHECK_RESULT,CHECK_INFO,CREATION_USER,CREATION_TIME)
+		<foreach  collection="list" item="item" index="index" separator=" UNION ALL" >
+			SELECT #{item.factoryCode,jdbcType=VARCHAR},
+				   #{item.wareCode,jdbcType=VARCHAR},
+				   #{item.partNo,jdbcType=VARCHAR},
+				   #{item.partShortNo,jdbcType=VARCHAR},
+				   #{item.takeStock,jdbcType=VARCHAR},
+				   #{item.note,jdbcType=VARCHAR},
+				   #{item.importUuid,jdbcType=VARCHAR},
+				   #{item.importStatus,jdbcType=VARCHAR},
+				   #{item.opeType,jdbcType=VARCHAR},
+				   #{item.checkResult,jdbcType=VARCHAR},
+				   #{item.checkInfo,jdbcType=VARCHAR},
+				   #{item.creationUser,jdbcType=VARCHAR},
+				   TO_DATE(#{item.creationTime,jdbcType=VARCHAR},'yyyy-MM-dd hh24:mi:ss')
+			FROM DUAL
+		</foreach>
+	</insert>
+	<!-- 检查导入临时表的数据 -->
+	<parameterMap type="map" id="impCkParamMap">  
+		<parameter property="uuid" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="userName" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="opeIp" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="errorFlag" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="errorMsg" jdbcType="VARCHAR" mode="OUT"/>  
+	</parameterMap>
+	<select id="checkImportStockTakData" parameterMap="impCkParamMap" statementType="CALLABLE">
+		{CALL PKG_INV_CHECK.INV_STOCKTAK_IMPORT_CHECK(?, ?, ?,  ?,?)}
+	</select>
+	<!-- 修改库存为实际库存 -->
+	<update id="updateLocalStock" parameterType="java.util.Map">
+		UPDATE MM_INV_STOCK MIS
+		   SET MIS.STOCK = 
+		       (SELECT MIST.TAKE_STOCK*MIST.STANDARD_PACKAGE
+		       	 FROM MM_INV_STOCK_TAKE_IMP MIST
+		         WHERE MIS.FACTORY_CODE = MIST.FACTORY_CODE
+		           AND MIS.WARE_CODE = MIST.WARE_CODE
+		           AND MIS.PART_NO = MIST.PART_NO
+		           AND MIST.IMP_UUID = #{uuid}
+	               AND MIST.IMPORT_STATUS = #{importStatus}
+	               AND MIST.CHECK_RESULT = #{checkResult}),
+	           MIS.LAST_MODIFIED_USER = #{creationUser},
+	           MIS.LAST_MODIFIED_TIME = sysdate
+		 WHERE EXISTS (SELECT 1
+		          FROM MM_INV_STOCK_TAKE_IMP MISI
+		         WHERE MIS.FACTORY_CODE = MISI.FACTORY_CODE
+		           AND MIS.WARE_CODE = MISI.WARE_CODE
+		           AND MIS.PART_NO = MISI.PART_NO
+		           AND MISI.IMP_UUID = #{uuid}
+		           AND MISI.IMPORT_STATUS = #{importStatus}
+		           AND MISI.CHECK_RESULT = #{checkResult})
+	</update>
+	<!-- 查询Excel导入的数据 -->
+	<select id="queryImportTempForPage" parameterType="java.lang.String" resultType="com.hanthink.inv.model.InvStockTakModel">
+		SELECT MIS.FACTORY_CODE factoryCode,
+			   MIS.WARE_CODE wareCode,
+			   MIS.PART_NO partNo,
+			   MIS.PART_SHORT_NO partShortNo,
+			   MIS.TAKE_STOCK*MIS.STANDARD_PACKAGE takeStock,
+			   MIS.DIFF_STOCK diffStock,
+			   MIS.IMPORT_STATUS importStatus,
+			   MIS.CHECK_RESULT checkResult,
+			   MIS.CHECK_INFO checkInfo,
+			   MIS.CREATION_USER creationUser,
+			   MIS.CREATION_TIME creationTime,
+			   MPD.CODE_VALUE_NAME excelImportStatus,
+	           MPDP.CODE_VALUE_NAME excelCheckResult
+		FROM MM_INV_STOCK_TAKE_IMP MIS
+		LEFT JOIN MM_PUB_DATA_DICT MPD
+	    ON MPD.CODE_TYPE  = 'PUB_IMP_STATUS'
+	    AND MPD.CODE_VALUE = MIS.IMPORT_STATUS
+	    AND MPD.FACTORY_CODE = #{factoryCode}
+	    LEFT JOIN MM_PUB_DATA_DICT MPDP
+	    ON MPDP.CODE_TYPE  = 'PUB_IMP_CK_RESULT'
+	    AND MIS.CHECK_RESULT = MPDP.CODE_VALUE
+	    AND MPDP.FACTORY_CODE = #{factoryCode}
+		WHERE MIS.IMP_UUID = #{uuid}
+	</select>
+	<!-- 判断导入的盘点信息数据数据是否全部正确 -->
+	<select id="getCorrectOrNot" parameterType="java.util.Map" resultType="java.lang.Boolean">
+		SELECT CASE
+	         WHEN (SELECT COUNT(*)
+	                 FROM MM_INV_STOCK_TAKE_IMP
+	                WHERE IMP_UUID = 'e3bafb4300df4d5b9fccc49c7cb63c70') =
+	              (SELECT COUNT(*)
+	                 FROM MM_INV_STOCK_TAKE_IMP
+	                WHERE IMP_UUID = 'e3bafb4300df4d5b9fccc49c7cb63c70'
+	                  AND CHECK_RESULT = 1
+	                  AND IMPORT_STATUS = 0) THEN 1
+	         ELSE 0
+	       END
+	  	FROM DUAL;
+	</select>
+	<!-- 查询可导入数据 -->
+	<select id="queryForInsertList" parameterType="java.util.Map" resultType="com.hanthink.inv.model.InvStockTakModel">
+		SELECT MIST.FACTORY_CODE factoryCode,
+			   MIST.WARE_CODE wareCode,
+			   MIST.PART_NO partNo,
+			   MIST.PART_SHORT_NO partShortNo,
+			   MIST.TAKE_STOCK*MIST.STANDARD_PACKAGE takeStock,
+			   MIST.DIFF_STOCK diffStock,
+			   MIST.IMPORT_STATUS importStatus,
+			   MIST.CHECK_RESULT checkResult,
+			   MIST.CHECK_INFO checkInfo,
+			   MIST.CREATION_USER creationUser,
+			   MIST.CREATION_TIME creationTime,
+			   NVL(MIS.STOCK,0) sysStock
+		FROM MM_INV_STOCK_TAKE_IMP MIST
+			LEFT JOIN MM_INV_STOCK MIS
+			ON MIST.FACTORY_CODE = MIS.FACTORY_CODE
+			AND MIST.WARE_CODE = MIS.WARE_CODE
+			AND MIST.PART_NO = MIS.PART_NO
+		WHERE IMP_UUID = #{uuid}
+			  AND IMPORT_STATUS = #{importStatus}
+			  AND CHECK_RESULT = #{checkResult}
+	</select>
+	<!-- 盘赢头表信息 -->
+	<insert id="insertPWHeader" parameterType="java.util.Map">
+		INSERT INTO MM_INV_STOCK_TAKE
+		(INS_NO,FACTOY_CODE,DEAL_FLAG,DEAL_TIME,CREATION_USER,CREATION_TIME)
+		VALUES
+		(#{insNoWin},#{factoryCode},0,null,#{creationUser},sysdate)
+	</insert>
+	<!-- 盘亏头表信息 -->
+	<insert id="insertPLHeader" parameterType="java.util.Map">
+		INSERT INTO MM_INV_STOCK_TAKE
+		(INS_NO,FACTOY_CODE,DEAL_FLAG,DEAL_TIME,CREATION_USER,CREATION_TIME)
+		VALUES
+		(#{insNoLose},#{factoryCode},0,null,#{creationUser},sysdate)
+	</insert>
+	<!-- 计算数据差异写到临时表 -->
+	<update id="calDiffStock" parameterType="java.util.Map">
+		UPDATE MM_INV_STOCK_TAKE_IMP MIS
+		   SET MIS.DIFF_STOCK =
+		       (SELECT TEMP.DIFFSTOCK
+		          FROM (SELECT MIST.PART_NO,
+		                       NVL(MIST.TAKE_STOCK, 0)*MIST.STANDARD_PACKAGE - NVL(MIS.STOCK, 0) DIFFSTOCK
+		                  FROM MM_INV_STOCK_TAKE_IMP MIST
+		                  LEFT JOIN MM_INV_STOCK MIS
+		                    ON MIS.WARE_CODE = MIST.WARE_CODE
+		                   AND MIS.PART_NO = MIST.PART_NO
+		                WHERE MIST.IMP_UUID = #{uuid}
+			               AND MIST.CHECK_RESULT = #{checkResult}
+			               AND MIST.IMPORT_STATUS = #{importStatus}) TEMP
+		         WHERE MIS.PART_NO = TEMP.PART_NO
+		         		AND MIS.IMP_UUID = #{uuid}
+			            AND MIS.CHECK_RESULT = #{checkResult}
+			            AND MIS.IMPORT_STATUS = #{importStatus})
+	</update>
+	<!-- 将数据导入详细表 -->
+	<insert id="insertStockTakToFormal" parameterType="java.util.Map">
+		INSERT INTO MM_INV_STOCK_TAKE_DETAIL
+		(WARE_CODE,PART_NO,TAKE_STOCK,SYS_STOCK,DIFF_STOCK,INS_NO)
+		<foreach  collection="list" item="item" index="index" separator=" UNION ALL" >
+			SELECT #{item.wareCode},#{item.partNo},#{item.takeStock},
+			#{item.sysStock},#{item.diffStock},#{item.insNo}
+			FROM DUAL
+		</foreach>
+	</insert>
+	<!-- 查询盘点修改的库存数据的ID -->
+	<select id="queryUpdateIds" parameterType="java.util.Map" resultType="com.hanthink.inv.model.InvStockTakModel">
+		SELECT MIS.ID id
+		  FROM MM_INV_STOCK MIS
+		  LEFT JOIN MM_INV_STOCK_TAKE_IMP MIST
+		    ON MIS.FACTORY_CODE = MIST.FACTORY_CODE
+		   AND MIS.WARE_CODE = MIST.WARE_CODE
+		   AND MIS.PART_NO = MIST.PART_NO
+		 WHERE MIST.IMP_UUID = #{uuid}
+		   AND MIST.IMPORT_STATUS = #{importStatus}
+		   AND MIST.CHECK_RESULT = #{checkResult}
+	</select>
+	<!-- 修改临时数据表的导入状态 -->
+	<update id="updateImportStatus" parameterType="java.util.Map">
+		UPDATE MM_INV_STOCK_TAKE_IMP SET 
+			IMPORT_STATUS = #{IMPORT_STATUS_YES,jdbcType=VARCHAR} 
+		WHERE IMP_UUID = #{uuid,jdbcType=VARCHAR} 
+		  AND CHECK_RESULT = #{checkResult,jdbcType=VARCHAR}
+		  AND IMPORT_STATUS = #{importStatus,jdbcType=VARCHAR} 
+	</update>
+</mapper>

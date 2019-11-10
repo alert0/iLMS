@@ -1,0 +1,296 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.pub.model.PubOrderBomModel">
+
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="queryPubOrderBomForPage" parameterType="com.hanthink.pub.model.PubOrderBomModel"
+		resultType="com.hanthink.pub.model.PubOrderBomModel">
+		SELECT A.FACTORY_CODE factoryCode,
+		A.ORDER_NO orderNo,
+		A.PART_ROWNO partRowno,
+		A.VEHICLE_PART_NO vehiclePartNo,
+		A.PART_NO partNo,
+		A.WORKCENTER workCenter,
+		A.STATION_CODE stationCode,
+		A.NUM num,
+		A.USAGE_AMOUNT_UNIT usageAmountUnit,
+		A.PURCHASE_TYPE purchaseType,
+		B.PART_NAME_CN partNameCn,
+		C.CODE_VALUE_NAME codeValueName
+		FROM MM_PUB_ORDER_BOM A
+		LEFT JOIN MM_PUB_PART B
+		ON A.PART_NO = B.PART_NO AND B.FACTORY_CODE = A.FACTORY_CODE
+		LEFT JOIN MM_PUB_DATA_DICT C
+		ON A.WORKCENTER = C.CODE_VALUE
+		AND C.CODE_TYPE = 'PUB_WORKCENTER'
+		WHERE 1=1
+		<if test="orderNos!=null and orderNos!='' ">
+		    AND A.ORDER_NO IN
+			<foreach collection="orderNos" item="orderNo" index="index"
+				open="(" separator="," close=")">
+				#{orderNo}
+			</foreach>
+		</if>
+		<if test="partNo!=null and partNo!='' ">
+			AND A.PART_NO LIKE CONCAT(#{partNo}, '%')
+		</if>
+		<if test="stationCode!=null and stationCode!='' ">
+			AND A.STATION_CODE = #{stationCode}
+		</if>
+		AND A.FACTORY_CODE = #{factoryCode}
+		ORDER BY A.FACTORY_CODE,A.ORDER_NO,A.PART_NO
+	</select>
+	
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="queryNotSummaryOrderBom" parameterType="com.hanthink.pub.model.PubOrderBomModel"
+		resultType="com.hanthink.pub.model.PubOrderBomModel">
+		<!-- 如果信息点不为空,从过点表查询所有的订单号,如果为空则直接从单车BOM查询所有的订单号 -->
+		SELECT A.ORDER_NO orderNo,
+			   A.VEHICLE_PART_NO vehiclePartNo,
+			   A.PART_ROWNO partRowNo,
+			   A.PART_NO partNo,
+			   A.WORKCENTER workcenter,
+			   A.STATION_CODE stationCode,
+			   A.NUM num,
+			   A.USAGE_AMOUNT_UNIT usageAmountUnit,
+			   A.PURCHASE_TYPE purchaseType,
+			   NULL PARTF_ID,
+			   A.PART_ROWNO,
+			   E.PART_NAME_CN partNameCn,
+			   NVL(F.CODE_VALUE_NAME, A.WORKCENTER) codeValueName
+	        FROM MM_PUB_ORDER_BOM A
+	        LEFT JOIN MM_PUB_PART E
+	          ON A.PART_NO = E.PART_NO
+	         AND A.FACTORY_CODE = E.FACTORY_CODE
+	        LEFT JOIN MM_PUB_DATA_DICT F
+			    ON A.WORKCENTER = F.CODE_VALUE
+			   AND F.CODE_TYPE = 'PUB_WORKCENTER'
+	       WHERE A.FACTORY_CODE = #{factoryCode}
+			<choose>
+				<when test="planCode != null and planCode != '' ">
+					<choose>
+						<when test="planCode == 'AF-OFF-PLAN'">
+							AND EXISTS(SELECT 1
+							 FROM (SELECT G.ORDER_NO
+									  FROM MM_PUB_PRO_PLAN G
+									 WHERE 1 = 1
+									   AND G.FACTORY_CODE = #{factoryCode}
+									   <if test="orderNos!=null and orderNos!='' ">
+									        AND G.ORDER_NO IN
+									      <foreach collection="orderNos" item="orderNo" index="index"
+									        open="(" separator="," close=")">
+									        #{orderNo}
+									      </foreach>
+									    </if>
+										<if test="startPassTime!=null and startPassTime!='' ">
+											AND G.AFOFF_TIME >= TO_DATE(#{startPassTime}, 'YYYY-MM-DD HH24:MI:SS')
+										</if>
+										<if test="endPassTime!=null and endPassTime!='' ">
+											AND G.AFOFF_TIME &lt;= TO_DATE(#{endPassTime}, 'YYYY-MM-DD HH24:MI:SS')
+										</if>) H
+								 WHERE A.ORDER_NO = H.ORDER_NO)
+						</when>
+						<when test="planCode == 'WE-MB-ON-PLAN'">
+							AND EXISTS(SELECT 1
+							 FROM (SELECT G.ERP_ORDER_NO ORDER_NO
+									  FROM IF_VEH_LOCK_PLAN G
+									 WHERE 1 = 1
+									   AND G.FACTORY_CODE = #{factoryCode}
+									   <if test="orderNos!=null and orderNos!='' ">
+									        AND G.ERP_ORDER_NO IN
+									      <foreach collection="orderNos" item="orderNo" index="index"
+									        open="(" separator="," close=")">
+									        #{orderNo}
+									      </foreach>
+									    </if>
+										<if test="startPassTime!=null and startPassTime!='' ">
+											AND TO_DATE(G.WEON_TIME, 'YYYY-MM-DD HH24:MI:SS') >= TO_DATE(#{startPassTime}, 'YYYY-MM-DD HH24:MI:SS')
+										</if>
+										<if test="endPassTime!=null and endPassTime!='' ">
+											AND TO_DATE(G.WEON_TIME, 'YYYY-MM-DD HH24:MI:SS') &lt;= TO_DATE(#{endPassTime}, 'YYYY-MM-DD HH24:MI:SS')
+										</if>) H
+								 WHERE A.ORDER_NO = H.ORDER_NO)
+						</when>
+						<otherwise>
+					        AND EXISTS(SELECT 1
+							 FROM (SELECT DISTINCT G.ERP_ORDER_NO ORDER_NO
+								  FROM MM_PUB_VEH_PASS G
+								 WHERE 1 = 1
+								   AND G.FACTORY_CODE = #{factoryCode}
+								   AND G.STATION_CODE = #{planCode}
+								   AND G.STATION_CODE IS NOT NULL
+						         <if test="orderNos!=null and orderNos!='' ">
+								    AND G.ERP_ORDER_NO IN
+									<foreach collection="orderNos" item="orderNo" index="index"
+										open="(" separator="," close=")">
+										#{orderNo}
+									</foreach>
+								</if>
+								<if test="startPassTime!=null and startPassTime!='' ">
+									AND G.PASS_TIME >= TO_DATE(#{startPassTime}, 'YYYY-MM-DD HH24:MI:SS')
+								</if>
+								<if test="endPassTime!=null and endPassTime!='' ">
+									AND G.PASS_TIME &lt;= TO_DATE(#{endPassTime}, 'YYYY-MM-DD HH24:MI:SS')
+								</if>) H WHERE A.ORDER_NO = H.ORDER_NO)
+			        	</otherwise>
+					</choose>
+			    </when>
+			    <otherwise>
+			        AND EXISTS(SELECT 1 FROM (SELECT DISTINCT G.ORDER_NO 
+			              FROM MM_PUB_ORDER_BOM G
+			             WHERE 1 = 1
+			             AND G.FACTORY_CODE = #{factoryCode}
+			             <if test="orderNos!=null and orderNos!='' ">
+						    AND G.ORDER_NO IN
+							<foreach collection="orderNos" item="orderNo" index="index"
+								open="(" separator="," close=")">
+								#{orderNo}
+							</foreach>
+						</if>) H WHERE H.ORDER_NO = A.ORDER_NO)
+			    </otherwise>
+		   </choose>
+	       <if test="partNo!=null and partNo!='' ">
+				AND A.PART_NO LIKE CONCAT(#{partNo}, '%')
+			</if>
+			<if test="partNameCn!=null and partNameCn!='' ">
+				AND E.PART_NAME_CN LIKE CONCAT('%', CONCAT(#{partNameCn}, '%'))
+			</if>
+			<if test="purchaseType!=null and purchaseType!='' ">
+				AND A.PURCHASE_TYPE = #{purchaseType}
+			</if>
+			<if test="stationCode!=null and stationCode!='' ">
+				AND A.STATION_CODE = #{stationCode}
+			</if>
+			<if test="workcenter!=null and workcenter!='' ">
+				AND A.WORKCENTER = #{workcenter}
+			</if>
+			ORDER BY A.ORDER_NO, A.PART_ROWNO
+			
+	</select>
+	
+	<!-- 分页查询结果 /导出查询结果 -->
+	<select id="querySummaryOrderBom" parameterType="com.hanthink.pub.model.PubOrderBomModel"
+		resultType="com.hanthink.pub.model.PubOrderBomModel">
+		SELECT NULL orderNo,
+				NULL vehiclePartNo,
+				NULL partRowNo,
+				A.PART_NO partNo,
+				A.WORKCENTER workcenter,
+				NULL stationCode,
+		        SUM(A.NUM) num,
+		        MIN(A.USAGE_AMOUNT_UNIT) usageAmountUnit,
+		        MIN(A.PURCHASE_TYPE) purchaseType,
+		        MIN(E.PART_NAME_CN) partNameCn,
+		        NVL(F.CODE_VALUE_NAME, A.workcenter) codeValueName
+	        FROM MM_PUB_ORDER_BOM A
+	        LEFT JOIN MM_PUB_PART E
+	          ON A.PART_NO = E.PART_NO
+	         AND A.FACTORY_CODE = E.FACTORY_CODE
+	        LEFT JOIN MM_PUB_DATA_DICT F
+			    ON A.WORKCENTER = F.CODE_VALUE
+			   AND F.CODE_TYPE = 'PUB_WORKCENTER'
+	       WHERE A.FACTORY_CODE = #{factoryCode}
+			<choose>
+				<when test="planCode != null and planCode != '' ">
+					<choose>
+						<when test="planCode == 'AF-OFF-PLAN'">
+							AND EXISTS(SELECT 1
+							 FROM (SELECT G.ORDER_NO
+									  FROM MM_PUB_PRO_PLAN G
+									 WHERE 1 = 1
+									   AND G.FACTORY_CODE = #{factoryCode}
+									   <if test="orderNos!=null and orderNos!='' ">
+									        AND G.ORDER_NO IN
+									      <foreach collection="orderNos" item="orderNo" index="index"
+									        open="(" separator="," close=")">
+									        #{orderNo}
+									      </foreach>
+									    </if>
+										<if test="startPassTime!=null and startPassTime!='' ">
+											AND G.AFOFF_TIME >= TO_DATE(#{startPassTime}, 'YYYY-MM-DD HH24:MI:SS')
+										</if>
+										<if test="endPassTime!=null and endPassTime!='' ">
+											AND G.AFOFF_TIME &lt;= TO_DATE(#{endPassTime}, 'YYYY-MM-DD HH24:MI:SS')
+										</if>) H
+								 WHERE A.ORDER_NO = H.ORDER_NO)
+						</when>
+						<when test="planCode == 'WE-MB-ON-PLAN'">
+							AND EXISTS(SELECT 1
+							 FROM (SELECT G.ERP_ORDER_NO ORDER_NO
+									  FROM IF_VEH_LOCK_PLAN G
+									 WHERE 1 = 1
+									   AND G.FACTORY_CODE = #{factoryCode}
+									   <if test="orderNos!=null and orderNos!='' ">
+									        AND G.ERP_ORDER_NO IN
+									      <foreach collection="orderNos" item="orderNo" index="index"
+									        open="(" separator="," close=")">
+									        #{orderNo}
+									      </foreach>
+									    </if>
+										<if test="startPassTime!=null and startPassTime!='' ">
+											AND TO_DATE(G.WEON_TIME, 'YYYY-MM-DD HH24:MI:SS') >= TO_DATE(#{startPassTime}, 'YYYY-MM-DD HH24:MI:SS')
+										</if>
+										<if test="endPassTime!=null and endPassTime!='' ">
+											AND TO_DATE(G.WEON_TIME, 'YYYY-MM-DD HH24:MI:SS') &lt;= TO_DATE(#{endPassTime}, 'YYYY-MM-DD HH24:MI:SS')
+										</if>) H
+								 WHERE A.ORDER_NO = H.ORDER_NO)
+						</when>
+						<otherwise>
+					        AND EXISTS(SELECT 1
+							 FROM (SELECT DISTINCT G.ERP_ORDER_NO ORDER_NO
+								  FROM MM_PUB_VEH_PASS G
+								 WHERE 1 = 1
+								   AND G.FACTORY_CODE = #{factoryCode}
+								   AND G.STATION_CODE = #{planCode}
+								   AND G.STATION_CODE IS NOT NULL
+						         <if test="orderNos!=null and orderNos!='' ">
+								    AND G.ERP_ORDER_NO IN
+									<foreach collection="orderNos" item="orderNo" index="index"
+										open="(" separator="," close=")">
+										#{orderNo}
+									</foreach>
+								</if>
+								<if test="startPassTime!=null and startPassTime!='' ">
+									AND G.PASS_TIME >= TO_DATE(#{startPassTime}, 'YYYY-MM-DD HH24:MI:SS')
+								</if>
+								<if test="endPassTime!=null and endPassTime!='' ">
+									AND G.PASS_TIME &lt;= TO_DATE(#{endPassTime}, 'YYYY-MM-DD HH24:MI:SS')
+								</if>) H WHERE A.ORDER_NO = H.ORDER_NO)
+			        	</otherwise>
+					</choose>
+			    </when>
+			    <otherwise>
+			        AND EXISTS(SELECT 1 FROM (SELECT DISTINCT G.ORDER_NO 
+			              FROM MM_PUB_ORDER_BOM G
+			             WHERE 1 = 1
+			             AND G.FACTORY_CODE = #{factoryCode}
+			             <if test="orderNos!=null and orderNos!='' ">
+						    AND G.ORDER_NO IN
+							<foreach collection="orderNos" item="orderNo" index="index"
+								open="(" separator="," close=")">
+								#{orderNo}
+							</foreach>
+						</if>) H WHERE H.ORDER_NO = A.ORDER_NO)
+			    </otherwise>
+		   </choose>
+	       <if test="partNo!=null and partNo!='' ">
+				AND A.PART_NO LIKE CONCAT(#{partNo}, '%')
+			</if>
+			<if test="partNameCn!=null and partNameCn!='' ">
+				AND E.PART_NAME_CN LIKE CONCAT('%', CONCAT(#{partNameCn}, '%'))
+			</if>
+			<if test="purchaseType!=null and purchaseType!='' ">
+				AND A.PURCHASE_TYPE = #{purchaseType}
+			</if>
+			<if test="stationCode!=null and stationCode!='' ">
+				AND A.STATION_CODE = #{stationCode}
+			</if>
+			<if test="workcenter!=null and workcenter!='' ">
+				AND A.WORKCENTER = #{workcenter}
+			</if>
+			GROUP BY A.WORKCENTER, A.PART_NO,NVL(F.CODE_VALUE_NAME, A.workcenter)
+			ORDER BY A.PART_NO
+	
+	</select>
+
+</mapper>

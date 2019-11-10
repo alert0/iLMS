@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.org.persistence.model.SysDemension">
+	<resultMap id="SysDemension" type="com.hotent.org.persistence.model.SysDemension">
+		<id property="id" column="ID_" jdbcType="VARCHAR"/>
+		<result property="demCode" column="DEM_CODE_" jdbcType="VARCHAR"/>
+		<result property="demName" column="DEM_NAME_" jdbcType="VARCHAR"/>
+		<result property="demDesc" column="DEM_DESC" jdbcType="VARCHAR"/>
+		<result property="isDefault" column="IS_DEFAULT_" jdbcType="NUMERIC"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.org.persistence.model.SysDemension">
+		INSERT INTO sys_demension
+		(ID_,DEM_CODE_,DEM_NAME_,DEM_DESC)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{demCode,jdbcType=VARCHAR}, #{demName,jdbcType=VARCHAR}, #{demDesc,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="SysDemension">
+		SELECT * FROM sys_demension 
+		WHERE 
+		ID_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="SysDemension">
+		SELECT * FROM sys_demension
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY ID_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.org.persistence.model.SysDemension">
+		UPDATE sys_demension SET
+		DEM_CODE_=#{demCode,jdbcType=VARCHAR},
+		DEM_NAME_=#{demName,jdbcType=VARCHAR},
+		IS_DEFAULT_=#{isDefault,jdbcType=NUMERIC},
+		DEM_DESC=#{demDesc,jdbcType=VARCHAR}
+		WHERE
+		ID_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM sys_demension 
+		WHERE
+		ID_=#{id}
+	</delete>
+	
+	<select id="getByCode"   parameterType="java.lang.String" resultMap="SysDemension">
+		SELECT * FROM sys_demension 
+		WHERE 
+		DEM_CODE_=#{code}
+	</select>
+	
+	<select id="getDefaultDemension"  resultMap="SysDemension">
+		SELECT * FROM sys_demension 
+		WHERE 
+		IS_DEFAULT_=1
+	</select>
+	
+	<update id="setNotDefaultDemension">
+		UPDATE sys_demension SET IS_DEFAULT_=0
+	</update>
+	
+	
+</mapper>

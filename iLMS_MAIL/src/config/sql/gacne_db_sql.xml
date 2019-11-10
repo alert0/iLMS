@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="gacne_db">
+	<typeAlias alias="proErrorVO" type="com.hanthink.gps.system.vo.ProErrorVO" />
+	
+	<!--查询数据库JOB异常停止  -->
+	<select id="queryDBJobExceptionStop" parameterClass="proErrorVO" resultClass="proErrorVO">
+		select 'ILMSPEC' dbName,
+			   a.job job, 
+			   a.what what, 
+			   a.last_date lastDate,  
+			   a.next_date nextDate, 
+			   a.interval interval
+		  from user_jobs a
+		 where a.broken = 'Y'
+	</select>
+	
+	<!-- 查询触发器异常 -->
+	<select id="queryDBTriggerExceptionStop" parameterClass="proErrorVO" resultClass="proErrorVO">
+		select 'ILMSPEC' dbName,
+			   a.trigger_name triggerName, 
+			   a.table_name tableName, 
+			   a.status status, 
+			   a.triggering_event triggeringEvent
+			  from user_triggers a
+			  where a.status = 'DISABLED' 
+	</select>
+	
+	<!-- 查询接口异常 -->
+	<select id="queryIFExceptionList" parameterClass="proErrorVO" resultClass="proErrorVO">
+		select a.job_code jobCode, 
+			   a.job_desc jobDesc, 
+			   a.last_run_time lastRunTime, 
+			   a.next_run_time nextRunTime, 
+			   a.trigger_value triggerValue
+		  from t_if_timer a
+		 where a.run_state = 0
+	</select>
+	
+</sqlMap>

@@ -1,0 +1,73 @@
+<!doctype html>
+<html ng-app="myApp">
+<head>
+<title>X5手机平台</title>
+<meta charset="utf-8">
+<script src="../assets/js/importJs.js"></script>
+
+<script type="text/javascript">
+	var myApp = angular.module("myApp", [ 'base', 'mobileDirective' ]);
+	myApp.controller("myTaskCtrl", [ '$scope', 'baseService', '$sce',
+			function(scope, baseService, $sce) {
+
+			} ]);
+
+	$(function() {
+		$("a.item-inner").click(function() {
+			$.closePanel()
+		});
+	})
+	function signout(){
+		$.confirm('你确定要退出?', function () {
+				location.href= __ctx +"/logout";
+	    });
+	}
+</script>
+
+</head>
+
+<body ng-controller="myTaskCtrl" class="body_foot">
+	<div class="page">
+		<header class="hkm-red-header bar bar-nav">
+			<a class="icon icon-menu open-panel pull-left" href="##"></a>
+			<span class='title'>个人中心</span>
+		</header>
+		<div class="content infinite-scroll">
+			<div class="grzx-page">
+				<div class="touxiang">
+					<img
+						ng-src="{{userMsg.user.photo}}" /><br />
+					<span>{{userMsg.user.fullname}}<br />{{userMsg.org.name}}-{{userMsg.orgUserRel.relName}}
+					</span>
+				</div>
+				<div class="list-block">
+					<ul>
+						<li class="item-content item-link">
+							<a  class="item-inner"  href="myDetail.html" external>
+								<div class="item-title">个人资料</div>
+							</a>
+						</li>
+						<li class="item-content item-link">
+							<a  class="item-inner"  href="editPassword.html" external>
+								<div class="item-title">修改密码</div>
+							</a>
+						</li>
+					</ul>
+				</div>
+				<div class="call">
+					<a href="#" class="button button-big button-dark"  onclick="signout();">安全退出</a>
+				</div>
+			</div>
+		</div>
+		<div class="hot_foot clearfix">
+			<a href="../index.html" class="hot_foot_cell " external><span class="iconfont hot_foot_icon">&#xe601;</span><span class="hot_foot_word">首页</span></a>
+			<a href="workbench.html" class="hot_foot_cell" external><span class="iconfont hot_foot_icon">&#xe66b;</span><span class="hot_foot_word">工作台</span></a>
+			<!-- <a href="../im/session.html" class="hot_foot_cell" external><span class="iconfont hot_foot_icon">&#xe61c;</span><span class="hot_foot_word">消息</span></a> -->
+			<a href="contacts.html" class="hot_foot_cell" external><span class="iconfont hot_foot_icon">&#xe612;</span><span class="hot_foot_word">通讯录</span></a>
+			<a href="##" class="hot_foot_cell current"><span class="iconfont hot_foot_icon">&#xe630;</span><span class="hot_foot_word">我的</span></a>
+		</div>
+	</div>
+	<div index-page></div>
+	<div class="panel-overlay"></div>
+</body>
+</html>

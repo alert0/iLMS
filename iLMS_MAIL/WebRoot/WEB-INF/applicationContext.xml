@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns ="http://www.springframework.org/schema/beans" 
+	xmlns:xsi ="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation ="http://www.springframework.org/schema/beans
+	http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+	http://www.springframework.org/schema/aop
+	http://www.springframework.org/schema/aop/spring-aop-2.5.xsd" >   
+	
+	<!-- PEC (主数据源) dataSource config -->
+	<bean id ="dataSource" class ="org.springframework.jdbc.datasource.DriverManagerDataSource" > 
+		<property name="driverClassName" value="oracle.jdbc.OracleDriver" /> 
+	
+		<!-- 测试环境  
+		<property name="url" value="jdbc:oracle:thin:@172.18.189.112:1521:ilmpectest" /> 
+		<property name="username" value="ilmspectest" /> 
+		<property name="password" value="ilmspectest"/>  --> 
+		
+		<!-- 实车验证环境 
+		<property name="url" value="jdbc:oracle:thin:@172.18.189.62:1521:ilmspec" /> 
+		<property name="username" value="ilmspectest" /> 
+		<property name="password" value="ilmspectest"/>  --> 
+		
+		<!-- 正式环境(厂内) -->
+		<property name="url" value="jdbc:oracle:thin:@(DESCRIPTION = (ADDRESS_LIST = (ADDRESS = (PROTOCOL = TCP)(HOST = 10.88.51.1 )(PORT = 1521))(ADDRESS = (PROTOCOL = TCP)(HOST = 10.88.51.2 )(PORT = 1521))(FAILOVER=yes)(LOAD_BALANCE =yes))(CONNECT_DATA = (SERVER = DEDICATED) (SERVICE_NAME = lmsdb )))" /> 
+		<property name="username" value="ilmspec" /> 
+		<property name="password" value="ilmspec@2019"/> 
+		
+	</bean> 
+	
+	<!-- 配置事务工厂bean -->
+	<bean id="transactionManager"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource">
+			<ref bean="dataSource"/>
+		</property>
+	</bean>
+	<bean id="txProxyTemplate" lazy-init="true" abstract="true"
+		class="org.springframework.transaction.interceptor.TransactionProxyFactoryBean">
+		<property name="transactionManager">
+			<ref bean="transactionManager"/>
+		</property>
+		<property name="transactionAttributes">
+			<props>
+				<!-- prop key="save*">PROPAGATION_REQUIRED,+org.springframework.dao.DataAccessException</prop -->
+				<!-- <prop key="insert*">PROPAGATION_REQUIRED,-jp.co.rsi.faces.business.service.ServiceException</prop>
+					<prop key="update*">PROPAGATION_REQUIRED,-jp.co.rsi.faces.business.service.ServiceException</prop>
+					<prop key="remove*">PROPAGATION_REQUIRED,-jp.co.rsi.faces.business.service.ServiceException</prop>
+					<prop key="sofu*">PROPAGATION_REQUIRED,-jp.co.rsi.faces.business.service.ServiceException</prop>
+					<prop key="shonin*">PROPAGATION_REQUIRED,-jp.co.rsi.faces.business.service.ServiceException</prop>
+					<prop key="kyaka*">PROPAGATION_REQUIRED,-jp.co.rsi.faces.business.service.ServiceException</prop>
+					<prop key="doJikokyaka*">PROPAGATION_REQUIRED,-jp.co.rsi.faces.business.service.ServiceException</prop>
+					<prop key="tenso*">PROPAGATION_REQUIRED,-jp.co.rsi.faces.business.service.ServiceException</prop>-->
+				<prop key="*">PROPAGATION_REQUIRED,readOnly</prop>
+			</props>
+		</property>
+	</bean>
+  
+	<!-- 数据源 -->
+	<bean id="sqlMapClient" class="org.springframework.orm.ibatis.SqlMapClientFactoryBean">
+		<property name = "dataSource" ref = "dataSource" />
+		<property name="configLocation">
+			<value>classpath:sql-map-config.xml</value>
+		</property>
+	</bean>
+		
+	<!-- ************************************************************************************** -->
+	<!-- ************************************************************************************** -->
+	<!-- ************************************************************************************** -->
+	<!-- ************************************************************************************** -->
+	<!-- ************************************************************************************** -->
+	<!-- ************************************************************************************** -->
+	
+	<!-- 门户数据源配置 -->
+	<bean id ="dataSourcePORTAL" class ="org.springframework.jdbc.datasource.DriverManagerDataSource" > 
+		<property name="driverClassName" value="oracle.jdbc.OracleDriver" /> 
+		<property name="connectionProperties" value="oracle.jdbc.V8Compatible=true"/>
+		<!--
+		<property name="url" value="jdbc:oracle:thin:@172.18.189.112:1521:ilmpectest" /> 
+		<property name="username" value="ilmspectest" /> 
+		<property name="password" value="ilmspectest"/> -->
+		
+		<!-- 实车验证环境(信息共享平台) 
+		<property name="url" value="jdbc:oracle:thin:@172.18.189.63:1521:ilmspmc" /> 
+		<property name="username" value="ilmspmc" /> 
+		<property name="password" value="ilmsdev"/> -->
+		
+		<!-- 正式环境(信息共享平台)  -->
+		<property name="url" value="jdbc:oracle:thin:@(DESCRIPTION = (ADDRESS_LIST = (ADDRESS = (PROTOCOL = TCP)(HOST = 10.88.51.6 )(PORT = 1521))(ADDRESS = (PROTOCOL = TCP)(HOST = 10.88.51.7 )(PORT = 1521))(FAILOVER=yes)(LOAD_BALANCE =yes))(CONNECT_DATA = (SERVER = DEDICATED) (SERVICE_NAME = lmspdb )))" /> 
+		<property name="username" value="ilmsportal" /> 
+		<property name="password" value="ilmsportal@2019"/> 
+
+	</bean> 
+	<!-- 配置事务工厂bean -->
+	<bean id="transactionManagerPORTAL"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource">
+			<ref bean="dataSourcePORTAL"/>
+		</property>
+	</bean>
+	<bean id="txProxyTemplatePORTAL" lazy-init="true" abstract="true"
+		class="org.springframework.transaction.interceptor.TransactionProxyFactoryBean">
+		<property name="transactionManager">
+			<ref bean="transactionManagerPORTAL"/>
+		</property>
+		<property name="transactionAttributes">
+			<props>
+				<prop key="*">PROPAGATION_REQUIRED,readOnly</prop>
+			</props>
+		</property>
+	</bean>
+	<!-- 数据源 -->
+	<bean id="sqlMapClientPORTAL" class="org.springframework.orm.ibatis.SqlMapClientFactoryBean">
+		<property name = "dataSource" ref = "dataSourcePORTAL" />
+		<property name="configLocation">
+			<value>classpath:sql-map-config.xml</value>
+		</property>
+	</bean>
+	
+	<bean id="daoMethodAspect" class="com.hanthink.gps.util.interceptor.DaoMethodInterceptor"/>
+	<aop:aspectj-autoproxy/>
+</beans>

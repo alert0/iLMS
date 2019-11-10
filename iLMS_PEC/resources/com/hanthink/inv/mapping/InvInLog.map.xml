@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.inv.model.InvInLogModel">
+	<!-- 分页数据查询 -->
+	<select id="queryInLogForPage" parameterType="com.hanthink.inv.model.InvInLogModel" resultType="com.hanthink.inv.model.InvInLogModel">
+		SELECT MII.DEPOT_NO depotNo,
+		       MII.REC_NO recNo,
+		       MII.ORDER_NO orderNo,
+		       MIID.PART_NO partNo,
+		       MUA.PART_SHORT_NO partShortNo,
+		       MPU.PART_NAME_CN partName,
+		       MIID.REC_QTY recNum,
+		       MPPD.STANDARD_PACKAGE standardPac,
+		       CEIL(MIID.REC_QTY / NVL(MPPD.STANDARD_PACKAGE, 1)) recQty,
+		       TO_CHAR(MIID.CREATION_TIME, 'yyyy-MM-dd HH24:mm:ss') inTime
+		  FROM MM_INV_IN_DETAIL MIID
+		  LEFT JOIN MM_INV_IN MII
+		    ON MIID.REC_NO = MII.REC_NO
+		  LEFT JOIN MM_INV_WAREHOUSE MIW
+		    ON MII.DEPOT_NO = MIW.WARE_CODE
+		   AND MII.FACTORY_CODE = MIW.FACTORY_CODE
+		  LEFT JOIN MM_PUB_PART MPU
+		    ON MIID.PART_NO = MPU.PART_NO
+		   AND MPU.FACTORY_CODE = MII.FACTORY_CODE
+		  LEFT JOIN MM_PUB_PART_UDA MUA
+		    ON MUA.PART_NO = MIID.PART_NO
+		   AND MUA.FACTORY_CODE = MII.FACTORY_CODE
+		  LEFT JOIN MM_PKG_PROPOSAL MPPR
+		    ON MIID.PART_NO = MPPR.PART_NO
+		   AND MII.FACTORY_CODE = MPPR.FACTORY_CODE
+		   AND MPPR.PROPOSAL_STATUS = 5
+		   AND TRUNC(SYSDATE) BETWEEN TRUNC(MPPR.EFF_START) AND TRUNC(MPPR.EFF_END)
+		  LEFT JOIN MM_PKG_PROPOSAL_DETAIL MPPD
+		    ON MPPR.ID = MPPD.PROPOSAL_ID
+		 WHERE MII.FACTORY_CODE = #{factoryCode}
+      AND MIW.WARE_TYPE IN (
+               SELECT A.PARAM_VAL
+                 FROM MM_PUB_SYS_PARAM A
+                WHERE A.PARAM_GROUP = 'INV_STOCK_WARE_TYPE'
+           		<!-- i-LMS2019053001 mod by 赵明健  -->
+                  AND A.FACTORY_CODE = #{factoryCode}
+           )
+	   	<if test="orderNo != null and orderNo != ''">
+	   		AND MII.ORDER_NO LIKE CONCAT(#{orderNo},'%')
+	   	</if>
+	   	<if test="recNo != null and recNo != ''">
+	   		AND MII.REC_NO LIKE CONCAT(#{recNo},'%')
+	   	</if>
+	   	<if test="partNo != null and partNo != ''">
+	   		AND MIID.PART_NO LIKE CONCAT(#{partNo},'%')
+	   	</if>
+	   	<if test="depotNo != null and depotNo != ''">
+	   		AND MII.DEPOT_NO = #{depotNo}
+	   	</if>
+	   	<if test="partShortNo != null and partShortNo != ''">
+	   		AND MUA.PART_SHORT_NO = #{partShortNo}
+	   	</if>
+	   	<if test="partName != null and partName != ''">
+	   		AND MPU.PART_NAME_CN LIKE CONCAT('%', CONCAT(#{partName}, '%'))
+	    </if>
+	   	<if test="inTimeStart != null and inTimeStart != ''">
+	   		AND MIID.CREATION_TIME >= TO_DATE(#{inTimeStart},'yyyy-MM-dd')
+		</if>
+		<if test="inTimeEnd != null and inTimeEnd != ''">
+	   		AND MIID.CREATION_TIME <![CDATA[<=]]> TO_DATE(#{inTimeEnd},'yyyy-MM-dd') + 1
+		</if>
+		ORDER BY MII.REC_NO,MII.ORDER_NO,MIID.PART_NO
+	</select>
+</mapper>

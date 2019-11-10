@@ -1,0 +1,593 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.mon.model.MonKbModel">
+	<!-- 看板基础信息查询 -->
+	<select id="queryMonBaseKbPage" parameterType="com.hanthink.mon.model.MonKbModel"
+			resultType="com.hanthink.mon.model.MonKbModel">
+		SELECT  T.ID  id,
+				T.FACTORY_CODE factoryCode,
+				T.KB_CODE kbCode,
+				T.PRODUCTION_LINE productionLine,
+				T.WORKCENTER workcenter,
+				T.STATION_CODE stationCode,
+				T.KB_NAME kbName,
+				T.KB_TYPE kbType,
+				T.BATCH_CYCLE_NUM batchCycleNum,
+				T.PROCESS_CYCLE_NUM processCycleNum,
+				T.CURR_BATCH_NO currbatchNo,
+				T.CURR_PROCESS_NO currprocessNo,
+				T.CURR_BATCH_SEQNO currbatchseqNo,
+				T.PRODUCT_SEQNO productSeqno,
+				T.IS_EDIT isEdit,
+				T.REMARK remark
+		  FROM MM_MON_KB T
+	    WHERE T.FACTORY_CODE = #{factoryCode}
+		<if test="null != kbName and '' != kbName">
+	      AND T.KB_NAME LIKE ('%' || #{kbName} || '%')
+	    </if>
+	    <if test="null != stationCode and '' != stationCode">
+	      AND T.STATION_CODE = #{stationCode}
+	    </if>
+	    ORDER BY T.CREATION_TIME
+	</select>
+	
+	<!-- 供应商看板信息查询 -->
+	<select id="queryMonKbOne" parameterType="com.hanthink.mon.model.MonKbModel"
+			resultType="com.hanthink.mon.model.MonKbModel">
+		SELECT  T.ID  id,
+				T.FACTORY_CODE factoryCode,
+				T.KB_CODE kbCode,
+				T.PRODUCTION_LINE productionLine,
+				T.WORKCENTER workcenter,
+				T.STATION_CODE stationCode,
+				T.KB_NAME kbName,
+				T.KB_TYPE kbType,
+				T.BATCH_CYCLE_NUM batchCycleNum,
+				T.PROCESS_CYCLE_NUM processCycleNum,
+				T.CURR_BATCH_NO currbatchNo,
+				T.CURR_PROCESS_NO currprocessNo,
+				T.CURR_BATCH_SEQNO currbatchseqNo,
+				T.PRODUCT_SEQNO productSeqno,
+				T.IS_EDIT isEdit,
+				T.REMARK remark
+		  FROM MM_MON_KB T
+	    WHERE 1=1
+	      AND T.ID = #{id}
+	</select>
+	<!-- 厂内拉动信息查询 -->
+	<select id="queryJitInKbOne" parameterType="com.hanthink.mon.model.MonKbModel"
+			resultType="com.hanthink.mon.model.MonKbModel">
+		SELECT  T.ID  id,
+				T.FACTORY_CODE factoryCode,
+				T.KB_CODE kbCode,
+				T.PRODUCTION_LINE productionLine,
+				T.WORKCENTER workcenter,
+				T.STATION_CODE stationCode,
+				T.KB_NAME kbName,
+				T.KB_TYPE kbType,
+				T.BATCH_CYCLE_NUM batchCycleNum,
+				T.PROCESS_CYCLE_NUM processCycleNum,
+				T.CURR_BATCH_NO currbatchNo,
+				T.CURR_PROCESS_NO currprocessNo,
+				T.CURR_BATCH_SEQNO currbatchseqNo,
+				T.PRODUCT_SEQNO productSeqno,
+				T.IS_EDIT isEdit,
+				T.REMARK remark
+		  FROM MM_MON_KB T
+	    WHERE 1=1
+	      AND T.ID = #{id}
+	</select>
+	
+	<!-- 看板基础信息新增 -->
+	<insert id="addMonBaseKbOne" parameterType="com.hanthink.mon.model.MonKbModel">
+		INSERT INTO MM_MON_KB(
+			ID,FACTORY_CODE,KB_CODE,
+			PRODUCTION_LINE,WORKCENTER,STATION_CODE,
+			KB_NAME,KB_TYPE,BATCH_CYCLE_NUM,
+			PROCESS_CYCLE_NUM,CURR_BATCH_NO,CURR_PROCESS_NO,IS_EDIT,
+			REMARK,CREATION_USER,CREATION_TIME
+		)VALUES(
+			SEQ_MM_MON_KB.NEXTVAL,#{factoryCode,jdbcType=VARCHAR},#{kbCode,jdbcType=VARCHAR},
+			#{productionLine,jdbcType=VARCHAR},#{workcenter,jdbcType=VARCHAR},#{stationCode,jdbcType=VARCHAR},
+			#{kbName,jdbcType=VARCHAR},#{kbType,jdbcType=VARCHAR},${batchCycleNum},
+			${processCycleNum},${currbatchNo},${currprocessNo},${isEdit},
+			#{remark,jdbcType=VARCHAR},#{createBy,jdbcType=VARCHAR},SYSDATE
+		)
+	</insert>
+	
+	<!-- 看板基础信息修改 -->
+	<update id="modifyMonBaseKbOne"  parameterType="com.hanthink.mon.model.MonKbModel">
+		UPDATE MM_MON_KB 
+			<set>
+			<if test="kbName!=null">KB_NAME=#{kbName,jdbcType=VARCHAR},</if>
+			<if test="kbType!=null">KB_TYPE=#{kbType,jdbcType=VARCHAR},</if>
+			<if test="stationCode!=null">STATION_CODE=#{stationCode,jdbcType=VARCHAR},</if>
+			<if test="batchCycleNum!=null">BATCH_CYCLE_NUM=${batchCycleNum},</if>
+			<if test="processCycleNum!=null">PROCESS_CYCLE_NUM=${processCycleNum},</if>
+			<if test="currbatchNo!=null">CURR_BATCH_NO=${currbatchNo},</if>
+			<if test="currprocessNo!=null">CURR_PROCESS_NO=${currprocessNo},</if>
+			<if test="remark!=null">REMARK=#{remark,jdbcType=VARCHAR},</if>
+			<if test="isEdit!=null">IS_EDIT=${isEdit},</if>
+			LAST_MODIFIED_USER=#{updateBy,jdbcType=VARCHAR},
+			LAST_MODIFIED_TIME=SYSDATE,
+			LAST_MODIFIED_IP=#{modifyIp,jdbcType=VARCHAR}
+			</set>
+	    WHERE ID = #{id}
+	</update>
+	
+	  <!-- 根据id删除看板信息 -->
+      <delete id="removeByKbIds" parameterType="java.util.List">
+           DELETE FROM MM_MON_KB WHERE ID IN (
+            <foreach collection="list" item="monKb" index="index" separator=",">
+	            #{monKb.id}
+	        </foreach>
+       		)
+      </delete>
+     
+      
+      <!-- 检查业务主键 -->
+      <select id="checkUnique" parameterType="com.hanthink.mon.model.MonKbModel" 
+         resultType="java.lang.Integer">
+      	SELECT count(1) FROM MM_MON_KB T
+      	WHERE T.FACTORY_CODE= #{factoryCode}
+	    AND T.KB_CODE =#{kbCode}
+      </select>
+       <!--*********************************    看板详情操作              *********************************-->
+       <!-- 看板明细信息查询 -->
+	<select id="queryKbDetailOne" parameterType="com.hanthink.mon.model.MonKbModel"
+			resultType="com.hanthink.mon.model.MonKbModel">
+			SELECT  T.ID  id,
+		        T.STATION_CODE stationCode,
+		        T.KB_NAME kbName,
+		        T.BATCH_CYCLE_NUM batchCycleNum,
+		        T.PROCESS_CYCLE_NUM processCycleNum,
+		        T.CURR_BATCH_NO currbatchNo,
+		        T.CURR_PROCESS_NO currprocessNo,
+		        T.CURR_BATCH_SEQNO currbatchseqNo,     
+		        D.DISTRI_PERSON distriPerson,
+		        D.RUN_PROCESS_NO runProcessNo,
+		        D.LAMP_ID lampId,
+		        CASE WHEN CEIL((MMDL.GET_RUN_TIME-MMDL.REQUEST_RUN_TIME)*24*60) > D.LIMIT_DELAY
+		        THEN 1
+		        ELSE 0
+		        END runDelayFlag,
+		        MMDL.STATUS kbStatus,
+		        D.LIMIT_DELAY limitDelay,
+		        T.PRODUCT_SEQNO productSeqno
+	      FROM MM_MON_KB T
+	      LEFT JOIN MM_MON_KB_DETAIL D
+	      ON T.ID=D.KB_ID
+	      LEFT JOIN MM_MON_DISTRIBUTION_LOG MMDL
+	      ON MMDL.KB_DETAIL_ID = D.ID
+	    WHERE T.FACTORY_CODE = #{factoryCode}
+	    <if test="null != kbType and '' != kbType">
+	      AND T.KB_TYPE = #{kbType}
+	    </if>
+	    <if test="null != id and '' != id">
+	      AND T.ID = #{id}
+	    </if>
+	    <if test="null != distriPerson and '' != distriPerson">
+	      AND D.DISTRI_PERSON = #{distriPerson}
+	    </if>
+	</select>
+	
+       <!--看板明细信息增加 -->
+		<insert id="addKbDetailOne" parameterType="com.hanthink.mon.model.MonKbModel">
+			INSERT INTO MM_MON_KB_DETAIL(
+				ID,KB_ID,DISTRI_PERSON,		
+				RUN_PROCESS_NO,LAMP_ID,LIMIT_DELAY,
+				CREATION_USER,CREATION_TIME
+			)VALUES(
+				SEQ_MM_MON_KB_DETAIL.NEXTVAL,#{id},#{distriPerson,jdbcType=VARCHAR},
+				#{runProcessNo,jdbcType=NUMERIC},#{lampId,jdbcType=VARCHAR},#{limitDelay,jdbcType=NUMERIC},
+				#{createBy,jdbcType=VARCHAR},SYSDATE
+			)
+		</insert>      
+      <!-- 看板明细信息修改 -->
+		<update id="modifyKbDetailOne"  parameterType="com.hanthink.mon.model.MonKbModel">
+			UPDATE MM_MON_KB_DETAIL 
+				<set>
+				<if test="runProcessNo!=null">RUN_PROCESS_NO=#{runProcessNo},</if>
+				<if test="lampId!=null">LAMP_ID=#{lampId,jdbcType=VARCHAR},</if>
+				<if test="limitDelay!=null">LIMIT_DELAY=#{limitDelay},</if>
+				LAST_MODIFIED_USER=#{updateBy,jdbcType=VARCHAR},
+				LAST_MODIFIED_TIME=SYSDATE,
+				LAST_MODIFIED_IP=#{modifyIp,jdbcType=VARCHAR}
+				</set>
+		    WHERE KB_ID = #{id} and DISTRI_PERSON=#{distriPerson,jdbcType=VARCHAR}
+		</update>
+		
+	<!-- <update id="modifyKbDistLog" parameterType="com.hanthink.mon.model.MonKbModel">
+			UPDATE MM_MON_DISTRIBUTION_LOG MMDL
+				<set>
+					<if test="limitDelay!=null">LIMIT_DELAY=#{limitDelay}</if>
+				</set>
+			WHERE KB_DETAIL_ID = #{id}
+		</update> -->
+		
+       <!-- 根据看板id删除看板详情信息 -->
+      <delete id="removeDetailByKbIds" parameterType="java.util.List">
+      		DELETE FROM MM_MON_KB_DETAIL WHERE KB_ID IN (
+                 <foreach collection="list" item="monKb" index="index"
+		            separator=",">
+		            #{monKb.id}
+		        </foreach>
+       		)
+      </delete>
+      
+      <!-- 检查看板详情是否存在 -->
+      <select id="checkKbId" parameterType="com.hanthink.mon.model.MonKbModel" 
+         resultType="java.lang.Integer">
+      	SELECT count(1) FROM MM_MON_KB_DETAIL T
+      	WHERE T.KB_ID= #{id} AND T.DISTRI_PERSON = #{distriPerson}
+      </select>
+      
+      <!--根据流水号显示批次进度-->
+      <select id="selectBatchBySeq" parameterType="com.hanthink.mon.model.MonKbModel" resultType="com.hanthink.mon.model.MonKbModel">
+        SELECT T.ID  id,T.KB_NAME kbName,PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(t.ID,t.PRODUCT_SEQNO) currbatchNo, 
+		PKG_PUB.USF_GET_PROCESSNO_BY_PRODSEQNO(t.ID,t.PRODUCT_SEQNO) currprocessNo
+		FROM MM_MON_KB t 
+		WHERE t.FACTORY_CODE = #{factoryCode}
+		AND t.id=#{id}
+      </select>
+      <!--根据流水号和偏移进度显示批次进度-->
+      <select id="selectBatchBySeqAndSkew" parameterType="com.hanthink.mon.model.MonKbModel" resultType="com.hanthink.mon.model.MonKbModel">
+        SELECT PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(t.ID,t.PRODUCT_SEQNO+NVL(#{skweProcessNo},0)) currbatchNo, 
+			PKG_PUB.USF_GET_PROCESSNO_BY_PRODSEQNO(t.ID,t.PRODUCT_SEQNO+NVL(#{skweProcessNo},0)) currprocessNo
+		FROM MM_MON_KB t
+		WHERE t.FACTORY_CODE = #{factoryCode}
+		AND t.kb_code=#{id}
+      </select>
+      <!-- 更新看板偏移进度 -->
+      <update id="updateSkewProcessNo" parameterType="com.hanthink.mon.model.MonKbModel">
+      	update MM_MON_KB set 
+      		LAST_MODIFIED_USER = #{lastModifiedUser},
+      		LAST_MODIFIED_IP = #{lastModifiedIp},
+      		LAST_MODIFIED_TIME = SYSDATE,
+      		SKEW_PROCESS_NO = #{skweProcessNo} where ID = #{id}
+      </update>
+      <!--*********************************    相关下拉框数据              *********************************-->
+      
+      <!-- 看板名称 -->
+      <select id="queryForMonKbName" parameterType="com.hanthink.mon.model.MonKbModel" resultType="com.hanthink.base.model.DictVO">
+		SELECT DISTINCT  KB_CODE valueKey, KB_NAME valueName FROM MM_MON_KB T
+		WHERE T.FACTORY_CODE = #{factoryCode}
+		<if test=" kbType != null and kbType != '' ">AND T.KB_TYPE = #{kbType}</if> 
+		<if test="remark != null and remark !='' and remark == 1">
+			AND T.IS_EDIT = 0
+		</if> 
+	  </select>
+	  
+	  <!-- 工程 -->
+	  <select id="queryForDistriPerson" parameterType="com.hanthink.mon.model.MonKbModel" resultType="com.hanthink.base.model.DictVO">
+		SELECT DISTINCT  a.DISTRI_PERSON valueKey, a.DISTRI_PERSON valueName FROM MM_MON_KB_DETAIL a,
+		MM_MON_KB b where a.KB_ID=b.ID  
+		<if test=" kbType != null and kbType != '' ">AND b.KB_TYPE = #{kbType}</if>  
+	  </select>
+	  
+	  <!-- 安灯灯号-->
+	  <select id="queryForLampId" resultType="com.hanthink.base.model.DictVO">
+		SELECT DISTINCT  ID valueKey, LAMP_DESC valueName FROM MM_MON_LAMP T
+	  </select>
+	  
+	  <select id="queryForKbConfig" parameterType="java.lang.String" resultType="com.hanthink.mon.model.MonKbModel">
+	  	SELECT MMK.ID id,
+		       MMK.KB_CODE kbCode,
+		       MMK.KB_NAME kbName,
+		       MMK.KB_TYPE kbType,
+		       MMK.CURR_BATCH_NO currbatchNo,
+		       MMK.CURR_PROCESS_NO currprocessNo,
+		       MMK.IS_EDIT isEdit,
+		       MMKD.LAMP_ID lampId,
+		       MMKD.DISTRI_PERSON distriPerson,
+		       MMKD.RUN_PROCESS_NO runProcessNo,
+		       MMKD.LIMIT_DELAY limitDelay
+		  FROM MM_MON_KB MMK
+		  LEFT JOIN MM_MON_KB_DETAIL MMKD
+		    ON MMK.ID = MMKD.KB_ID
+		 WHERE MMK.FACTORY_CODE = #{factoryCode}
+		   AND MMK.KB_TYPE = 'JIT'
+		    OR MMK.KB_TYPE = 'JISO'
+		 ORDER BY MMK.KB_TYPE
+	  </select>
+	  
+	  <select id="getLoactionShowMessage" parameterType="java.util.Map" resultType="com.hanthink.mon.model.MonKbModel">
+	  	SELECT MPS.PARAM_VAL pageURL,
+	  	       MKC.KB_ID  kbCode
+		  FROM MM_KB_IP_CONFIG MKC
+		  LEFT JOIN MM_PUB_SYS_PARAM MPS
+		  ON MPS.PARAM_GROUP = 'MON_PAGE_URL'
+		  AND MPS.FACTORY_CODE = MKC.FACTORY_CODE
+		  AND MPS.PARAM_CODE = MKC.KB_TYPE
+		 WHERE MKC.FACTORY_CODE = #{factoryCode}
+		   AND MKC.KB_IP = #{ip}
+	  </select>
+	  <update id="updateCurrentKbStatus" parameterType="com.hanthink.mon.model.MonKbModel">
+	  	UPDATE MM_MON_DISTRIBUTION_LOG MMDL
+		   SET MMDL.STATUS = #{kbStatus},
+		   	   MMDL.GET_RUN_TIME = SYSDATE
+		 WHERE MMDL.ID = (SELECT ID
+                    FROM (SELECT MMDL.ID
+                            FROM MM_MON_DISTRIBUTION_LOG MMDL
+                            LEFT JOIN MM_KB_IP_CONFIG MKI
+                              ON MKI.ID = MMDL.KB_DETAIL_ID
+                           WHERE MKI.KB_IP = #{ip}
+                             AND MMDL.STATUS = 0
+                           ORDER BY MMDL.DISTRI_PRODUCT_SEQNO)
+                   WHERE ROWNUM &lt;= 1)
+	  </update>
+	  
+	  <parameterMap type="map" id="impCkParamMap"> 
+	  	<parameter property="kbIp" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="kbCode" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="distriPerson" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="factoryCode" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="currBatchNo" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="batchCycleNum" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="runProcessNo" jdbcType="VARCHAR" mode="OUT"/>  
+		<parameter property="kbStatus" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="runDelayFlag" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="currbatchseqNo" jdbcType="VARCHAR" mode="OUT"/>
+	</parameterMap>
+	<select id="queryKbDetailForPage" parameterMap="impCkParamMap" statementType="CALLABLE">
+		{CALL PKG_MON.USP_MON_KB_QUERYKB_DETAIL(?, ?, ?,  ?, ?, ?, ?, ?, ?, ?)}
+	</select>
+	
+	<!-- 大物备货监控看板-->
+	<!-- 根据IP查询看板代码-->
+	<select id="selectKbCodeByIp" parameterType="java.util.Map" resultType="java.lang.String">
+		SELECT MKC.KB_ID kbCode
+		  FROM MM_KB_IP_CONFIG MKC
+		 WHERE MKC.FACTORY_CODE = #{factoryCode}
+		   AND MKC.KB_IP = #{ip}
+	</select>
+	
+    <!-- 查询批次跟台数-->
+    <select id="getBatchNo" parameterType="java.util.Map"
+         resultType="com.hanthink.mon.model.BigStockKbModel">
+		   SELECT A.ID  kbId,
+		          A.CURR_BATCH_NO  currBatchNo,
+		          A.CURR_PROCESS_NO currProcessNo,
+		          A.PRODUCT_SEQNO  productSeqNo
+		     FROM MM_MON_KB A
+		    WHERE A.ID = #{kbCode}
+    </select>
+
+	 <!-- 根据批次查询单头-->
+    <select id="getDistriProductSeqNo" parameterType="java.util.Map"
+         resultType="java.lang.String">
+             SELECT  PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(#{kbId},#{currProcessNo})  distriProductSeqNo
+			   FROM DUAL
+    </select>
+    
+     <!-- 根据IP获取车间-->
+    <select id="selectWorkCenterByIp" parameterType="java.lang.String"
+         resultType="java.lang.String">
+            SELECT DISTINCT A.WORK_CENTER workCenter
+			  FROM MM_KB_IP_CONFIG A
+			 WHERE A.KB_IP = #{ip}
+    </select>
+	
+    <!-- 根据批次查询单头总装-->
+    <select id="getBigStockKbAC" parameterType="java.util.Map"
+         resultType="com.hanthink.mon.model.BigStockKbModel">
+              SELECT *
+      FROM (SELECT DISTINCT A.PREPARE_PERSON preparePerson,
+                            A.PREPARE_PERSON||'-'||DECODE(A.DISTRI_PERSON,
+                                   NULL,
+                                   B.DISTRI_PERSON,
+                                   A.DISTRI_PERSON) person,
+                            DECODE(A.DISTRI_PERSON,
+                                   NULL,
+                                   B.DISTRI_PERSON,
+                                   A.DISTRI_PERSON) distriPerson,
+                            TO_CHAR(PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(C.PLAN_CODE,
+                            A.DISTRI_PRODUCT_SEQNO))  distriProductSeqNo
+              FROM MM_JIT_INS        A,
+                   MM_JIT_INS_DETAIL B,
+                   MM_PUB_PLAN_CODE  C,
+                   MM_MON_KB         D,
+                   MM_INV_PART_LOCATION  E
+             WHERE A.INS_NO = B.INS_NO
+               AND A.PLAN_CODE = C.PLAN_CODE
+               AND C.KB_ID = D.ID
+               AND E.FACTORY_CODE = #{factoryCode}
+               AND E.PART_NO = B.PART_NO
+               AND E.DISTRI_PERSON = B.DISTRI_PERSON
+               AND E.PREPARE_PERSON = A.PREPARE_PERSON
+               AND E.UNLOAD_PORT IN( 'Z7','Z9')
+               AND E.WORKCENTER = #{workCenter}
+               AND A.PREPARE_PRODUCT_SEQNO &lt;=
+                   D.CURR_BATCH_SEQNO * D.PROCESS_CYCLE_NUM
+               AND (A.PREPARE_PRODUCT_SEQNO >
+                   (D.CURR_BATCH_SEQNO - 1) * D.PROCESS_CYCLE_NUM OR
+                   (A.PREPARE_PRODUCT_SEQNO &lt;=
+                   (D.CURR_BATCH_SEQNO + 1) * D.PROCESS_CYCLE_NUM AND
+                   A.PREPARE_STATUS &lt; 2))
+  <!-- UNION ALL SELECT '' preparePerson,
+                   '' person,
+                   '' distriPerson,
+                   '' distriProductSeqNo
+              FROM MM_JIT_INS_SORT A -->
+             ORDER BY 4 DESC )
+       WHERE ROWNUM &lt;= 8
+    </select>
+    
+     <!-- 根据批次查询单头焊装-->
+    <select id="getBigStockKbWC" parameterType="java.util.Map"
+         resultType="com.hanthink.mon.model.BigStockKbModel">
+              SELECT *
+      FROM (SELECT DISTINCT A.PREPARE_PERSON preparePerson,
+                            A.PREPARE_PERSON||'-'||DECODE(A.DISTRI_PERSON,
+                                   NULL,
+                                   B.DISTRI_PERSON,
+                                   A.DISTRI_PERSON) person,
+                            DECODE(A.DISTRI_PERSON,
+                                   NULL,
+                                   B.DISTRI_PERSON,
+                                   A.DISTRI_PERSON) distriPerson,
+                            TO_CHAR(PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(C.PLAN_CODE,
+                            A.DISTRI_PRODUCT_SEQNO))  distriProductSeqNo
+              FROM MM_JIT_INS        A,
+                   MM_JIT_INS_DETAIL B,
+                   MM_PUB_PLAN_CODE  C,
+                   MM_MON_KB         D,
+                   MM_INV_PART_LOCATION  E
+             WHERE A.INS_NO = B.INS_NO
+               AND A.PLAN_CODE = C.PLAN_CODE
+               AND C.KB_ID = D.ID
+               AND E.FACTORY_CODE = #{factoryCode}
+               AND E.PART_NO = B.PART_NO
+               AND E.DISTRI_PERSON = B.DISTRI_PERSON
+               AND E.PREPARE_PERSON = A.PREPARE_PERSON
+               AND E.WORKCENTER = #{workCenter}
+               AND E.UNLOAD_PORT IN( 'S7','S9')
+               AND A.PREPARE_PRODUCT_SEQNO &lt;=
+                   D.CURR_BATCH_SEQNO * D.PROCESS_CYCLE_NUM
+               AND (A.PREPARE_PRODUCT_SEQNO >
+                   (D.CURR_BATCH_SEQNO - 1) * D.PROCESS_CYCLE_NUM OR
+                   (A.PREPARE_PRODUCT_SEQNO &lt;=
+                   (D.CURR_BATCH_SEQNO + 1) * D.PROCESS_CYCLE_NUM AND
+                   A.PREPARE_STATUS &lt; 2))
+               AND A.PLAN_CODE = 'A_JITI_WEPLAN'
+  <!-- UNION ALL SELECT '' preparePerson,
+                   '' person,
+                   '' distriPerson,
+                   '' distriProductSeqNo -->
+              FROM MM_JIT_INS_SORT A
+             ORDER BY 4 DESC )
+       WHERE ROWNUM &lt;= 8
+    </select>
+    
+     <!-- 为空处理 -->
+	<select id="selectBigStockKbByNull" 
+			resultType="com.hanthink.mon.model.BigStockKbModel">
+			SELECT *
+      FROM (SELECT '' preparePerson,
+                   '' person,
+                   '' distriPerson
+              FROM MM_JIT_INS_SORT A
+                   )
+       WHERE ROWNUM &lt;= 8
+	</select>
+    
+    <!-- 根据单头查询明细-->
+    <select id="getBigStockKbDetail" parameterType="java.lang.String"
+         resultType="java.lang.String">
+                SELECT *
+		          FROM (SELECT C.PART_SHORT_NO  partNo
+		              FROM MM_JIT_INS A
+		              LEFT JOIN MM_JIT_INS_DETAIL B
+		                ON A.INS_NO = B.INS_NO
+		              LEFT JOIN MM_PUB_PART_UDA C
+		                ON C.PART_NO = B.PART_NO
+		             WHERE B.DISTRI_PERSON = #{distriPerson}
+		               AND (A.PREPARE_STATUS &lt; 2 OR A.PREPARE_STATUS IS NULL)
+		               AND B.REQUIRE_NUM != PREPARE_NUM
+		             ORDER BY 1)
+		         WHERE ROWNUM &lt;= 6
+    </select>
+    
+    <!-- 获取系统参数维护的值-->
+    <select id="selectProductSeqNoByParamCode" parameterType="com.hanthink.mon.model.BigStockKbModel"
+         resultType="java.lang.String">
+        SELECT A.PARAM_VAL 
+        FROM MM_PUB_SYS_PARAM A 
+        WHERE A.PARAM_CODE = 'PREPARE_SEQ_NO'
+    </select>
+	
+	<!-- 获取所有电视机网口信息 -->
+	<select id="getAdamLamploadIP">
+		SELECT MKI.MBPS_COMB FROM MM_KB_IP_CONFIG MKI 
+			WHERE MKI.KB_TYPE = 'SPARE'
+			AND MKI.FACTORY_CODE = #{factoryCode}
+	</select>
+	
+	<select id="queryDistriPersonForSelect" parameterType="com.hanthink.mon.model.MonKbModel" resultType="com.hanthink.base.model.DictVO">
+		SELECT DISTINCT MKI.DISTRI_PERSON valueKey,MKI.DISTRI_PERSON valueName
+		  FROM MM_KB_IP_CONFIG MKI
+		  LEFT JOIN MM_MON_KB MMK
+		    ON MKI.KB_ID = MMK.ID
+		 WHERE MMK.KB_CODE = #{kbCode}
+		   AND MMK.FACTORY_CODE = #{factoryCode}
+	</select>
+	
+	<select id="queryDistriPerson" parameterType="java.util.Map" resultType="java.lang.String">
+		SELECT MKI.DISTRI_PERSON FROM MM_KB_IP_CONFIG MKI WHERE MKI.KB_IP = #{kbIp}
+	</select>
+	
+	<select id="queryWorkCenterByPlanCode" parameterType="com.hanthink.mon.model.MonKbModel" resultType="java.lang.String">
+		SELECT A.OTHER_CODE_VALUE
+		  FROM MM_PUB_DATA_DICT A
+		 WHERE A.CODE_TYPE = 'MON_KB_STATION'
+		   AND A.CODE_VALUE = #{stationCode}
+		   AND A.FACTORY_CODE = #{factoryCode}
+	</select>
+	
+	<select id="queryForKbConfigForKb" parameterType="com.hanthink.mon.model.MonKbModel" resultType="com.hanthink.mon.model.MonKbModel">
+		SELECT PKG_PUB.USF_GET_BATCHNO_BY_PRODSEQNO(MMK.ID,MMK.PRODUCT_SEQNO+NVL(MKI.SHIT_SCHEDULE,0)) currbatchNo,
+		       PKG_PUB.USF_GET_PROCESSNO_BY_PRODSEQNO(MMK.ID,MMK.PRODUCT_SEQNO+NVL(MKI.SHIT_SCHEDULE,0)) currprocessNo
+		  FROM MM_KB_IP_CONFIG MKI
+		  LEFT JOIN MM_MON_KB MMK
+		    ON MMK.ID = MKI.KB_ID
+		 WHERE MKI.KB_IP = #{ip}
+		   AND MKI.FACTORY_CODE = #{factoryCode}
+	</select>
+	
+	<!-- 获取冲压配送指示 -->
+	<select id="queryStampKb" parameterType="com.hanthink.mon.model.MonKbModel" 
+			resultType="com.hanthink.mon.model.MonKbModel">
+		SELECT  T.ID  id,
+				T.FACTORY_CODE factoryCode,
+				T.KB_CODE kbCode,
+				T.PRODUCTION_LINE productionLine,
+				T.WORKCENTER workcenter,
+				T.STATION_CODE stationCode,
+				T.KB_NAME kbName,
+				T.KB_TYPE kbType,
+				T.BATCH_CYCLE_NUM batchCycleNum,
+				T.PROCESS_CYCLE_NUM processCycleNum,
+				T.CURR_BATCH_NO currbatchNo,
+				T.CURR_PROCESS_NO currprocessNo,
+				T.CURR_BATCH_SEQNO currbatchseqNo,
+				T.PRODUCT_SEQNO productSeqno,
+				T.IS_EDIT isEdit,
+				T.REMARK remark
+		  FROM MM_MON_KB T
+	    WHERE T.FACTORY_CODE = #{factoryCode}
+	    <if test="null != workcenter and '' != workcenter">
+	      AND T.WORKCENTER = #{workcenter}
+	    </if>
+	    <if test="null != stationCode and '' != stationCode">
+	      AND T.STATION_CODE = #{stationCode}
+	    </if>
+	    ORDER BY T.CREATION_TIME
+	</select>
+	
+	<!-- 获取电池车间指示     -->
+	<select id="queryBatteryKb" parameterType="com.hanthink.mon.model.MonKbModel"
+			resultType="com.hanthink.mon.model.MonKbModel">
+		SELECT  T.ID  id,
+				T.FACTORY_CODE factoryCode,
+				T.KB_CODE kbCode,
+				T.PRODUCTION_LINE productionLine,
+				T.WORKCENTER workcenter,
+				T.STATION_CODE stationCode,
+				T.KB_NAME kbName,
+				T.KB_TYPE kbType,
+				T.BATCH_CYCLE_NUM batchCycleNum,
+				T.PROCESS_CYCLE_NUM processCycleNum,
+				T.CURR_BATCH_NO currbatchNo,
+				T.CURR_PROCESS_NO currprocessNo,
+				T.CURR_BATCH_SEQNO currbatchseqNo,
+				T.PRODUCT_SEQNO productSeqno,
+				T.IS_EDIT isEdit,
+				T.REMARK remark
+		  FROM MM_MON_KB T
+	    WHERE T.FACTORY_CODE = #{factoryCode}
+	    <if test="null != workcenter and '' != workcenter">
+	      AND T.WORKCENTER = #{workcenter}
+	    </if>
+	    ORDER BY T.CREATION_TIME		
+	</select>
+</mapper>

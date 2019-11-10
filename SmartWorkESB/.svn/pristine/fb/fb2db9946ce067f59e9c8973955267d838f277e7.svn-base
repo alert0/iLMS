@@ -1,0 +1,6 @@
+jco.server.connection_count=2
+jco.server.gwhost=10.30.1.1
+jco.server.progid=JCO_SERVER
+jco.server.gwserv=3300
+jco.server.repository_destination=Demo_idoc
+

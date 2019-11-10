@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.dpm.model.DpmItemModel">
+	<resultMap id="DpmItemModel" type="com.hanthink.dpm.model.DpmItemModel">
+		<id property="id" column="ID" jdbcType="NUMERIC" />
+		<result property="factoryCode" column="FACTORY_CODE" jdbcType="VARCHAR" />
+		<result property="itemCode" column="ITEM_CODE" jdbcType="VARCHAR" />
+		<result property="itemName" column="ITEM_NAME" jdbcType="VARCHAR" />
+		<result property="itemDesc" column="ITEM_DESC" jdbcType="VARCHAR" />
+	</resultMap>
+
+    <!-- 新增不良品项目 -->
+	<insert id="create" parameterType="com.hanthink.dpm.model.DpmItemModel">
+		INSERT INTO MM_DPM_ITEM
+		(ID,
+		FACTORY_CODE, ITEM_CODE, ITEM_NAME, ITEM_DESC,CREATION_USER)
+		VALUES
+		(SEQ_MM_DPM_ITEM.NEXTVAL, #{factoryCode,jdbcType=VARCHAR},
+		#{itemCode,jdbcType=VARCHAR}, #{itemName,jdbcType=VARCHAR},
+		#{itemDesc,jdbcType=VARCHAR},#{creationUser,jdbcType=VARCHAR} )
+	</insert>
+
+    <!-- 分页查询显示列表信息 -->
+	<select id="queryDpmItemForPage" parameterType="com.hanthink.dpm.model.DpmItemModel" resultMap="DpmItemModel">
+		SELECT A.ID           id,
+		       A.FACTORY_CODE factoryCode,
+		       A.ITEM_CODE    itemCode,
+		       A.ITEM_NAME    itemName,
+		       A.ITEM_DESC    itemDesc
+  		FROM MM_DPM_ITEM A
+		WHERE A.FACTORY_CODE = #{factoryCode} 
+		<if test="itemName !=null and itemName !='' ">
+		AND	ITEM_NAME LIKE CONCAT(CONCAT('%',#{itemName}), '%')
+		</if>
+		<if test="itemCode !=null and itemCode !='' ">
+		AND	ITEM_CODE LIKE CONCAT(CONCAT('%',#{itemCode}), '%')
+		</if>
+		ORDER BY ID ASC
+	</select>
+	
+	<!-- 修改不良品项目 -->
+	<update id="update" parameterType="com.hanthink.dpm.model.DpmItemModel">
+		UPDATE MM_DPM_ITEM SET
+		ITEM_CODE = #{itemCode,jdbcType=VARCHAR},
+		ITEM_NAME = #{itemName,jdbcType=VARCHAR},
+		ITEM_DESC = #{itemDesc,jdbcType=VARCHAR},
+		LAST_MODIFIED_USER = #{lastModifiedUser,jdbcType=VARCHAR},
+		LAST_MODIFIED_TIME=sysdate
+		WHERE
+		ID = #{id}
+	</update>
+	
+	<!-- 通过id获取该条数据明细 -->
+	<select id="get"   parameterType="java.lang.String" resultMap="DpmItemModel">
+		SELECT * FROM MM_DPM_ITEM 
+		WHERE ID=#{id}
+	</select>
+
+    <!-- 删除不良品项目信息 -->
+    <delete id="remove" parameterType="java.lang.String">
+		DELETE FROM MM_DPM_ITEM 
+		WHERE
+		ID = #{id}
+	</delete>
+	
+	<!-- 通过不良品项目代码查询数据是否存在 -->
+	<select id="getByCode" parameterType="java.lang.String" resultMap="DpmItemModel">
+	    SELECT * FROM MM_DPM_ITEM
+	    WHERE ITEM_CODE=#{itemCode}
+	    AND FACTORY_CODE = #{factoryCode}
+	</select>
+</mapper>

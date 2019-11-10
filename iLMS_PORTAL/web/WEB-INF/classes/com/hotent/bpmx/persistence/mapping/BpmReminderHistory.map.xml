@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hotent.bpmx.persistence.model.BpmReminderHistory">
+	<resultMap id="BpmReminderHistory" type="com.hotent.bpmx.persistence.model.BpmReminderHistory">
+		<id property="id" column="id_" jdbcType="VARCHAR"/>
+		<result property="instId" column="inst_id_" jdbcType="VARCHAR"/>
+		<result property="isntName" column="isnt_name_" jdbcType="VARCHAR"/>
+		<result property="nodeName" column="node_name_" jdbcType="VARCHAR"/>
+		<result property="nodeId" column="node_id_" jdbcType="VARCHAR"/>
+		<result property="executeDate" column="execute_date_" jdbcType="TIMESTAMP"/>
+		<result property="remindType" column="remind_type_" jdbcType="VARCHAR"/>
+		<result property="userId" column="user_id_" jdbcType="VARCHAR"/>
+		<result property="note" column="note_" jdbcType="VARCHAR"/>
+	</resultMap>
+	
+	<insert id="create" parameterType="com.hotent.bpmx.persistence.model.BpmReminderHistory">
+		INSERT INTO bpm_reminder_history
+		(id_,inst_id_,isnt_name_,node_name_,node_id_,execute_date_,remind_type_,user_id_,note_)
+		VALUES 
+		(#{id,jdbcType=VARCHAR}, #{instId,jdbcType=VARCHAR}, #{isntName,jdbcType=VARCHAR}, #{nodeName,jdbcType=VARCHAR}, #{nodeId,jdbcType=VARCHAR}, #{executeDate,jdbcType=TIMESTAMP}, #{remindType,jdbcType=VARCHAR}, #{userId,jdbcType=VARCHAR}, #{note,jdbcType=VARCHAR})
+	</insert>
+	
+	<select id="get"   parameterType="java.lang.String" resultMap="BpmReminderHistory">
+		SELECT * FROM bpm_reminder_history 
+		WHERE 
+		id_=#{id}
+	</select>
+	
+	<select id="query" parameterType="java.util.Map" resultMap="BpmReminderHistory">
+		SELECT * FROM bpm_reminder_history
+		<where>
+			<if test="whereSql!=null">
+				${whereSql}
+			</if>
+		</where>
+		<if test="orderBySql!=null">
+			ORDER BY ${orderBySql}
+		</if>
+		<if test="orderBySql==null">
+			ORDER BY id_ DESC
+		</if>
+	</select>
+	
+	<update id="update" parameterType="com.hotent.bpmx.persistence.model.BpmReminderHistory">
+		UPDATE bpm_reminder_history SET
+		inst_id_=#{instId,jdbcType=VARCHAR},
+		isnt_name_=#{isntName,jdbcType=VARCHAR},
+		node_name_=#{nodeName,jdbcType=VARCHAR},
+		node_id_=#{nodeId,jdbcType=VARCHAR},
+		execute_date_=#{executeDate,jdbcType=TIMESTAMP},
+		remind_type_=#{remindType,jdbcType=VARCHAR},
+		user_id_=#{userId,jdbcType=VARCHAR},
+		note_=#{note,jdbcType=VARCHAR}
+		WHERE
+		id_=#{id}
+	</update>
+	
+	<delete id="remove" parameterType="java.lang.String">
+		DELETE FROM bpm_reminder_history 
+		WHERE
+		id_=#{id}
+	</delete>
+	
+	
+</mapper>

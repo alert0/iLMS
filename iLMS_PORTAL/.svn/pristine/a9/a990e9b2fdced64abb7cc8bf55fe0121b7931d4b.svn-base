@@ -1,0 +1,9 @@
+var app = angular.module('app', [ 'formDirective', 'arrayToolService' ]);
+app.controller("ctrl", [ '$scope', 'baseService', 'ArrayToolService', function($scope, baseService, ArrayTool) {
+	$scope.ArrayTool = ArrayTool;
+
+	$scope.init = function() {
+		$scope.field = window.passConf;
+	};
+
+} ]);

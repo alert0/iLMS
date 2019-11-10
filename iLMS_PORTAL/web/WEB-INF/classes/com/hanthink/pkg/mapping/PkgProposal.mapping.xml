@@ -1,0 +1,1147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.hanthink.pkg.model.PkgProposalModel">
+
+        <!-- 分页查询 -->
+    <select id="queryPkgProposalForPage" parameterType="com.hanthink.pkg.model.PkgProposalModel" resultType="com.hanthink.pkg.model.PkgProposalModel">
+				SELECT A.ID               id,
+		               A.CAR_TYPE         carType,
+		               A.SUPPLIER_NO      supplierNo,
+		               E.SUPPLIER_NAME     supplierName,
+		               E.DETAIL_ADDR       area,
+		               A.PART_NO          partNo,
+		               G.PART_NAME_CN      partNameCn,
+		               <!-- A.PROJECT          project, -->
+		               PD.CODE_VALUE_NAME project,
+		               <!-- A.IS_COM_PACK		isComPack, -->
+		               DD.CODE_VALUE_NAME   isComPack,
+		               A.COM_PACK_REMARK       comPackRemark, 
+		               A.SIGN_PRO_FILE		signProFile,
+		               A.PACK_TYPE        packType,
+		               A.PROPOSAL_STATUS	proposalStatus,
+		               Z.CODE_VALUE_NAME    proposalStatusName,
+		               A.STATUS				stayNewStatus,
+		               X.CODE_VALUE_NAME   	stayNewStatusName,
+		               TO_CHAR(A.REPLY_LIMIT_DATE, 'YYYY-MM-DD')	replyLimitDate,
+		               TO_CHAR(A.CREATION_TIME, 'YYYY-MM-DD HH24:MI') createTimesStr,
+		               A.BOX_TYPE				boxType,	
+		               BOXD.CODE_VALUE_NAME		boxTypeName,	
+		               B.BOX_CODE         boxCode,
+		               B.PACK_LENGTH      packLength,
+		               B.PACK_WIDTH       packWidth,
+		               B.PACK_HEIGHT      packHeight,
+		               to_char(B.PACK_WEIGHT,'fm99999999999999999990.000')      packWeight,
+		               
+		               B.STANDARD_PACKAGE standardPackage,
+		               B.BOARD_LOCATION   boardLocation,
+		                B.GROUP_NO        groupNo, 
+		                B.MAX_PACKAGE_NUM maxPackageNum, 
+		                to_char(B.PART_WEIGHT,'fm99999999999999999990.000')       partWeight, 
+		                
+		                B.PART_TOTAL_WEIGHT partTotalWeight,
+		                to_char(B.TOTAL_WEIGHT,'fm99999999999999999990.000')     totalWeight, 
+		                B.PART_LENGTH       partLength, 
+		                B.PART_WIDTH        partWidth, 
+		                B.PART_HEIGHT       partHeight, 
+		                B.EMPTY_TROLLEY_LENGTH  emptyTrolleyLength, 
+		                B.EMPTY_TROLLEY_WIDTH   emptyTrolleyWidth, 
+		                B.EMPTY_TROLLEY_HEIGHT  emptyTrolleyHeight, 
+		                B.REAL_TROLLEY_LENGTH   realTrolleyLength, 
+		                B.REAL_TROLLEY_WIDTH    realTrolleyWidth, 
+		                B.REAL_TROLLEY_HEIGHT   realTrolleyHeight, 
+		                to_char(B.TROLLEY_WEIGHT,'fm99999999999999999990.000')        trolleyWeight, 
+		                B.IS_TROLLEY_CODE       isTrolleyCode, 
+		                B.IS_POSITIONER         isPositioner, 
+		                B.DUST_COVER            dustCover, 
+		                B.ONE_BY_PACKAGE        onePackage, 
+		                B.INT_MATE				intMate,
+		                B.WHEEL_DIAMETER        wheelDiameter, 
+		                B.WORD_DESC             wordDesc, 
+		                B.TRACTION_ROD_HEIGHT   tractionRodHeight, 
+		                B.IMPORTANT_POSTION_PIC importantPostionPic, 
+		                B.EMPTY_TRO_FRONT_PIC   emptyTroFrontPic, 
+		                B.EMPTY_TRO_SIDE_PIC    emptyTroSidePic, 
+		                B.REAL_TRO_PIC          realTroPic,  
+		                B.TRAY_LENGTH           trayLength, 
+		                B.TRAY_WIDTH            trayWidth, 
+		                B.TRAY_HEIGHT           trayHeight, 
+		                B.WORK_REQUIRE          workRequire, 
+		                B.SINGLE_PART_PIC       singlePartPic, 
+		                B.SINGLE_PART_PUT_PIC   singlePartPutPic, 
+		                B.PACK_OVER_LOOK_PIC    packOverLookPic, 
+		                B.PACK_SIDE_LOOK_PIC    packSideLookPic,  
+		                B.FACTORY_CODE          factoryCode,
+		                B.SUP_NAME				packDeptContact,
+		                B.MOBILE				packDeptTel,
+		                B.MAIL					packDeptMail,
+	                    A.CHECK_REMARK			checkRemark,
+		                CASE WHEN A.SIGN_PRO_FILE IS NULL OR A.SIGN_PRO_FILE = '' THEN '无'
+         					ELSE '有' END isFile
+		          FROM  MM_PKG_PROPOSAL A 
+		          LEFT JOIN MM_PKG_PROPOSAL_DETAIL  B  	ON A.ID = B.PROPOSAL_ID 
+		         <!--  LEFT JOIN MM_PUB_PART_SUPPLIER D  ON A.PART_NO = D.PART_NO -->
+		          LEFT JOIN MM_PUB_SUPPLIER E       ON A.SUPPLIER_NO = E.SUPPLIER_NO
+		          LEFT JOIN MM_PUB_PART G           ON A.PART_NO = G.PART_NO AND A.FACTORY_CODE = G.FACTORY_CODE
+		          LEFT JOIN MM_PUB_DATA_DICT Z      ON A.PROPOSAL_STATUS = Z.CODE_VALUE AND Z.CODE_TYPE = 'PKG_STATUS' AND Z.FACTORY_CODE = #{factoryCode}
+		          LEFT JOIN MM_PUB_DATA_DICT X      ON A.STATUS = X.CODE_VALUE AND X.CODE_TYPE = 'PKG_STAY_NEW' AND X.FACTORY_CODE = #{factoryCode}
+		          LEFT JOIN MM_PKG_BOX BOX 		ON BOX.BOX_CODE = B.BOX_CODE
+		          LEFT JOIN MM_PUB_DATA_DICT BOXD ON BOXD.CODE_TYPE = 'PKG_BOX_TYPE' AND BOXD.CODE_VALUE = A.BOX_TYPE AND A.FACTORY_CODE = BOXD.FACTORY_CODE
+		          LEFT JOIN MM_PUB_DATA_DICT DD ON DD.CODE_TYPE = 'PUB_TRUE_FALSE' AND A.IS_COM_PACK = DD.CODE_VALUE AND DD.FACTORY_CODE = #{factoryCode}
+		          LEFT JOIN MM_PUB_DATA_DICT PD ON PD.CODE_TYPE = 'PUB_WORKCENTER' AND A.PROJECT = PD.CODE_VALUE AND PD.FACTORY_CODE = #{factoryCode}
+		         WHERE 1 = 1 AND A.FACTORY_CODE = #{factoryCode} AND (A.IS_SHOW_CHANGE = 0 OR A.IS_SHOW_CHANGE = 2)
+			    <if test="createTimeStart !=null and createTimeStart !='' ">
+				<![CDATA[ AND A.CREATION_TIME >= TO_DATE(#{createTimeStart},'yyyy-MM-dd ') ]]>
+				</if>
+				<if test="createTimeEnd !=null and createTimeEnd !='' ">
+				<![CDATA[ AND A.CREATION_TIME <= TO_DATE(#{createTimeEnd},'yyyy-MM-dd ') + 1 ]]>
+				</if>
+			    <if test="carType != null and carType != ''">
+				AND	A.CAR_TYPE = #{carType}
+				</if>
+				<if test="supplierNo != null and supplierNo != ''">
+				AND	A.SUPPLIER_NO = #{supplierNo}
+				</if>
+				<if test="partNo != null and partNo != ''">
+				AND	A.PART_NO = #{partNo}
+				</if>
+				<if test="proposalStatus != null and proposalStatus != ''">
+				AND	A.PROPOSAL_STATUS = #{proposalStatus}
+				</if>
+				<if test="stayNewStatus != null and stayNewStatus != ''">
+				AND	A.STATUS = #{stayNewStatus}
+				</if>
+				<if test="submitStatus != null and submitStatus != ''">
+				AND	A.SUBMIT_STATUS = #{submitStatus}
+				</if>
+				<if test="project != null and project != ''">
+				AND	A.PROJECT = #{project}
+				</if>
+				
+				<if test="isFile != null and isFile != '' and isFile == 1  ">
+				AND A.SIGN_PRO_FILE IS NOT NULL
+				</if>
+				<if test="isFile != null and isFile != '' and isFile == 0  ">
+				AND A.SIGN_PRO_FILE IS NULL
+				</if>
+				ORDER BY A.ID DESC
+    </select>
+    
+    <!-- 查询待发起提案的零件信息 -->
+    <select id="queryApplyPartDataList" parameterType="java.util.Map" resultType="java.util.Map">
+    	SELECT A.*, D.CODE_VALUE_NAME STAY_NEW_STATUS ,B.SUPPLIER_NAME 
+		FROM MM_PKG_PART A
+		LEFT JOIN MM_PUB_SUPPLIER B ON A.SUPPLIER_NO = B.SUPPLIER_NO
+		LEFT JOIN MM_PUB_DATA_DICT D ON D.CODE_TYPE = 'PKG_STAY_NEW' AND D.CODE_VALUE = A.STATUS AND A.FACTORY_CODE = D.FACTORY_CODE
+		WHERE 1 = 1 AND A.FACTORY_CODE = #{factoryCode}
+		<if test="CAR_TYPE != null and CAR_TYPE != ''">
+			AND	A.CAR_TYPE = #{CAR_TYPE}
+		</if>
+		<if test="PART_NO != null and PART_NO != ''">
+			AND	A.PART_NO  LIKE CONCAT ( #{PART_NO}, '%')
+		</if>
+		<if test="SUPPLIER_NO != null and SUPPLIER_NO != ''">
+			AND	A.SUPPLIER_NO = #{SUPPLIER_NO}
+		</if>
+		<if test="STATUS != null and STATUS != ''">
+			AND	A.STATUS = #{STATUS}
+		</if>
+    </select>
+    
+    <!-- 发起 添加提案 -->
+    <insert id="addProposal" parameterType="java.util.List">
+    	INSERT INTO MM_PKG_PROPOSAL (ID, FACTORY_CODE,
+		  CAR_TYPE, PART_NO, SUPPLIER_NO, PROPOSAL_STATUS, REPLY_LIMIT_DATE,
+		  STATUS, CREATION_USER, CREATION_TIME, PART_RESP_USER, PROJECT) 
+
+			<foreach collection="list" item="item" index="index" separator=" UNION ALL ">
+			  SELECT 
+			  	#{item.ID, jdbcType=VARCHAR} ID,
+			  	#{item.factoryCode, jdbcType=VARCHAR} FACTORY_CODE,
+			    #{item.CAR_TYPE,jdbcType=VARCHAR} CAR_TYPE, 
+			    #{item.PART_NO,jdbcType=VARCHAR} PART_NO, 
+			    #{item.SUPPLIER_NO,jdbcType=VARCHAR} SUPPLIER_NO, 
+			    #{item.PROPOSAL_STATUS,jdbcType=VARCHAR} PROPOSAL_STATUS, 
+			    TO_DATE(#{item.REPLY_LIMIT_DATE,jdbcType=VARCHAR},'YYYY-MM-DD') REPLY_LIMIT_DATE,
+			    #{item.STAY_NEW_STATUS,jdbcType=VARCHAR} STAY_NEW_STATUS, 
+			    #{item.CREATION_USER,jdbcType=VARCHAR} CREATION_USER, 
+			    SYSDATE CREATION_TIME, 
+			    #{item.PART_RESP_USER,jdbcType=VARCHAR} PART_RESP_USER, 
+			    #{item.PROJECT,jdbcType=VARCHAR} PROJECT
+			  FROM DUAL
+	    	</foreach>
+
+    </insert>
+    
+    <!-- 添加提案明细 -->
+    <insert id="addProposalDetail" parameterType="java.util.List">
+    	insert into MM_PKG_PROPOSAL_DETAIL (ID, PROPOSAL_ID, 
+		  GROUP_NO, MAX_PACKAGE_NUM, STANDARD_PACKAGE, PART_WEIGHT, PART_TOTAL_WEIGHT, 
+		  PART_LENGTH, PART_WIDTH, PART_HEIGHT, EMPTY_TROLLEY_LENGTH, EMPTY_TROLLEY_WIDTH, 
+		  EMPTY_TROLLEY_HEIGHT, REAL_TROLLEY_LENGTH, REAL_TROLLEY_WIDTH, REAL_TROLLEY_HEIGHT, TROLLEY_WEIGHT, 
+		  IS_TROLLEY_CODE, IS_POSITIONER, DUST_COVER, ONE_BY_PACKAGE, BOARD_LOCATION, 
+		  WHEEL_DIAMETER, WORD_DESC, TRACTION_ROD_HEIGHT, IMPORTANT_POSTION_PIC, EMPTY_TRO_FRONT_PIC, 
+		  EMPTY_TRO_SIDE_PIC, REAL_TRO_PIC, BOX_CODE, PACK_LENGTH, 
+		  PACK_WIDTH, PACK_HEIGHT, TRAY_LENGTH, TRAY_WIDTH, TRAY_HEIGHT, 
+		  WORK_REQUIRE, SINGLE_PART_PIC, SINGLE_PART_PUT_PIC, PACK_OVER_LOOK_PIC, PACK_SIDE_LOOK_PIC, 
+		  PACK_WEIGHT, CREATION_USER, CREATION_TIME, LAST_MODIFIED_USER, LAST_MODIFIED_TIME, 
+		  FACTORY_CODE,IS_CHANGE)
+		<foreach collection="list" item="item" index="index" separator=" UNION ALL ">
+		  <if test="item.STAY_NEW_STATUS = item.STAY_NEW_STATUS_NEW ">
+		  	select #{item.ID, jdbcType=VARCHAR} ID, #{item.ID, jdbcType=VARCHAR} PROPOSAL_ID, 
+			  null, null, null, null, null, 
+			  null, null, null, null, null, 
+			  null, null, null, null, null, 
+			  null, null, null, null, 
+			  null, null, null, null, null, 
+			  null, null, null, null, null,  
+			  null, null, null, null, null,  
+			  null, null, null, null, null, 
+			  null, null, SYSDATE, null, null, 
+			  null,'0'
+			from dual
+		  </if>
+		  <if test="item.STAY_NEW_STATUS != item.STAY_NEW_STATUS_NEW ">
+			select #{item.ID, jdbcType=VARCHAR} ID, #{item.ID, jdbcType=VARCHAR} PROPOSAL_ID,
+			  GROUP_NO, MAX_PACKAGE_NUM, STANDARD_PACKAGE, PART_WEIGHT, PART_TOTAL_WEIGHT, 
+			  PART_LENGTH, PART_WIDTH, PART_HEIGHT, EMPTY_TROLLEY_LENGTH, EMPTY_TROLLEY_WIDTH, 
+			  EMPTY_TROLLEY_HEIGHT, REAL_TROLLEY_LENGTH, REAL_TROLLEY_WIDTH, REAL_TROLLEY_HEIGHT, TROLLEY_WEIGHT, 
+			  IS_TROLLEY_CODE, IS_POSITIONER, DUST_COVER, ONE_BY_PACKAGE, BOARD_LOCATION, 
+			  WHEEL_DIAMETER, WORD_DESC, TRACTION_ROD_HEIGHT, IMPORTANT_POSTION_PIC, EMPTY_TRO_FRONT_PIC, 
+			  EMPTY_TRO_SIDE_PIC, REAL_TRO_PIC,BOX_CODE, PACK_LENGTH, 
+			  PACK_WIDTH, PACK_HEIGHT, TRAY_LENGTH, TRAY_WIDTH, TRAY_HEIGHT, 
+			  WORK_REQUIRE, SINGLE_PART_PIC, SINGLE_PART_PUT_PIC, PACK_OVER_LOOK_PIC, PACK_SIDE_LOOK_PIC, 
+			  PACK_WEIGHT, CREATION_USER, CREATION_TIME, LAST_MODIFIED_USER, LAST_MODIFIED_TIME, 
+			  FACTORY_CODE,'0'
+			from (
+			  select '1' tmpcol from dual
+			)full join(
+			  select * from MM_PKG_PROPOSAL_DETAIL
+			  where ID = (
+			    select max(d.id) 
+			    from MM_PKG_PROPOSAL_DETAIL d 
+			    left join MM_PKG_PROPOSAL a on a.id = d.proposal_id
+			    where a.part_no = #{item.PART_NO,jdbcType=VARCHAR} 
+			  )
+			) on 1 =1
+		  </if>
+    	</foreach>
+    </insert>
+    
+    <!-- 供应商提交包装提案 更新主信息 -->
+    <update id="updateSupSubmitPkgProposal" parameterType="java.util.List">
+    	<foreach collection="list" item="item" index="index" open="begin" close=";end;" separator=";">
+            UPDATE MM_PKG_PROPOSAL SET
+	            PROPOSAL_STATUS		= #{item.proposalStatus,jdbcType=VARCHAR},
+	            PACK_TYPE			= #{item.packType,jdbcType=VARCHAR},
+	            BOX_TYPE			= #{item.boxType,jdbcType=VARCHAR},
+	            REPLY_LIMIT_DATE	= TO_DATE(#{item.replyLimitDate,jdbcType=VARCHAR},'YYYY-MM-DD'),
+	            IS_COM_PACK			= #{item.isComPack,jdbcType=VARCHAR},
+	            COM_PACK_REMARK		= #{item.comPackRemark,jdbcType=VARCHAR},
+	            STATUS				= #{item.stayNewStatus,jdbcType=VARCHAR},
+	            LAST_MODIFIED_TIME	= SYSDATE
+            WHERE ID = #{item.id} AND SUPPLIER_NO = #{item.supplierNo,jdbcType=VARCHAR}
+        </foreach>
+    </update>
+    
+    <!-- 供应商提交包装提案更新明细信息  -->
+    <update id="updateSupSubmitPkgProposalDetail" parameterType="java.util.List">
+    	<foreach collection="list" item="item" index="index" open="begin" close=";end;" separator=";">
+            UPDATE MM_PKG_PROPOSAL_DETAIL SET
+	            GROUP_NO				= #{item.groupNo,jdbcType=VARCHAR},
+	            MAX_PACKAGE_NUM			= #{item.maxPackageNum,jdbcType=VARCHAR},
+	            STANDARD_PACKAGE		= #{item.standardPackage,jdbcType=VARCHAR},
+	            PART_WEIGHT				= #{item.partWeight,jdbcType=VARCHAR},
+	            PART_TOTAL_WEIGHT		= #{item.partTotalWeight,jdbcType=VARCHAR},
+	            PART_LENGTH				= #{item.partLength,jdbcType=VARCHAR},
+	            PART_WIDTH				= #{item.partWidth,jdbcType=VARCHAR},
+	            PART_HEIGHT				= #{item.partHeight,jdbcType=VARCHAR},
+	            EMPTY_TROLLEY_LENGTH	= #{item.emptyTrolleyLength,jdbcType=VARCHAR},
+	            EMPTY_TROLLEY_WIDTH		= #{item.emptyTrolleyWidth,jdbcType=VARCHAR},
+	            EMPTY_TROLLEY_HEIGHT	= #{item.emptyTrolleyHeight,jdbcType=VARCHAR},
+	            REAL_TROLLEY_LENGTH		= #{item.realTrolleyLength,jdbcType=VARCHAR},
+	            REAL_TROLLEY_WIDTH		= #{item.realTrolleyWidth,jdbcType=VARCHAR},
+	            REAL_TROLLEY_HEIGHT		= #{item.realTrolleyHeight,jdbcType=VARCHAR},
+	            TROLLEY_WEIGHT			= #{item.trolleyWeight,jdbcType=VARCHAR},
+	            IS_TROLLEY_CODE			= #{item.isTrolleyCode,jdbcType=VARCHAR},
+	            IS_POSITIONER			= #{item.isPositioner,jdbcType=VARCHAR},
+	            DUST_COVER				= #{item.dustCover,jdbcType=VARCHAR},
+	            ONE_BY_PACKAGE			= #{item.onePackage,jdbcType=VARCHAR},
+	            BOARD_LOCATION			= #{item.boardLocation,jdbcType=VARCHAR},
+	            INT_MATE			    = #{item.intMate,jdbcType=VARCHAR},
+	            WHEEL_DIAMETER			= #{item.wheelDiameter,jdbcType=VARCHAR},
+	            WORD_DESC				= #{item.wordDesc,jdbcType=VARCHAR},
+	            TRACTION_ROD_HEIGHT		= #{item.tractionRodHeight,jdbcType=VARCHAR},
+	            IMPORTANT_POSTION_PIC	= #{item.importantPostionPic,jdbcType=VARCHAR},
+	            EMPTY_TRO_FRONT_PIC		= #{item.emptyTroFrontPic,jdbcType=VARCHAR},
+	            EMPTY_TRO_SIDE_PIC		= #{item.emptyTroSidePic,jdbcType=VARCHAR},
+	            REAL_TRO_PIC			= #{item.realTroPic,jdbcType=VARCHAR},
+	            BOX_CODE				= #{item.boxCode,jdbcType=VARCHAR},
+	            PACK_LENGTH				= #{item.packLength,jdbcType=VARCHAR},
+	            PACK_WIDTH				= #{item.packWidth,jdbcType=VARCHAR},
+	            PACK_HEIGHT				= #{item.packHeight,jdbcType=VARCHAR},
+	            PACK_WEIGHT				= #{item.packWeight,jdbcType=VARCHAR},
+	            TRAY_LENGTH				= #{item.trayLength,jdbcType=VARCHAR},
+	            TRAY_WIDTH				= #{item.trayWidth,jdbcType=VARCHAR},
+	            TRAY_HEIGHT				= #{item.trayHeight,jdbcType=VARCHAR},
+	            SINGLE_PART_PIC			= #{item.singlePartPic,jdbcType=VARCHAR},
+	            SINGLE_PART_PUT_PIC		= #{item.singlePartPutPic,jdbcType=VARCHAR},
+	            PACK_OVER_LOOK_PIC		= #{item.packOverLookPic,jdbcType=VARCHAR},
+	            PACK_SIDE_LOOK_PIC		= #{item.packSideLookPic,jdbcType=VARCHAR},
+	            TOTAL_WEIGHT			= #{item.totalWeight,jdbcType=VARCHAR},
+	            SUP_NAME				= #{item.packDeptContact,jdbcType=VARCHAR},
+	            MOBILE					= #{item.packDeptTel},
+		        MAIL					= #{item.packDeptMail},
+	            LAST_MODIFIED_TIME	= SYSDATE,
+	            IS_CHANGE				= '0'
+            WHERE ID = #{item.id}
+        </foreach>
+    </update>
+    
+    <!-- 获取明细 -->
+    <select id="get" parameterType="java.lang.String" resultType="com.hanthink.pkg.model.PkgProposalModel">
+			SELECT A.ID               id,
+		               A.CAR_TYPE         carType,
+		               A.SUPPLIER_NO      supplierNo,
+		               E.SUPPLIER_NAME     supplierName,
+		               E.DETAIL_ADDR       area,
+		               A.PART_NO          partNo,
+		               G.PART_NAME_CN      partNameCn,
+		               WD.CODE_VALUE_NAME project,
+		               <!-- A.PROJECT          project, -->
+		               A.PACK_TYPE        packType,
+		               A.IS_COM_PACK		isComPack,
+		               A.SIGN_PRO_FILE		signProFile,
+		               A.PROPOSAL_STATUS	proposalStatus,
+		               Z.CODE_VALUE_NAME    proposalStatusName,
+		               A.STATUS				stayNewStatus,
+		               X.CODE_VALUE_NAME   	stayNewStatusName,
+		               TO_CHAR(A.REPLY_LIMIT_DATE, 'YYYY-MM-DD')	replyLimitDate,
+		               TO_CHAR(A.CREATION_TIME, 'YYYY-MM-DD HH24:MI') createTimesStr,
+		               A.BOX_TYPE				boxType,	
+		               BOXD.CODE_VALUE_NAME		boxTypeName,	
+		               B.BOX_CODE         boxCode,
+		               B.PACK_LENGTH      packLength,
+		               B.PACK_WIDTH       packWidth,
+		               B.PACK_HEIGHT      packHeight,
+		               B.PACK_WEIGHT      packWeight,
+		               B.STANDARD_PACKAGE standardPackage,
+		               B.BOARD_LOCATION   boardLocation,
+		                B.GROUP_NO        groupNo, 
+		                B.MAX_PACKAGE_NUM maxPackageNum, 
+		                B.PART_WEIGHT       partWeight, 
+		                B.PART_TOTAL_WEIGHT partTotalWeight, 
+		                B.PART_LENGTH       partLength, 
+		                B.PART_WIDTH        partWidth, 
+		                B.PART_HEIGHT       partHeight, 
+		                B.EMPTY_TROLLEY_LENGTH  emptyTrolleyLength, 
+		                B.EMPTY_TROLLEY_WIDTH   emptyTrolleyWidth, 
+		                B.EMPTY_TROLLEY_HEIGHT  emptyTrolleyHeight, 
+		                B.REAL_TROLLEY_LENGTH   realTrolleyLength, 
+		                B.REAL_TROLLEY_WIDTH    realTrolleyWidth, 
+		                B.REAL_TROLLEY_HEIGHT   realTrolleyHeight, 
+		                B.TROLLEY_WEIGHT        trolleyWeight, 
+		                B.IS_TROLLEY_CODE       isTrolleyCode, 
+		                B.IS_POSITIONER         isPositioner, 
+		                B.DUST_COVER            dustCover, 
+		                B.ONE_BY_PACKAGE        onePackage, 
+		                B.WHEEL_DIAMETER        wheelDiameter, 
+		                B.WORD_DESC             wordDesc, 
+		                B.TRACTION_ROD_HEIGHT   tractionRodHeight, 
+		                B.IMPORTANT_POSTION_PIC importantPostionPic, 
+		                B.EMPTY_TRO_FRONT_PIC   emptyTroFrontPic, 
+		                B.EMPTY_TRO_SIDE_PIC    emptyTroSidePic, 
+		                B.REAL_TRO_PIC          realTroPic, 
+		                B.TRAY_LENGTH           trayLength, 
+		                B.TRAY_WIDTH            trayWidth, 
+		                B.TRAY_HEIGHT           trayHeight, 
+		                B.WORK_REQUIRE          workRequire, 
+		                B.SINGLE_PART_PIC       singlePartPic, 
+		                B.SINGLE_PART_PUT_PIC   singlePartPutPic, 
+		                B.PACK_OVER_LOOK_PIC    packOverLookPic, 
+		                B.PACK_SIDE_LOOK_PIC    packSideLookPic,  
+		                B.FACTORY_CODE          factoryCode,
+		                B.SUP_NAME				packDeptContact,
+		                B.MOBILE				packDeptTel,
+		                B.MAIL					packDeptMail,
+		                B.TOTAL_WEIGHT 		    totalWeight,
+		                B.INT_MATE              intMate
+		          FROM  MM_PKG_PROPOSAL A 
+		          LEFT JOIN MM_PKG_PROPOSAL_DETAIL B  ON A.ID = B.PROPOSAL_ID 
+		          LEFT JOIN MM_PUB_PART_SUPPLIER D    ON A.PART_NO = D.PART_NO AND A.FACTORY_CODE = D.FACTORY_CODE
+		          LEFT JOIN MM_PUB_SUPPLIER E       ON D.SUPPLIER_NO = E.SUPPLIER_NO
+		          LEFT JOIN MM_PUB_PART G           ON A.PART_NO = G.PART_NO AND A.FACTORY_CODE = G.FACTORY_CODE
+		          LEFT JOIN MM_PUB_DATA_DICT Z      ON A.PROPOSAL_STATUS = Z.CODE_VALUE AND Z.CODE_TYPE = 'PKG_STATUS' Z.CODE_TYPE = 'PKG_STATUS' AND A.FACTORY_CODE = Z.FACTORY_CODE
+		          LEFT JOIN MM_PUB_DATA_DICT X      ON A.STATUS = X.CODE_VALUE AND X.CODE_TYPE = 'PKG_STAY_NEW' AND A.FACTORY_CODE = X.FACTORY_CODE
+		          LEFT JOIN MM_PKG_BOX BOX 		ON BOX.BOX_CODE = B.BOX_CODE
+		          LEFT JOIN MM_PUB_DATA_DICT BOXD ON BOXD.CODE_TYPE = 'INV_BOX_TYPE' AND BOXD.CODE_VALUE = A.BOX_TYPE AND A.FACTORY_CODE = BOXD.FACTORY_CODE
+		          LEFT JOIN MM_PUB_DATA_DICT WD ON A.PROJECT = WD.CODE_VALUE AND WD.CODE_TYPE = 'PUB_WORKCENTER' AND A.FACTORY_CODE = WD.FACTORY_CODE
+		         WHERE A.ID=#{value}
+    </select>
+    
+    <!--  查询同组的组合提案信息 -->
+    <select id="queryCombPackProposal" parameterType="com.hanthink.pkg.model.PkgProposalModel" resultType="com.hanthink.pkg.model.PkgProposalModel">
+			SELECT A.ID               id,
+		               A.CAR_TYPE         carType,
+		               A.SUPPLIER_NO      supplierNo,
+		               E.SUPPLIER_NAME     supplierName,
+		               E.DETAIL_ADDR       area,
+		               A.PART_NO          partNo,
+		               G.PART_NAME_CN      partNameCn,
+		               WD.CODE_VALUE_NAME  project,
+		               <!-- A.PROJECT          project, -->
+		               A.IS_COM_PACK		isComPack,
+		               A.SIGN_PRO_FILE		signProFile,
+		               A.PACK_TYPE        packType,
+		               A.PROPOSAL_STATUS	proposalStatus,
+		               Z.CODE_VALUE_NAME    proposalStatusName,
+		               A.STATUS				stayNewStatus,
+		               X.CODE_VALUE_NAME   	stayNewStatusName,
+		               TO_CHAR(A.REPLY_LIMIT_DATE, 'YYYY-MM-DD')	replyLimitDate,
+		               TO_CHAR(A.CREATION_TIME, 'YYYY-MM-DD HH24:MI') createTimesStr,
+		               A.BOX_TYPE				boxType,	
+		               BOXD.CODE_VALUE_NAME		boxTypeName,	
+		               B.BOX_CODE         boxCode,
+		               B.PACK_LENGTH      packLength,
+		               B.PACK_WIDTH       packWidth,
+		               B.PACK_HEIGHT      packHeight,
+		               B.PACK_WEIGHT      packWeight,
+		               B.STANDARD_PACKAGE standardPackage,
+		               B.BOARD_LOCATION   boardLocation,
+		                B.GROUP_NO        groupNo, 
+		                B.MAX_PACKAGE_NUM maxPackageNum, 
+		                B.PART_WEIGHT       partWeight, 
+		                B.PART_TOTAL_WEIGHT partTotalWeight, 
+		                B.PART_LENGTH       partLength, 
+		                B.PART_WIDTH        partWidth, 
+		                B.PART_HEIGHT       partHeight, 
+		                B.EMPTY_TROLLEY_LENGTH  emptyTrolleyLength, 
+		                B.EMPTY_TROLLEY_WIDTH   emptyTrolleyWidth, 
+		                B.EMPTY_TROLLEY_HEIGHT  emptyTrolleyHeight, 
+		                B.REAL_TROLLEY_LENGTH   realTrolleyLength, 
+		                B.REAL_TROLLEY_WIDTH    realTrolleyWidth, 
+		                B.REAL_TROLLEY_HEIGHT   realTrolleyHeight, 
+		                B.TROLLEY_WEIGHT        trolleyWeight, 
+		                B.IS_TROLLEY_CODE       isTrolleyCode, 
+		                B.IS_POSITIONER         isPositioner, 
+		                B.DUST_COVER            dustCover, 
+		                B.ONE_BY_PACKAGE        onePackage, 
+		                B.WHEEL_DIAMETER        wheelDiameter, 
+		                B.WORD_DESC             wordDesc, 
+		                B.TRACTION_ROD_HEIGHT   tractionRodHeight, 
+		                B.IMPORTANT_POSTION_PIC importantPostionPic, 
+		                B.EMPTY_TRO_FRONT_PIC   emptyTroFrontPic, 
+		                B.EMPTY_TRO_SIDE_PIC    emptyTroSidePic, 
+		                B.REAL_TRO_PIC          realTroPic, 
+		                B.TRAY_LENGTH           trayLength, 
+		                B.TRAY_WIDTH            trayWidth, 
+		                B.TRAY_HEIGHT           trayHeight, 
+		                B.WORK_REQUIRE          workRequire, 
+		                B.SINGLE_PART_PIC       singlePartPic, 
+		                B.SINGLE_PART_PUT_PIC   singlePartPutPic, 
+		                B.PACK_OVER_LOOK_PIC    packOverLookPic, 
+		                B.PACK_SIDE_LOOK_PIC    packSideLookPic,  
+		                B.FACTORY_CODE          factoryCode,
+		                B.SUP_NAME				packDeptContact,
+		                B.MOBILE				packDeptTel,
+		                B.MAIL					packDeptMail,
+		                B.TOTAL_WEIGHT 		    totalWeight
+		          FROM  MM_PKG_PROPOSAL A 
+		          LEFT JOIN MM_PKG_PROPOSAL_DETAIL B  ON A.ID = B.PROPOSAL_ID 
+		          LEFT JOIN MM_PUB_PART_SUPPLIER D    ON A.PART_NO = D.PART_NO AND A.FACTORY_CODE = D.FACTORY_CODE
+		          LEFT JOIN MM_PUB_SUPPLIER E       ON D.SUPPLIER_NO = E.SUPPLIER_NO
+		          LEFT JOIN MM_PUB_PART G           ON A.PART_NO = G.PART_NO AND A.FACTORY_CODE = G.FACTORY_CODE
+		          LEFT JOIN MM_PUB_DATA_DICT Z      ON A.PROPOSAL_STATUS = Z.CODE_VALUE AND Z.CODE_TYPE = 'PKG_STATUS' AND A.FACTORY_CODE = Z.FACTORY_CODE
+		          LEFT JOIN MM_PUB_DATA_DICT X      ON A.STATUS = X.CODE_VALUE AND X.CODE_TYPE = 'PKG_STAY_NEW' AND A.FACTORY_CODE = X.FACTORY_CODE
+		          LEFT JOIN MM_PKG_BOX BOX 		ON BOX.BOX_CODE = B.BOX_CODE
+		          LEFT JOIN MM_PUB_DATA_DICT BOXD ON BOXD.CODE_TYPE = 'INV_BOX_TYPE' AND BOXD.CODE_VALUE = A.BOX_TYPE AND A.FACTORY_CODE = BOXD.FACTORY_CODE
+		          LEFT JOIN MM_PUB_DATA_DICT WD ON A.PROJECT = WD.CODE_VALUE AND WD.CODE_TYPE = 'PUB_WORKCENTER' AND A.FACTORY_CODE = WD.FACTORY_CODE
+		         WHERE B.GROUP_NO = #{groupNo}
+    </select>
+    
+    <!-- 签字提案文件上传，保存签字提案文件ID -->
+    <update id="updatePkgProposalSignProFileId" parameterType="com.hanthink.pkg.model.PkgProposalModel">
+    	UPDATE MM_PKG_PROPOSAL SET 
+    	  SIGN_PRO_FILE	= #{signProFile,jdbcType=VARCHAR}, LAST_MODIFIED_TIME = SYSDATE 	
+    	WHERE ID = #{id}
+    </update>
+    
+    <!-- 更新包装提案状态 -->
+    <update id="updateProposalStatus" parameterType="com.hanthink.pkg.model.PkgProposalModel">
+    	UPDATE MM_PKG_PROPOSAL SET 
+    	  <if test=" null != checkRemark and '' != checkRemark">
+    	  CHECK_REMARK = #{checkRemark,jdbcType=VARCHAR},
+    	  </if>
+    	  PROPOSAL_STATUS = #{proposalStatus,jdbcType=VARCHAR}, LAST_MODIFIED_TIME = SYSDATE	
+    	WHERE ID = #{id}
+    </update>
+    
+    <!-- 根据零件号查询相关零件的包装提案信息 -->
+    <select id="queryProposalDataByPartNo" parameterType="java.util.Map" resultType="com.hanthink.pkg.model.PkgProposalModel">
+    	SELECT A.ID               id,
+		               A.CAR_TYPE         carType,
+		               A.SUPPLIER_NO      supplierNo,
+		               E.SUPPLIER_NAME     supplierName,
+		               E.DETAIL_ADDR       area,
+		               A.PART_NO          partNo,
+		               G.PART_NAME_CN      partNameCn,
+		               A.PROJECT          project,
+		               A.PACK_TYPE        packType,
+		               A.IS_COM_PACK		isComPack,
+		               A.SIGN_PRO_FILE		signProFile,
+		               A.PROPOSAL_STATUS	proposalStatus,
+		               TO_CHAR(A.EFF_START, 'YYYY-MM-DD') 		effStart,
+		               TO_CHAR(A.EFF_END, 'YYYY-MM-DD') 		effEnd,
+		               Z.CODE_VALUE_NAME    proposalStatusName,
+		               A.STATUS				stayNewStatus,
+		               X.CODE_VALUE_NAME   	stayNewStatusName,
+		               TO_CHAR(A.REPLY_LIMIT_DATE, 'YYYY-MM-DD')	replyLimitDate,
+		               TO_CHAR(A.CREATION_TIME, 'YYYY-MM-DD HH24:MI') createTimesStr,
+		               A.BOX_TYPE				boxType,	
+		               BOXD.CODE_VALUE_NAME		boxTypeName,	
+		               B.BOX_CODE         boxCode,
+		               B.PACK_LENGTH      packLength,
+		               B.PACK_WIDTH       packWidth,
+		               B.PACK_HEIGHT      packHeight,
+		               B.PACK_WEIGHT      packWeight,
+		               B.STANDARD_PACKAGE standardPackage,
+		               B.BOARD_LOCATION   boardLocation,
+		                B.GROUP_NO        groupNo, 
+		                B.MAX_PACKAGE_NUM maxPackageNum, 
+		                B.PART_WEIGHT       partWeight, 
+		                B.PART_TOTAL_WEIGHT partTotalWeight, 
+		                B.PART_LENGTH       partLength, 
+		                B.PART_WIDTH        partWidth, 
+		                B.PART_HEIGHT       partHeight, 
+		                B.EMPTY_TROLLEY_LENGTH  emptyTrolleyLength, 
+		                B.EMPTY_TROLLEY_WIDTH   emptyTrolleyWidth, 
+		                B.EMPTY_TROLLEY_HEIGHT  emptyTrolleyHeight, 
+		                B.REAL_TROLLEY_LENGTH   realTrolleyLength, 
+		                B.REAL_TROLLEY_WIDTH    realTrolleyWidth, 
+		                B.REAL_TROLLEY_HEIGHT   realTrolleyHeight, 
+		                B.TROLLEY_WEIGHT        trolleyWeight, 
+		                B.IS_TROLLEY_CODE       isTrolleyCode, 
+		                B.IS_POSITIONER         isPositioner, 
+		                B.DUST_COVER            dustCover, 
+		                B.ONE_BY_PACKAGE        onePackage, 
+		                B.WHEEL_DIAMETER        wheelDiameter, 
+		                B.WORD_DESC             wordDesc, 
+		                B.TRACTION_ROD_HEIGHT   tractionRodHeight, 
+		                B.IMPORTANT_POSTION_PIC importantPostionPic, 
+		                B.EMPTY_TRO_FRONT_PIC   emptyTroFrontPic, 
+		                B.EMPTY_TRO_SIDE_PIC    emptyTroSidePic, 
+		                B.REAL_TRO_PIC          realTroPic, 
+		                B.TRAY_LENGTH           trayLength, 
+		                B.TRAY_WIDTH            trayWidth, 
+		                B.TRAY_HEIGHT           trayHeight, 
+		                B.WORK_REQUIRE          workRequire, 
+		                B.SINGLE_PART_PIC       singlePartPic, 
+		                B.SINGLE_PART_PUT_PIC   singlePartPutPic, 
+		                B.PACK_OVER_LOOK_PIC    packOverLookPic, 
+		                B.PACK_SIDE_LOOK_PIC    packSideLookPic,  
+		                B.FACTORY_CODE          factoryCode
+		          FROM  MM_PKG_PROPOSAL A 
+		          LEFT JOIN MM_PKG_PROPOSAL_DETAIL B  ON A.ID = B.PROPOSAL_ID 
+		          LEFT JOIN MM_PUB_PART_SUPPLIER D    ON A.PART_NO = D.PART_NO AND A.FACTORY_CODE = D.FACTORY_CODE
+		          LEFT JOIN MM_PUB_SUPPLIER E       ON D.SUPPLIER_NO = E.SUPPLIER_NO
+		          LEFT JOIN MM_PUB_PART G           ON A.PART_NO = G.PART_NO AND A.FACTORY_CODE = G.FACTORY_CODE
+		          LEFT JOIN MM_PUB_DATA_DICT Z      ON A.PROPOSAL_STATUS = Z.CODE_VALUE AND Z.CODE_TYPE = 'PKG_STATUS' AND A.FACTORY_CODE = Z.FACTORY_CODE
+		          LEFT JOIN MM_PUB_DATA_DICT X      ON A.STATUS = X.CODE_VALUE AND X.CODE_TYPE = 'PKG_STAY_NEW' AND A.FACTORY_CODE = X.FACTORY_CODE
+		          LEFT JOIN MM_PKG_BOX BOX 		ON BOX.BOX_CODE = B.BOX_CODE
+		          LEFT JOIN MM_PUB_DATA_DICT BOXD ON BOXD.CODE_TYPE = 'INV_BOX_TYPE' AND BOXD.CODE_VALUE = A.BOX_TYPE AND A.FACTORY_CODE = BOXD.FACTORY_CODE
+		         WHERE A.PART_NO = #{PART_NO,jdbcType=VARCHAR}
+		         <if test="PROPOSAL_STATUS != null and '' != PROPOSAL_STATUS ">
+		         	AND A.PROPOSAL_STATUS = #{PROPOSAL_STATUS,jdbcType=VARCHAR}
+		         </if>
+		         ORDER BY A.EFF_START, A.ID
+    </select>
+    
+    <!-- 更新包装提案生失效日期 -->
+    <update id="updateProposalEffDate" parameterType="java.util.Map">
+    	UPDATE MM_PKG_PROPOSAL SET 
+    	  EFF_START = TO_DATE(#{EFF_START,jdbcType=VARCHAR},'YYYY-MM-DD'), 
+    	  EFF_END = TO_DATE(#{EFF_END,jdbcType=VARCHAR},'YYYY-MM-DD'),
+    	  LAST_MODIFIED_TIME = SYSDATE	
+    	WHERE ID = #{ID,jdbcType=VARCHAR}
+    </update>
+    
+    <!-- ************************************************ -->
+    
+    <!-- 包装提案界面获取箱code下拉框 -->
+    <select id="getUnloadBoxCode" parameterType="java.util.Map" resultType="com.hanthink.base.model.DictVO">
+    		SELECT BOX_CODE valueKey,BOX_CODE valueName FROM MM_PKG_BOX ORDER BY BOX_CODE ASC
+    </select>
+    
+    <!-- 点击包装提案界面保存，数据写入提案表中MM_PKG_PROPOSAL -->
+    <update id="updateProposal" parameterType="com.hanthink.pkg.model.PkgProposalModel" >
+	    UPDATE MM_PKG_PROPOSAL SET
+		   PROPOSAL_STATUS=#{proposalStatus,jdbcType=VARCHAR}
+        WHERE ID = #{id}
+    </update>
+    
+    <!-- 点击包装提案界面保存，数据写入包装明细表中MM_PKG_PROPOSAL_DETAIL -->
+    <insert id="insertNotTrolley"  parameterType="com.hanthink.pkg.model.PkgProposalModel">
+		INSERT INTO MM_PKG_PROPOSAL_DETAIL
+			  (ID,
+			   PROPOSAL_ID,
+			   BOX_CODE,
+			   PACK_LENGTH,
+			   PACK_WIDTH,
+			   PACK_HEIGHT,
+			   TRAY_LENGTH,
+			   TRAY_WIDTH,
+			   TRAY_HEIGHT,
+			   WORK_REQUIRE,
+			   WORD_DESC,
+			   PART_WEIGHT,
+			   PACK_WEIGHT,
+			   STANDARD_PACKAGE,
+			   CREATION_USER,
+			   CREATION_TIME)
+	      VALUES(SEQ_MM_PKG_PROPOSAL_DETAIL.NEXTVAL,
+	           #{proposalId,jdbcType=VARCHAR},
+	           #{boxCode,jdbcType=VARCHAR},
+	           #{packLength,jdbcType=VARCHAR},
+	           #{packWidth,jdbcType=VARCHAR},
+	           #{packHeight,jdbcType=VARCHAR},
+	           #{trayLength,jdbcType=VARCHAR},
+	           #{trayWidth,jdbcType=VARCHAR},
+	           #{trayHeight,jdbcType=VARCHAR},
+	           #{workRequire,jdbcType=VARCHAR},
+	           #{wordDesc,jdbcType=VARCHAR},
+	           #{partWeight,jdbcType=VARCHAR},
+	           #{packWeight,jdbcType=VARCHAR},
+	           #{standardPackage,jdbcType=VARCHAR},
+	           #{creationUser,jdbcType=VARCHAR},
+	           SYSDATE
+	           )
+    </insert>
+    
+    <!-- 全车型查询 -->
+    <select id="queryListOfAllType" parameterType="java.util.Map" resultType="com.hanthink.pkg.model.PkgProposalModel">
+			 SELECT  to_char(BCB.car_type)       carType,
+	                 A.SUPPLIER_NO      supplierNo,
+	                 A.PART_NO          partNo,
+	                 A.PROPOSAL_STATUS  proposalStatus,
+	                 B.PART_WEIGHT      partWeight,
+	                 B.PACK_LENGTH      packLength,
+	                 B.PACK_WIDTH       packWidth,
+	                 B.PACK_HEIGHT      packHeight,
+	                 A.REPLY_LIMIT_DATE replyLimitDate,
+	                 G.CODE_VALUE_NAME  isComPack,
+	                 A.STATUS           status,
+	                 A.SIGN_PRO_FILE    signProFile,
+	                 A.EFF_START        effStart,
+	                 A.EFF_END          effEnd,
+	                 A.PART_RESP_USER   partRespUser,
+	                 A.PROJECT          project,
+	                 A.PACK_TYPE        packType,
+	                 B.GROUP_NO         groupNo,
+	                 B.STANDARD_PACKAGE standardPackage,
+	                 B.BOX_CODE       boxCode,
+	                 A.COM_PACK_REMARK  comPackRemark,
+	                 A.effStatus       effStatus,
+	                 to_char(B.TOTAL_WEIGHT,'fm99999999999999999990.000')     totalWeight,
+	                 to_char(B.PACK_WEIGHT,'fm99999999999999999990.000')      packWeight,
+	                 C.DETAIL_ADDR      area,
+	                 C.SUPPLIER_NAME	supplierName,
+	                 <!-- B.INT_MATE         intMate,
+	                 B.ONE_BY_PACKAGE   onePackage,
+	                 B.DUST_COVER       dustCover, -->
+	                 D.CODE_VALUE_NAME  intMate,
+		             E.CODE_VALUE_NAME  onePackage,
+		             F.CODE_VALUE_NAME  dustCover
+	            FROM (SELECT Z.*,
+	                         CASE
+	                           WHEN TRUNC(SYSDATE) BETWEEN TRUNC(Z.EFF_START) AND TRUNC(Z.EFF_END) THEN
+	                            '生效'
+	                           ELSE
+	                            '失效'
+	                         END effStatus
+	                    FROM MM_PKG_PROPOSAL Z) A
+	            LEFT JOIN MM_PKG_PROPOSAL_DETAIL B
+	              ON A.ID = B.PROPOSAL_ID
+	            LEFT JOIN MM_PUB_SUPPLIER C
+	              ON A.SUPPLIER_NO = C.SUPPLIER_NO
+	            LEFT JOIN (SELECT wm_concat(Z.CAR_TYPE) car_Type, Z.PART_NO,Z.SUPPLIER_NO
+	               FROM (SELECT UI.CAR_TYPE, UI.PART_NO,UI.SUPPLIER_NO
+	                       FROM MM_PKG_PART UI
+	                      GROUP BY UI.PART_NO, UI.CAR_TYPE,UI.SUPPLIER_NO) Z
+	              GROUP BY Z.PART_NO,Z.SUPPLIER_NO ) BCB
+	     ON BCB.PART_NO = A.PART_NO
+	     AND BCB.SUPPLIER_NO = A.SUPPLIER_NO
+	     
+	     LEFT JOIN MM_PUB_DATA_DICT D
+           ON D.FACTORY_CODE = #{model.factoryCode}
+           AND D.CODE_TYPE = 'PUB_IS_EXISTS'
+           AND B.INT_MATE = D.CODE_VALUE
+
+	      LEFT JOIN MM_PUB_DATA_DICT E
+	           ON E.FACTORY_CODE = #{model.factoryCode}
+	           AND E.CODE_TYPE = 'PUB_TRUE_FALSE'
+	           AND B.ONE_BY_PACKAGE = E.CODE_VALUE
+	           
+	      LEFT JOIN MM_PUB_DATA_DICT F
+	           ON F.FACTORY_CODE = #{model.factoryCode}
+	           AND F.CODE_TYPE = 'PUB_IS_EXISTS'
+	           AND B.DUST_COVER = F.CODE_VALUE
+           
+          LEFT JOIN MM_PUB_DATA_DICT G
+			   ON G.FACTORY_CODE = #{model.factoryCode}
+			   AND G.CODE_TYPE = 'PUB_TRUE_FALSE'
+			   AND G.CODE_VALUE = A.IS_COM_PACK
+			   
+           WHERE A.FACTORY_CODE = #{model.factoryCode}
+             AND A.PROPOSAL_STATUS = '5'
+		 <if test="model !=null">
+		 <if test="model.partNo !=null and model.partNo !='' ">
+		 AND	A.PART_NO LIKE CONCAT(#{model.partNo}, '%')
+		 </if>
+		 <if test="model.carType !=null and model.carType !='' ">
+		 AND	A.CAR_TYPE =#{model.carType}
+		 </if>
+		 <if test="model.supplierNo !=null and model.supplierNo !='' ">
+		 AND	A.SUPPLIER_NO =#{model.supplierNo}
+		 </if>
+		 <if test="model.supplierName !=null and model.supplierName !='' ">
+		 AND	C.SUPPLIER_NAME LIKE CONCAT(#{model.supplierName}, '%')
+		 </if>
+		 </if>
+		<if test="list != null and list.size > 0  ">
+		  AND A.CAR_TYPE  IN 
+		<foreach collection="list" item="carType" index="index" open="(" separator="," close=")">
+		     	 #{carType}
+		 </foreach>
+		</if>
+	     ORDER BY A.PART_NO ASC
+    </select>
+    
+    <!-- 包装查询，单车型查询 -->
+    <select id="queryListOfSigleType" parameterType="java.util.Map" resultType="com.hanthink.pkg.model.PkgProposalModel">
+		SELECT 
+		       A.CAR_TYPE         carType,
+		       A.SUPPLIER_NO      supplierNo,
+		       A.PART_NO          partNo,
+		       A.PROPOSAL_STATUS  proposalStatus,
+		       A.REPLY_LIMIT_DATE replyLimitDate,
+		       G.CODE_VALUE_NAME  isComPack,
+		       A.COM_PACK_REMARK  comPackRemark,
+		       A.STATUS 			status,
+		       A.SIGN_PRO_FILE 		signProFile,
+		       A.EFF_START 			effStart,
+		       A.EFF_END 			effEnd,
+		       A.PART_RESP_USER 	partRespUser,
+		       A.PROJECT 			project,
+		       A.PACK_TYPE 			packType,
+		       B.GROUP_NO 			groupNo,
+		       B.STANDARD_PACKAGE   standardPackage,
+		       to_char(B.PART_WEIGHT,'fm99999999999999999990.000')  partWeight,
+		       B.PACK_LENGTH 		packLength,
+		       B.PACK_WIDTH 		packWidth,
+		       B.PACK_HEIGHT 		packHeight,
+		       A.effStatus			effStatus,
+		       to_char(B.TOTAL_WEIGHT,'fm99999999999999999990.000')    totalWeight,
+               B.PACK_WEIGHT       packWeight,
+               C.DETAIL_ADDR      area,
+               C.SUPPLIER_NAME	   supplierName,
+	           <!-- B.INT_MATE         intMate,
+	           B.ONE_BY_PACKAGE   onePackage,
+	           B.DUST_COVER       dustCover, -->
+	           B.BOX_CODE         boxCode,
+	           D.CODE_VALUE_NAME  intMate,
+               E.CODE_VALUE_NAME  onePackage,
+               F.CODE_VALUE_NAME  dustCover
+		  FROM (SELECT Z.*,
+		               CASE
+		                 WHEN TRUNC(SYSDATE) BETWEEN TRUNC(Z.EFF_START) AND TRUNC(Z.EFF_END) THEN
+		                  '生效'
+		                 ELSE
+		                  '失效'
+		               END effStatus
+		          FROM MM_PKG_PROPOSAL Z) A
+		  LEFT JOIN MM_PKG_PROPOSAL_DETAIL B
+		    ON A.ID = B.PROPOSAL_ID
+		  LEFT JOIN MM_PUB_SUPPLIER C
+    	    ON A.SUPPLIER_NO = C.SUPPLIER_NO
+    	    
+    	  LEFT JOIN MM_PUB_DATA_DICT D
+           ON D.FACTORY_CODE = #{model.factoryCode}
+           AND D.CODE_TYPE = 'PUB_IS_EXISTS'
+           AND B.INT_MATE = D.CODE_VALUE
+
+	      LEFT JOIN MM_PUB_DATA_DICT E
+	           ON E.FACTORY_CODE = #{model.factoryCode}
+	           AND E.CODE_TYPE = 'PUB_TRUE_FALSE'
+	           AND B.ONE_BY_PACKAGE = E.CODE_VALUE
+	           
+	      LEFT JOIN MM_PUB_DATA_DICT F
+	           ON F.FACTORY_CODE = #{model.factoryCode}
+	           AND F.CODE_TYPE = 'PUB_IS_EXISTS'
+	           AND B.DUST_COVER = F.CODE_VALUE
+	           
+	      LEFT JOIN MM_PUB_DATA_DICT G
+			   ON G.FACTORY_CODE = #{model.factoryCode}
+			   AND G.CODE_TYPE = 'PUB_TRUE_FALSE'
+			   AND G.CODE_VALUE = A.IS_COM_PACK
+			   
+		 WHERE A.FACTORY_CODE = #{model.factoryCode}
+		  AND A.PROPOSAL_STATUS = '5'
+		 <if test="model !=null">
+		 <if test="model.partNo !=null and model.partNo !='' ">
+		 AND	A.PART_NO LIKE CONCAT(#{model.partNo}, '%')
+		 </if>
+		 <if test="model.carType !=null and model.carType !='' ">
+		 AND	A.CAR_TYPE =#{model.carType}
+		 </if>
+		 <if test="model.supplierNo !=null and model.supplierNo !='' ">
+		 AND	A.SUPPLIER_NO =#{model.supplierNo}
+		 </if>
+		 <if test="model.supplierName !=null and model.supplierName !='' ">
+		 AND	C.SUPPLIER_NAME LIKE CONCAT(#{model.supplierName}, '%')
+		 </if>
+		 </if>
+		<if test="list != null and list.size > 0 ">
+		  AND A.CAR_TYPE  IN 
+		  <foreach collection="list" item="carType" index="index" open="(" separator="," close=")">
+		     	 #{carType}
+		  </foreach>
+		</if>
+		ORDER BY A.CAR_TYPE ASC
+    </select>
+    
+    <!-- 组合车型查询 -->
+    <select id="queryListOfComPackType" parameterType="java.util.Map" resultType="com.hanthink.pkg.model.PkgProposalModel">
+		SELECT 
+		       to_char(ZQL.CARTYPE)        carType,
+		      
+		       A.SUPPLIER_NO      supplierNo,
+		       A.PART_NO          partNo,
+		       A.PROPOSAL_STATUS  proposalStatus,
+		       A.REPLY_LIMIT_DATE replyLimitDate,
+		       G.CODE_VALUE_NAME  isComPack,
+		       A.COM_PACK_REMARK  comPackRemark,
+		       A.SIGN_PRO_FILE    signProFile,
+		      
+		       A.PART_RESP_USER   partRespUser,
+		       A.PROJECT          project,
+		       A.PACK_TYPE        packType,
+		       B.GROUP_NO         groupNo,
+		       B.STANDARD_PACKAGE standardPackage,
+		       to_char(B.PART_WEIGHT,'fm99999999999999999990.000')      partWeight,
+		       B.PACK_LENGTH      packLength,
+		       B.PACK_WIDTH       packWidth,
+		       to_char(B.TOTAL_WEIGHT,'fm99999999999999999990.000')      totalWeight,
+		       B.PACK_HEIGHT      packHeight,
+		       B.BOX_CODE       boxCode,
+		       C.DETAIL_ADDR      area,
+		       C.SUPPLIER_NAME	   supplierName,
+               D.CODE_VALUE_NAME  intMate,
+               E.CODE_VALUE_NAME  onePackage,
+               F.CODE_VALUE_NAME  dustCover
+               
+		  FROM (SELECT Z.*,
+		               CASE
+		                 WHEN TRUNC(SYSDATE) BETWEEN TRUNC(Z.EFF_START) AND TRUNC(Z.EFF_END) THEN
+		                  '生效'
+		                 ELSE
+		                  '失效'
+		               END effStatus
+		          FROM MM_PKG_PROPOSAL Z) A
+		  LEFT JOIN MM_PKG_PROPOSAL_DETAIL B
+		    ON A.ID = B.PROPOSAL_ID
+		  LEFT JOIN MM_PUB_SUPPLIER C
+		    ON A.SUPPLIER_NO = C.SUPPLIER_NO
+		    
+		  LEFT JOIN MM_PUB_DATA_DICT D
+           ON D.FACTORY_CODE = #{model.factoryCode}
+           AND D.CODE_TYPE = 'PUB_IS_EXISTS'
+           AND B.INT_MATE = D.CODE_VALUE
+
+	      LEFT JOIN MM_PUB_DATA_DICT E
+	           ON E.FACTORY_CODE = #{model.factoryCode}
+	           AND E.CODE_TYPE = 'PUB_TRUE_FALSE'
+	           AND B.ONE_BY_PACKAGE = E.CODE_VALUE
+	           
+	      LEFT JOIN MM_PUB_DATA_DICT F
+	           ON F.FACTORY_CODE = #{model.factoryCode}
+	           AND F.CODE_TYPE = 'PUB_IS_EXISTS'
+	           AND B.DUST_COVER = F.CODE_VALUE
+	           
+	       LEFT JOIN MM_PUB_DATA_DICT G
+			   ON G.FACTORY_CODE = #{model.factoryCode}
+			   AND G.CODE_TYPE = 'PUB_TRUE_FALSE'
+			   AND G.CODE_VALUE = A.IS_COM_PACK
+		<if test="list !=null and list.size > 0 ">
+		 INNER JOIN(WITH TEMPA AS (SELECT COUNT(1) S, WM_CONCAT(CC.carType) carType
+		                             FROM (SELECT DISTINCT (BB.CAR_TYPE) carType
+		                                     FROM MM_PKG_PROPOSAL BB WHERE 
+		   BB.CAR_TYPE IN
+		  <foreach collection="list" item="carType" index="index" open="(" separator="," close=")">
+		     	 #{carType}
+		  </foreach>
+		)CC), TEMPB AS (SELECT COUNT(1) S,
+		       AA.PART_NO
+		       FROM MM_PKG_PROPOSAL AA WHERE 
+		  AA.CAR_TYPE IN  
+		  <foreach collection="list" item="carType" index="index" open="(" separator="," close=")">
+		     	 #{carType}
+		  </foreach>
+		       GROUP BY AA.PART_NO)
+		SELECT CC.carType, DD.PART_NO
+		  FROM TEMPA CC, TEMPB DD
+		 WHERE CC.S = DD.S) ZQL ON A.PART_NO = ZQL.PART_NO 
+		 </if>
+		 
+		 WHERE  A.FACTORY_CODE = #{model.factoryCode}
+		  AND A.PROPOSAL_STATUS = '5'
+		 <if test="model != null">
+		 <if test="model.partNo !=null and model.partNo !='' ">
+		 AND	A.PART_NO LIKE CONCAT(#{model.partNo}, '%')
+		 </if>
+		 <if test="model.carType !=null and model.carType !='' ">
+		 AND	A.CAR_TYPE =#{model.carType}
+		 </if>
+		 <if test="model.supplierNo !=null and model.supplierNo !='' ">
+		 AND	A.SUPPLIER_NO =#{model.supplierNo}
+		 </if>
+		 <if test="model.supplierName !=null and model.supplierName !='' ">
+		 AND	C.SUPPLIER_NAME LIKE CONCAT(#{model.supplierName}, '%')
+		 </if>
+		 </if>
+		 
+    </select>
+    
+    <!-- 包装容器数量管理界面，分页查询托盘 -->
+    <select id="queryTrayNumForPage" parameterType="com.hanthink.pkg.model.PkgProposalModel" resultType="com.hanthink.pkg.model.PkgProposalModel">
+			SELECT DISTINCT
+				   A.ID               id,
+			       A.CAR_TYPE         carType,
+			       A.SUPPLIER_NO      supplierNo,
+			       B.SUPPLIER_NAME    supplierName,
+			       A.PROVIDE_QTY      provideQty,
+			       A.TRAY_REQUIRE_QTY trayRequireQty,
+			       A.PLAN_DATE        planDate,
+			       A.DELAY_REASON     delayReason
+			  FROM MM_PKG_TRAY_QTY A   
+			  LEFT JOIN MM_PUB_SUPPLIER B 
+			    ON A.SUPPLIER_NO = B.SUPPLIER_NO
+			  WHERE A.FACTORY_CODE = #{factoryCode}
+			  <if test="carType !=null and carType !='' ">
+			   AND	A.CAR_TYPE =#{carType}
+			 </if>
+			 <if test="supplierNo !=null and supplierNo !='' ">
+			   AND	A.SUPPLIER_NO =#{supplierNo}
+			 </if>
+			 <if test="supplierName !=null and supplierName !='' ">
+			   AND	B.SUPPLIER_NAME  LIKE CONCAT (#{supplierName},'%')
+			 </if>
+			 <if test="partNo !=null and partNo !='' ">
+				AND PS.PART_NO LIKE CONCAT (#{partNo},'%')
+			  </if>
+			  ORDER BY A.ID DESC
+    </select>
+    
+    <!-- 包装容器数量管理界面，分页查询箱子 -->
+    <select id="queryBoxNumForPage" parameterType="com.hanthink.pkg.model.PkgProposalModel" resultType="com.hanthink.pkg.model.PkgProposalModel">
+		SELECT A.ID              id,
+		       A.PROPOSAL_ID     proposalId,
+		       A.PROVIDE_QTY     provideQty,
+		       A.BOX_REQUIRE_QTY boxRequireQty,
+		       A.HAIR_NOTE_MODEL hairNoteModel,
+		       A.PLAN_DATE       planDate,
+		       A.DELAY_REASON    delayReason,
+		       B.PACK_LENGTH     packLength,
+		       B.PACK_WIDTH      packWidth,
+		       B.PART_HEIGHT     packHeight,
+		       F.CODE_VALUE_NAME project,
+		       D.CAR_TYPE        carType,
+		       D.SUPPLIER_NO     supplierNo,
+		       E.SUPPLIER_NAME	 supplierName,
+		       D.PART_NO         partNo,
+		       E.BLONG_AREA      area,
+		       C.BOX_TYPE        boxType
+		  FROM MM_PKG_BOX_QTY A
+		  LEFT JOIN MM_PKG_PROPOSAL D
+		    ON A.PROPOSAL_ID = D.ID
+		  LEFT JOIN MM_PKG_PROPOSAL_DETAIL B
+		    ON A.PROPOSAL_ID = B.PROPOSAL_ID
+		  LEFT JOIN MM_PKG_BOX C
+		    ON B.BOX_CODE = C.BOX_CODE
+		  LEFT JOIN MM_PUB_SUPPLIER E
+		    ON D.SUPPLIER_NO = E.SUPPLIER_NO
+		  LEFT JOIN MM_PUB_DATA_DICT F
+	        ON D.PROJECT = F.CODE_VALUE
+	        AND F.CODE_TYPE = 'PUB_WORKCENTER'
+		  WHERE D.FACTORY_CODE = #{factoryCode}
+		  <if test="carType !=null and carType !='' ">
+			AND	D.CAR_TYPE =#{carType}
+		  </if>
+		  <if test="supplierNo !=null and supplierNo !='' ">
+			AND	D.SUPPLIER_NO =#{supplierNo}
+		  </if>
+		  <if test="supplierName !=null and supplierName !='' ">
+			AND D.SUPPLIER_NAME  LIKE CONCAT (#{supplierName},'%')
+		  </if>
+		  <if test="partNo !=null and partNo !='' ">
+			AND D.PART_NO LIKE CONCAT (#{partNo},'%')
+		  </if>
+		  ORDER BY A.ID DESC
+    </select>
+    
+    <!-- 实物审核通过后把提案信息写入到箱子需求量维护表 -->
+    <insert id="insertBoxQty" parameterType="com.hanthink.pkg.model.PkgProposalModel">
+    INSERT INTO MM_PKG_BOX_QTY
+    (ID,PROPOSAL_ID,FACTORY_CODE) 
+    VALUES(
+    SEQ_MM_PKG_BOX_QTY.NEXTVAL,
+    #{id,jdbcType = VARCHAR},
+    #{factoryCode,jdbcType = VARCHAR}
+    )
+    </insert>
+    
+    <!-- 箱子需求量管理 -->
+    <update id="updateBoxNeed" parameterType="com.hanthink.pkg.model.PkgProposalModel">
+    	UPDATE MM_PKG_BOX_QTY A SET A.BOX_REQUIRE_QTY = #{boxRequireQty,jdbcType = VARCHAR} WHERE A.ID = #{id}
+    </update>
+    <!-- 箱子纳入量管理 -->
+    <update id="updateBoxProvide" parameterType="com.hanthink.pkg.model.PkgProposalModel">
+    UPDATE MM_PKG_BOX_QTY A SET 
+    		 A.PROVIDE_QTY = #{provideQty,jdbcType = VARCHAR},
+    		 A.PLAN_DATE = to_date(#{planDate,jdbcType=VARCHAR},'yyyy-mm-dd'),
+    		 A.DELAY_REASON = #{delayReason,jdbcType = VARCHAR}
+    WHERE A.ID = #{id}
+    </update>
+    
+    <!-- 托盘需求量管理 -->
+    <update id="updateTrayNeed" parameterType="com.hanthink.pkg.model.PkgProposalModel">
+    	UPDATE MM_PKG_TRAY_QTY A SET A.TRAY_REQUIRE_QTY = #{trayRequireQty,jdbcType=VARCHAR} WHERE A.ID = #{id}
+    </update>
+    <!-- 托盘纳入量管理 -->
+    <update id="updateTrayProvide" parameterType="com.hanthink.pkg.model.PkgProposalModel">
+    UPDATE MM_PKG_TRAY_QTY A SET 
+	    A.PROVIDE_QTY = #{provideQty,jdbcType = VARCHAR}, 
+	    A.PLAN_DATE = TO_DATE(#{planDate,jdbcType=VARCHAR}, 'yyyy-mm-dd'), 
+	    A.DELAY_REASON = #{delayReason,jdbcType = VARCHAR}
+     WHERE A.ID = #{id}
+    </update>
+    
+    <!-- 查询界面，车型弹窗 -->
+    <select id="getCarType" parameterType="com.hanthink.pkg.model.PkgProposalModel" resultType="com.hanthink.pkg.model.PkgProposalModel">
+    	SELECT DISTINCT A.CAR_TYPE value,A.CAR_TYPE label FROM MM_PKG_PART A  WHERE A.FACTORY_CODE = #{factoryCode} AND A.CAR_TYPE IS NOT NULL
+    </select>
+    
+     <!-- 获取包装提案状态界面下拉框（不包括待发起） -->
+    <select id="getProposalStatus" parameterType="java.util.Map" resultType="com.hanthink.pkg.model.PkgProposalModel" >
+    SELECT A.CODE_VALUE value,A.CODE_VALUE_NAME label 
+    FROM MM_PUB_DATA_DICT A WHERE A.CODE_TYPE = 'PKG_STATUS' AND A.CODE_VALUE != 0 AND A.FACTORY_CODE = #{factoryCode}
+    </select>
+    
+    
+    	<!-- ***一下为和留用零件相关处理***************************************************************** -->
+	
+	<!-- 在进行包装提案时，如选择的零件为留用，则根据零件号查询出最后失效的且实物通过的包装信息 -->
+	<select id="getProposalByStayPart" parameterType="java.util.Map" resultType="com.hanthink.pkg.model.PkgProposalModel">
+			SELECT <!-- A.ID               id, -->
+		               A.CAR_TYPE         carType,
+		               A.SUPPLIER_NO      supplierNo,
+		               E.SUPPLIER_NAME     supplierName,
+		               E.DETAIL_ADDR       area,
+		               A.PART_NO          partNo,
+		               G.PART_NAME_CN      partNameCn,
+		               A.PROJECT          project,
+		               <!-- PD.CODE_VALUE_NAME project, -->
+		               A.IS_COM_PACK		isComPack,
+		               <!-- DD.CODE_VALUE_NAME   isComPack, -->
+		               A.COM_PACK_REMARK       comPackRemark, 
+		               A.SIGN_PRO_FILE		signProFile,
+		               A.PACK_TYPE        packType,
+		               A.PROPOSAL_STATUS	proposalStatus,
+		               Z.CODE_VALUE_NAME    proposalStatusName,
+		               A.STATUS				stayNewStatus,
+		               X.CODE_VALUE_NAME   	stayNewStatusName,
+		               TO_CHAR(A.REPLY_LIMIT_DATE, 'YYYY-MM-DD')	replyLimitDate,
+		               TO_CHAR(A.CREATION_TIME, 'YYYY-MM-DD HH24:MI') createTimesStr,
+		               A.BOX_TYPE				boxType,	
+		               BOXD.CODE_VALUE_NAME		boxTypeName,	
+		               B.BOX_CODE         boxCode,
+		               B.PACK_LENGTH      packLength,
+		               B.PACK_WIDTH       packWidth,
+		               B.PACK_HEIGHT      packHeight,
+		               to_char(B.PACK_WEIGHT,'fm99999999999999999990.000')      packWeight,
+		               
+		               B.STANDARD_PACKAGE standardPackage,
+		               B.BOARD_LOCATION   boardLocation,
+		                B.GROUP_NO        groupNo, 
+		                B.MAX_PACKAGE_NUM maxPackageNum, 
+		                to_char(B.PART_WEIGHT,'fm99999999999999999990.000')       partWeight, 
+		                
+		                B.PART_TOTAL_WEIGHT partTotalWeight,
+		                to_char(B.TOTAL_WEIGHT,'fm99999999999999999990.000')     totalWeight, 
+		                B.PART_LENGTH       partLength, 
+		                B.PART_WIDTH        partWidth, 
+		                B.PART_HEIGHT       partHeight, 
+		                B.EMPTY_TROLLEY_LENGTH  emptyTrolleyLength, 
+		                B.EMPTY_TROLLEY_WIDTH   emptyTrolleyWidth, 
+		                B.EMPTY_TROLLEY_HEIGHT  emptyTrolleyHeight, 
+		                B.REAL_TROLLEY_LENGTH   realTrolleyLength, 
+		                B.REAL_TROLLEY_WIDTH    realTrolleyWidth, 
+		                B.REAL_TROLLEY_HEIGHT   realTrolleyHeight, 
+		                to_char(B.TROLLEY_WEIGHT,'fm99999999999999999990.000')        trolleyWeight, 
+		                B.IS_TROLLEY_CODE       isTrolleyCode, 
+		                B.IS_POSITIONER         isPositioner, 
+		                B.DUST_COVER            dustCover, 
+		                B.ONE_BY_PACKAGE        onePackage, 
+		                B.INT_MATE				intMate,
+		                B.WHEEL_DIAMETER        wheelDiameter, 
+		                B.WORD_DESC             wordDesc, 
+		                B.TRACTION_ROD_HEIGHT   tractionRodHeight, 
+		                B.IMPORTANT_POSTION_PIC importantPostionPic, 
+		                B.EMPTY_TRO_FRONT_PIC   emptyTroFrontPic, 
+		                B.EMPTY_TRO_SIDE_PIC    emptyTroSidePic, 
+		                B.REAL_TRO_PIC          realTroPic,  
+		                B.TRAY_LENGTH           trayLength, 
+		                B.TRAY_WIDTH            trayWidth, 
+		                B.TRAY_HEIGHT           trayHeight, 
+		                B.WORK_REQUIRE          workRequire, 
+		                B.SINGLE_PART_PIC       singlePartPic, 
+		                B.SINGLE_PART_PUT_PIC   singlePartPutPic, 
+		                B.PACK_OVER_LOOK_PIC    packOverLookPic, 
+		                B.PACK_SIDE_LOOK_PIC    packSideLookPic,  
+		                B.FACTORY_CODE          factoryCode,
+		                B.SUP_NAME				packDeptContact,
+		                B.MOBILE				packDeptTel,
+		                B.MAIL					packDeptMail,
+	                    A.CHECK_REMARK			checkRemark,
+		                CASE WHEN A.SIGN_PRO_FILE IS NULL OR A.SIGN_PRO_FILE = '' THEN '无'
+         					ELSE '有' END isFile
+		              FROM  MM_PKG_PROPOSAL A 
+		              LEFT JOIN MM_PKG_PROPOSAL_DETAIL B  ON A.ID = B.PROPOSAL_ID 
+		              LEFT JOIN MM_PUB_PART_SUPPLIER D    ON A.PART_NO = D.PART_NO AND A.FACTORY_CODE = D.FACTORY_CODE
+		              LEFT JOIN MM_PUB_SUPPLIER E       ON D.SUPPLIER_NO = E.SUPPLIER_NO
+		              LEFT JOIN MM_PUB_PART G           ON A.PART_NO = G.PART_NO AND A.FACTORY_CODE = G.FACTORY_CODE
+		              LEFT JOIN MM_PUB_DATA_DICT Z      ON A.PROPOSAL_STATUS = Z.CODE_VALUE AND Z.CODE_TYPE = 'PKG_STATUS' AND Z.FACTORY_CODE = #{factoryCode}
+		              LEFT JOIN MM_PUB_DATA_DICT X      ON A.STATUS = X.CODE_VALUE AND X.CODE_TYPE = 'PKG_STAY_NEW' AND X.FACTORY_CODE = #{factoryCode}
+		              LEFT JOIN MM_PKG_BOX BOX    ON BOX.BOX_CODE = B.BOX_CODE AND BOX.FACTORY_CODE = #{factoryCode}
+		              LEFT JOIN MM_PUB_DATA_DICT BOXD ON BOXD.CODE_TYPE = 'INV_BOX_TYPE' AND BOXD.CODE_VALUE = A.BOX_TYPE AND BOXD.FACTORY_CODE = #{factoryCode}
+		              LEFT JOIN MM_PUB_DATA_DICT DD ON DD.CODE_TYPE = 'PUB_TRUE_FALSE' AND A.IS_COM_PACK = DD.CODE_VALUE AND DD.FACTORY_CODE = #{factoryCode}
+		          	  LEFT JOIN MM_PUB_DATA_DICT PD ON PD.CODE_TYPE = 'PUB_WORKCENTER' AND A.PROJECT = PD.CODE_VALUE AND PD.FACTORY_CODE = #{factoryCode}
+		              
+		              WHERE 1=1
+		              <if test="null != partNo and '' != partNo">
+		              AND A.PART_NO = #{partNo} 
+		              </if>
+		              <if test="null != comPackRemark and  comPackRemark.size() > 0">
+		              <!-- AND A.COM_PACK_REMARK = #{comPackRemark,jdbcType=VARCHAR}  -->
+		              AND length(A.COM_PACK_REMARK)- length(replace(A.COM_PACK_REMARK, ',' , '')) = #{size}
+		              AND  A.COM_PACK_REMARK IS NOT NULL
+		              
+		              <foreach collection="comPackRemark" item="item" index="index" open="" close="" separator="">
+		              AND  INSTR(A.COM_PACK_REMARK, #{item.partNo,jdbcType=VARCHAR}) > 0 
+   					  </foreach>
+		              </if>
+		              AND A.PROPOSAL_STATUS = #{proposalStatus}
+		              AND ROWNUM = 1
+		              ORDER BY A.EFF_END DESC 
+	</select>
+	
+</mapper>

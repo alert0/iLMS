@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context" 
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+	http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+	http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+	http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd
+	">				
+
+	<bean id="taskCreateListener" class="com.hotent.bpmx.activiti.ext.listener.TaskCreateListener" autowire="default">
+		<property name="taskCommands">
+			<list>
+		 		<ref bean="pluginTaskCommand"/>
+			</list>
+		</property>
+		<property name="executionCommands">
+			<list>
+		 		<ref bean="pluginExecutionCommand"/>
+			</list>
+		</property>
+	</bean>
+	
+	<bean id="taskCompleteListener" class="com.hotent.bpmx.activiti.ext.listener.TaskCompleteListener">
+		<property name="taskCommands">
+			<list>
+		 		<ref bean="pluginTaskCommand"/>
+			</list>
+		</property>	
+		<property name="executionCommands">
+			<list>
+		 		<ref bean="pluginExecutionCommand"/>
+			</list>
+		</property>
+	</bean>
+	<bean id="taskSignCreateListener" class="com.hotent.bpmx.activiti.ext.listener.TaskSignCreateListener">
+		<property name="taskCommands">
+			<list>
+		 		<ref bean="pluginTaskCommand"/>
+			</list>
+		</property>	
+		<property name="executionCommands">
+			<list>
+		 		<ref bean="pluginExecutionCommand"/>
+			</list>
+		</property>
+	</bean>
+	<!-- 执行命令 -->
+	<bean id="startEventListener" class="com.hotent.bpmx.activiti.ext.listener.StartEventListener">
+		<property name="executionCommands">
+			<list>
+		 		<ref bean="pluginExecutionCommand"/>
+			</list>
+		</property>
+	</bean>
+	
+	
+	<!-- 自动任务处理类 -->
+	<bean id="customServiceTask" class="com.hotent.bpmx.activiti.ext.servicetask.CustomServiceTask">
+		<property name="executionCommands">
+			<list>
+		 		<ref bean="pluginExecutionCommand"/>
+			</list>
+		</property>
+	</bean>
+	
+	
+	<bean id="endEventListener" class="com.hotent.bpmx.activiti.ext.listener.EndEventListener">
+		<property name="executionCommands">
+			<list>
+		 		<ref bean="pluginExecutionCommand"/>
+			</list>
+		</property>
+	</bean>
+	
+	
+	
+	<bean id="callSubProcessEndListener" class="com.hotent.bpmx.activiti.ext.listener.CallSubProcessEndListener"></bean>
+	<bean id="callSubProcessStartListener" class="com.hotent.bpmx.activiti.ext.listener.CallSubProcessStartListener"></bean>
+	
+	<bean id="subProcessStartListener" class="com.hotent.bpmx.activiti.ext.listener.SubProcessStartListener"></bean>
+	<bean id="subProcessEndListener" class="com.hotent.bpmx.activiti.ext.listener.SubProcessEndListener"></bean>
+	
+	
+	<bean id="bpmDefinitionAccessor" class="com.hotent.bpmx.persistence.manager.DefaultBpmDefinitionAccessor"></bean>	
+	<bean id="bpmIdentityConverter" class="com.hotent.bpmx.core.helper.identity.DefaultBpmIdentityConverter"/>
+	<bean id="bpmIdentityBuilder" class="com.hotent.bpmx.core.helper.identity.DefaultBpmIdentityBuilder"/>
+	<bean id="bpmPluginSessionFactory" class="com.hotent.bpmx.plugin.core.factory.DefaultBpmPluginSessionFactory"/>	
+	
+	
+	
+	
+	
+</beans>

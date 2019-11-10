@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanthink.mp.model.MpExcepOrderDemandHisModel">
+
+	<!-- 分页查询导出结果-->
+	<select id="queryMpExcepOrderDemandHisForPage" parameterType="com.hanthink.mp.model.MpExcepOrderDemandHisModel" 
+	resultType="com.hanthink.mp.model.MpExcepOrderDemandHisModel">
+		   SELECT  A.ID   id,
+			       B.ORDER_NO  orderNo,
+			       D.PURCHASE_NO  purchaseNo,
+			       C.ROW_NO  rowNo,
+			       A.PART_NO partNo,
+			       A.SUP_FACTORY supFactory,
+			       E.SUPPLIER_NAME  supplierName,
+			       TO_CHAR(A.ARRIVE_DATE, 'YYYY-MM-DD') arriveDateStr,
+			       A.ORDER_NUM orderNum,
+			       A.SUPPLIER_NO supplierNo,
+			       A.FACTORY_CODE factoryCode,
+			       A.STORAGE  storage
+				   FROM MM_MP_EXCEP_ORDER_DEMAND A
+			       LEFT JOIN MM_MP_EXC_OD_RELATION B
+			       ON A.ID = B.DEMAND_ID
+			       AND A.FACTORY_CODE = B.FACTORY_CODE
+			       LEFT JOIN MM_MP_EXCEP_ORDER_DETAIL C
+			       ON B.ORDER_NO = C.ORDER_NO
+			       AND A.PART_NO = C.PART_NO
+			       LEFT JOIN MM_MP_EXCEP_ORDER D
+			       ON B.ORDER_NO = D.ORDER_NO
+			       AND D.FACTORY_CODE = A.FACTORY_CODE
+			       LEFT JOIN MM_PUB_SUPPLIER E
+			       ON E.SUPPLIER_NO = A.SUPPLIER_NO
+				   WHERE 1=1
+			 		<if test="supplierNo!=null and supplierNo!='' ">
+						AND A.SUPPLIER_NO = #{supplierNo}
+					</if> 
+					<if test="supFactory!=null and supFactory!='' ">
+						AND A.SUP_FACTORY = #{supFactory}
+					</if> 
+					<if test="partNo!=null and partNo!='' ">
+						AND A.PART_NO like LIKE CONCAT(#{partNo}, '%')
+					</if>
+					<if test="arriveDateStrStart != null and arriveDateStrStart != ''">
+					<![CDATA[ AND A.ARRIVE_DATE >= TO_DATE(#{arriveDateStrStart},'yyyy-MM-dd hh24:mi:ss') ]]>
+					</if>
+			        <if test="arriveDateStrEnd != null and arriveDateStrEnd != ''">
+			        <![CDATA[ AND A.ARRIVE_DATE <= TO_DATE(#{arriveDateStrEnd},'yyyy-MM-dd hh24:mi:ss') ]]>
+			        </if>
+			            AND A.FACTORY_CODE = #{factoryCode}
+	       UNION ALL
+           SELECT  A.ID   id,
+			       B.ORDER_NO  orderNo,
+			       D.PURCHASE_NO  purchaseNo,
+			       C.ROW_NO  rowNo,
+			       A.PART_NO partNo,
+			       A.SUP_FACTORY supFactory,
+			       E.SUPPLIER_NAME  supplierName,
+			       TO_CHAR(A.ARRIVE_DATE, 'YYYY-MM-DD') arriveDateStr,
+			       A.ORDER_NUM orderNum,
+			       A.SUPPLIER_NO supplierNo,
+			       A.FACTORY_CODE factoryCode,
+			       A.STORAGE storage
+				   FROM MM_MP_EXCEP_ORDER_DEMAND_HIS A
+			       LEFT JOIN MM_MP_EXC_OD_RELATION B
+			       ON A.ID = B.DEMAND_ID
+			       AND A.FACTORY_CODE = B.FACTORY_CODE
+			       LEFT JOIN MM_MP_EXCEP_ORDER_DETAIL C
+			       ON B.ORDER_NO = C.ORDER_NO
+			       AND A.PART_NO = C.PART_NO
+			       AND A.STORAGE = C.ORDER_DEPOT
+			       LEFT JOIN MM_MP_EXCEP_ORDER D
+			       ON B.ORDER_NO = D.ORDER_NO
+			       AND D.FACTORY_CODE = A.FACTORY_CODE
+			       LEFT JOIN MM_PUB_SUPPLIER E
+			       ON E.SUPPLIER_NO = A.SUPPLIER_NO
+				   WHERE 1=1
+			 		<if test="supplierNo!=null and supplierNo!='' ">
+						AND A.SUPPLIER_NO = #{supplierNo}
+					</if> 
+					<if test="supFactory!=null and supFactory!='' ">
+						AND A.SUP_FACTORY = #{supFactory}
+					</if> 
+					<if test="partNo!=null and partNo!='' ">
+						AND A.PART_NO like #{partNo}||'%'
+					</if>
+					<if test="arriveDateStrStart != null and arriveDateStrStart != ''">
+					<![CDATA[ AND A.ARRIVE_DATE >= TO_DATE(#{arriveDateStrStart},'yyyy-MM-dd hh24:mi:ss') ]]>
+					</if>
+			        <if test="arriveDateStrEnd != null and arriveDateStrEnd != ''">
+			        <![CDATA[ AND A.ARRIVE_DATE <= TO_DATE(#{arriveDateStrEnd},'yyyy-MM-dd hh24:mi:ss') ]]>
+			        </if>
+			            AND A.FACTORY_CODE = #{factoryCode}
+		     ORDER BY 8
+	</select>
+	 
+	<!-- 例外订单生成 -->
+	<parameterMap type="map" id="generateMpExcepOrderDemandHisMap">  
+		<parameter property="factoryCode" jdbcType="VARCHAR" mode="IN"/>   
+		<parameter property="outCode" jdbcType="INTEGER" mode="OUT"/> 
+	</parameterMap> 
+	<select id="generateMpExcepOrderDemandHis" parameterMap="generateMpExcepOrderDemandHisMap" statementType="CALLABLE">
+		{CALL PKG_MP_MAIN.USP_MP_EXC_ZSB(?,?)}
+	</select>
+	
+	<!-- 例外订单发布 -->
+	<parameterMap type="map" id="releaseMpExcepOrderDemandHisMap">  
+		<parameter property="factoryCode" jdbcType="VARCHAR" mode="IN"/>   
+		<parameter property="opeId" jdbcType="VARCHAR" mode="IN"/>  
+		<parameter property="outCode" jdbcType="INTEGER" mode="OUT"/>  
+	</parameterMap> 
+	<select id="releaseMpExcepOrderDemandHis" parameterMap="releaseMpExcepOrderDemandHisMap" statementType="CALLABLE">
+		{CALL PKG_MP_MAIN.USP_MP_EXC_PO(?,?,?)}
+	</select>
+	
+</mapper>
